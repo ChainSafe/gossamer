@@ -44,7 +44,7 @@ type ImplicitView interface {
 	//
 	// This will not request any additional data, as prospective parachains already provides all
 	// the required info.
-	// NOTE: using `activate_leaf` instead of this function will result in a
+	// NOTE: using [ActivateLeaf] instead of this function will result in a
 	// deadlock, as it calls prospective-parachains under the hood.
 	//
 	// No-op for known leaves.

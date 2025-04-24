@@ -187,8 +187,8 @@ func (e *errValidationCodeMismatch) Error() string {
 }
 
 type errHeadDataTooLong struct {
-	max uint
-	got uint
+	max uint32
+	got uint32
 }
 
 func (e *errHeadDataTooLong) Error() string {

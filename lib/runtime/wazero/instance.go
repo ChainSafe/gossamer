@@ -1558,7 +1558,7 @@ func (in *Instance) ParachainHostSchedulingLookAhead() (uint32, error) {
 
 func (in *Instance) ParachainHostBackingConstraints(
 	paraID parachaintypes.ParaID,
-) (*parachaintypes.Constraints, error) {
+) (*parachaintypes.VStagingConstraints, error) {
 	encodedParaID, err := scale.Marshal(paraID)
 	if err != nil {
 		return nil, fmt.Errorf("marshalling para id: %w", err)
@@ -1569,7 +1569,7 @@ func (in *Instance) ParachainHostBackingConstraints(
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var constraints *parachaintypes.Constraints
+	var constraints *parachaintypes.VStagingConstraints
 	err = scale.Unmarshal(encoded, &constraints)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)

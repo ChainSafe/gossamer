@@ -78,7 +78,7 @@ type Instance interface {
 	ParachainHostDisabledValidators() ([]parachaintypes.ValidatorIndex, error)
 	ParachainHostDisputes() (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error)
 	ParachainHostSchedulingLookAhead() (uint32, error)
-	ParachainHostBackingConstraints(paraID parachaintypes.ParaID) (*parachaintypes.Constraints, error)
+	ParachainHostBackingConstraints(paraID parachaintypes.ParaID) (*parachaintypes.VStagingConstraints, error)
 	ParachainHostCandidatesPendingAvailability(paraID parachaintypes.ParaID,
 	) ([]parachaintypes.CommittedCandidateReceiptV2, error)
 }

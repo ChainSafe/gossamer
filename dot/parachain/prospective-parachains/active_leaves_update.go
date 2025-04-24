@@ -229,15 +229,10 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 	// under implicitly view
 	allowedRelayParents := pp.view.implicitView.AllAllowedRelayParents()
 
-	rpToDelete := make([]common.Hash, 0)
 	for rp := range pp.view.perRelayParent {
 		if !slices.Contains(allowedRelayParents, rp) {
-			rpToDelete = append(rpToDelete, rp)
+			delete(pp.view.perRelayParent, rp)
 		}
-	}
-
-	for _, rp := range rpToDelete {
-		delete(pp.view.perRelayParent, rp)
 	}
 
 	return nil
@@ -299,7 +294,7 @@ func (pp *ProspectiveParachains) fetchAncestry(
 			return nil, fmt.Errorf("getting runtime: %w", err)
 		}
 
-		acenstorSessionIndex, err := runtimeInstance.ParachainHostSessionIndexForChild()
+		ancestorSessionIndex, err := runtimeInstance.ParachainHostSessionIndexForChild()
 		if err != nil {
 			return nil, fmt.Errorf("fetching session index for child: %w", err)
 		}
@@ -308,7 +303,7 @@ func (pp *ProspectiveParachains) fetchAncestry(
 		// potentially previous validators. This is a technical limitation we need to
 		// respect here.
 
-		if requiredSession == acenstorSessionIndex {
+		if requiredSession == ancestorSessionIndex {
 			ancestorsBlockInfo = append(ancestorsBlockInfo, ancestorInfo)
 		} else {
 			break
@@ -328,7 +323,7 @@ type importablePendingAvailability struct {
 
 func (pp *ProspectiveParachains) preprocessCandidatesPendingAvailability(
 	blockInfoCache map[common.Hash]*types.Header,
-	constraints *parachaintypes.Constraints,
+	constraints *parachaintypes.VStagingConstraints,
 	pendingAvailabilityCandidates []parachaintypes.CommittedCandidateReceiptV2,
 ) ([]importablePendingAvailability, error) {
 	requiredParent := constraints.RequiredParent

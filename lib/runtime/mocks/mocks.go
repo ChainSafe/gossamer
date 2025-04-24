@@ -376,10 +376,10 @@ func (mr *MockInstanceMockRecorder) ParachainHostAvailabilityCores() *gomock.Cal
 }
 
 // ParachainHostBackingConstraints mocks base method.
-func (m *MockInstance) ParachainHostBackingConstraints(paraID parachaintypes.ParaID) (*parachaintypes.Constraints, error) {
+func (m *MockInstance) ParachainHostBackingConstraints(paraID parachaintypes.ParaID) (*parachaintypes.VStagingConstraints, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostBackingConstraints", paraID)
-	ret0, _ := ret[0].(*parachaintypes.Constraints)
+	ret0, _ := ret[0].(*parachaintypes.VStagingConstraints)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

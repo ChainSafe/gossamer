@@ -220,12 +220,12 @@ func dummyConstraintsV2(
 	validWatermarks []parachaintypes.BlockNumber,
 	requiredParent parachaintypes.HeadData,
 	validationCodeHash parachaintypes.ValidationCodeHash,
-) *parachaintypes.Constraints {
-	return &parachaintypes.Constraints{
-		MinRelayParentNumber: minRelayParentNumber,
-		MaxPoVSize:           MaxPoVSize,
-		// TODO include max_head_data_size: 20480,
+) *parachaintypes.VStagingConstraints {
+	return &parachaintypes.VStagingConstraints{
+		MinRelayParentNumber:   minRelayParentNumber,
+		MaxPoVSize:             MaxPoVSize,
 		MaxCodeSize:            1_000_000,
+		MaxHeadDataSize:        20480,
 		UMPRemaining:           10,
 		UMPRemainingBytes:      1_000,
 		MaxNumUMPPerCandidate:  10,
@@ -1672,7 +1672,8 @@ func TestHandleBacked(
 
 func TestActivateLeafSignalHandler(t *testing.T) {
 	cases := map[string]struct {
-		setup func(*testing.T) (*ProspectiveParachains, parachaintypes.ActiveLeavesUpdateSignal)
+		setup  func(*testing.T) (*ProspectiveParachains, parachaintypes.ActiveLeavesUpdateSignal)
+		assert func(*testing.T, parachaintypes.ActiveLeavesUpdateSignal, *ProspectiveParachains)
 	}{
 		"no_ancestry_and_no_previous_fragment_chains": {
 			setup: func(t *testing.T) (*ProspectiveParachains, parachaintypes.ActiveLeavesUpdateSignal) {
@@ -1696,8 +1697,8 @@ func TestActivateLeafSignalHandler(t *testing.T) {
 				}
 
 				ctrl := gomock.NewController(t)
-				mockImplicitlyView := NewMockImplicitView(ctrl)
-				mockImplicitlyView.EXPECT().
+				mockImplicitView := NewMockImplicitView(ctrl)
+				mockImplicitView.EXPECT().
 					ActivateLeafFromProspectiveParachains(
 						&backing.BlockInfoProspectiveParachains{
 							Hash:        activeLeafHash,
@@ -1707,7 +1708,7 @@ func TestActivateLeafSignalHandler(t *testing.T) {
 						},
 						[]*backing.BlockInfoProspectiveParachains{},
 					)
-				mockImplicitlyView.EXPECT().
+				mockImplicitView.EXPECT().
 					AllAllowedRelayParents().
 					Return([]common.Hash{activeLeafHash})
 
@@ -1764,7 +1765,7 @@ func TestActivateLeafSignalHandler(t *testing.T) {
 
 				pp := NewProspectiveParachains(subsystemToOverseer)
 				pp.blockState = mockBlockState
-				pp.view.implicitView = mockImplicitlyView
+				pp.view.implicitView = mockImplicitView
 
 				msg := parachaintypes.ActiveLeavesUpdateSignal{
 					Activated: &parachaintypes.ActivatedLeaf{
@@ -1775,29 +1776,28 @@ func TestActivateLeafSignalHandler(t *testing.T) {
 
 				return pp, msg
 			},
+			assert: func(t *testing.T, msg parachaintypes.ActiveLeavesUpdateSignal, pp *ProspectiveParachains) {
+				require.True(t, pp.view.activeLeaves[msg.Activated.Hash])
+
+				rp, ok := pp.view.perRelayParent[msg.Activated.Hash]
+				require.True(t, ok)
+
+				fc, ok := rp.fragmentChains[parachaintypes.ParaID(1)]
+				require.True(t, ok)
+				require.NotNil(t, fc)
+			},
 		},
 	}
 
 	for tname, tt := range cases {
 		tt := tt
 		t.Run(tname, func(t *testing.T) {
-			overseerToSubsystem := make(chan any)
 			pp, activeLeafMsg := tt.setup(t)
 
-			ctx, cancel := context.WithCancel(context.Background())
+			err := pp.ProcessActiveLeavesUpdateSignal(activeLeafMsg)
+			require.NoError(t, err)
 
-			// Run prospectiveParachains in a separate goroutine
-			var wg sync.WaitGroup
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				pp.Run(ctx, overseerToSubsystem)
-			}()
-
-			overseerToSubsystem <- activeLeafMsg
-			cancel()
-			wg.Wait()
+			tt.assert(t, activeLeafMsg, pp)
 		})
 	}
-
 }

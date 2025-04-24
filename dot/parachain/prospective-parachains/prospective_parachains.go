@@ -455,13 +455,13 @@ func (pp *ProspectiveParachains) getHypotheticalMembership(
 	var activeLeaves []common.Hash
 
 	if msg.FragmentChainRelayParent == nil {
-		activeLeaves = maps.Keys(pp.View.activeLeaves)
-	} else if _, ok := pp.View.activeLeaves[*msg.FragmentChainRelayParent]; ok {
+		activeLeaves = maps.Keys(pp.view.activeLeaves)
+	} else if _, ok := pp.view.activeLeaves[*msg.FragmentChainRelayParent]; ok {
 		activeLeaves = []common.Hash{*msg.FragmentChainRelayParent}
 	}
 
 	for _, al := range activeLeaves {
-		leafView, ok := pp.View.perRelayParent[al]
+		leafView, ok := pp.view.perRelayParent[al]
 		if !ok {
 			continue
 		}
@@ -503,7 +503,7 @@ func (pp *ProspectiveParachains) getHypotheticalMembership(
 	for _, item := range response {
 		if len(item.HypotheticalMembership) == 0 {
 			var hashes []string
-			for _, hash := range maps.Keys(pp.View.activeLeaves) {
+			for _, hash := range maps.Keys(pp.view.activeLeaves) {
 				hashes = append(hashes, hash.String())
 			}
 

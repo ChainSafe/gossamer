@@ -1845,7 +1845,7 @@ func TestInstance_ParachainHostBackingConstraints(t *testing.T) {
 	constraints, err := rt.ParachainHostBackingConstraints(parachaintypes.ParaID(1001))
 	require.NoError(t, err)
 
-	expectedConstraint := &parachaintypes.Constraints{
+	expectedConstraint := &parachaintypes.VStagingConstraints{
 		MinRelayParentNumber:  25605480,
 		MaxPoVSize:            10485760,
 		MaxCodeSize:           3145728,
@@ -1897,7 +1897,7 @@ func TestInstance_ParachainHostCandidatesPendingAvailability(t *testing.T) {
 	tt := getParachainHostTrie(t, disputesStateData.Storage)
 	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_STABLE_2503, TestWithTrie(tt))
 
-	commitedCandidatesRecptV2, err := rt.ParachainHostCandidatesPendingAvailability(parachaintypes.ParaID(1001))
+	committedCandidateReceiptsV2, err := rt.ParachainHostCandidatesPendingAvailability(parachaintypes.ParaID(1001))
 	require.NoError(t, err)
 
 	expectedCommittedCandidateReceipt := []parachaintypes.CommittedCandidateReceiptV2{
@@ -1934,7 +1934,7 @@ func TestInstance_ParachainHostCandidatesPendingAvailability(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, expectedCommittedCandidateReceipt, commitedCandidatesRecptV2)
+	require.Equal(t, expectedCommittedCandidateReceipt, committedCandidateReceiptsV2)
 }
 
 func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *inmemory_trie.InMemoryTrie {
