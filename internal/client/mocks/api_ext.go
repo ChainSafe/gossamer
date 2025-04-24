@@ -30,12 +30,12 @@ func (_m *ApiExt[N, E, H, Hasher, Backend, Result]) EXPECT() *ApiExt_Expecter[N,
 	return &ApiExt_Expecter[N, E, H, Hasher, Backend, Result]{mock: &_m.Mock}
 }
 
-// ApiVersion provides a mock function with given fields: atHash
-func (_m *ApiExt[N, E, H, Hasher, Backend, Result]) ApiVersion(atHash H) (*uint32, error) {
+// APIVersion provides a mock function with given fields: atHash
+func (_m *ApiExt[N, E, H, Hasher, Backend, Result]) APIVersion(atHash H) (*uint32, error) {
 	ret := _m.Called(atHash)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ApiVersion")
+		panic("no return value specified for APIVersion")
 	}
 
 	var r0 *uint32
@@ -60,30 +60,30 @@ func (_m *ApiExt[N, E, H, Hasher, Backend, Result]) ApiVersion(atHash H) (*uint3
 	return r0, r1
 }
 
-// ApiExt_ApiVersion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ApiVersion'
-type ApiExt_ApiVersion_Call[N runtime.Number, E runtime.Extrinsic, H runtime.Hash, Hasher runtime.Hasher[H], Backend statemachine.Backend[H, Hasher], Result interface{}] struct {
+// ApiExt_APIVersion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'APIVersion'
+type ApiExt_APIVersion_Call[N runtime.Number, E runtime.Extrinsic, H runtime.Hash, Hasher runtime.Hasher[H], Backend statemachine.Backend[H, Hasher], Result interface{}] struct {
 	*mock.Call
 }
 
-// ApiVersion is a helper method to define mock.On call
+// APIVersion is a helper method to define mock.On call
 //   - atHash H
-func (_e *ApiExt_Expecter[N, E, H, Hasher, Backend, Result]) ApiVersion(atHash interface{}) *ApiExt_ApiVersion_Call[N, E, H, Hasher, Backend, Result] {
-	return &ApiExt_ApiVersion_Call[N, E, H, Hasher, Backend, Result]{Call: _e.mock.On("ApiVersion", atHash)}
+func (_e *ApiExt_Expecter[N, E, H, Hasher, Backend, Result]) APIVersion(atHash interface{}) *ApiExt_APIVersion_Call[N, E, H, Hasher, Backend, Result] {
+	return &ApiExt_APIVersion_Call[N, E, H, Hasher, Backend, Result]{Call: _e.mock.On("APIVersion", atHash)}
 }
 
-func (_c *ApiExt_ApiVersion_Call[N, E, H, Hasher, Backend, Result]) Run(run func(atHash H)) *ApiExt_ApiVersion_Call[N, E, H, Hasher, Backend, Result] {
+func (_c *ApiExt_APIVersion_Call[N, E, H, Hasher, Backend, Result]) Run(run func(atHash H)) *ApiExt_APIVersion_Call[N, E, H, Hasher, Backend, Result] {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(H))
 	})
 	return _c
 }
 
-func (_c *ApiExt_ApiVersion_Call[N, E, H, Hasher, Backend, Result]) Return(_a0 *uint32, _a1 error) *ApiExt_ApiVersion_Call[N, E, H, Hasher, Backend, Result] {
+func (_c *ApiExt_APIVersion_Call[N, E, H, Hasher, Backend, Result]) Return(_a0 *uint32, _a1 error) *ApiExt_APIVersion_Call[N, E, H, Hasher, Backend, Result] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *ApiExt_ApiVersion_Call[N, E, H, Hasher, Backend, Result]) RunAndReturn(run func(H) (*uint32, error)) *ApiExt_ApiVersion_Call[N, E, H, Hasher, Backend, Result] {
+func (_c *ApiExt_APIVersion_Call[N, E, H, Hasher, Backend, Result]) RunAndReturn(run func(H) (*uint32, error)) *ApiExt_APIVersion_Call[N, E, H, Hasher, Backend, Result] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -230,12 +230,12 @@ func (_c *ApiExt_ExtractProof_Call[N, E, H, Hasher, Backend, Result]) RunAndRetu
 	return _c
 }
 
-// HasApi provides a mock function with given fields: atHash
-func (_m *ApiExt[N, E, H, Hasher, Backend, Result]) HasApi(atHash H) (bool, error) {
+// HasAPI provides a mock function with given fields: atHash
+func (_m *ApiExt[N, E, H, Hasher, Backend, Result]) HasAPI(atHash H) (bool, error) {
 	ret := _m.Called(atHash)
 
 	if len(ret) == 0 {
-		panic("no return value specified for HasApi")
+		panic("no return value specified for HasAPI")
 	}
 
 	var r0 bool
@@ -258,40 +258,40 @@ func (_m *ApiExt[N, E, H, Hasher, Backend, Result]) HasApi(atHash H) (bool, erro
 	return r0, r1
 }
 
-// ApiExt_HasApi_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HasApi'
-type ApiExt_HasApi_Call[N runtime.Number, E runtime.Extrinsic, H runtime.Hash, Hasher runtime.Hasher[H], Backend statemachine.Backend[H, Hasher], Result interface{}] struct {
+// ApiExt_HasAPI_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HasAPI'
+type ApiExt_HasAPI_Call[N runtime.Number, E runtime.Extrinsic, H runtime.Hash, Hasher runtime.Hasher[H], Backend statemachine.Backend[H, Hasher], Result interface{}] struct {
 	*mock.Call
 }
 
-// HasApi is a helper method to define mock.On call
+// HasAPI is a helper method to define mock.On call
 //   - atHash H
-func (_e *ApiExt_Expecter[N, E, H, Hasher, Backend, Result]) HasApi(atHash interface{}) *ApiExt_HasApi_Call[N, E, H, Hasher, Backend, Result] {
-	return &ApiExt_HasApi_Call[N, E, H, Hasher, Backend, Result]{Call: _e.mock.On("HasApi", atHash)}
+func (_e *ApiExt_Expecter[N, E, H, Hasher, Backend, Result]) HasAPI(atHash interface{}) *ApiExt_HasAPI_Call[N, E, H, Hasher, Backend, Result] {
+	return &ApiExt_HasAPI_Call[N, E, H, Hasher, Backend, Result]{Call: _e.mock.On("HasAPI", atHash)}
 }
 
-func (_c *ApiExt_HasApi_Call[N, E, H, Hasher, Backend, Result]) Run(run func(atHash H)) *ApiExt_HasApi_Call[N, E, H, Hasher, Backend, Result] {
+func (_c *ApiExt_HasAPI_Call[N, E, H, Hasher, Backend, Result]) Run(run func(atHash H)) *ApiExt_HasAPI_Call[N, E, H, Hasher, Backend, Result] {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(H))
 	})
 	return _c
 }
 
-func (_c *ApiExt_HasApi_Call[N, E, H, Hasher, Backend, Result]) Return(_a0 bool, _a1 error) *ApiExt_HasApi_Call[N, E, H, Hasher, Backend, Result] {
+func (_c *ApiExt_HasAPI_Call[N, E, H, Hasher, Backend, Result]) Return(_a0 bool, _a1 error) *ApiExt_HasAPI_Call[N, E, H, Hasher, Backend, Result] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *ApiExt_HasApi_Call[N, E, H, Hasher, Backend, Result]) RunAndReturn(run func(H) (bool, error)) *ApiExt_HasApi_Call[N, E, H, Hasher, Backend, Result] {
+func (_c *ApiExt_HasAPI_Call[N, E, H, Hasher, Backend, Result]) RunAndReturn(run func(H) (bool, error)) *ApiExt_HasAPI_Call[N, E, H, Hasher, Backend, Result] {
 	_c.Call.Return(run)
 	return _c
 }
 
-// HasApiWith provides a mock function with given fields: atHash, pred
-func (_m *ApiExt[N, E, H, Hasher, Backend, Result]) HasApiWith(atHash H, pred func(uint32) bool) (bool, error) {
+// HasAPIWith provides a mock function with given fields: atHash, pred
+func (_m *ApiExt[N, E, H, Hasher, Backend, Result]) HasAPIWith(atHash H, pred func(uint32) bool) (bool, error) {
 	ret := _m.Called(atHash, pred)
 
 	if len(ret) == 0 {
-		panic("no return value specified for HasApiWith")
+		panic("no return value specified for HasAPIWith")
 	}
 
 	var r0 bool
@@ -314,31 +314,31 @@ func (_m *ApiExt[N, E, H, Hasher, Backend, Result]) HasApiWith(atHash H, pred fu
 	return r0, r1
 }
 
-// ApiExt_HasApiWith_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HasApiWith'
-type ApiExt_HasApiWith_Call[N runtime.Number, E runtime.Extrinsic, H runtime.Hash, Hasher runtime.Hasher[H], Backend statemachine.Backend[H, Hasher], Result interface{}] struct {
+// ApiExt_HasAPIWith_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HasAPIWith'
+type ApiExt_HasAPIWith_Call[N runtime.Number, E runtime.Extrinsic, H runtime.Hash, Hasher runtime.Hasher[H], Backend statemachine.Backend[H, Hasher], Result interface{}] struct {
 	*mock.Call
 }
 
-// HasApiWith is a helper method to define mock.On call
+// HasAPIWith is a helper method to define mock.On call
 //   - atHash H
 //   - pred func(uint32) bool
-func (_e *ApiExt_Expecter[N, E, H, Hasher, Backend, Result]) HasApiWith(atHash interface{}, pred interface{}) *ApiExt_HasApiWith_Call[N, E, H, Hasher, Backend, Result] {
-	return &ApiExt_HasApiWith_Call[N, E, H, Hasher, Backend, Result]{Call: _e.mock.On("HasApiWith", atHash, pred)}
+func (_e *ApiExt_Expecter[N, E, H, Hasher, Backend, Result]) HasAPIWith(atHash interface{}, pred interface{}) *ApiExt_HasAPIWith_Call[N, E, H, Hasher, Backend, Result] {
+	return &ApiExt_HasAPIWith_Call[N, E, H, Hasher, Backend, Result]{Call: _e.mock.On("HasAPIWith", atHash, pred)}
 }
 
-func (_c *ApiExt_HasApiWith_Call[N, E, H, Hasher, Backend, Result]) Run(run func(atHash H, pred func(uint32) bool)) *ApiExt_HasApiWith_Call[N, E, H, Hasher, Backend, Result] {
+func (_c *ApiExt_HasAPIWith_Call[N, E, H, Hasher, Backend, Result]) Run(run func(atHash H, pred func(uint32) bool)) *ApiExt_HasAPIWith_Call[N, E, H, Hasher, Backend, Result] {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(H), args[1].(func(uint32) bool))
 	})
 	return _c
 }
 
-func (_c *ApiExt_HasApiWith_Call[N, E, H, Hasher, Backend, Result]) Return(_a0 bool, _a1 error) *ApiExt_HasApiWith_Call[N, E, H, Hasher, Backend, Result] {
+func (_c *ApiExt_HasAPIWith_Call[N, E, H, Hasher, Backend, Result]) Return(_a0 bool, _a1 error) *ApiExt_HasAPIWith_Call[N, E, H, Hasher, Backend, Result] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *ApiExt_HasApiWith_Call[N, E, H, Hasher, Backend, Result]) RunAndReturn(run func(H, func(uint32) bool) (bool, error)) *ApiExt_HasApiWith_Call[N, E, H, Hasher, Backend, Result] {
+func (_c *ApiExt_HasAPIWith_Call[N, E, H, Hasher, Backend, Result]) RunAndReturn(run func(H, func(uint32) bool) (bool, error)) *ApiExt_HasAPIWith_Call[N, E, H, Hasher, Backend, Result] {
 	_c.Call.Return(run)
 	return _c
 }

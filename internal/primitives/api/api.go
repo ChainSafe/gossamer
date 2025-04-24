@@ -58,11 +58,11 @@ type ApiExt[
 	// The internal result of the closure is returned afterwards.
 	ExecuteInTransaction(call func(api ApiExt[N, E, H, Hasher, Backend, Result]) runtime.TransactionOutcome[Result]) Result
 	// Checks if the given api is implemented and versions match.
-	HasApi(atHash H) (bool, error)
+	HasAPI(atHash H) (bool, error)
 	// Check if the given api is implemented and the version passes a predicate.
-	HasApiWith(atHash H, pred func(uint32) bool) (bool, error)
+	HasAPIWith(atHash H, pred func(uint32) bool) (bool, error)
 	// Returns the version of the given api.
-	ApiVersion(atHash H) (*uint32, error)
+	APIVersion(atHash H) (*uint32, error)
 	// Start recording all accessed trie nodes for generating proofs.
 	RecordProof()
 	// Extract the recorded proof.
