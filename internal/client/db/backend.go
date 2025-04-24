@@ -186,7 +186,7 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) applyNewState(
 	storage storage.Storage, stateVersion storage.StateVersion,
 ) (root H, err error) {
 	contains := slices.ContainsFunc(storage.Top.Keys(), func(key string) bool {
-		return keys.IsChildStorageKey([]byte(key))
+		return keys.IsDefaultChildStorageKey([]byte(key))
 	})
 	if contains {
 		return root, blockchain.ErrInvalidState

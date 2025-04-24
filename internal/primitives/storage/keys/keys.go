@@ -4,6 +4,7 @@
 package keys
 
 import (
+	"bytes"
 	"strings"
 )
 
@@ -12,6 +13,8 @@ var (
 	Code = []byte(":code")
 	// DefaultChildStorageKeyPrefix is a prefix of the default child storage keys in the top trie.
 	DefaultChildStorageKeyPrefix = []byte(":child_storage:default:")
+	// Prefix of child storage keys
+	ChildStorageKeyPrefix = []byte(":child_storage:")
 	// Current extrinsic index (u32) is stored under this key.
 	// Encodes to `0x3a65787472696e7369635f696e646578`.
 	ExtrinsicIndexKey = []byte(":extrinsic_index")
@@ -19,9 +22,17 @@ var (
 
 // IsChildStorageKey returns whether a key is a child storage key.
 //
+// This is convenience function which basically checks if the given `key` starts
+// with `ChildStorageKeyPrefix` and doesn't do anything apart from that.
+func IsChildStorageKey(key []byte) bool {
+	return bytes.HasPrefix(key, ChildStorageKeyPrefix)
+}
+
+// IsDefaultChildStorageKey returns whether a key is a child storage key.
+//
 // This is convenience function which basically checks if the given key starts
 // with [DefaultChildStorageKeyPrefix].
-func IsChildStorageKey(key []byte) bool {
+func IsDefaultChildStorageKey(key []byte) bool {
 	i := strings.Index(string(key), string(DefaultChildStorageKeyPrefix))
 	return i == 0
 }

@@ -14,8 +14,8 @@ import (
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/tidwall/btree"
 )
@@ -122,7 +122,7 @@ func (be *BasicExternalities) KillChildStorage(
 }
 
 func (be *BasicExternalities) PlaceStorage(key []byte, value []byte) {
-	if common.IsChildStorageKey(key) {
+	if keys.IsChildStorageKey(key) {
 		logger.Warn("refuse to set child storage key via main storage")
 		return
 	}
@@ -143,7 +143,7 @@ func (be *BasicExternalities) ClearPrefix(
 	limit *uint32,
 	cursor []byte,
 ) externalities.MultiRemovalResults {
-	if common.IsChildStorageKey(prefix) {
+	if keys.IsChildStorageKey(prefix) {
 		logger.Warn("refuse to clear prefix that is part of child storage key via main storage")
 		return externalities.MultiRemovalResults{Cursor: prefix, Backend: 0, Unique: 0, Loops: 0}
 	}
