@@ -5,16 +5,6 @@ package client
 
 import "github.com/ChainSafe/gossamer/internal/primitives/runtime"
 
-type BadBlockData[H runtime.Hash, N runtime.Number] struct {
-	Number N
-	Hash   H
-}
-
-type BlockRules[H runtime.Hash, N runtime.Number] struct {
-	bad   BadBlocks[H] // Set with bad blocks
-	forks map[N]H
-}
-
 // Chain specification rules lookup result.
 type LookupResult interface {
 	isLookupResult()
@@ -34,6 +24,16 @@ type (
 func (LookupResultNotSpecial) isLookupResult()  {}
 func (LookupResultKnownBad) isLookupResult()    {}
 func (LookupResultExpected[H]) isLookupResult() {}
+
+type BadBlockData[H runtime.Hash, N runtime.Number] struct {
+	Number N
+	Hash   H
+}
+
+type BlockRules[H runtime.Hash, N runtime.Number] struct {
+	bad   BadBlocks[H] // Set with bad blocks
+	forks map[N]H
+}
 
 func NewBlockRules[
 	H runtime.Hash,
