@@ -900,7 +900,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultDiscard{common.ImportResultMissingState{}}, result)
+		require.Equal(t, prepareStorageChangesResultDiscard{common.ImportResultMissingState{}}, result)
 	})
 
 	t.Run("unknown_parent_discard", func(t *testing.T) {
@@ -931,7 +931,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultDiscard{common.ImportResultUnknownParent{}}, result)
+		require.Equal(t, prepareStorageChangesResultDiscard{common.ImportResultUnknownParent{}}, result)
 	})
 
 	t.Run("execute_with_parent_pruned", func(t *testing.T) {
@@ -964,7 +964,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultDiscard{common.ImportResultMissingState{}}, result)
+		require.Equal(t, prepareStorageChangesResultDiscard{common.ImportResultMissingState{}}, result)
 	})
 
 	t.Run("parent_pruned_execute_if_possible", func(t *testing.T) {
@@ -997,7 +997,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultImport{StorageChanges: nil}, result)
+		require.Equal(t, prepareStorageChangesResultImport{StorageChanges: nil}, result)
 	})
 
 	t.Run("apply_changes", func(t *testing.T) {
@@ -1034,7 +1034,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultImport{StorageChanges: storageChanges}, result)
+		require.Equal(t, prepareStorageChangesResultImport{StorageChanges: storageChanges}, result)
 	})
 
 	t.Run("action_skip", func(t *testing.T) {
@@ -1067,7 +1067,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultImport{StorageChanges: nil}, result)
+		require.Equal(t, prepareStorageChangesResultImport{StorageChanges: nil}, result)
 	})
 
 	t.Run("action_execute_withouth_body", func(t *testing.T) {
@@ -1100,7 +1100,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultImport{StorageChanges: nil}, result)
+		require.Equal(t, prepareStorageChangesResultImport{StorageChanges: nil}, result)
 	})
 
 	t.Run("action_execute_if_possible_withouth_body", func(t *testing.T) {
@@ -1133,7 +1133,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultImport{StorageChanges: nil}, result)
+		require.Equal(t, prepareStorageChangesResultImport{StorageChanges: nil}, result)
 	})
 
 	t.Run("action_execute_with_body", func(t *testing.T) {
@@ -1210,7 +1210,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		require.Equal(
 			t,
-			storageChangesResultImport{
+			prepareStorageChangesResultImport{
 				StorageChanges: common.Changes[hash.H256, runtime.BlakeTwo256](storageChanges),
 			},
 			result,

@@ -34,16 +34,16 @@ type prepareStorageChangesResult interface {
 }
 
 type (
-	storageChangesResultDiscard struct {
+	prepareStorageChangesResultDiscard struct {
 		common.ImportResult
 	}
-	storageChangesResultImport struct {
+	prepareStorageChangesResultImport struct {
 		common.StorageChanges
 	}
 )
 
-func (storageChangesResultDiscard) isPrepareStorageChangesResult() {}
-func (storageChangesResultImport) isPrepareStorageChangesResult()  {}
+func (prepareStorageChangesResultDiscard) isPrepareStorageChangesResult() {}
+func (prepareStorageChangesResultImport) isPrepareStorageChangesResult()  {}
 
 // Used in importing a block, where additional changes are made after the runtime executed.
 type PrePostHeaders[N runtime.Number, H runtime.Hash, Header runtime.Header[N, H]] interface {
@@ -707,9 +707,9 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) ImportBlock(
 	var storageChanges common.StorageChanges
 
 	switch r := prepareStorageResult.(type) {
-	case storageChangesResultDiscard:
+	case prepareStorageChangesResultDiscard:
 		return r.ImportResult, nil
-	case storageChangesResultImport:
+	case prepareStorageChangesResultImport:
 		storageChanges = r.StorageChanges
 	}
 
@@ -747,10 +747,10 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) prepareBlockStorageChang
 		switch action := stateAction.(type) {
 		case common.StateActionApplyChanges:
 			if _, ok := action.StorageChanges.(common.Changes[H, Hasher]); ok {
-				return storageChangesResultDiscard{common.ImportResultMissingState{}}, nil
+				return prepareStorageChangesResultDiscard{common.ImportResultMissingState{}}, nil
 			}
 		case common.StateActionExecute:
-			return storageChangesResultDiscard{common.ImportResultMissingState{}}, nil
+			return prepareStorageChangesResultDiscard{common.ImportResultMissingState{}}, nil
 		case common.StateActionExecuteIfPossible:
 			enactState = false
 			storageChanges = nil
@@ -759,7 +759,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) prepareBlockStorageChang
 		enactState = true
 		storageChanges = action.StorageChanges
 	} else if status == primivite_consensus_common.BlockStatusUnknown {
-		return storageChangesResultDiscard{common.ImportResultUnknownParent{}}, nil
+		return prepareStorageChangesResultDiscard{common.ImportResultUnknownParent{}}, nil
 	} else if _, ok := stateAction.(common.StateActionSkip); ok {
 		enactState = false
 		storageChanges = nil
@@ -819,7 +819,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) prepareBlockStorageChang
 		storageChangesToApply = nil
 	}
 
-	return storageChangesResultImport{storageChangesToApply}, nil
+	return prepareStorageChangesResultImport{storageChangesToApply}, nil
 }
 
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyBlock(
