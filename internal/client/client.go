@@ -1102,11 +1102,10 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 					StaleHeads: []H{},
 				}
 			} else {
-				operation.NotifyFinalized.Header = header.Clone().(Header)
-				operation.NotifyFinalized.Finalized = append(operation.NotifyFinalized.Finalized, parentHash)
 				summary = *operation.NotifyFinalized
-
 				operation.NotifyFinalized = nil
+				summary.Header = header.Clone().(Header)
+				summary.Finalized = append(summary.Finalized, parentHash)
 			}
 
 			if parentExists {
