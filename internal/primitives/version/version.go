@@ -16,6 +16,12 @@ type ApiIDVersion struct {
 }
 type ApisVec []ApiIDVersion
 
+// Runtime version.
+// This should not be thought of as classic Semver (major/minor/tiny).
+// This triplet have different semantics and mis-interpretation could cause problems.
+// In particular: bug fixes should result in an increment of spec_version and possibly
+// authoring_version, absolutely not impl_version since they change the semantics of the
+// runtime.
 type RuntimeVersion struct {
 	// Identifies the different Substrate runtimes. There'll be at least polkadot and node.
 	// A different on-chain spec_name to that of the native runtime would normally result
