@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"sort"
-	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
@@ -136,7 +135,7 @@ func TestFailedIntroduceSecondedCandidateWhenParentHeadAndHeadDataEquals(
 		StorageRoot: common.Hash{0x00},
 	}
 
-	baseConstraints := &parachaintypes.Constraints{
+	baseConstraints := &parachaintypes.VStagingConstraints{
 		RequiredParent:       parachaintypes.HeadData{Data: []byte{byte(0)}},
 		MinRelayParentNumber: 0,
 		ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
@@ -165,7 +164,7 @@ func TestHandleIntroduceSecondedCandidate(
 	headData := parachaintypes.HeadData{
 		Data: bytes.Repeat([]byte{0x02}, 32),
 	}
-	validationCodeHash := parachaintypes.ValidationCodeHash{0x01}
+	validationCodeHash := parachaintypes.ValidationCodeHash(common.Hash{0x03})
 	candidateRelayParentNumber := uint32(1)
 
 	candidate := makeCandidate(
@@ -190,8 +189,9 @@ func TestHandleIntroduceSecondedCandidate(
 		StorageRoot: common.Hash{0x00},
 	}
 
-	baseConstraints := &parachaintypes.Constraints{
+	baseConstraints := &parachaintypes.VStagingConstraints{
 		RequiredParent:       parachaintypes.HeadData{Data: []byte{byte(0)}},
+		MaxHeadDataSize:      1_000_000,
 		MinRelayParentNumber: 0,
 		ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
 	}
@@ -325,7 +325,7 @@ func TestGetMinimumRelayParents(t *testing.T) {
 		},
 	}
 
-	baseConstraints := &parachaintypes.Constraints{
+	baseConstraints := &parachaintypes.VStagingConstraints{
 		MinRelayParentNumber: 5,
 	}
 
@@ -467,7 +467,7 @@ func TestGetBackableCandidates(t *testing.T) {
 		},
 	}
 
-	baseConstraints := &parachaintypes.Constraints{
+	baseConstraints := &parachaintypes.VStagingConstraints{
 		MinRelayParentNumber: 8,
 		RequiredParent:       parentHead1,
 		MaxPoVSize:           MaxPoVSize,
@@ -708,7 +708,7 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 		reqParentHash, err := reqParent.Hash()
 		assert.NoError(t, err)
 
-		baseConstraints := &parachaintypes.Constraints{
+		baseConstraints := &parachaintypes.VStagingConstraints{
 			RequiredParent:       reqParent,
 			MinRelayParentNumber: 0,
 			ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
@@ -777,7 +777,7 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 		reqParentHash, err := reqParent.Hash()
 		assert.NoError(t, err)
 
-		baseConstraints := &parachaintypes.Constraints{
+		baseConstraints := &parachaintypes.VStagingConstraints{
 			RequiredParent:       reqParent,
 			MinRelayParentNumber: 0,
 			ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
@@ -847,7 +847,7 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 	t.Run("with_head_data_hash_doesnt_match", func(t *testing.T) {
 		reqParent := parachaintypes.HeadData{Data: []byte{0xc4}}
 
-		baseConstraints := &parachaintypes.Constraints{
+		baseConstraints := &parachaintypes.VStagingConstraints{
 			RequiredParent:       reqParent,
 			MinRelayParentNumber: 0,
 			ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
@@ -915,113 +915,616 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 	close(subsystemToOverseer)
 }
 
-func markCandidatedBacked(
-	t *testing.T,
-	overseerToSubsystem chan any,
-	candidate parachaintypes.CommittedCandidateReceiptV2,
-) {
-	hash, err := candidate.Hash()
+func TestGetHypotheticalMembership(t *testing.T) {
+	t.Run("no_active_leaves", func(t *testing.T) {
+		candidate := parachaintypes.HypotheticalCandidateComplete{}
 
-	assert.NoError(t, err)
+		pp := &ProspectiveParachains{
+			View: &view{
+				activeLeaves: map[common.Hash]bool{},
+			},
+		}
 
-	msg := messages.CandidateBacked{
-		ParaID:        candidate.Descriptor.ParaID,
-		CandidateHash: parachaintypes.CandidateHash{Value: hash},
-	}
+		response := make(chan []*messages.HypotheticalMembershipResponseItem, 1)
+		msg := messages.GetHypotheticalMembership{
+			Candidates: []parachaintypes.HypotheticalCandidate{
+				candidate,
+			},
+			// setting as nil to search all active leaves
+			FragmentChainRelayParent: nil,
+			Response:                 response,
+		}
 
-	overseerToSubsystem <- msg
-}
+		pp.getHypotheticalMembership(msg)
 
-func TestHandleBacked(
-	t *testing.T,
-) {
-	candidateRelayParent := common.Hash{0x01}
-	paraId := parachaintypes.ParaID(1)
-	parentHead := parachaintypes.HeadData{
-		Data: bytes.Repeat([]byte{0x01}, 32),
-	}
-	headData := parachaintypes.HeadData{
-		Data: bytes.Repeat([]byte{0x02}, 32),
-	}
-	validationCodeHash := parachaintypes.ValidationCodeHash{0x01}
-	candidateRelayParentNumber := uint32(0)
+		out := <-response
+		expected := []*messages.HypotheticalMembershipResponseItem{
+			{
+				HypotheticalCandidate:  candidate,
+				HypotheticalMembership: make([]common.Hash, 0),
+			},
+		}
 
-	candidate := makeCandidate(
-		candidateRelayParent,
-		candidateRelayParentNumber,
-		paraId,
-		parentHead,
-		headData,
-		validationCodeHash,
-	)
+		require.Equal(t, expected, out)
+	})
 
-	pvd := dummyPVD(parentHead, candidateRelayParentNumber)
+	t.Run("candidate_unconnected", func(t *testing.T) {
+		paraID := parachaintypes.ParaID(1000)
+		relayBlockHash1 := common.Hash([32]byte{0xAB, 0xCD})
+		relayBlockNumber1 := uint32(1)
 
-	subsystemToOverseer := make(chan any)
-	overseerToSubsystem := make(chan any)
+		candidateHash := parachaintypes.CandidateHash{
+			Value: common.Hash([32]byte{0x01, 0x02, 0x03}),
+		}
 
-	prospectiveParachains := NewProspectiveParachains(subsystemToOverseer)
+		fcForParaID := &fragmentChain{
+			unconnected: &candidateStorage{
+				byCandidateHash: map[parachaintypes.CandidateHash]*candidateEntry{
+					candidateHash: {},
+				},
+			},
+			bestChain: &backedChain{
+				candidates: map[parachaintypes.CandidateHash]struct{}{},
+			},
+		}
 
-	relayParent := relayChainBlockInfo{
-		Hash:        candidateRelayParent,
-		Number:      0,
-		StorageRoot: common.Hash{0x00},
-	}
+		pp := &ProspectiveParachains{
+			View: &view{
+				activeLeaves: map[common.Hash]bool{
+					relayBlockHash1: true,
+				},
 
-	baseConstraints := &parachaintypes.Constraints{
-		RequiredParent:       parachaintypes.HeadData{Data: bytes.Repeat([]byte{0x01}, 32)},
-		MinRelayParentNumber: 0,
-		ValidationCodeHash:   validationCodeHash,
-		MaxPoVSize:           1000000,
-	}
+				perRelayParent: map[common.Hash]*relayParentData{
+					relayBlockHash1: {
+						fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+							paraID: fcForParaID,
+						},
+					},
+				},
+			},
+		}
 
-	scope, err := newScopeWithAncestors(relayParent, baseConstraints, nil, 10, nil)
-	assert.NoError(t, err)
+		parentHead := parachaintypes.HeadData{Data: []byte{0x10, 0x10, 0x10}}
+		paraHead := parachaintypes.HeadData{Data: []byte{0x09, 0x09, 0x09}}
+		pvd, commitment := makeCommittedCandidate(t,
+			paraID, relayBlockHash1, relayBlockNumber1, parentHead, paraHead, uint32(0))
 
-	prospectiveParachains.View.perRelayParent[candidateRelayParent] = &relayParentData{
-		fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
-			paraId: newFragmentChain(scope, newCandidateStorage()),
-		},
-	}
+		candidate := parachaintypes.HypotheticalCandidateComplete{
+			ClaimedCandidateHash:      candidateHash,
+			CommittedCandidateReceipt: commitment,
+			PersistedValidationData:   pvd,
+		}
 
-	ctx, cancel := context.WithCancel(context.Background())
+		response := make(chan []*messages.HypotheticalMembershipResponseItem, 1)
+		msg := messages.GetHypotheticalMembership{
+			Candidates:               []parachaintypes.HypotheticalCandidate{candidate},
+			FragmentChainRelayParent: nil,
+			Response:                 response,
+		}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		prospectiveParachains.Run(ctx, overseerToSubsystem)
-	}(&wg)
+		pp.getHypotheticalMembership(msg)
+		out := <-response
 
-	introduceSecondedCandidate(t, overseerToSubsystem, candidate, pvd)
+		expected := []*messages.HypotheticalMembershipResponseItem{
+			{
+				HypotheticalCandidate:  candidate,
+				HypotheticalMembership: []common.Hash{relayBlockHash1},
+			},
+		}
 
-	markCandidatedBacked(t, overseerToSubsystem, candidate)
+		require.Equal(t, expected, out)
+	})
 
-	// cancel the subsystem context to shutdown and evaluate the
-	// subsystem state
-	cancel()
+	t.Run("candidate_at_best_chain", func(t *testing.T) {
+		paraID := parachaintypes.ParaID(1000)
+		relayBlockHash1 := common.Hash([32]byte{0xAB, 0xCD})
+		relayBlockNumber1 := uint32(1)
 
-	wg.Wait()
+		// relayBlockHash2 := common.Hash([]byte{0xFF, 0xFE})
 
-	rpData, ok := prospectiveParachains.View.perRelayParent[candidateRelayParent]
-	require.True(t, ok)
+		candidateHash := parachaintypes.CandidateHash{
+			Value: common.Hash([32]byte{0x01, 0x02, 0x03}),
+		}
 
-	chains := rpData.fragmentChains
+		fcForParaID := &fragmentChain{
+			unconnected: &candidateStorage{
+				byCandidateHash: map[parachaintypes.CandidateHash]*candidateEntry{},
+			},
+			bestChain: &backedChain{
+				candidates: map[parachaintypes.CandidateHash]struct{}{
+					candidateHash: {},
+				},
+			},
+		}
 
-	fragmentChain, exist := chains[paraId]
+		pp := &ProspectiveParachains{
+			View: &view{
+				activeLeaves: map[common.Hash]bool{
+					relayBlockHash1: true,
+				},
 
-	require.True(t, exist)
+				perRelayParent: map[common.Hash]*relayParentData{
+					relayBlockHash1: {
+						fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+							paraID: fcForParaID,
+						},
+					},
+				},
+			},
+		}
 
-	hash, err := candidate.Hash()
-	assert.NoError(t, err)
+		parentHead := parachaintypes.HeadData{Data: []byte{0x10, 0x10, 0x10}}
+		paraHead := parachaintypes.HeadData{Data: []byte{0x09, 0x09, 0x09}}
+		pvd, commitment := makeCommittedCandidate(t,
+			paraID, relayBlockHash1, relayBlockNumber1, parentHead, paraHead, uint32(0))
 
-	isCandidateBacked := fragmentChain.isCandidateBacked(parachaintypes.CandidateHash{Value: hash})
+		candidate := parachaintypes.HypotheticalCandidateComplete{
+			ClaimedCandidateHash:      candidateHash,
+			CommittedCandidateReceipt: commitment,
+			PersistedValidationData:   pvd,
+		}
 
-	require.True(t, isCandidateBacked)
+		response := make(chan []*messages.HypotheticalMembershipResponseItem, 1)
+		msg := messages.GetHypotheticalMembership{
+			Candidates:               []parachaintypes.HypotheticalCandidate{candidate},
+			FragmentChainRelayParent: nil,
+			Response:                 response,
+		}
 
-	hashes := fragmentChain.bestChainVec()
+		pp.getHypotheticalMembership(msg)
+		out := <-response
 
-	require.Len(t, hashes, 1)
+		expected := []*messages.HypotheticalMembershipResponseItem{
+			{
+				HypotheticalCandidate:  candidate,
+				HypotheticalMembership: []common.Hash{relayBlockHash1},
+			},
+		}
 
-	require.Equal(t, hashes[0], parachaintypes.CandidateHash{Value: hash})
+		require.Equal(t, expected, out)
+	})
+
+	t.Run("failed_to_check_potential", func(t *testing.T) {
+		paraID := parachaintypes.ParaID(1000)
+		relayBlockHash1 := common.Hash([32]byte{0xAB, 0xCD})
+		relayBlockNumber1 := uint32(1)
+
+		// relayBlockHash2 := common.Hash([]byte{0xFF, 0xFE})
+
+		candidateHash := parachaintypes.CandidateHash{
+			Value: common.Hash([32]byte{0x01, 0x02, 0x03}),
+		}
+
+		fcForParaID := &fragmentChain{
+			unconnected: &candidateStorage{
+				byCandidateHash: map[parachaintypes.CandidateHash]*candidateEntry{},
+			},
+			bestChain: &backedChain{
+				candidates: map[parachaintypes.CandidateHash]struct{}{},
+			},
+		}
+
+		pp := &ProspectiveParachains{
+			View: &view{
+				activeLeaves: map[common.Hash]bool{
+					relayBlockHash1: true,
+				},
+
+				perRelayParent: map[common.Hash]*relayParentData{
+					relayBlockHash1: {
+						fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+							paraID: fcForParaID,
+						},
+					},
+				},
+			},
+		}
+
+		// making parentHead and paraHead equals causes a cycle, which is not allowed
+		parentHead := parachaintypes.HeadData{Data: []byte{0x10, 0x10, 0x10}}
+		paraHead := parachaintypes.HeadData{Data: []byte{0x10, 0x10, 0x10}}
+		pvd, commitment := makeCommittedCandidate(t,
+			paraID, relayBlockHash1, relayBlockNumber1, parentHead, paraHead, uint32(0))
+
+		candidate := parachaintypes.HypotheticalCandidateComplete{
+			ClaimedCandidateHash:      candidateHash,
+			CommittedCandidateReceipt: commitment,
+			PersistedValidationData:   pvd,
+		}
+
+		response := make(chan []*messages.HypotheticalMembershipResponseItem, 1)
+		msg := messages.GetHypotheticalMembership{
+			Candidates:               []parachaintypes.HypotheticalCandidate{candidate},
+			FragmentChainRelayParent: nil,
+			Response:                 response,
+		}
+
+		pp.getHypotheticalMembership(msg)
+		out := <-response
+
+		// should not have any hypothetical membership
+		expected := []*messages.HypotheticalMembershipResponseItem{
+			{
+				HypotheticalCandidate:  candidate,
+				HypotheticalMembership: []common.Hash{},
+			},
+		}
+
+		require.Equal(t, expected, out)
+	})
+
+	t.Run("successfully_check_potential_single_leaf", func(t *testing.T) {
+		// setup the current contraints
+		relayParent := &relayChainBlockInfo{
+			Hash:        common.Hash([32]byte{0xAB, 0xCD}),
+			StorageRoot: common.Hash([32]byte{}),
+			Number:      parachaintypes.BlockNumber(9),
+		}
+
+		parentHead := parachaintypes.HeadData{Data: []byte{0x10, 0x10, 0x10}}
+
+		ancestors := []relayChainBlockInfo{
+			{
+				Hash:   common.Hash{0x03},
+				Number: parachaintypes.BlockNumber(8),
+			},
+		}
+
+		baseConstraints := &parachaintypes.VStagingConstraints{
+			MinRelayParentNumber: 8,
+			RequiredParent:       parentHead,
+			MaxPoVSize:           MaxPoVSize,
+			DMPRemainingMessages: []parachaintypes.BlockNumber{1},
+			ValidationCodeHash: parachaintypes.ValidationCodeHash(
+				common.BytesToHash(bytes.Repeat([]byte{42}, 32)),
+			),
+		}
+
+		mockScope, err := newScopeWithAncestors(
+			*relayParent,
+			baseConstraints,
+			nil,
+			10,
+			ancestors,
+		)
+		assert.NoError(t, err)
+
+		candidateStorage := newCandidateStorage()
+		paraID := parachaintypes.ParaID(1000)
+
+		candidateHash := parachaintypes.CandidateHash{
+			Value: common.Hash([32]byte{0x01, 0x02, 0x03}),
+		}
+
+		fcForParaID := newFragmentChain(mockScope, candidateStorage)
+
+		pp := &ProspectiveParachains{
+			View: &view{
+				activeLeaves: map[common.Hash]bool{
+					relayParent.Hash: true,
+				},
+
+				perRelayParent: map[common.Hash]*relayParentData{
+					relayParent.Hash: {
+						fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+							paraID: fcForParaID,
+						},
+					},
+				},
+			},
+		}
+
+		paraHead := parachaintypes.HeadData{Data: []byte{0x09, 0x09, 0x09}}
+		pvd, commitment := makeCommittedCandidate(t,
+			paraID, relayParent.Hash, uint32(relayParent.Number),
+			parentHead, paraHead, uint32(relayParent.Number))
+
+		candidate := parachaintypes.HypotheticalCandidateComplete{
+			ClaimedCandidateHash:      candidateHash,
+			CommittedCandidateReceipt: commitment,
+			PersistedValidationData:   pvd,
+		}
+
+		response := make(chan []*messages.HypotheticalMembershipResponseItem, 1)
+		msg := messages.GetHypotheticalMembership{
+			Candidates:               []parachaintypes.HypotheticalCandidate{candidate},
+			FragmentChainRelayParent: nil,
+			Response:                 response,
+		}
+
+		pp.getHypotheticalMembership(msg)
+		out := <-response
+
+		expected := []*messages.HypotheticalMembershipResponseItem{
+			{
+				HypotheticalCandidate:  candidate,
+				HypotheticalMembership: []common.Hash{relayParent.Hash},
+			},
+		}
+
+		require.Equal(t, expected, out)
+	})
+
+	t.Run("successfully_check_potential_two_leaves", func(t *testing.T) {
+		parentHead := parachaintypes.HeadData{Data: []byte{0x10, 0x10, 0x10}}
+
+		// setup the current contraints for relay parent 9
+		relayParent9 := &relayChainBlockInfo{
+			Hash:        common.Hash([32]byte{0xAB, 0xCD}),
+			StorageRoot: common.Hash([32]byte{}),
+			Number:      parachaintypes.BlockNumber(9),
+		}
+
+		baseConstraints := &parachaintypes.VStagingConstraints{
+			MinRelayParentNumber: 8,
+			RequiredParent:       parentHead,
+			MaxPoVSize:           MaxPoVSize,
+			DMPRemainingMessages: []parachaintypes.BlockNumber{1},
+			ValidationCodeHash: parachaintypes.ValidationCodeHash(
+				common.BytesToHash(bytes.Repeat([]byte{42}, 32)),
+			),
+		}
+
+		mockScope, err := newScopeWithAncestors(
+			*relayParent9,
+			baseConstraints,
+			nil,
+			10,
+			[]relayChainBlockInfo{
+				{
+					Hash:   common.Hash{0x03},
+					Number: parachaintypes.BlockNumber(8),
+				},
+			},
+		)
+		assert.NoError(t, err)
+
+		candidateStorage := newCandidateStorage()
+		paraID := parachaintypes.ParaID(1000)
+
+		fcForParaIDRelayParent9 := newFragmentChain(mockScope, candidateStorage)
+
+		// setup the current constraints for parent 10
+		relayParent10 := &relayChainBlockInfo{
+			Hash:        common.Hash([32]byte{0xEC, 0xDE}),
+			StorageRoot: common.Hash([32]byte{}),
+			Number:      parachaintypes.BlockNumber(10),
+		}
+
+		baseConstraints = &parachaintypes.VStagingConstraints{
+			MinRelayParentNumber: 8,
+			RequiredParent:       parentHead,
+			MaxPoVSize:           MaxPoVSize,
+			DMPRemainingMessages: []parachaintypes.BlockNumber{1},
+			ValidationCodeHash: parachaintypes.ValidationCodeHash(
+				common.BytesToHash(bytes.Repeat([]byte{42}, 32)),
+			),
+		}
+
+		mockScope, err = newScopeWithAncestors(
+			*relayParent10,
+			baseConstraints,
+			nil,
+			10,
+			[]relayChainBlockInfo{
+				// includes the relay parent 9 in the  list of ancestors
+				*relayParent9,
+				{
+					Hash:   common.Hash{0x03},
+					Number: parachaintypes.BlockNumber(8),
+				},
+			},
+		)
+		assert.NoError(t, err)
+
+		fcForParaIDRelayParent10 := newFragmentChain(mockScope, newCandidateStorage())
+
+		pp := &ProspectiveParachains{
+			View: &view{
+				activeLeaves: map[common.Hash]bool{
+					relayParent9.Hash:  true,
+					relayParent10.Hash: true,
+				},
+
+				perRelayParent: map[common.Hash]*relayParentData{
+					relayParent9.Hash: {
+						fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+							paraID: fcForParaIDRelayParent9,
+						},
+					},
+					relayParent10.Hash: {
+						fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+							paraID: fcForParaIDRelayParent10,
+						},
+					},
+				},
+			},
+		}
+
+		paraHead := parachaintypes.HeadData{Data: []byte{0x09, 0x09, 0x09}}
+		pvd, commitment := makeCommittedCandidate(t,
+			paraID, relayParent9.Hash, uint32(relayParent9.Number),
+			parentHead, paraHead, uint32(relayParent9.Number))
+
+		candidateHash := parachaintypes.CandidateHash{
+			Value: common.Hash([32]byte{0x01, 0x02, 0x03}),
+		}
+
+		candidate := parachaintypes.HypotheticalCandidateComplete{
+			ClaimedCandidateHash:      candidateHash,
+			CommittedCandidateReceipt: commitment,
+			PersistedValidationData:   pvd,
+		}
+
+		response := make(chan []*messages.HypotheticalMembershipResponseItem, 1)
+		msg := messages.GetHypotheticalMembership{
+			Candidates:               []parachaintypes.HypotheticalCandidate{candidate},
+			FragmentChainRelayParent: nil,
+			Response:                 response,
+		}
+
+		pp.getHypotheticalMembership(msg)
+		out := <-response
+
+		// candidate is a potential in both relay parents
+		expected := []*messages.HypotheticalMembershipResponseItem{
+			{
+				HypotheticalCandidate: candidate,
+				HypotheticalMembership: []common.Hash{
+					relayParent9.Hash,
+					relayParent10.Hash,
+				},
+			},
+		}
+
+		require.Len(t, out, 1)
+
+		sort.Slice(out[0].HypotheticalMembership, func(i, j int) bool {
+			return bytes.Compare(
+				out[0].HypotheticalMembership[i].ToBytes(),
+				out[0].HypotheticalMembership[j].ToBytes()) == -1
+		})
+
+		sort.Slice(expected[0].HypotheticalMembership, func(i, j int) bool {
+			return bytes.Compare(
+				expected[0].HypotheticalMembership[i].ToBytes(),
+				expected[0].HypotheticalMembership[j].ToBytes()) == -1
+		})
+
+		require.Equal(t, expected, out)
+	})
+
+	t.Run("target_relay_parent_successfully_check_potential", func(t *testing.T) {
+		parentHead := parachaintypes.HeadData{Data: []byte{0x10, 0x10, 0x10}}
+
+		// setup the current contraints for relay parent 9
+		relayParent9 := &relayChainBlockInfo{
+			Hash:        common.Hash([32]byte{0xAB, 0xCD}),
+			StorageRoot: common.Hash([32]byte{}),
+			Number:      parachaintypes.BlockNumber(9),
+		}
+
+		baseConstraints := &parachaintypes.VStagingConstraints{
+			MinRelayParentNumber: 8,
+			RequiredParent:       parentHead,
+			MaxPoVSize:           MaxPoVSize,
+			DMPRemainingMessages: []parachaintypes.BlockNumber{1},
+			ValidationCodeHash: parachaintypes.ValidationCodeHash(
+				common.BytesToHash(bytes.Repeat([]byte{42}, 32)),
+			),
+		}
+
+		mockScope, err := newScopeWithAncestors(
+			*relayParent9,
+			baseConstraints,
+			nil,
+			10,
+			[]relayChainBlockInfo{
+				{
+					Hash:   common.Hash{0x03},
+					Number: parachaintypes.BlockNumber(8),
+				},
+			},
+		)
+		assert.NoError(t, err)
+
+		candidateStorage := newCandidateStorage()
+		paraID := parachaintypes.ParaID(1000)
+
+		fcForParaIDRelayParent9 := newFragmentChain(mockScope, candidateStorage)
+
+		// setup the current constraints for parent 10
+		relayParent10 := &relayChainBlockInfo{
+			Hash:        common.Hash([32]byte{0xEC, 0xDE}),
+			StorageRoot: common.Hash([32]byte{}),
+			Number:      parachaintypes.BlockNumber(10),
+		}
+
+		baseConstraints = &parachaintypes.VStagingConstraints{
+			MinRelayParentNumber: 8,
+			RequiredParent:       parentHead,
+			MaxPoVSize:           MaxPoVSize,
+			DMPRemainingMessages: []parachaintypes.BlockNumber{1},
+			ValidationCodeHash: parachaintypes.ValidationCodeHash(
+				common.BytesToHash(bytes.Repeat([]byte{42}, 32)),
+			),
+		}
+
+		mockScope, err = newScopeWithAncestors(
+			*relayParent10,
+			baseConstraints,
+			nil,
+			10,
+			[]relayChainBlockInfo{
+				// includes the relay parent 9 in the  list of ancestors
+				*relayParent9,
+				{
+					Hash:   common.Hash{0x03},
+					Number: parachaintypes.BlockNumber(8),
+				},
+			},
+		)
+		assert.NoError(t, err)
+
+		fcForParaIDRelayParent10 := newFragmentChain(mockScope, newCandidateStorage())
+
+		pp := &ProspectiveParachains{
+			View: &view{
+				activeLeaves: map[common.Hash]bool{
+					relayParent9.Hash:  true,
+					relayParent10.Hash: true,
+				},
+
+				perRelayParent: map[common.Hash]*relayParentData{
+					relayParent9.Hash: {
+						fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+							paraID: fcForParaIDRelayParent9,
+						},
+					},
+					relayParent10.Hash: {
+						fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+							paraID: fcForParaIDRelayParent10,
+						},
+					},
+				},
+			},
+		}
+
+		paraHead := parachaintypes.HeadData{Data: []byte{0x09, 0x09, 0x09}}
+		pvd, commitment := makeCommittedCandidate(t,
+			paraID, relayParent9.Hash, uint32(relayParent9.Number),
+			parentHead, paraHead, uint32(relayParent9.Number))
+
+		candidateHash := parachaintypes.CandidateHash{
+			Value: common.Hash([32]byte{0x01, 0x02, 0x03}),
+		}
+
+		candidate := parachaintypes.HypotheticalCandidateComplete{
+			ClaimedCandidateHash:      candidateHash,
+			CommittedCandidateReceipt: commitment,
+			PersistedValidationData:   pvd,
+		}
+
+		response := make(chan []*messages.HypotheticalMembershipResponseItem, 1)
+		msg := messages.GetHypotheticalMembership{
+			Candidates:               []parachaintypes.HypotheticalCandidate{candidate},
+			FragmentChainRelayParent: &relayParent10.Hash,
+			Response:                 response,
+		}
+
+		pp.getHypotheticalMembership(msg)
+		out := <-response
+
+		// candidate is a potential in both relay parents
+		expected := []*messages.HypotheticalMembershipResponseItem{
+			{
+				HypotheticalCandidate: candidate,
+				HypotheticalMembership: []common.Hash{
+					relayParent10.Hash,
+				},
+			},
+		}
+
+		require.Equal(t, expected, out)
+	})
 }

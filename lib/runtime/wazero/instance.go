@@ -1460,28 +1460,6 @@ func (in *Instance) ParachainHostSessionExecutorParams(index parachaintypes.Sess
 	return &params, nil
 }
 
-func (in *Instance) ParachainHostParaBackingState(
-	paraID parachaintypes.ParaID,
-) (*parachaintypes.BackingState, error) {
-	encodedParaID, err := scale.Marshal(paraID)
-	if err != nil {
-		return nil, fmt.Errorf("encoding parachain ID: %w", err)
-	}
-
-	encodedBackingState, err := in.Exec(runtime.ParachainHostParaBackingState, encodedParaID)
-	if err != nil {
-		return nil, fmt.Errorf("exec: %w", err)
-	}
-
-	var backingState *parachaintypes.BackingState
-	err = scale.Unmarshal(encodedBackingState, &backingState)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshalling backing state: %w", err)
-	}
-
-	return backingState, nil
-}
-
 func (in *Instance) ParachainHostClaimQueue() (parachaintypes.ClaimQueue, error) {
 	encodedClaimQueue, err := in.Exec(runtime.ParachainHostClaimQueue, []byte{})
 	if err != nil {

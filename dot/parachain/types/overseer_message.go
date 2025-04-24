@@ -27,11 +27,20 @@ type OverseerFuncRes[T any] struct {
 //   - Incomplete candidates are simply claims about properties that a fetched candidate
 //     would have and are evaluated less strictly.
 type HypotheticalCandidate interface {
-	isHypotheticalCandidate()
 	ParaID() ParaID
 	CandidateHash() CandidateHash
+	GetParentHeadDataHash() (common.Hash, error)
 	RelayParentHash() common.Hash
+	GetOutputHeadDataHash() *common.Hash
+	Commitments() *CandidateCommitments
+	GetPersistedValidationData() *PersistedValidationData
+	ValidationCodeHash() *ValidationCodeHash
 }
+
+var (
+	_ HypotheticalCandidate = (*HypotheticalCandidateIncomplete)(nil)
+	_ HypotheticalCandidate = (*HypotheticalCandidateComplete)(nil)
+)
 
 // HypotheticalCandidateIncomplete represents an incomplete hypothetical candidate.
 type HypotheticalCandidateIncomplete struct {
@@ -45,8 +54,6 @@ type HypotheticalCandidateIncomplete struct {
 	RelayParent common.Hash
 }
 
-func (HypotheticalCandidateIncomplete) isHypotheticalCandidate() {}
-
 func (h HypotheticalCandidateIncomplete) ParaID() ParaID {
 	return h.CandidateParaID
 }
@@ -57,6 +64,26 @@ func (h HypotheticalCandidateIncomplete) CandidateHash() CandidateHash {
 
 func (h HypotheticalCandidateIncomplete) RelayParentHash() common.Hash {
 	return h.RelayParent
+}
+
+func (h HypotheticalCandidateIncomplete) GetParentHeadDataHash() (common.Hash, error) {
+	return h.ParentHeadDataHash, nil
+}
+
+func (h HypotheticalCandidateIncomplete) GetOutputHeadDataHash() *common.Hash {
+	return nil
+}
+
+func (h HypotheticalCandidateIncomplete) Commitments() *CandidateCommitments {
+	return nil
+}
+
+func (h HypotheticalCandidateIncomplete) GetPersistedValidationData() *PersistedValidationData {
+	return nil
+}
+
+func (h HypotheticalCandidateIncomplete) ValidationCodeHash() *ValidationCodeHash {
+	return nil
 }
 
 // HypotheticalCandidateComplete represents a complete candidate, including its hash, committed candidate receipt,
@@ -70,8 +97,6 @@ type HypotheticalCandidateComplete struct {
 	PersistedValidationData PersistedValidationData
 }
 
-func (HypotheticalCandidateComplete) isHypotheticalCandidate() {}
-
 func (h HypotheticalCandidateComplete) ParaID() ParaID {
 	return h.CommittedCandidateReceipt.Descriptor.ParaID
 }
@@ -82,6 +107,26 @@ func (h HypotheticalCandidateComplete) CandidateHash() CandidateHash {
 
 func (h HypotheticalCandidateComplete) RelayParentHash() common.Hash {
 	return h.CommittedCandidateReceipt.Descriptor.RelayParent
+}
+
+func (h HypotheticalCandidateComplete) GetParentHeadDataHash() (common.Hash, error) {
+	return h.PersistedValidationData.ParentHead.Hash()
+}
+
+func (h HypotheticalCandidateComplete) GetOutputHeadDataHash() *common.Hash {
+	return &h.CommittedCandidateReceipt.Descriptor.ParaHead
+}
+
+func (h HypotheticalCandidateComplete) Commitments() *CandidateCommitments {
+	return &h.CommittedCandidateReceipt.Commitments
+}
+
+func (h HypotheticalCandidateComplete) GetPersistedValidationData() *PersistedValidationData {
+	return &h.PersistedValidationData
+}
+
+func (h HypotheticalCandidateComplete) ValidationCodeHash() *ValidationCodeHash {
+	return &h.CommittedCandidateReceipt.Descriptor.ValidationCodeHash
 }
 
 // AvailabilityDistributionMessageFetchPoV represents a message instructing

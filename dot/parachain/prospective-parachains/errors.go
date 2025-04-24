@@ -12,19 +12,27 @@ import (
 )
 
 var (
-	errCandidateAlreadyKnown    = errors.New("candidate already known")
-	errZeroLengthCycle          = errors.New("candidate's parent head is equal to its output head. Would introduce a cycle") //nolint:lll
-	errCycle                    = errors.New("candidate would introduce a cycle")
-	errMultiplePaths            = errors.New("candidate would introduce two paths to the same output state")
+	errCandidateAlreadyKnown = errors.New("candidate already known")
+	errZeroLengthCycle       = errors.New(
+		"candidate's parent head is equal to its output head. Would introduce a cycle",
+	)
+	errCycle         = errors.New("candidate would introduce a cycle")
+	errMultiplePaths = errors.New(
+		"candidate would introduce two paths to the same output state",
+	)
 	errIntroduceBackedCandidate = errors.New(
 		"attempting to directly introduce a Backed candidate. It should first be introduced as Seconded",
 	)
-	errParentCandidateNotFound         = errors.New("could not find parent of the candidate")
-	errRelayParentMovedBackwards       = errors.New("relay parent would move backwards from the latest candidate in the chain")     //nolint:lll
-	errPersistedValidationDataMismatch = errors.New("candidate does not match the persisted validation data provided alongside it") //nolint:lll
-	errAppliedNonexistentCodeUpgrade   = errors.New("applied non existent code upgrade")
-	errDmpAdvancementRule              = errors.New("dmp advancement rule")
-	errCodeUpgradeRestricted           = errors.New("code upgrade restricted")
+	errParentCandidateNotFound   = errors.New("could not find parent of the candidate")
+	errRelayParentMovedBackwards = errors.New(
+		"relay parent would move backwards from the latest candidate in the chain",
+	)
+	errPersistedValidationDataMismatch = errors.New(
+		"candidate does not match the persisted validation data provided alongside it",
+	)
+	errAppliedNonexistentCodeUpgrade = errors.New("applied non existent code upgrade")
+	errDmpAdvancementRule            = errors.New("dmp advancement rule")
+	errCodeUpgradeRestricted         = errors.New("code upgrade restricted")
 )
 
 type errRelayParentPrecedesCandidatePendingAvailability struct {
@@ -32,8 +40,11 @@ type errRelayParentPrecedesCandidatePendingAvailability struct {
 }
 
 func (e errRelayParentPrecedesCandidatePendingAvailability) Error() string {
-	return fmt.Sprintf("relay parent %x of the candidate precedes the relay parent %x of a pending availability candidate",
-		e.relayParentA, e.relayParentB)
+	return fmt.Sprintf(
+		"relay parent %x of the candidate precedes the relay parent %x of a pending availability candidate",
+		e.relayParentA,
+		e.relayParentB,
+	)
 }
 
 type errForkWithCandidatePendingAvailability struct {
@@ -41,7 +52,10 @@ type errForkWithCandidatePendingAvailability struct {
 }
 
 func (e errForkWithCandidatePendingAvailability) Error() string {
-	return fmt.Sprintf("candidate would introduce a fork with a pending availability candidate: %x", e.candidateHash.Value)
+	return fmt.Sprintf(
+		"candidate would introduce a fork with a pending availability candidate: %x",
+		e.candidateHash.Value,
+	)
 }
 
 type errForkChoiceRule struct {
@@ -111,8 +125,12 @@ type errHrmpMessagesOverflow struct {
 }
 
 func (e *errHrmpMessagesOverflow) Error() string {
-	return fmt.Sprintf("HrmpMessagesOverflow(ParaId: %d, MessagesRemaining: %d, MessagesSubmitted: %d)",
-		e.paraID, e.messagesRemaining, e.messagesSubmitted)
+	return fmt.Sprintf(
+		"HrmpMessagesOverflow(ParaId: %d, MessagesRemaining: %d, MessagesSubmitted: %d)",
+		e.paraID,
+		e.messagesRemaining,
+		e.messagesSubmitted,
+	)
 }
 
 type errHrmpBytesOverflow struct {
@@ -142,7 +160,11 @@ type errUmpBytesOverflow struct {
 }
 
 func (e *errUmpBytesOverflow) Error() string {
-	return fmt.Sprintf("UmpBytesOverflow(BytesRemaining: %d, BytesSubmitted: %d)", e.bytesRemaining, e.bytesSubmitted)
+	return fmt.Sprintf(
+		"UmpBytesOverflow(BytesRemaining: %d, BytesSubmitted: %d)",
+		e.bytesRemaining,
+		e.bytesSubmitted,
+	)
 }
 
 type errDmpMessagesUnderflow struct {
@@ -162,6 +184,15 @@ type errValidationCodeMismatch struct {
 
 func (e *errValidationCodeMismatch) Error() string {
 	return fmt.Sprintf("ValidationCodeMismatch(Expected: %v, Got: %v)", e.expected, e.got)
+}
+
+type errHeadDataTooLong struct {
+	max uint
+	got uint
+}
+
+func (e *errHeadDataTooLong) Error() string {
+	return fmt.Sprintf("HeadDataTooLong(Max: %d, Got: %d)", e.max, e.got)
 }
 
 type errOutputsInvalid struct {
@@ -196,8 +227,11 @@ type errUmpMessagesPerCandidateOverflow struct {
 }
 
 func (e *errUmpMessagesPerCandidateOverflow) Error() string {
-	return fmt.Sprintf("UmpMessagesPerCandidateOverflow(MessagesAllowed: %d, MessagesSubmitted: %d)",
-		e.messagesAllowed, e.messagesSubmitted)
+	return fmt.Sprintf(
+		"UmpMessagesPerCandidateOverflow(MessagesAllowed: %d, MessagesSubmitted: %d)",
+		e.messagesAllowed,
+		e.messagesSubmitted,
+	)
 }
 
 type errHrmpMessagesPerCandidateOverflow struct {
@@ -206,8 +240,11 @@ type errHrmpMessagesPerCandidateOverflow struct {
 }
 
 func (e *errHrmpMessagesPerCandidateOverflow) Error() string {
-	return fmt.Sprintf("HrmpMessagesPerCandidateOverflow(MessagesAllowed: %d, MessagesSubmitted: %d)",
-		e.messagesAllowed, e.messagesSubmitted)
+	return fmt.Sprintf(
+		"HrmpMessagesPerCandidateOverflow(MessagesAllowed: %d, MessagesSubmitted: %d)",
+		e.messagesAllowed,
+		e.messagesSubmitted,
+	)
 }
 
 type errHrmpMessagesDescendingOrDuplicate struct {
