@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 )
 
+// Simple Map-based Externalities impl.
 type BasicExternalities struct {
 	overlay    overlayedchanges.OverlayedChanges[hash.H256, runtime.BlakeTwo256]
 	extensions externalities.Extensions
