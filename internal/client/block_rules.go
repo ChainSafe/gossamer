@@ -6,12 +6,12 @@ package client
 import "github.com/ChainSafe/gossamer/internal/primitives/runtime"
 
 type BadBlockData[H runtime.Hash, N runtime.Number] struct {
-	number N
-	hash   H
+	Number N
+	Hash   H
 }
 
 type BlockRules[H runtime.Hash, N runtime.Number] struct {
-	bad   map[H]struct{} // Set with bad blocks
+	bad   BadBlocks[H] // Set with bad blocks
 	forks map[N]H
 }
 
@@ -38,10 +38,10 @@ func (LookupResultExpected[H]) isLookupResult() {}
 func NewBlockRules[
 	H runtime.Hash,
 	N runtime.Number,
-](forkBlocks []BadBlockData[H, N], badBlocks map[H]struct{}) *BlockRules[H, N] {
+](forkBlocks []BadBlockData[H, N], badBlocks BadBlocks[H]) *BlockRules[H, N] {
 	forks := make(map[N]H)
 	for _, block := range forkBlocks {
-		forks[block.number] = block.hash
+		forks[block.Number] = block.Hash
 	}
 
 	return &BlockRules[H, N]{

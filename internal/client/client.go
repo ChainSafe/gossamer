@@ -27,6 +27,8 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "client"))
 
+type BadBlocks[H runtime.Hash] map[H]struct{}
+
 type prepareStorageChangesResult interface {
 	isPrepareStorageChangesResult()
 }
