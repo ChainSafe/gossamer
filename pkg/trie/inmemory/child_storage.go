@@ -14,7 +14,7 @@ import (
 // ChildStorageKeyPrefix is the prefix for all child storage keys
 var ChildStorageKeyPrefix = []byte(":child_storage:default:")
 
-// setChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
+// SetChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
 // A child trie is added as a node (K, V) in the main trie. K is the child storage key
 // associated to the child trie, and V is the root hash of the child trie.
 func (t *InMemoryTrie) SetChild(keyToChild []byte, child *InMemoryTrie) error {
