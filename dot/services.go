@@ -351,7 +351,7 @@ func (nodeBuilder) createNetworkService(config *cfg.Config, stateSrvc *state.Ser
 		stateSrvc.Block, stateSrvc.Grandpa,
 	)
 
-	// network service configuation
+	// network service configuration
 	networkConfig := network.Config{
 		LogLvl:            networkLogLevel,
 		BlockState:        stateSrvc.Block,
