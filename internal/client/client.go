@@ -70,7 +70,7 @@ type ClientConfig[N runtime.Number] struct {
 	// Enable the offchain worker db.
 	OffchainWorkerEnabled bool
 	// If true, allows access from the runtime to write into offchain worker db.
-	OffchainIndexingApi bool
+	OffchainIndexingAPI bool
 	// Path where WASM files exist to override the on-chain WASM.
 	WasmRuntimeOverrides *string
 	// Skip writing genesis state on first start.
@@ -937,7 +937,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 				return nil, err
 			}
 
-			if c.config.OffchainIndexingApi {
+			if c.config.OffchainIndexingAPI {
 				err := operation.Op.UpdateOffchainStorage(sc.OffchainStorageChanges)
 				if err != nil {
 					return nil, err
