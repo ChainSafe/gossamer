@@ -30,7 +30,7 @@ func NewExtensions() Extensions {
 type MultiRemovalResults struct {
 	// A continuation cursor which, if `Some` must be provided to the subsequent removal call.
 	// If `None` then all removals are complete and no further calls are needed.
-	MaybeCursor []byte
+	Cursor []byte
 	// The number of items removed from the backend database.
 	Backend uint32
 	// The number of unique keys removed, taking into account both the backend and the overlay.
@@ -98,15 +98,15 @@ type Externalities interface {
 	//
 	// An implementation is free to delete more keys than the specified limit as long as
 	// it is able to do that in constant time.
-	KillChildStorage(childInfo storage.ChildInfo, maybeLimit *uint32, maybeCursor []byte) (MultiRemovalResults, error)
+	KillChildStorage(childInfo storage.ChildInfo, maybeLimit *uint32, maybeCursor []byte) MultiRemovalResults
 
 	// Clear storage entries which keys are start with the given prefix.
 	// `maybeLimit`, `maybeCursor` and result works as for `KillChildStorage`.
-	ClearPrefix(prefix []byte, maybeLimit *uint32, maybeCursor []byte) (MultiRemovalResults, error)
+	ClearPrefix(prefix []byte, limit *uint32, cursor []byte) MultiRemovalResults
 
 	// Clear child storage entries which keys are start with the given prefix.
 	// `maybeLimit`, `maybeCursor` and result works as for `KillChildStorage`.
-	ClearChildPrefix(childInfo storage.ChildInfo, prefix []byte, maybeLimit *uint32, maybeCursor []byte) (MultiRemovalResults, error)
+	ClearChildPrefix(childInfo storage.ChildInfo, prefix []byte, limit *uint32, cursor []byte) MultiRemovalResults
 
 	// Set or clear a storage entry (`key`) of current contract being called (effective
 	// immediately).
@@ -154,7 +154,7 @@ type Externalities interface {
 	//
 	// This will apply all changes made after the last call to `StorageStartTransaction`
 	// and clear the transaction state.
-	StorageCommitTransaction()
+	StorageCommitTransaction() error
 
 	// Index specified transaction slice and store it.
 	StorageIndexTransaction(index uint32, hash []byte, size uint32)
