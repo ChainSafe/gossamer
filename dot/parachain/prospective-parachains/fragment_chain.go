@@ -145,8 +145,13 @@ func (c *candidateStorage) clone() *candidateStorage {
 			parentHeadDataHash: entry.parentHeadDataHash,
 			outputHeadDataHash: entry.outputHeadDataHash,
 			relayParent:        entry.relayParent,
-			candidate:          entry.candidate,
-			state:              entry.state,
+			candidate: &prospectiveCandidate{
+				Commitments:             entry.candidate.Commitments,
+				PersistedValidationData: entry.candidate.PersistedValidationData,
+				PoVHash:                 entry.candidate.PoVHash,
+				ValidationCodeHash:      entry.candidate.ValidationCodeHash,
+			},
+			state: entry.state,
 		}
 	}
 
@@ -315,14 +320,17 @@ type scope struct {
 	pendingAvailability []*pendingAvailability
 	// the base constraints derived from the latest included candidate
 	baseConstraints *parachaintypes.VStagingConstraints
-	// equal to `max_candidate_depth`
-	maxDepth uint
+	// maximum length of the best backable chain (including candidates pending availability).
+	maxBackableLen uint
 }
 
 // newScopeWithAncestors defines a new scope, all arguments are straightforward
 // except ancestors. Ancestor should be in reverse order, starting with the parent
 // of the relayParent, and proceeding backwards in block number decrements of 1.
 // Ancestors not following these conditions will be rejected.
+//
+// `max_backable_len` should be the maximum length of the best backable chain (excluding
+// pending availability candidates).
 //
 // This function will only consume ancestors up to the `MinRelayParentNumber` of the
 // `baseConstraints`.
@@ -333,7 +341,7 @@ func newScopeWithAncestors(
 	relayParent relayChainBlockInfo,
 	baseConstraints *parachaintypes.VStagingConstraints,
 	pendingAvailability []*pendingAvailability,
-	maxDepth uint,
+	maxBackableLen uint,
 	ancestors []relayChainBlockInfo,
 ) (*scope, error) {
 	ancestorsMap := btree.NewMap[parachaintypes.BlockNumber, relayChainBlockInfo](100)
@@ -362,7 +370,7 @@ func newScopeWithAncestors(
 		relayParent:         relayParent,
 		baseConstraints:     baseConstraints,
 		pendingAvailability: pendingAvailability,
-		maxDepth:            maxDepth,
+		maxBackableLen:      maxBackableLen + uint(len(pendingAvailability)),
 		ancestors:           ancestorsMap,
 		ancestorsByHash:     ancestorsByHash,
 	}, nil
@@ -813,8 +821,14 @@ func (f *fragmentChain) populateUnconnectedPotentialCandidates(oldStorage *candi
 		// or not an entry since an error can legitimately
 		// happen when pruning stale candidates.
 		err := f.canAddCandidateAsPotential(candidate)
-		if err == nil {
-			_ = f.unconnected.addCandidateEntry(candidate)
+		if err != nil {
+			logger.Warnf("cannot add candidate as a potential: %s", err.Error())
+			continue
+		}
+
+		err = f.unconnected.addCandidateEntry(candidate)
+		if err != nil {
+			logger.Warnf("while adding unconnected candidate entry: %s", err.Error())
 		}
 	}
 }
@@ -1060,7 +1074,11 @@ func (f *fragmentChain) populateChain(storage *candidateStorage) {
 		return
 	}
 
-	for len(f.bestChain.chain) < int(f.scope.maxDepth)+1 {
+	for {
+		if len(f.bestChain.chain) >= int(f.scope.maxBackableLen) {
+			break
+		}
+
 		childConstraints, err := applyModifications(
 			f.scope.baseConstraints, cumulativeModifications)
 		if err != nil {

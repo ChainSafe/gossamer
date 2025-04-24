@@ -162,6 +162,7 @@ func (c *VStagingConstraints) Clone() *VStagingConstraints {
 		MinRelayParentNumber:  c.MinRelayParentNumber,
 		MaxPoVSize:            c.MaxPoVSize,
 		MaxCodeSize:           c.MaxCodeSize,
+		MaxHeadDataSize:       c.MaxHeadDataSize,
 		UMPRemaining:          c.UMPRemaining,
 		UMPRemainingBytes:     c.UMPRemainingBytes,
 		MaxNumUMPPerCandidate: c.MaxNumUMPPerCandidate,
