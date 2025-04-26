@@ -722,7 +722,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) ImportBlock(
 	importResult, err := c.LockImportRun(func(
 		clientImportOp *api.ClientImportOperation[H, Hasher, N, Header, E],
 	) (any, error) {
-		result, err := c.applyBlock(clientImportOp, block, storageChanges)
+		result, err := c.applyBlock(clientImportOp, *block, storageChanges)
 		return result, err
 	})
 
@@ -830,7 +830,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) prepareBlockStorageChang
 
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyBlock(
 	operation *api.ClientImportOperation[H, Hasher, N, Header, E],
-	importBlock *common.BlockImportParams[H, N, E, Header],
+	importBlock common.BlockImportParams[H, N, E, Header],
 	storageChanges common.StorageChanges,
 ) (common.ImportResult, error) {
 	if len(importBlock.Intermediates) > 0 {
