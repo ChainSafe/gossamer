@@ -657,7 +657,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) CheckBlock(block common.
 	}
 
 	// Own status must be checked first. If the block and ancestry is pruned
-	// this function must return `AlreadyInChain` rather than `MissingState`
+	// this function must return [common.ImportResultAlreadyInChain] rather than [common.ImportResultMissingState]
 	blockStatus, err := c.BlockStatus(block.Hash)
 	if err != nil {
 		return nil, err
