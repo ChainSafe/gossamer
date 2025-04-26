@@ -863,7 +863,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyBlock(
 		importBlock.Justifications,
 		importBlock.Body,
 		importBlock.IndexedBody,
-		&storageChanges,
+		storageChanges,
 		importBlock.Finalized,
 		importBlock.Auxiliary,
 		importBlock.ForkChoice,
@@ -887,8 +887,8 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 	importHeaders PrePostHeaders[N, H, Header],
 	justifications *runtime.Justifications,
 	body *[]E,
-	indexedBody *[][]byte,
-	storageChanges *common.StorageChanges,
+	indexedBody [][]byte,
+	storageChanges common.StorageChanges,
 	finalized bool,
 	aux api.AuxDataOperations,
 	forkchoice common.ForkChoiceStrategy,
@@ -930,7 +930,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 	var finalStorageChanges *api.StorageChanges
 
 	if storageChanges != nil {
-		switch sc := (*storageChanges).(type) {
+		switch sc := (storageChanges).(type) {
 		case common.Changes[H, Hasher]:
 			err := c.backend.BeginStateOperation(operation.Op, parentHash)
 			if err != nil {
@@ -1069,7 +1069,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 	err = operation.Op.SetBlockData(
 		importHeaders.Post().Clone().(Header),
 		*body,
-		*indexedBody,
+		indexedBody,
 		*justifications,
 		leafState,
 	)

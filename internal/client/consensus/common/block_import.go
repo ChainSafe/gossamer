@@ -155,7 +155,7 @@ type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, He
 	// The body of the block.
 	Body *[]E
 	// Indexed transaction body of the block.
-	IndexedBody *[][]byte
+	IndexedBody [][]byte
 	// Specify how the new state is computed.
 	StateAction StateAction
 	// Is this block finalized already?
