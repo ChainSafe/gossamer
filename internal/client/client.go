@@ -584,9 +584,11 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Block(hash H) (*generic.
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) BlockStatus(hash H) (
 	primivite_consensus_common.BlockStatus, error,
 ) {
+	c.importingBlockMtx.RLock()
 	if c.importingBlock != nil && *c.importingBlock == hash {
 		return primivite_consensus_common.BlockStatusQueued, nil
 	}
+	c.importingBlockMtx.RUnlock()
 
 	number, err := c.backend.Blockchain().Number(hash)
 	if err != nil {
