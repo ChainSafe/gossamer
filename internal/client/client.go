@@ -634,6 +634,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Children(parent H) ([]H,
 	return c.backend.Blockchain().Children(parent)
 }
 
+// Note: This is an async function so the plan is to ensure we do call it in a goroutine
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) CheckBlock(block common.BlockCheckParams[H, N]) (
 	common.ImportResult, error,
 ) {
@@ -698,6 +699,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) CheckBlock(block common.
 	}, nil
 }
 
+// Note: This is an async function so the plan is to ensure we do call it in a goroutine
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) ImportBlock(
 	block *common.BlockImportParams[H, N, E, Header],
 ) (common.ImportResult, error) {
