@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/recorder"
 )
 
+// Something that provides a runtime api.
 type ProvideRuntimeApi[
 	N runtime.Number,
 	E runtime.Extrinsic,
@@ -29,6 +30,7 @@ type ProvideRuntimeApi[
 	RuntimeApi() Api
 }
 
+// Something that can be constructed to a runtime api.
 type ConstructRuntimeApi[
 	N runtime.Number,
 	E runtime.Extrinsic,
@@ -45,6 +47,7 @@ type ConstructRuntimeApi[
 // A type that records all accessed trie nodes and generates a proof out of it.
 type ProofRecorder[H runtime.Hash] recorder.Recorder[H]
 
+// Extends the runtime api implementation with some common functionality.
 type ApiExt[
 	N runtime.Number,
 	E runtime.Extrinsic,
