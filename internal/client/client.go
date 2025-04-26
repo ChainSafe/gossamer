@@ -638,6 +638,8 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Children(parent H) ([]H,
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) CheckBlock(block common.BlockCheckParams[H, N]) (
 	common.ImportResult, error,
 ) {
+	// Check the block against white and black lists if any are defined
+	// (i.e. fork blocks and bad blocks respectively)
 	switch lookupResult := c.blockRules.Lookup(block.Number, block.Hash).(type) {
 	case LookupResultKnownBad:
 		logger.Tracef("Rejecting known bad block: #%d %v", block.Number, block.Hash)
