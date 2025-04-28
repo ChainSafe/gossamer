@@ -983,7 +983,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 						if childType := storage.NewChildTypeFromPrefixedKey(prefixedStorageKey); childType != nil {
 							storageKey = childType.Key
 						} else {
-							return nil, blockchain.ErrInvalidChildStorageKey
+							return nil, fmt.Errorf("%w: Invalid child storage key", blockchain.ErrBackend)
 						}
 
 						entry, has := strg.ChildrenDefault[string(storageKey)]
