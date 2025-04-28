@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"go.uber.org/mock/gomock"
 
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
@@ -1655,7 +1654,7 @@ func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_activatedLeafIsNil
 
 func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_QueryRuntimeError(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+	blockAPIMock := NewMockBlockState(ctrl)
 
 	blockAPIMock.EXPECT().GetRuntime(common.Hash{0x01}).Return(
 		nil, errors.New("something is off")).Times(1)
@@ -1673,7 +1672,7 @@ func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_QueryRuntimeError(
 
 func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_QueryParachainHostValidatorsError(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+	blockAPIMock := NewMockBlockState(ctrl)
 	runtimeMock := NewMockInstance(ctrl)
 
 	blockAPIMock.EXPECT().GetRuntime(common.Hash{0x01}).Return(runtimeMock, nil).Times(1)
@@ -1694,7 +1693,7 @@ func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_QueryParachainHost
 	t *testing.T,
 ) {
 	ctrl := gomock.NewController(t)
-	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+	blockAPIMock := NewMockBlockState(ctrl)
 	runtimeMock := NewMockInstance(ctrl)
 
 	validatorSet := []parachaintypes.ValidatorID{
@@ -1720,7 +1719,7 @@ func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_QueryParachainHost
 
 func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+	blockAPIMock := NewMockBlockState(ctrl)
 	runtimeMock := NewMockInstance(ctrl)
 
 	validatorSet := []parachaintypes.ValidatorID{
