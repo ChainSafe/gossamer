@@ -1136,7 +1136,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 				}
 			}
 
-			*operation.NotifyFinalized = summary
+			operation.NotifyFinalized = &summary
 		}
 
 		var importNotificationAction api.ImportNotificationAction
