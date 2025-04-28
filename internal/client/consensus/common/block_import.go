@@ -148,7 +148,7 @@ type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, He
 	// post-runtime digests are pushed back on after.
 	Header Header
 	// Justification(s) provided for this block from the outside.
-	Justifications *runtime.Justifications
+	Justifications runtime.Justifications
 	// Digest items that have been added after the runtime for external
 	// work, like a consensus signature.
 	PostDigests []runtime.DigestItem

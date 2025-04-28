@@ -891,7 +891,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 	origin consensus.BlockOrigin,
 	hash H,
 	importHeaders PrePostHeaders[N, H, Header],
-	justifications *runtime.Justifications,
+	justifications runtime.Justifications,
 	body *[]E,
 	indexedBody [][]byte,
 	storageChanges common.StorageChanges,
@@ -1076,7 +1076,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 		importHeaders.Post().Clone().(Header),
 		*body,
 		indexedBody,
-		*justifications,
+		justifications,
 		leafState,
 	)
 
