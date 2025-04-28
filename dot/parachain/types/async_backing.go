@@ -90,7 +90,7 @@ type VStagingConstraints struct {
 	// The maximum new validation code size allowed, in bytes.
 	MaxCodeSize uint32
 	// The maximum head-data size, in bytes.
-	MaxHeadDataSize uint
+	MaxHeadDataSize uint32
 	// The amount of UMP messages remaining.
 	UMPRemaining uint32
 	// The amount of UMP bytes remaining.
