@@ -14,7 +14,7 @@ require (
 	github.com/disiqueira/gotree v1.0.0
 	github.com/dolthub/maphash v0.1.0
 	github.com/elastic/go-freelru v0.15.0
-	github.com/ethereum/go-ethereum v1.15.8
+	github.com/ethereum/go-ethereum v1.15.10
 	github.com/fatih/color v1.18.0
 	github.com/gammazero/deque v1.0.0
 	github.com/go-playground/validator/v10 v10.26.0
@@ -37,7 +37,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/prometheus/client_golang v1.22.0
-	github.com/prometheus/client_model v0.6.1
+	github.com/prometheus/client_model v0.6.2
 	github.com/qdm12/gotree v0.3.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
