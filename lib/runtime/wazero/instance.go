@@ -1570,15 +1570,15 @@ const DefaultSchedulingLookahead uint32 = 3
 func (in *Instance) ParachainHostSchedulingLookahead() (uint32, error) {
 	encodedLookahead, err := in.Exec(runtime.ParachainHostSchedulingLookahead, []byte{})
 	if err != nil {
+		if errors.Is(err, ErrExportFunctionNotFound) {
+			return DefaultSchedulingLookahead, nil
+		}
 		return 0, fmt.Errorf("exec: %w", err)
 	}
 
 	var lookahead uint32
 	err = scale.Unmarshal(encodedLookahead, &lookahead)
 	if err != nil {
-		if errors.Is(err, ErrExportFunctionNotFound) {
-			return DefaultSchedulingLookahead, nil
-		}
 		return 0, fmt.Errorf("unmarshalling: %w", err)
 	}
 
