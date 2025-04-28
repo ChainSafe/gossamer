@@ -797,7 +797,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) prepareBlockStorageChang
 			runtimeApi.RegisterExtension(recorder)
 		}
 
-		err := runtimeApi.ExecuteBlock(parentHash, generic.NewBlock[Hasher](importBlock.Header, *importBlock.Body))
+		err := runtimeApi.ExecuteBlock(parentHash, generic.NewBlock[Hasher](importBlock.Header, importBlock.Body))
 		if err != nil {
 			return nil, err
 		}
@@ -892,7 +892,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 	hash H,
 	importHeaders PrePostHeaders[N, H, Header],
 	justifications runtime.Justifications,
-	body *[]E,
+	body []E,
 	indexedBody [][]byte,
 	storageChanges common.StorageChanges,
 	finalized bool,
@@ -1074,7 +1074,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 
 	err = operation.Op.SetBlockData(
 		importHeaders.Post().Clone().(Header),
-		*body,
+		body,
 		indexedBody,
 		justifications,
 		leafState,

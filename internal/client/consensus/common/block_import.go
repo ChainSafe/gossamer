@@ -153,7 +153,7 @@ type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, He
 	// work, like a consensus signature.
 	PostDigests []runtime.DigestItem
 	// The body of the block.
-	Body *[]E
+	Body []E
 	// Indexed transaction body of the block.
 	IndexedBody [][]byte
 	// Specify how the new state is computed.

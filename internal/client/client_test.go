@@ -1147,7 +1147,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 				runtime.Digest{},
 			),
 			StateAction: common.StateActionExecute{},
-			Body: &[]runtime.OpaqueExtrinsic{
+			Body: []runtime.OpaqueExtrinsic{
 				{
 					Data: []byte{1, 2, 3},
 				},
@@ -1186,7 +1186,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		runtimeApi.EXPECT().SetCallContext(core.CallContextOnchain).Return()
 		runtimeApi.EXPECT().RegisterExtension(recorder).Return()
 
-		blockInstance := generic.NewBlock[runtime.BlakeTwo256](block.Header, *block.Body)
+		blockInstance := generic.NewBlock[runtime.BlakeTwo256](block.Header, block.Body)
 		runtimeApi.EXPECT().ExecuteBlock(block.Header.ParentHash(), blockInstance).Return(nil)
 
 		state := &statemachine.TrieBackend[hash.H256, runtime.BlakeTwo256]{}
