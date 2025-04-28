@@ -53,7 +53,7 @@ func TestResolveStateVersionFromWasmMissingCode(t *testing.T) {
 	stateVersion, err := ResolveStateVersionFromWasm[Hasher, Hash, Executor](storage, nil)
 
 	require.ErrorIs(t, err, blockchain.ErrVersionInvalid)
-	require.Equal(t, primitives_storage.NoStateVersion, stateVersion)
+	require.Equal(t, primitives_storage.DefaultStateVersion, stateVersion)
 }
 
 func TestResolveStateVersionFromWasmInvalidRuntimeVersion(t *testing.T) {
@@ -74,5 +74,5 @@ func TestResolveStateVersionFromWasmInvalidRuntimeVersion(t *testing.T) {
 	stateVersion, err := ResolveStateVersionFromWasm[Hasher, Hash, Executor](storage, executorMock)
 
 	require.ErrorIs(t, err, blockchain.ErrVersionInvalid)
-	require.Equal(t, primitives_storage.NoStateVersion, stateVersion)
+	require.Equal(t, primitives_storage.DefaultStateVersion, stateVersion)
 }
