@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	chainspec "github.com/ChainSafe/gossamer/internal/client/chain-spec"
 	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/executor"
+	genesisblock "github.com/ChainSafe/gossamer/internal/client/genesis-block"
 	"github.com/ChainSafe/gossamer/internal/log"
 	primitives_api "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
@@ -1002,7 +1002,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 
 					// This is use by fast sync for runtime version to be resolvable from
 					// changes.
-					stateVersion, err := chainspec.ResolveStateVersionFromWasm[Hasher](strg, c.executor)
+					stateVersion, err := genesisblock.ResolveStateVersionFromWasm[Hasher](strg, c.executor)
 					if err != nil {
 						return nil, err
 					}
