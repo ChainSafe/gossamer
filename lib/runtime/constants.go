@@ -48,9 +48,9 @@ const (
 		"polkadot-stable2412/westend_runtime-v1017001.compact.compressed.wasm?raw=true"
 
 	// v1.18.0 westend
-	WESTEND_RUNTIME_v1180     = "westend_runtime-v1180"
-	WESTEND_RUNTIME_v1180_FP  = "westend_runtime-v1180.compact.wasm"
-	WESTEND_RUNTIME_v1180_URL = "https://github.com/paritytech/polkadot-sdk/releases/download/" +
+	WESTEND_RUNTIME_STABLE_2503     = "westend_runtime-v1180"
+	WESTEND_RUNTIME_STABLE_2503_FP  = "westend_runtime-v1180.compact.wasm"
+	WESTEND_RUNTIME_STABLE_2503_URL = "https://github.com/paritytech/polkadot-sdk/releases/download/" +
 		"polkadot-stable2503/westend_runtime.compact.compressed.wasm?raw=true"
 )
 

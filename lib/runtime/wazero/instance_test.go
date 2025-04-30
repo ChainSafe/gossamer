@@ -51,9 +51,6 @@ var parachainsConfigStable2503 string
 //go:embed testdata/parachains_host_disputes.yaml
 var parachainHostDisputes string
 
-//go:embed testdata/parachains_configuration_v1180.yaml
-var parachainsConfigV1180TestDataRaw string
-
 type Storage struct {
 	Name  string `yaml:"name"`
 	Key   string `yaml:"key"`
@@ -67,7 +64,7 @@ type Data struct {
 }
 
 var parachainTestData, parachainsConfigV190TestData, parachainsConfigV1171TestData Data
-var parachainsConfigV1180TestData Data
+var parachainsConfigStable2503Data Data
 
 func init() {
 	err := yaml.Unmarshal([]byte(parachainTestDataRaw), &parachainTestData)
@@ -109,16 +106,16 @@ func init() {
 		}
 	}
 
-	err = yaml.Unmarshal([]byte(parachainsConfigV1180TestDataRaw), &parachainsConfigV1180TestData)
+	err = yaml.Unmarshal([]byte(parachainsConfigStable2503), &parachainsConfigStable2503Data)
 	if err != nil {
 		fmt.Println("Error unmarshalling test data:", err)
 		return
 	}
-	parachainsConfigV1180TestData.Lookups = make(map[string]any)
+	parachainsConfigStable2503Data.Lookups = make(map[string]any)
 
-	for _, s := range parachainsConfigV1180TestData.Storage {
+	for _, s := range parachainsConfigStable2503Data.Storage {
 		if s.Name != "" {
-			parachainsConfigV1180TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
+			parachainsConfigStable2503Data.Lookups[s.Name] = common.MustHexToBytes(s.Value)
 		}
 	}
 }
@@ -1779,9 +1776,9 @@ func TestInstance_ParachainHostSchedulingLookAhead(t *testing.T) {
 		},
 		{
 			name:              "supported_by_runtime_version",
-			targetRuntime:     runtime.WESTEND_RUNTIME_v1180,
-			testDataStorage:   parachainsConfigV1180TestData.Storage,
-			expectedLookahead: 3,
+			targetRuntime:     runtime.WESTEND_RUNTIME_STABLE_2503,
+			testDataStorage:   parachainsConfigStable2503Data.Storage,
+			expectedLookahead: 10,
 		},
 	}
 
@@ -1836,7 +1833,7 @@ func TestInstance_ParachainHostDisputes(t *testing.T) {
 	require.NoError(t, err)
 
 	tt := getParachainHostTrie(t, disputesStateData.Storage)
-	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1180, TestWithTrie(tt))
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_STABLE_2503, TestWithTrie(tt))
 
 	disputes, err := rt.ParachainHostDisputes()
 	require.NoError(t, err)
@@ -1879,7 +1876,7 @@ func TestInstance_ParachainHostBackingConstraints(t *testing.T) {
 	require.NoError(t, err)
 
 	tt := getParachainHostTrie(t, disputesStateData.Storage)
-	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1180, TestWithTrie(tt))
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_STABLE_2503, TestWithTrie(tt))
 
 	constraints, err := rt.ParachainHostBackingConstraints(parachaintypes.ParaID(1001))
 	require.NoError(t, err)
@@ -1934,7 +1931,7 @@ func TestInstance_ParachainHostCandidatesPendingAvailability(t *testing.T) {
 	require.NoError(t, err)
 
 	tt := getParachainHostTrie(t, disputesStateData.Storage)
-	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1180, TestWithTrie(tt))
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_STABLE_2503, TestWithTrie(tt))
 
 	committedCandidateReceiptsV2, err := rt.ParachainHostCandidatesPendingAvailability(parachaintypes.ParaID(1001))
 	require.NoError(t, err)
