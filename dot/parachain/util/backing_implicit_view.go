@@ -327,7 +327,7 @@ func (view *BackingImplicitView) fetchMinRelayParentsForCollator(
 		return nil, fmt.Errorf("getting session index for leaf %s: %w", leafHash, err)
 	}
 
-	schedulingLookahead, err := instance.ParachainHostSchedulingLookahead()
+	schedulingLookahead, err := instance.ParachainHostSchedulingLookAhead()
 	if err != nil {
 		return nil, fmt.Errorf("getting scheduling lookahead for leaf %s: %w", leafHash, err)
 	}

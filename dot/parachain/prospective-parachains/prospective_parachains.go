@@ -6,15 +6,20 @@ package prospectiveparachains
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"golang.org/x/exp/maps"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-prospective-parachains"))
+var logger = log.NewFromGlobal(
+	log.AddContext("pkg", "parachain-prospective-parachains"),
+	log.SetLevel(log.Debug),
+)
 
 // Initialize with empty values.
 func NewView() *view {
@@ -29,13 +34,24 @@ func NewView() *view {
 
 type ProspectiveParachains struct {
 	SubsystemToOverseer chan<- any
-	View                *view
+	view                *view
+	blockState          BlockState
 }
 
 type view struct {
 	activeLeaves   map[common.Hash]bool
 	perRelayParent map[common.Hash]*relayParentData
 	implicitView   backing.ImplicitView
+}
+
+func newView() *view {
+	return &view{
+		perRelayParent: make(map[common.Hash]*relayParentData),
+		activeLeaves:   make(map[common.Hash]bool),
+
+		// TODO: currently there's no implementation for ImplicitView
+		implicitView: nil,
+	}
 }
 
 type relayParentData struct {
@@ -51,7 +67,7 @@ func (*ProspectiveParachains) Name() parachaintypes.SubSystemName {
 func NewProspectiveParachains(overseerChan chan<- any) *ProspectiveParachains {
 	prospectiveParachain := ProspectiveParachains{
 		SubsystemToOverseer: overseerChan,
-		View:                NewView(),
+		view:                newView(),
 	}
 	return &prospectiveParachain
 }
@@ -83,7 +99,7 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 		_ = pp.ProcessBlockFinalizedSignal(msg)
 	case messages.IntroduceSecondedCandidate:
 		pp.introduceSecondedCandidate(
-			pp.View,
+			pp.view,
 			msg.Request,
 			msg.Response,
 		)
@@ -92,7 +108,7 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 	case messages.GetBackableCandidates:
 		pp.getBackableCandidates(msg)
 	case messages.GetHypotheticalMembership:
-		panic("not implemented yet: see issue #4311")
+		pp.getHypotheticalMembership(msg)
 	case messages.GetMinimumRelayParents:
 		// Directly use the msg since it's already of type GetMinimumRelayParents
 		pp.getMinimumRelayParents(msg.RelayChainBlockHash, msg.Sender)
@@ -151,7 +167,7 @@ func (pp *ProspectiveParachains) introduceSecondedCandidate(
 		err = chain.tryAddingSecondedCandidate(entry)
 		if err != nil {
 			if errors.Is(err, errCandidateAlreadyKnown) {
-				logger.Tracef(
+				logger.Warnf(
 					"attempting to introduce an already known candidate with hash: %s, para: %v relayParent: %v isActiveLeaf: %v",
 					candidateHash,
 					para,
@@ -160,7 +176,7 @@ func (pp *ProspectiveParachains) introduceSecondedCandidate(
 				)
 				added = append(added, relayParent)
 			} else {
-				logger.Tracef(
+				logger.Warnf(
 					"adding seconded candidate with hash: %s error: %s para: %v relayParent: %v isActiveLeaf: %v",
 					candidateHash,
 					err.Error(),
@@ -201,13 +217,13 @@ func (pp *ProspectiveParachains) handleCandidateBacked(msg messages.CandidateBac
 	foundCandidate := false
 	foundPara := false
 
-	for relayParent, rpData := range pp.View.perRelayParent {
+	for relayParent, rpData := range pp.view.perRelayParent {
 		chain, ok := rpData.fragmentChains[para]
 		if !ok {
 			continue
 		}
 
-		_, isActiveLeaf := pp.View.activeLeaves[relayParent]
+		_, isActiveLeaf := pp.view.activeLeaves[relayParent]
 
 		foundPara = true
 		if chain.isCandidateBacked(candidateHash) {
@@ -257,13 +273,6 @@ func (pp *ProspectiveParachains) handleCandidateBacked(msg messages.CandidateBac
 	}
 }
 
-// ProcessActiveLeavesUpdateSignal processes active leaves update signal
-func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
-	parachaintypes.ActiveLeavesUpdateSignal,
-) error {
-	panic("not implemented yet: see issue #4305")
-}
-
 // ProcessBlockFinalizedSignal processes block finalized signal
 func (*ProspectiveParachains) ProcessBlockFinalizedSignal(
 	parachaintypes.BlockFinalizedSignal,
@@ -279,9 +288,9 @@ func (pp *ProspectiveParachains) getMinimumRelayParents(
 	var result []messages.ParaIDBlockNumber
 
 	// Check if the relayChainBlockHash exists in active_leaves
-	if exists := pp.View.activeLeaves[relayChainBlockHash]; exists {
+	if exists := pp.view.activeLeaves[relayChainBlockHash]; exists {
 		// Retrieve data associated with the relayChainBlockHash
-		if leafData, found := pp.View.perRelayParent[relayChainBlockHash]; found {
+		if leafData, found := pp.view.perRelayParent[relayChainBlockHash]; found {
 			// Iterate over fragment_chains and collect the data
 			for paraID, fragmentChain := range leafData.fragmentChains {
 				result = append(result, messages.ParaIDBlockNumber{
@@ -307,7 +316,7 @@ func (pp *ProspectiveParachains) getBackableCandidates(
 	responseChan := msg.Response
 
 	// Check if the relay parent is active
-	if _, exists := pp.View.activeLeaves[relayParentHash]; !exists {
+	if _, exists := pp.view.activeLeaves[relayParentHash]; !exists {
 		logger.Debugf(
 			"Requested backable candidates for inactive relay-parent. "+
 				"RelayParentHash: %v, ParaId: %v",
@@ -318,7 +327,7 @@ func (pp *ProspectiveParachains) getBackableCandidates(
 	}
 
 	// Retrieve data for the relay parent
-	data, ok := pp.View.perRelayParent[relayParentHash]
+	data, ok := pp.view.perRelayParent[relayParentHash]
 	if !ok {
 		logger.Debugf(
 			"Requested backable candidates for nonexistent relay-parent. "+
@@ -390,8 +399,8 @@ func (pp *ProspectiveParachains) answerProspectiveValidationDataRequest(
 	var maxPovSize *uint32
 
 	// // iterate over active leaves
-	for leaf := range pp.View.activeLeaves {
-		relayBlockViewData, exists := pp.View.perRelayParent[leaf]
+	for leaf := range pp.view.activeLeaves {
+		relayBlockViewData, exists := pp.view.perRelayParent[leaf]
 
 		if !exists {
 			continue
@@ -439,4 +448,86 @@ func (pp *ProspectiveParachains) answerProspectiveValidationDataRequest(
 	} else {
 		response <- nil
 	}
+}
+
+func (pp *ProspectiveParachains) getHypotheticalMembership(
+	msg messages.GetHypotheticalMembership,
+) {
+	defer close(msg.Response)
+	response := make([]*messages.HypotheticalMembershipResponseItem, 0, len(msg.Candidates))
+
+	for _, candidate := range msg.Candidates {
+		response = append(response, &messages.HypotheticalMembershipResponseItem{
+			HypotheticalCandidate:  candidate,
+			HypotheticalMembership: make([]common.Hash, 0),
+		})
+	}
+
+	var activeLeaves []common.Hash
+
+	if msg.FragmentChainRelayParent == nil {
+		activeLeaves = maps.Keys(pp.view.activeLeaves)
+	} else if _, ok := pp.view.activeLeaves[*msg.FragmentChainRelayParent]; ok {
+		activeLeaves = []common.Hash{*msg.FragmentChainRelayParent}
+	}
+
+	for _, al := range activeLeaves {
+		leafView, ok := pp.view.perRelayParent[al]
+		if !ok {
+			continue
+		}
+
+		for _, responseItem := range response {
+			paraID := responseItem.HypotheticalCandidate.ParaID()
+			fragmentChain, ok := leafView.fragmentChains[paraID]
+			if !ok {
+				continue
+			}
+
+			err := fragmentChain.canAddCandidateAsPotential(
+				responseItem.HypotheticalCandidate)
+			if err != nil {
+				if errors.Is(err, errCandidateAlreadyKnown) {
+					responseItem.HypotheticalMembership = append(
+						responseItem.HypotheticalMembership,
+						al,
+					)
+				} else {
+					logger.Tracef("ParaID=%d Leaf=%s Candidate=%s "+
+						"Candidate is not a hypothetical member on: %s",
+						paraID,
+						al.String(),
+						responseItem.HypotheticalCandidate.CandidateHash(),
+						err.Error())
+				}
+
+				continue
+			}
+
+			responseItem.HypotheticalMembership = append(
+				responseItem.HypotheticalMembership,
+				al,
+			)
+		}
+	}
+
+	for _, item := range response {
+		if len(item.HypotheticalMembership) == 0 {
+			var hashes []string
+			for _, hash := range maps.Keys(pp.view.activeLeaves) {
+				hashes = append(hashes, hash.String())
+			}
+
+			leaves := strings.Join(hashes, ",")
+			logger.Debugf("Para=%d Leaves=%s RequiredActiveLeaf=%v Candidate=%s "+
+				"Candidate is not a hypothetical member on any of the active leaves",
+				item.HypotheticalCandidate.ParaID(),
+				leaves,
+				msg.FragmentChainRelayParent,
+				item.HypotheticalCandidate.CandidateHash(),
+			)
+		}
+	}
+
+	msg.Response <- response
 }

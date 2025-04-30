@@ -375,6 +375,21 @@ func (mr *MockInstanceMockRecorder) ParachainHostAvailabilityCores() *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostAvailabilityCores", reflect.TypeOf((*MockInstance)(nil).ParachainHostAvailabilityCores))
 }
 
+// ParachainHostBackingConstraints mocks base method.
+func (m *MockInstance) ParachainHostBackingConstraints(paraID parachaintypes.ParaID) (*parachaintypes.VStagingConstraints, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostBackingConstraints", paraID)
+	ret0, _ := ret[0].(*parachaintypes.VStagingConstraints)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostBackingConstraints indicates an expected call of ParachainHostBackingConstraints.
+func (mr *MockInstanceMockRecorder) ParachainHostBackingConstraints(paraID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostBackingConstraints", reflect.TypeOf((*MockInstance)(nil).ParachainHostBackingConstraints), paraID)
+}
+
 // ParachainHostCandidateEvents mocks base method.
 func (m *MockInstance) ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error) {
 	m.ctrl.T.Helper()
@@ -391,10 +406,10 @@ func (mr *MockInstanceMockRecorder) ParachainHostCandidateEvents() *gomock.Call 
 }
 
 // ParachainHostCandidatePendingAvailability mocks base method.
-func (m *MockInstance) ParachainHostCandidatePendingAvailability(parachainID parachaintypes.ParaID) (*parachaintypes.CommittedCandidateReceipt, error) {
+func (m *MockInstance) ParachainHostCandidatePendingAvailability(parachainID parachaintypes.ParaID) (*parachaintypes.CommittedCandidateReceiptV2, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostCandidatePendingAvailability", parachainID)
-	ret0, _ := ret[0].(*parachaintypes.CommittedCandidateReceipt)
+	ret0, _ := ret[0].(*parachaintypes.CommittedCandidateReceiptV2)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -403,6 +418,21 @@ func (m *MockInstance) ParachainHostCandidatePendingAvailability(parachainID par
 func (mr *MockInstanceMockRecorder) ParachainHostCandidatePendingAvailability(parachainID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCandidatePendingAvailability", reflect.TypeOf((*MockInstance)(nil).ParachainHostCandidatePendingAvailability), parachainID)
+}
+
+// ParachainHostCandidatesPendingAvailability mocks base method.
+func (m *MockInstance) ParachainHostCandidatesPendingAvailability(paraID parachaintypes.ParaID) ([]parachaintypes.CommittedCandidateReceiptV2, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostCandidatesPendingAvailability", paraID)
+	ret0, _ := ret[0].([]parachaintypes.CommittedCandidateReceiptV2)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostCandidatesPendingAvailability indicates an expected call of ParachainHostCandidatesPendingAvailability.
+func (mr *MockInstanceMockRecorder) ParachainHostCandidatesPendingAvailability(paraID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCandidatesPendingAvailability", reflect.TypeOf((*MockInstance)(nil).ParachainHostCandidatesPendingAvailability), paraID)
 }
 
 // ParachainHostCheckValidationOutputs mocks base method.
@@ -510,19 +540,19 @@ func (mr *MockInstanceMockRecorder) ParachainHostPersistedValidationData(paracha
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostPersistedValidationData", reflect.TypeOf((*MockInstance)(nil).ParachainHostPersistedValidationData), parachaidID, assumption)
 }
 
-// ParachainHostSchedulingLookahead mocks base method.
-func (m *MockInstance) ParachainHostSchedulingLookahead() (uint32, error) {
+// ParachainHostSchedulingLookAhead mocks base method.
+func (m *MockInstance) ParachainHostSchedulingLookAhead() (uint32, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ParachainHostSchedulingLookahead")
+	ret := m.ctrl.Call(m, "ParachainHostSchedulingLookAhead")
 	ret0, _ := ret[0].(uint32)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ParachainHostSchedulingLookahead indicates an expected call of ParachainHostSchedulingLookahead.
-func (mr *MockInstanceMockRecorder) ParachainHostSchedulingLookahead() *gomock.Call {
+// ParachainHostSchedulingLookAhead indicates an expected call of ParachainHostSchedulingLookAhead.
+func (mr *MockInstanceMockRecorder) ParachainHostSchedulingLookAhead() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostSchedulingLookahead", reflect.TypeOf((*MockInstance)(nil).ParachainHostSchedulingLookahead))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostSchedulingLookAhead", reflect.TypeOf((*MockInstance)(nil).ParachainHostSchedulingLookAhead))
 }
 
 // ParachainHostSessionExecutorParams mocks base method.

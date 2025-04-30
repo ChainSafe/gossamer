@@ -468,7 +468,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 		candidate2Hash, err := parachaintypes.GetCandidateHash(candidate2)
 		require.NoError(t, err)
 
-		getMembership.Response <- []prospectiveparachains.HypotheticalMembershipResponseItem{{
+		getMembership.Response <- []*prospectiveparachains.HypotheticalMembershipResponseItem{{
 			HypotheticalCandidate: parachaintypes.HypotheticalCandidateIncomplete{
 				ClaimedCandidateHash: candidate2Hash,
 			},
@@ -1161,7 +1161,7 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 		candidateHash, err := parachaintypes.GetCandidateHash(candidate)
 		require.NoError(t, err)
 
-		getMembership.Response <- []prospectiveparachains.HypotheticalMembershipResponseItem{{
+		getMembership.Response <- []*prospectiveparachains.HypotheticalMembershipResponseItem{{
 			HypotheticalCandidate: parachaintypes.HypotheticalCandidateIncomplete{
 				ClaimedCandidateHash: candidateHash,
 			},

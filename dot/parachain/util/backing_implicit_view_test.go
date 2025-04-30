@@ -548,7 +548,7 @@ func TestBackingImplicitView_FindMinRelayParents(t *testing.T) {
 
 		mockBlockState.EXPECT().GetRuntime(leafHash).Return(mockInstance, nil)
 		mockInstance.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(2), nil)
-		mockInstance.EXPECT().ParachainHostSchedulingLookahead().Return(uint32(lookahead), nil)
+		mockInstance.EXPECT().ParachainHostSchedulingLookAhead().Return(uint32(lookahead), nil)
 
 		// Set up ancestors with same session index
 		for i := 0; i < lookahead; i++ {
@@ -621,7 +621,7 @@ func TestBackingImplicitView_FindMinRelayParents(t *testing.T) {
 
 		mockBlockState.EXPECT().GetRuntime(leafHash).Return(mockInstance, nil)
 		mockInstance.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(2), nil)
-		mockInstance.EXPECT().ParachainHostSchedulingLookahead().Return(uint32(0), errors.New("lookahead error"))
+		mockInstance.EXPECT().ParachainHostSchedulingLookAhead().Return(uint32(0), errors.New("lookahead error"))
 
 		minParents, err := view.findMinRelayParents(leafHash, header, nil)
 		require.Error(t, err)

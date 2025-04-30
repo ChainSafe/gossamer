@@ -61,7 +61,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 				getMembership, ok := msg.(prospectiveparachains.GetHypotheticalMembership)
 				require.True(t, ok)
 
-				getMembership.Response <- []prospectiveparachains.HypotheticalMembershipResponseItem{{
+				getMembership.Response <- []*prospectiveparachains.HypotheticalMembershipResponseItem{{
 					HypotheticalCandidate: parachaintypes.HypotheticalCandidateIncomplete{
 						ClaimedCandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x02}},
 					},
@@ -95,7 +95,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 				getMembership, ok := msg.(prospectiveparachains.GetHypotheticalMembership)
 				require.True(t, ok)
 
-				getMembership.Response <- []prospectiveparachains.HypotheticalMembershipResponseItem{}
+				getMembership.Response <- []*prospectiveparachains.HypotheticalMembershipResponseItem{}
 			},
 			expectedError:    "",
 			expectedResponse: false,

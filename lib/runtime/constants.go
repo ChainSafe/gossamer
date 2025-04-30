@@ -123,10 +123,11 @@ const (
 	// ParachainHostClaimQueue is the runtime API call ParachainHost_claim_queue
 	ParachainHostClaimQueue = "ParachainHost_claim_queue"
 	// ParachainHostNodeFeatures is the runtime API call ParachainHost_node_features
-	ParachainHostNodeFeatures     = "ParachainHost_node_features"
-	ParachainHostParaBackingState = "ParachainHost_para_backing_state"
+	ParachainHostNodeFeatures = "ParachainHost_node_features"
 	// ParachainHostDisabledValidators is the runtime API call ParachainHost_disabled_validators
-	ParachainHostDisabledValidators  = "ParachainHost_disabled_validators"
-	ParachainHostDisputes            = "ParachainHost_disputes"
-	ParachainHostSchedulingLookahead = "ParachainHost_scheduling_lookahead"
+	ParachainHostDisabledValidators            = "ParachainHost_disabled_validators"
+	ParachainHostDisputes                      = "ParachainHost_disputes"
+	ParachainHostSchedulingLookAhead           = "ParachainHost_scheduling_lookahead"
+	ParachainHostBackingConstraints            = "ParachainHost_backing_constraints"
+	ParachainHostCandidatesPendingAvailability = "ParachainHost_candidates_pending_availability"
 )

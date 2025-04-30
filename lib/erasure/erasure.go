@@ -13,6 +13,9 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
@@ -20,8 +23,10 @@ import (
 )
 
 var (
-	ErrZeroSizedData   = errors.New("data can't be zero sized")
-	ErrZeroSizedChunks = errors.New("chunks can't be zero sized")
+	ErrZeroSizedData      = errors.New("data can't be zero sized")
+	ErrZeroSizedChunks    = errors.New("chunks can't be zero sized")
+	ErrBranchOutOfBounds  = errors.New("branch out of bounds")
+	ErrInvalidBranchProof = errors.New("invalid branch proof")
 )
 
 // SystematicRecoveryThreshold returns the threshold of systematic chunks that should be enough to recover the data.
@@ -145,4 +150,38 @@ func ChunksToTrie(chunks [][]byte) (trie.Trie, error) {
 		}
 	}
 	return chunkTrie, nil
+}
+
+func BranchHash(root common.Hash, branchNodes [][]byte, chunkIndex uint32) (common.Hash, error) {
+	memDB := db.NewEmptyMemoryDB()
+
+	for _, node := range branchNodes {
+		key, err := common.Blake2bHash(node)
+		if err != nil {
+			return common.EmptyHash, fmt.Errorf("hashing branch node: %w", err)
+		}
+
+		err = memDB.Put(key.ToBytes(), node)
+		if err != nil {
+			return common.EmptyHash, fmt.Errorf("putting branch node into trie: %w", err)
+		}
+	}
+
+	key, err := scale.Marshal(chunkIndex)
+	if err != nil {
+		return common.EmptyHash, fmt.Errorf("marshalling chunk index: %w", err)
+	}
+
+	tdb := triedb.NewTrieDB(root, memDB, nil)
+	value := tdb.Get(key)
+
+	if value == nil {
+		return common.EmptyHash, ErrBranchOutOfBounds
+	}
+
+	if len(value) != common.HashLength {
+		return common.EmptyHash, ErrInvalidBranchProof
+	}
+
+	return common.NewHash(value), nil
 }

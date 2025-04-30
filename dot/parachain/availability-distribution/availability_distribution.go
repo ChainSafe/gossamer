@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
@@ -25,6 +26,7 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-distribution"))
 
 const leafAncestryLenWithinSession = 3
+const povRequestTimeout = time.Second * 5
 
 type AvailabilityDistribution struct {
 	subSystemToOverseer chan<- any
@@ -36,6 +38,7 @@ type AvailabilityDistribution struct {
 }
 
 var _ parachaintypes.Subsystem = (*AvailabilityDistribution)(nil)
+var ErrPoVRequestTimeout = errors.New("PoV request timed out")
 
 type Network interface {
 	RegisterRequestHandler(subprotocolID protocol.ID, handler network.RequestHandler)
@@ -271,7 +274,85 @@ func (ad *AvailabilityDistribution) ProcessBlockFinalizedSignal(_ parachaintypes
 func (ad *AvailabilityDistribution) processAvailabilityDistributionMessageFetchPoV(
 	msg parachaintypes.AvailabilityDistributionMessageFetchPoV,
 ) error {
-	return nil // TODO: implement #4489
+	defer close(msg.PovCh)
+
+	rt, err := ad.blockState.GetRuntime(msg.RelayParent)
+	if err != nil {
+		return fmt.Errorf("instantiating runtime for relay parent %s: %w", msg.RelayParent.String(), err)
+	}
+
+	authorityID, err := ad.sessionCache.GetAuthorityID(msg.FromValidator, msg.RelayParent, rt)
+	if err != nil {
+		return fmt.Errorf(
+			"getting authority ID for validator %d at relay parent %s: %w",
+			msg.FromValidator,
+			msg.RelayParent.String(),
+			err,
+		)
+	}
+
+	request := messages.NewOutgoingRequest(
+		authorityID,
+		&messages.PoVFetchingRequest{
+			CandidateHash: msg.CandidateHash,
+		})
+
+	sendRequests := messages.SendRequests{
+		Requests:       []*messages.OutgoingRequest{request},
+		IfDisconnected: messages.ImmediateError,
+	}
+
+	ad.subSystemToOverseer <- sendRequests
+
+	var result messages.ReqRespResult
+
+	select {
+	case result = <-request.Result:
+	case <-time.After(povRequestTimeout):
+		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+			Err: ErrPoVRequestTimeout,
+		}
+		return nil
+	}
+
+	if result.Error != nil {
+		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+			Err: result.Error,
+		}
+		return nil
+	}
+
+	response, ok := result.Response.(*messages.PoVFetchingResponse)
+	if !ok {
+		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+			Err: fmt.Errorf("unexpected network message type in response: %T", result.Response),
+		}
+		return nil
+	}
+
+	v, err := response.Value()
+	if err != nil {
+		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+			Err: err,
+		}
+		return nil
+	}
+
+	switch v := v.(type) {
+	case parachaintypes.PoV:
+		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+			Data: v,
+		}
+	case parachaintypes.NoSuchPoV:
+		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+			Err: fmt.Errorf(
+				"validator %s did not have PoV for candidate %s",
+				common.BytesToHex(authorityID[:]),
+				msg.CandidateHash.String()),
+		}
+	}
+
+	return nil
 }
 
 func (ad *AvailabilityDistribution) handleChunkFetchingRequest(
@@ -306,7 +387,7 @@ func (ad *AvailabilityDistribution) handleChunkFetchingRequest(
 		err = response.SetValue(messages.ChunkResponse{
 			Chunk: chunk.Chunk,
 			Index: chunk.Index,
-			// Proof: chunk.Proof,  // FIXME see #4597
+			Proof: chunk.Proof,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("setting chunk response value: %w", err)
