@@ -13,15 +13,7 @@ import (
 )
 
 // Something that provides a runtime api.
-type ProvideRuntimeApi[
-	N runtime.Number,
-	E runtime.Extrinsic,
-	H runtime.Hash,
-	Hasher runtime.Hasher[H],
-	Backend statemachine.Backend[H, Hasher],
-	Result any,
-	Api ApiExt[N, E, H, Hasher, Backend, Result],
-] interface {
+type ProvideRuntimeApi[Api any] interface {
 	// Returns the runtime api.
 	// The returned instance will keep track of modifications to the storage. Any successful
 	// call to an api function, will `commit` its changes to an internal buffer. Otherwise,
@@ -31,15 +23,7 @@ type ProvideRuntimeApi[
 }
 
 // Something that can be constructed to a runtime api.
-type ConstructRuntimeApi[
-	N runtime.Number,
-	E runtime.Extrinsic,
-	H runtime.Hash,
-	Hasher runtime.Hasher[H],
-	Backend statemachine.Backend[H, Hasher],
-	Result any,
-	RuntimeApi ApiExt[N, E, H, Hasher, Backend, Result],
-] interface {
+type ConstructRuntimeApi[RuntimeApi any] interface {
 	// Construct an instance of the runtime api.
 	ConstructRuntimeApi() RuntimeApi
 }

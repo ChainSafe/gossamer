@@ -90,12 +90,7 @@ type Client[
 	E runtime.Extrinsic,
 	Executor ExecutorT,
 	Header runtime.Header[N, H],
-	RA primitives_api.ConstructRuntimeApi[
-		N, E, H, Hasher,
-		statemachine.Backend[H, Hasher],
-		any,
-		primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any],
-	],
+	RA primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any]],
 ] struct {
 	backend                         api.Backend[H, N, Hasher, Header, E]
 	executor                        Executor
@@ -134,11 +129,7 @@ func New[
 	E runtime.Extrinsic,
 	Executor ExecutorT,
 	Header runtime.Header[N, H],
-	RA primitives_api.ConstructRuntimeApi[N, E, H, Hasher,
-		statemachine.Backend[H, Hasher],
-		any,
-		primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any],
-	],
+	RA primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any]],
 ](
 	backend api.Backend[H, N, Hasher, Header, E],
 	config ClientConfig[N],
