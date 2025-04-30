@@ -38,6 +38,12 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "client/db"))
 
+type MinimalBlockMetadata[H runtime.Hash, N runtime.Number] struct {
+	number N
+	hash   H
+	parent H
+}
+
 // BlocksPruning represent block pruning settings.
 type BlocksPruning interface {
 	isBlocksPruning()

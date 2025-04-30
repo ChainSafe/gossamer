@@ -4,6 +4,8 @@
 package db
 
 import (
+	"container/list"
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -461,11 +463,191 @@ func (bdb *blockchainDB[H, N, E, Header]) Leaves() ([]H, error) {
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
-	blockHash H, blockNumber N,
+	finalizedBlockHash H, finalizedBlockNumber N,
 ) (blockchain.DisplacedLeavesAfterFinalization[H, N], error) {
 	bdb.leavesMtx.RLock()
 	defer bdb.leavesMtx.RUnlock()
-	panic("FIX ME with default displaced_leaves_after_finalizing from Backend trait")
+	leaves, err := bdb.Leaves()
+	if err != nil {
+		return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
+	}
+
+	// If we have only one leaf there are no forks, and we can return early.
+	if finalizedBlockNumber == 0 || len(leaves) == 1 {
+		return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, nil
+	}
+
+	// Store hashes of finalized blocks for quick checking later, the last block is the
+	// finalized one
+	finalizedChain := list.New()
+	currentFinalized, err := bdb.HeaderMetadata(finalizedBlockHash)
+
+	if err != nil {
+		if errors.Is(err, blockchain.ErrUnknownBlock) {
+			return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, nil
+		}
+		return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
+	}
+
+	finalizedChain.PushFront(MinimalBlockMetadata[H, N]{
+		number: currentFinalized.Number,
+		hash:   currentFinalized.Hash,
+		parent: currentFinalized.Parent,
+	})
+
+	// Local cache is a performance optimization in case of finalized block deep below the
+	// tip of the chain with a lot of leaves above finalized block
+	localCache := make(map[H]MinimalBlockMetadata[H, N])
+
+	result := blockchain.DisplacedLeavesAfterFinalization[H, N]{
+		DisplacedLeaves: make([]blockchain.HashNumber[H, N], 0),
+		DisplacedBlocks: make([]H, 0),
+	}
+
+	genesisHash := bdb.Info().GenesisHash
+
+	for _, leafHash := range leaves {
+		headerMetadata, err := bdb.HeaderMetadata(leafHash)
+		if err != nil {
+			return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
+		}
+
+		currentHeaderMetadata := MinimalBlockMetadata[H, N]{
+			number: headerMetadata.Number,
+			hash:   headerMetadata.Hash,
+			parent: headerMetadata.Parent,
+		}
+
+		leafNumber := headerMetadata.Number
+
+		// The genesis block is part of the canonical chain
+		if leafHash == genesisHash {
+			result.DisplacedLeaves = append(result.DisplacedLeaves, blockchain.HashNumber[H, N]{
+				Hash:   leafHash,
+				Number: leafNumber,
+			})
+			continue
+		}
+
+		// Collect all block hashes until the height of the finalized block
+		displacedBlocksCandidates := make([]H, 0)
+		for currentHeaderMetadata.number > finalizedBlockNumber {
+			displacedBlocksCandidates = append(displacedBlocksCandidates, currentHeaderMetadata.hash)
+
+			parentHash := currentHeaderMetadata.parent
+			val, has := localCache[parentHash]
+
+			if has {
+				currentHeaderMetadata = val
+			} else {
+				headerMetadata, err := bdb.HeaderMetadata(leafHash)
+				if err != nil {
+					return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
+				}
+
+				currentHeaderMetadata = MinimalBlockMetadata[H, N]{
+					number: headerMetadata.Number,
+					hash:   headerMetadata.Hash,
+					parent: headerMetadata.Parent,
+				}
+				// Cache locally in case more branches above finalized block reference
+				// the same block hash
+				localCache[parentHash] = currentHeaderMetadata
+			}
+		}
+
+		// If points back to the finalized header then nothing left to do, this leaf will be
+		// checked again later
+		if currentHeaderMetadata.hash == finalizedBlockHash {
+			continue
+		}
+
+		// We reuse `displaced_blocks_candidates` to store the current metadata.
+		// This block is not displaced if there is a gap in the ancestry. We
+		// check for this gap later.
+		displacedBlocksCandidates = append(displacedBlocksCandidates, currentHeaderMetadata.hash)
+
+		// Collect the rest of the displaced blocks of leaf branch
+		for distanceFromFinalized := 1; ; distanceFromFinalized++ {
+			var finalizedChainBlockNumber N
+			var finalizedChainBlockHash H
+
+			header, ok := findNthFromEnd[MinimalBlockMetadata[H, N]](finalizedChain, distanceFromFinalized)
+			if ok {
+				finalizedChainBlockNumber = header.number
+				finalizedChainBlockHash = header.hash
+			} else {
+				toFetch := finalizedChain.Front()
+				if toFetch == nil {
+					panic("expect not empty")
+				}
+
+				headerMetadata, err := bdb.HeaderMetadata(toFetch.Value.(MinimalBlockMetadata[H, N]).hash)
+				if err != nil {
+					if errors.Is(err, blockchain.ErrUnknownBlock) {
+						break
+					}
+					return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
+				}
+
+				metadata := MinimalBlockMetadata[H, N]{
+					number: headerMetadata.Number,
+					hash:   headerMetadata.Hash,
+					parent: headerMetadata.Parent,
+				}
+				finalizedChain.PushFront(metadata)
+
+				finalizedChainBlockNumber = metadata.number
+				finalizedChainBlockHash = metadata.hash
+			}
+
+			if currentHeaderMetadata.hash == finalizedChainBlockHash {
+				// Found the block on the finalized chain, nothing left to do
+				result.DisplacedLeaves = append(result.DisplacedLeaves, blockchain.HashNumber[H, N]{
+					Hash:   leafHash,
+					Number: leafNumber,
+				})
+				break
+			}
+
+			if currentHeaderMetadata.number <= finalizedChainBlockNumber {
+				// Skip more blocks until we get all blocks on finalized chain until the height
+				// of the parent block
+				continue
+			}
+
+			parentHash := currentHeaderMetadata.parent
+
+			if finalizedChainBlockHash == parentHash {
+				// Reached finalized chain, nothing left to do
+				result.DisplacedBlocks = append(result.DisplacedBlocks, displacedBlocksCandidates...)
+				result.DisplacedLeaves = append(result.DisplacedLeaves, blockchain.HashNumber[H, N]{
+					Hash:   leafHash,
+					Number: leafNumber,
+				})
+				break
+			}
+
+			// Store displaced block and look deeper for block on finalized chain
+			displacedBlocksCandidates = append(displacedBlocksCandidates, parentHash)
+
+			headerMetadata, err := bdb.HeaderMetadata(parentHash)
+			if err != nil {
+				return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
+			}
+
+			currentHeaderMetadata = MinimalBlockMetadata[H, N]{
+				number: headerMetadata.Number,
+				hash:   headerMetadata.Hash,
+				parent: headerMetadata.Parent,
+			}
+		}
+	}
+
+	// There could be duplicates shared by multiple branches, clean them up
+	result.SortAndDedupDisplacedBlocks()
+
+	return result, nil
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) Children(parentHash H) ([]H, error) {
@@ -583,7 +765,8 @@ func (bdb *blockchainDB[H, N, E, Header]) HeaderMetadata(hash H) (blockchain.Cac
 		return blockchain.CachedHeaderMetadata[H, N]{}, err
 	}
 	if header == nil {
-		return blockchain.CachedHeaderMetadata[H, N]{}, fmt.Errorf("header was not found in the database: %v", hash)
+		return blockchain.CachedHeaderMetadata[H, N]{},
+			fmt.Errorf("%w: header was not found in the database: %v", blockchain.ErrUnknownBlock, hash)
 	}
 	headerMetadata := blockchain.NewCachedHeaderMetadata(*header)
 	bdb.headerMetadataCache.InsertHeaderMetadata(headerMetadata.Hash, headerMetadata)
@@ -599,4 +782,24 @@ func (bdb *blockchainDB[H, N, E, Header]) RemoveHeaderMetadata(hash H) {
 	defer bdb.headerCacheMtx.Unlock()
 	bdb.headerCache.Remove(hash)
 	bdb.headerMetadataCache.RemoveHeaderMetadata(hash)
+}
+
+func findNthFromEnd[E any](l *list.List, n int) (E, bool) {
+	if l.Len() == 0 || n >= l.Len() {
+		return *new(E), false
+	}
+
+	currentElement := l.Back()
+	count := 0
+
+	for currentElement != nil && count < n {
+		currentElement = currentElement.Prev()
+		count++
+	}
+
+	if currentElement == nil {
+		return *new(E), false
+	}
+
+	return currentElement.Value.(E), true
 }
