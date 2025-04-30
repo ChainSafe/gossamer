@@ -332,7 +332,7 @@ func (view *BackingImplicitView) fetchMinRelayParentsForCollator(
 		return nil, fmt.Errorf("getting scheduling lookahead for leaf %s: %w", leafHash, err)
 	}
 
-	ancestors, err := fetchAncestorBlockHashes(leafHash, schedulingLookahead, blockState)
+	ancestors, err := FetchAncestorBlockHashes(leafHash, schedulingLookahead, blockState)
 	if err != nil {
 		return nil, fmt.Errorf("getting ancestor block hashes for leaf %s: %w", leafHash, err)
 	}
@@ -440,37 +440,6 @@ func requestSessionIndexForChild(
 	}
 
 	return &sessionIndex, nil
-}
-
-// fetchAncestorBlockHashes fetches the hashes of the ancestors of a given leaf hash
-// up to a specified number of blocks.
-//
-// NOTE: This function is the part of `ChainAPI Subsystem` in Rust.
-func fetchAncestorBlockHashes(
-	leafHash common.Hash,
-	numOfBlocks uint32,
-	blockState BlockState,
-) ([]common.Hash, error) {
-	ancestors := make([]common.Hash, 0, numOfBlocks)
-	currentHash := leafHash
-
-	for i := uint32(0); i < numOfBlocks; i++ {
-		header, err := blockState.GetHeader(currentHash)
-		if err != nil {
-			return nil, fmt.Errorf("getting header for leaf ancestor %v: %w", currentHash, err)
-		}
-
-		// Stop at genesis block
-		if header.Number == 0 {
-			break
-		}
-
-		parentHash := header.ParentHash
-		ancestors = append(ancestors, parentHash)
-		currentHash = parentHash
-	}
-
-	return ancestors, nil
 }
 
 // PathsViaRelayParent returns all paths from each leaf to the last block in state containing the relay parent.
