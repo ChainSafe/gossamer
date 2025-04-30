@@ -18,9 +18,9 @@ import (
 
 var ErrMissingRuntime = errors.New("runtime missing from initial storage, could not read state version")
 
-func ResolveStateVersionFromWasm[Hasher runtime.Hasher[H], H runtime.Hash, E executor.RuntimeVersionOf](
+func ResolveStateVersionFromWasm[Hasher runtime.Hasher[H], H runtime.Hash](
 	storage primitives_storage.Storage,
-	executor E,
+	executor executor.RuntimeVersionOf,
 ) (primitives_storage.StateVersion, error) {
 	wasm, has := storage.Top.Get(string(keys.Code))
 	if !has {
