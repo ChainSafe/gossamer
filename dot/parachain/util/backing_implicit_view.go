@@ -16,10 +16,10 @@ import (
 // Always aim to retain 1 block before the active leaves.
 const minimumRetainLength parachaintypes.BlockNumber = 2
 
-var errLeafAlreadyKnown error = errors.New("leaf was already known")
+var errLeafAlreadyKnown = errors.New("leaf was already known")
 
 // NewBackingImplicitView creates a new backing implicit view with the given runtime instance
-func NewBackingImplicitView(instance runtime.Instance, blockState BlockState, collatingFor *parachaintypes.ParaID) *BackingImplicitView {
+func NewBackingImplicitView(blockState BlockState, collatingFor *parachaintypes.ParaID) *BackingImplicitView {
 	return &BackingImplicitView{
 		leaves:           make(map[common.Hash]activeLeafPruningInfo),
 		blockInfoStorage: make(map[common.Hash]blockInfo),
@@ -78,7 +78,7 @@ func (view *BackingImplicitView) AllAllowedRelayParents() []common.Hash {
 // This will request the minimum relay parents for the leaf and will load headers in the
 // ancestry of the leaf as needed. These are the 'implicit ancestors' of the leaf.
 //
-// To maximize reuse of outdated leaves, it's best to activate new leaves before
+// To maximise reuse of outdated leaves, it's best to activate new leaves before
 // deactivating old ones.
 func (view *BackingImplicitView) ActivateLeaf(leafHash common.Hash, subsystemToOverseer chan<- any) error {
 	if _, exists := view.leaves[leafHash]; exists {
@@ -96,7 +96,6 @@ func (view *BackingImplicitView) ActivateLeaf(leafHash common.Hash, subsystemToO
 		fetched.minimumAncestorNumber,
 		max(fetched.leafNumber-minimumRetainLength, 0),
 	)
-
 	// store the leaf in the active leaves map
 	view.leaves[leafHash] = activeLeafPruningInfo{retainMinimum: retainMinimum}
 	return nil
@@ -303,6 +302,7 @@ func (*BackingImplicitView) fetchMinRelayParentsFromProspectiveParachains(
 	case result := <-getMin.Sender:
 		return result, nil
 	case <-time.After(5 * time.Second):
+		close(getMin.Sender)
 		return nil, fmt.Errorf("timeout while waiting for relay parents for leaf %s", leafHash)
 	}
 }
@@ -374,7 +374,7 @@ type blockInfo struct {
 	// that were active leaves. This is useful for understanding the views of peers
 	// in the network, which may not always be in perfect synchrony with our own view.
 	//
-	// If a peer is ahead of us with a new leaf, we may not recognize the block hash,
+	// If a peer is ahead of us with a new leaf, we may not recognise the block hash,
 	// and there's nothing we can do. However, if a peer is behind us, retaining
 	// information about previous leaves' implicit views allows us to continue sending
 	// relevant messages to them until they catch up.
@@ -401,12 +401,12 @@ func (a *allowedRelayParents) allowedFor(
 		return a.allowedRelayParentsContiguous
 	}
 
-	paraMin, exists := a.minimumRelayParent[*paraID]
-	if !exists || baseNumber < paraMin {
+	minBlockNumber, exists := a.minimumRelayParent[*paraID]
+	if !exists || baseNumber < minBlockNumber {
 		return nil
 	}
 
-	diff := int(baseNumber - paraMin)
+	diff := int(baseNumber - minBlockNumber)
 
 	// difference of 0 should lead to slice len of 1
 	sliceLen := min(diff+1, len(a.allowedRelayParentsContiguous))
