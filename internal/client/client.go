@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/executor"
 	genesisblock "github.com/ChainSafe/gossamer/internal/client/genesis-block"
@@ -879,7 +878,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyBlock(
 //gocyclo:ignore
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 	operation *api.ClientImportOperation[H, Hasher, N, Header, E],
-	origin consensus.BlockOrigin,
+	origin primivite_consensus_common.BlockOrigin,
 	hash H,
 	importHeaders PrePostHeaders[N, H, Header],
 	justifications runtime.Justifications,
@@ -920,9 +919,9 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 	// this is a fairly arbitrary choice of where to draw the line on making notifications,
 	// but the general goal is to only make notifications when we are already fully synced
 	// and get a new chain head.
-	makeNotifications := origin == consensus.NetworkBroadcastBlockOrigin ||
-		origin == consensus.OwnBlockOrigin ||
-		origin == consensus.ConsensusBroadcastBlockOrigin
+	makeNotifications := origin == primivite_consensus_common.NetworkBroadcastBlockOrigin ||
+		origin == primivite_consensus_common.OwnBlockOrigin ||
+		origin == primivite_consensus_common.ConsensusBroadcastBlockOrigin
 
 	var finalStorageChanges *api.StorageChanges
 
