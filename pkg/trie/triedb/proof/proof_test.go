@@ -144,8 +144,7 @@ func Test_GenerateAndVerify(t *testing.T) {
 			t.Run(fmt.Sprintf("%s_%s", name, trieVersion.String()), func(t *testing.T) {
 				// Build trie
 				inmemoryDB := NewMemoryDB()
-				triedb := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](inmemoryDB)
-				triedb.SetVersion(trieVersion)
+				triedb := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](inmemoryDB, trieVersion)
 
 				for _, entry := range testCase.entries {
 					triedb.Set(entry.Key, entry.Value)

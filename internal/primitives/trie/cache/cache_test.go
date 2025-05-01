@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/recorder"
-	pkgtrie "github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"github.com/stretchr/testify/require"
 )
@@ -30,8 +29,7 @@ func createTrie(t *testing.T) (*trie.MemoryDB[hash.H256, runtime.BlakeTwo256], h
 	t.Helper()
 
 	db := trie.NewMemoryDB[hash.H256, runtime.BlakeTwo256]()
-	trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
-	trie.SetVersion(pkgtrie.V1)
+	trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db, trie.LayoutV1)
 	for _, item := range testData {
 		err := trie.Set(item.Key, item.Value)
 		require.NoError(t, err)
@@ -50,8 +48,7 @@ func Test_SharedTrieCache(t *testing.T) {
 		{
 			cache, unlock := localCache.TrieCache(root)
 			trie := triedb.NewTrieDB(
-				root, db, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
-			trie.SetVersion(pkgtrie.V1)
+				root, db, trie.LayoutV1, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
 
 			val, err := triedb.GetWith(trie, testData[0].Key, func(d []byte) []byte { return d })
 			require.NoError(t, err)
@@ -98,8 +95,7 @@ func Test_SharedTrieCache(t *testing.T) {
 		{
 			cache, unlock := localCache.TrieCache(root)
 			trie := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](
-				root, db, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
-			trie.SetVersion(pkgtrie.V1)
+				root, db, trie.LayoutV1, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
 
 			// We should now get the "fake_data", because we inserted this manually to the cache.
 			val, err := triedb.GetWith(trie, testData[1].Key, func(d []byte) []byte { return d })
@@ -126,8 +122,7 @@ func Test_SharedTrieCache(t *testing.T) {
 
 			{
 				trie := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](
-					root, db, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
-				trie.SetVersion(pkgtrie.V1)
+					root, db, trie.LayoutV1, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
 				require.NoError(t, trie.Set(newKey, newValue))
 				newRoot = trie.MustHash()
 			}
@@ -168,7 +163,7 @@ func Test_SharedTrieCache(t *testing.T) {
 				cache, unlock := localCache.TrieCache(root)
 				recorder := recorder.TrieRecorder(root)
 				trie := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](
-					root, db,
+					root, db, trie.LayoutV0,
 					triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache),
 					triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
 				)
@@ -189,7 +184,7 @@ func Test_SharedTrieCache(t *testing.T) {
 			memoryDB := trie.NewMemoryDBFromStorageProof[hash.H256, runtime.BlakeTwo256](storageProof)
 
 			{
-				trie := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](root, memoryDB)
+				trie := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](root, memoryDB, trie.LayoutV0)
 				for _, item := range testData {
 					val, err := triedb.GetWith(trie, item.Key, func(d []byte) []byte { return d })
 					require.NoError(t, err)
@@ -230,7 +225,7 @@ func Test_SharedTrieCache(t *testing.T) {
 				recorder := recorder.TrieRecorder(root)
 
 				trie := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](
-					root, &db,
+					root, &db, trie.LayoutV0,
 					triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache),
 					triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
 				)
@@ -248,7 +243,7 @@ func Test_SharedTrieCache(t *testing.T) {
 			memoryDB := trie.NewMemoryDBFromStorageProof[hash.H256, runtime.BlakeTwo256](storageProof)
 			var proofRoot hash.H256
 			{
-				trie := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](root, memoryDB)
+				trie := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](root, memoryDB, trie.LayoutV0)
 				for _, item := range dataToAdd {
 					err := trie.Set(item.Key, item.Value)
 					require.NoError(t, err)
@@ -268,8 +263,7 @@ func Test_SharedTrieCache(t *testing.T) {
 			cache, unlock := localCache.TrieCache(root)
 
 			trie := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](
-				root, db, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
-			trie.SetVersion(pkgtrie.V1)
+				root, db, trie.LayoutV1, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
 
 			for _, item := range testData {
 				val, err := triedb.GetWith(trie, item.Key, func(d []byte) []byte { return d })
@@ -308,8 +302,7 @@ func Test_SharedTrieCache(t *testing.T) {
 				localCache := sharedCache.LocalTrieCache()
 				cache, unlock := localCache.TrieCache(root)
 				trie := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](
-					root, db, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
-				trie.SetVersion(pkgtrie.V1)
+					root, db, trie.LayoutV1, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
 
 				for _, item := range testData[:2] {
 					val, err := triedb.GetWith(trie, item.Key, func(d []byte) []byte { return d })
@@ -342,8 +335,7 @@ func Test_SharedTrieCache(t *testing.T) {
 			localCache := sharedCache.LocalTrieCache()
 			cache, unlock := localCache.TrieCache(root)
 			trie := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](
-				root, db, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
-			trie.SetVersion(pkgtrie.V1)
+				root, db, trie.LayoutV1, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
 
 			for _, item := range testData[2:] {
 				val, err := triedb.GetWith(trie, item.Key, func(d []byte) []byte { return d })
@@ -374,8 +366,7 @@ func Test_SharedTrieCache(t *testing.T) {
 				cache, unlock := localCache.TrieCache(root)
 				{
 					trie := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](
-						root, db, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
-					trie.SetVersion(pkgtrie.V1)
+						root, db, trie.LayoutV1, triedb.WithCache[hash.H256, runtime.BlakeTwo256](cache))
 					value := bytes.Repeat([]byte{10}, 100)
 					// Ensure we add enough data that would overflow the cache.
 					for i := 0; i < (int(cacheSize) / 100 * 2); i++ {

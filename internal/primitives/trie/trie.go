@@ -4,6 +4,7 @@
 package trie
 
 import (
+	"math"
 	"slices"
 
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
@@ -11,6 +12,26 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	triedb "github.com/ChainSafe/gossamer/pkg/trie/triedb"
 )
+
+type Layout uint
+
+const (
+	// / substrate trie layout
+	LayoutV0 Layout = iota
+	// / substrate trie layout, with external value nodes.
+	LayoutV1
+)
+
+func (l Layout) MaxInlineValue() int {
+	switch l {
+	case LayoutV0:
+		return math.MaxInt
+	case LayoutV1:
+		return 32
+	default:
+		panic("unreachable")
+	}
+}
 
 // PrefixedMemoryDB is reexport from [memorydb.MemoryDB] where supplied [memorydb.KeyFunction] is [memorydb.PrefixedKey]
 // for prefixing keys internally (avoiding key conflict for non random keys).
@@ -53,8 +74,7 @@ func DeltaTrieRoot[H runtime.Hash, Hasher runtime.Hasher[H]](
 	cache triedb.TrieCache[H],
 	stateVersion triedb.TrieLayout,
 ) (H, error) {
-	trieDB := triedb.NewTrieDB(root, db, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+	trieDB := triedb.NewTrieDB(root, db, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 
 	slices.SortStableFunc(delta, func(a KeyValue, b KeyValue) int {
 		if string(a.Key) < string(b.Key) {
@@ -94,8 +114,7 @@ func ReadTrieValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 	cache triedb.TrieCache[H],
 	stateVersion triedb.TrieLayout,
 ) ([]byte, error) {
-	trieDB := triedb.NewTrieDB(root, db, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+	trieDB := triedb.NewTrieDB(root, db, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 	b, err := triedb.GetWith(trieDB, key, func(data []byte) []byte { return data })
 	if err != nil {
 		return nil, err
@@ -116,8 +135,7 @@ func ReadTrieValueWith[H runtime.Hash, Hasher runtime.Hasher[H]](
 	stateVersion triedb.TrieLayout,
 	query triedb.Query[[]byte],
 ) ([]byte, error) {
-	trieDB := triedb.NewTrieDB(root, db, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+	trieDB := triedb.NewTrieDB(root, db, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 	b, err := triedb.GetWith(trieDB, key, query)
 	if err != nil {
 		return nil, err
@@ -138,8 +156,7 @@ func ReadTrieFirstDescendantValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 	cache triedb.TrieCache[H],
 	stateVersion triedb.TrieLayout,
 ) (triedb.MerkleValue[H], error) {
-	trieDB := triedb.NewTrieDB(root, db, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+	trieDB := triedb.NewTrieDB(root, db, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 
 	return trieDB.LookupFirstDescendant(key)
 }
@@ -182,8 +199,7 @@ func ReadChildTrieValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 ) ([]byte, error) {
 	ksdb := NewKeyspacedDB(db, keyspace)
 	trieDB := triedb.NewTrieDB(
-		root, ksdb, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+		root, ksdb, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 	val, err := triedb.GetWith(trieDB, key, func(data []byte) []byte { return data })
 	if err != nil {
 		return nil, err
@@ -206,8 +222,7 @@ func ReadChildTrieHash[H runtime.Hash, Hasher runtime.Hasher[H]](
 ) (*H, error) {
 	ksdb := NewKeyspacedDB(db, keyspace)
 	trieDB := triedb.NewTrieDB(
-		root, ksdb, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+		root, ksdb, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 	return trieDB.GetHash(key)
 }
 
@@ -224,8 +239,7 @@ func ReadChildTrieFirstDescendantValue[H runtime.Hash, Hasher runtime.Hasher[H]]
 ) (triedb.MerkleValue[H], error) {
 	ksdb := NewKeyspacedDB(db, keyspace)
 	trieDB := triedb.NewTrieDB(
-		root, ksdb, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+		root, ksdb, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 	return trieDB.LookupFirstDescendant(key)
 }
 

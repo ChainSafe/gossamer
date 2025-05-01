@@ -21,7 +21,7 @@ func TestTrieDB_Lookup(t *testing.T) {
 			hash.H256, runtime.BlakeTwo256, hash.H256, memorydb.HashKey[hash.H256],
 		]([]byte("not0"))
 		empty := runtime.BlakeTwo256{}.Hash([]byte{0})
-		lookup := NewTrieLookup[hash.H256, runtime.BlakeTwo256, []byte](&db, empty, nil, nil, nil)
+		lookup := NewTrieLookup[hash.H256, runtime.BlakeTwo256, []byte](&db, empty, nil, nil, trie.V0, nil)
 
 		value, err := lookup.Lookup([]byte("test"))
 		assert.Nil(t, value)
@@ -44,10 +44,9 @@ func Test_TrieLookup_lookupValueWithCache(t *testing.T) {
 	cache := &trieCacheImpl{}
 	inmemoryDB := NewMemoryDB()
 	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
-		inmemoryDB,
+		inmemoryDB, trie.V1,
 		WithCache[hash.H256, runtime.BlakeTwo256](cache),
 	)
-	trieDB.SetVersion(trie.V1)
 
 	entries := map[string][]byte{
 		"no":           make([]byte, 1),
@@ -71,6 +70,7 @@ func Test_TrieLookup_lookupValueWithCache(t *testing.T) {
 		trieDB.rootHash,
 		cache,
 		nil,
+		trie.V1,
 		func(data []byte) []byte {
 			return data
 		},

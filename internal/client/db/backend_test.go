@@ -43,7 +43,7 @@ var (
 	]{}
 )
 
-func NewTestBackend(t *testing.T,
+func newTestBackend(t *testing.T,
 	blocksPruning BlocksPruning, canonicalizationDelay uint64,
 ) *Backend[
 	hash.H256,
@@ -211,7 +211,7 @@ func TestBackend(t *testing.T) {
 	t.Run("block_hash_inserted_correctly", func(t *testing.T) {
 		var backing database.Database[hash.H256]
 		{
-			db := NewTestBackend(t, BlocksPruningSome(1), 0)
+			db := newTestBackend(t, BlocksPruningSome(1), 0)
 			for i := uint64(0); i < 10; i++ {
 				h, err := db.Blockchain().Hash(i)
 				require.NoError(t, err)
@@ -275,7 +275,7 @@ func TestBackend(t *testing.T) {
 	t.Run("set_state_data", func(t *testing.T) {
 		for i, stateVersion := range []storage.StateVersion{storage.StateVersionV0, storage.StateVersionV1} {
 			t.Run(fmt.Sprintf("StateVersion%d", i), func(t *testing.T) {
-				db := NewTestBackend(t, BlocksPruningSome(2), 0)
+				db := newTestBackend(t, BlocksPruningSome(2), 0)
 				var hash dbHash
 				{
 					op := db.beginOperation()
@@ -379,7 +379,7 @@ func TestBackend(t *testing.T) {
 	t.Run("delete_only_when_negative_rc", func(t *testing.T) {
 		stateVersion := storage.StateVersionV1
 		var key dbHash
-		backend := NewTestBackend(t, BlocksPruningSome(1), 0)
+		backend := newTestBackend(t, BlocksPruningSome(1), 0)
 
 		var hash dbHash
 		{
@@ -556,7 +556,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("tree_route_works", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(1000), 100)
+		backend := newTestBackend(t, BlocksPruningSome(1000), 100)
 		blockchain := backend.blockchain
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 
@@ -614,7 +614,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("tree_route_child", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(1000), 100)
+		backend := newTestBackend(t, BlocksPruningSome(1000), 100)
 		blockchain := backend.blockchain
 
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
@@ -635,7 +635,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("lowest_common_ancestor", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(1000), 100)
+		backend := newTestBackend(t, BlocksPruningSome(1000), 100)
 		blockchain := backend.blockchain
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 
@@ -698,7 +698,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("leaves_pruned_on_finality", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(10), 10)
+		backend := newTestBackend(t, BlocksPruningSome(10), 10)
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 
 		block1a := insertHeader(t, backend, 1, block0, nil, hash.H256(""))
@@ -735,7 +735,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("test_aux", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(0), 0)
+		backend := newTestBackend(t, BlocksPruningSome(0), 0)
 		val, err := backend.GetAux([]byte("test"))
 		require.NoError(t, err)
 		require.Nil(t, val)
@@ -760,7 +760,7 @@ func TestBackend(t *testing.T) {
 	copy(CON1EngineID[:], "CON1")
 
 	t.Run("finalize_block_with_justification", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(10), 10)
+		backend := newTestBackend(t, BlocksPruningSome(10), 10)
 
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 		block1 := insertHeader(t, backend, 1, block0, nil, hash.H256(""))
@@ -778,7 +778,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("append_justification_to_finalized_block", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(10), 10)
+		backend := newTestBackend(t, BlocksPruningSome(10), 10)
 
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 		block1 := insertHeader(t, backend, 1, block0, nil, hash.H256(""))
@@ -811,7 +811,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("finalize_multiple_blocks_in_single_op", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(10), 10)
+		backend := newTestBackend(t, BlocksPruningSome(10), 10)
 
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 		block1 := insertHeader(t, backend, 1, block0, nil, hash.H256(""))
@@ -846,7 +846,7 @@ func TestBackend(t *testing.T) {
 
 	t.Run("storage_hash_is_cached_correctly", func(t *testing.T) {
 		stateVersion := storage.StateVersionV1
-		backend := NewTestBackend(t, BlocksPruningSome(10), 10)
+		backend := newTestBackend(t, BlocksPruningSome(10), 10)
 
 		var hash0 dbHash
 		{
@@ -956,7 +956,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("finalize_non_sequential", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(10), 10)
+		backend := newTestBackend(t, BlocksPruningSome(10), 10)
 
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 		block1 := insertHeader(t, backend, 1, block0, nil, hash.H256(""))
@@ -977,7 +977,7 @@ func TestBackend(t *testing.T) {
 		pruningModes := []BlocksPruning{BlocksPruningSome(2), BlocksPruningKeepFinalized{}, BlocksPruningKeepAll{}}
 
 		for _, pruningMode := range pruningModes {
-			backend := NewTestBackend(t, pruningMode, 0)
+			backend := newTestBackend(t, pruningMode, 0)
 			var blocks []hash.H256
 			var prevHash hash.H256
 			for i := 0; i < 5; i++ {
@@ -1039,7 +1039,7 @@ func TestBackend(t *testing.T) {
 		pruningModes := []BlocksPruning{BlocksPruningSome(2), BlocksPruningKeepFinalized{}, BlocksPruningKeepAll{}}
 
 		for _, pruningMode := range pruningModes {
-			backend := NewTestBackend(t, pruningMode, 10)
+			backend := newTestBackend(t, pruningMode, 10)
 			var blocks []hash.H256
 			var prevHash hash.H256
 			for i := 0; i < 5; i++ {
@@ -1153,7 +1153,7 @@ func TestBackend(t *testing.T) {
 		//	0 - 1b
 		//	\ - 1a - 2a - 3a
 		//	     \ - 2b
-		backend := NewTestBackend(t, BlocksPruningSome(10), 10)
+		backend := newTestBackend(t, BlocksPruningSome(10), 10)
 
 		var makeBlock = func(index uint64, parent hash.H256, val uint64) hash.H256 {
 			hash, err := insertBlock(t,
@@ -1225,7 +1225,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("indexed_data_block_body", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(1), 10)
+		backend := newTestBackend(t, BlocksPruningSome(1), 10)
 
 		x0 := scale.MustMarshal(rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(0)})
 		x1 := scale.MustMarshal(rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(1)})
@@ -1287,7 +1287,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("index_invalid_size", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(1), 10)
+		backend := newTestBackend(t, BlocksPruningSome(1), 10)
 
 		x0 := scale.MustMarshal(rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(0)})
 		x1 := scale.MustMarshal(rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(1)})
@@ -1325,7 +1325,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("renew_transaction_storage", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(2), 10)
+		backend := newTestBackend(t, BlocksPruningSome(2), 10)
 		var blocks []hash.H256
 		var prevHash hash.H256
 		x1 := scale.MustMarshal(rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(0)})
@@ -1382,7 +1382,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("remove_leaf_block", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(2), 10)
+		backend := newTestBackend(t, BlocksPruningSome(2), 10)
 		var blocks []hash.H256
 		var prevHash hash.H256
 		for i := uint64(0); i < 2; i++ {
@@ -1487,7 +1487,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("import_existing_block_as_new_head", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(10), 3)
+		backend := newTestBackend(t, BlocksPruningSome(10), 3)
 
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 		block1 := insertHeader(t, backend, 1, block0, nil, hash.H256(""))
@@ -1500,9 +1500,8 @@ func TestBackend(t *testing.T) {
 		// Insert 1 as best again. This should fail because canonicalization_delay == 3
 		// and best == 5
 		trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
-			trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](),
+			trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](), trie.LayoutV1,
 		)
-		trie.SetVersion(triedb.V1)
 		header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 			1,
 			dbHash(""),
@@ -1531,7 +1530,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("impoort_existing_state_fails", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(10), 10)
+		backend := newTestBackend(t, BlocksPruningSome(10), 10)
 
 		genesis, err := insertBlock(t, backend, 0, "", nil, "", nil, nil)
 		require.NoError(t, err)
@@ -1544,7 +1543,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("leaves_not_created_for_ancient_blocks", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(10), 10)
+		backend := newTestBackend(t, BlocksPruningSome(10), 10)
 
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 
@@ -1573,7 +1572,7 @@ func TestBackend(t *testing.T) {
 		// attempt to revert 5 blocks.
 		for _, pruningMode := range pruningModes {
 			t.Run(fmt.Sprintf("%T", pruningMode), func(t *testing.T) {
-				backend := NewTestBackend(t, pruningMode, 1)
+				backend := newTestBackend(t, pruningMode, 1)
 
 				var parent hash.H256
 				for i := uint64(0); i <= 10; i++ {
@@ -1607,7 +1606,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("revert_non_best_blocks", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(10), 10)
+		backend := newTestBackend(t, BlocksPruningSome(10), 10)
 
 		genesis, err := insertBlock(t, backend, 0, "", nil, "", nil, nil)
 		require.NoError(t, err)
@@ -1624,9 +1623,8 @@ func TestBackend(t *testing.T) {
 			err := backend.BeginStateOperation(op, block1)
 			require.NoError(t, err)
 			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
-				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](),
+				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](), trie.LayoutV1,
 			)
-			trie.SetVersion(triedb.V1)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				3,
 				dbHash(""),
@@ -1650,9 +1648,8 @@ func TestBackend(t *testing.T) {
 			err := backend.BeginStateOperation(op, block2)
 			require.NoError(t, err)
 			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
-				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](),
+				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](), trie.LayoutV1,
 			)
-			trie.SetVersion(triedb.V1)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				4,
 				"",
@@ -1676,9 +1673,8 @@ func TestBackend(t *testing.T) {
 			err := backend.BeginStateOperation(op, block2)
 			require.NoError(t, err)
 			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
-				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](),
+				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](), trie.LayoutV1,
 			)
-			trie.SetVersion(triedb.V1)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				3,
 				hash.NewH256FromLowUint64BigEndian(42),
@@ -1730,7 +1726,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("no_duplicated_leaves_allowed", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(10), 10)
+		backend := newTestBackend(t, BlocksPruningSome(10), 10)
 
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 		block1 := insertHeader(t, backend, 1, block0, nil, hash.H256(""))
@@ -1758,7 +1754,7 @@ func TestBackend(t *testing.T) {
 
 		for _, pruningMode := range pruningModes {
 			t.Run(fmt.Sprintf("%T", pruningMode), func(t *testing.T) {
-				backend := NewTestBackend(t, pruningMode, 1)
+				backend := newTestBackend(t, pruningMode, 1)
 
 				genesis, err := insertBlock(t, backend, 0, "", nil, "", nil, nil)
 				require.NoError(t, err)
@@ -1982,7 +1978,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("pinned_blocks_on_finalize", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(1), 10)
+		backend := newTestBackend(t, BlocksPruningSome(1), 10)
 		var blocks []hash.H256
 		var prevHash hash.H256
 
@@ -2224,7 +2220,7 @@ func TestBackend(t *testing.T) {
 	})
 
 	t.Run("pinned_blocks_on_finalize_with_fork", func(t *testing.T) {
-		backend := NewTestBackend(t, BlocksPruningSome(1), 10)
+		backend := newTestBackend(t, BlocksPruningSome(1), 10)
 		var blocks []hash.H256
 		var prevHash hash.H256
 

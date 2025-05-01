@@ -141,7 +141,7 @@ func Test_NewProof(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// Build trie
 			inmemoryDB := NewMemoryDB()
-			triedb := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](inmemoryDB)
+			triedb := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](inmemoryDB, trie.V0)
 
 			for _, entry := range testCase.entries {
 				triedb.Set(entry.Key, entry.Value)
