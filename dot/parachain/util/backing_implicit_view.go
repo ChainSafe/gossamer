@@ -496,3 +496,70 @@ func (view *BackingImplicitView) PathsViaRelayParent(relayParent common.Hash) []
 
 	return paths
 }
+
+// Information about a relay-chain block, to be used when calling this module from prospective
+// parachains.
+type BlockInfoProspectiveParachains struct {
+	// The hash of the relay-chain block.
+	Hash common.Hash
+	// The hash of the parent relay-chain block.
+	ParentHash common.Hash
+	// The number of the relay-chain block.
+	Number parachaintypes.BlockNumber
+	// The storage root of the relay-chain block.
+	StorageRoot common.Hash
+}
+
+// ActivateLeafFromProspectiveParachains activates a leaf in the view. To be used by the
+// prospective parachains subsystem only. This function must be used instead of ActivateLeaf
+// when called from prospective-parachains subsystem to prevent a circular deadlock:
+// ActivateLeaf sends a message to prospective-parachains and waits for response.
+// If prospective-parachains is the caller, it will wait forever for the response.
+//
+// No-op for known leaves
+func (view *BackingImplicitView) ActivateLeafFromProspectiveParachains(
+	leaf *BlockInfoProspectiveParachains,
+	ancestors []*BlockInfoProspectiveParachains,
+) {
+	if _, exists := view.leaves[leaf.Hash]; exists {
+		return
+	}
+
+	ancestorsLen := len(ancestors)
+
+	var retainMinimum parachaintypes.BlockNumber
+	if ancestorsLen > 0 {
+		retainMinimum = ancestors[ancestorsLen-1].Number
+	}
+
+	// Retain at least `minimumRetainLength` blocks in storage.
+	// This helps to avoid Chain API calls when activating leaves in the same chain.
+	retainMinimum = min(retainMinimum, max(leaf.Number-minimumRetainLength, 0))
+
+	view.leaves[leaf.Hash] = activeLeafPruningInfo{retainMinimum: retainMinimum}
+
+	allowed := &allowedRelayParents{
+		// minimumRelayParent is nil since when called from prospective-parachains,
+		// the minimum relay parent data is already available and won't be queried from this view
+		minimumRelayParent:            nil,
+		allowedRelayParentsContiguous: make([]common.Hash, 0, ancestorsLen),
+	}
+
+	for _, ancestor := range ancestors {
+		view.blockInfoStorage[ancestor.Hash] = blockInfo{
+			blockNumber:         ancestor.Number,
+			parentHash:          ancestor.ParentHash,
+			allowedRelayParents: nil, // No relay parents for non-leaf blocks
+		}
+
+		allowed.allowedRelayParentsContiguous = append(allowed.allowedRelayParentsContiguous, ancestor.Hash)
+	}
+
+	view.blockInfoStorage[leaf.Hash] = blockInfo{
+		blockNumber:         leaf.Number,
+		parentHash:          leaf.ParentHash,
+		allowedRelayParents: allowed,
+	}
+
+	view.leaves[leaf.Hash] = activeLeafPruningInfo{}
+}

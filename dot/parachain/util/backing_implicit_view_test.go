@@ -630,6 +630,110 @@ func TestBackingImplicitView_FindMinRelayParents(t *testing.T) {
 	})
 }
 
+func TestBackingImplicitView_ActivateLeafFromProspectiveParachains(t *testing.T) {
+	type testCase struct {
+		name                     string
+		activeLeaves             map[common.Hash]activeLeafPruningInfo
+		leaf                     *BlockInfoProspectiveParachains
+		ancestors                []*BlockInfoProspectiveParachains
+		expectedBlockInfoStorage map[common.Hash]blockInfo
+	}
+
+	testCases := []testCase{
+		{
+			name:         "activates_new_leaf_without_ancestors",
+			activeLeaves: make(map[common.Hash]activeLeafPruningInfo),
+			leaf: &BlockInfoProspectiveParachains{
+				Hash:       common.Hash{1},
+				ParentHash: common.Hash{0},
+				Number:     5,
+			},
+			ancestors: nil,
+			expectedBlockInfoStorage: map[common.Hash]blockInfo{
+				{1}: {
+					blockNumber: 5,
+					parentHash:  common.Hash{0},
+					allowedRelayParents: &allowedRelayParents{
+						minimumRelayParent:            nil,
+						allowedRelayParentsContiguous: []common.Hash{},
+					},
+				},
+			},
+		},
+		{
+			name:         "activates_new_leaf_with_ancestors",
+			activeLeaves: make(map[common.Hash]activeLeafPruningInfo),
+			leaf: &BlockInfoProspectiveParachains{
+				Hash:       common.Hash{3},
+				ParentHash: common.Hash{2},
+				Number:     3,
+			},
+			ancestors: []*BlockInfoProspectiveParachains{
+				{
+					Hash:       common.Hash{1},
+					ParentHash: common.Hash{0},
+					Number:     1,
+				},
+				{
+					Hash:       common.Hash{2},
+					ParentHash: common.Hash{1},
+					Number:     2,
+				},
+			},
+			expectedBlockInfoStorage: map[common.Hash]blockInfo{
+				{1}: {
+					blockNumber:         1,
+					parentHash:          common.Hash{0},
+					allowedRelayParents: nil,
+				},
+				{2}: {
+					blockNumber:         2,
+					parentHash:          common.Hash{1},
+					allowedRelayParents: nil,
+				},
+				{3}: {
+					blockNumber: 3,
+					parentHash:  common.Hash{2},
+					allowedRelayParents: &allowedRelayParents{
+						minimumRelayParent:            nil,
+						allowedRelayParentsContiguous: []common.Hash{{1}, {2}},
+					},
+				},
+			},
+		},
+		{
+			name:         "no_op_for_known_leaf",
+			activeLeaves: map[common.Hash]activeLeafPruningInfo{common.Hash{1}: {}},
+			leaf: &BlockInfoProspectiveParachains{
+				Hash:       common.Hash{1},
+				ParentHash: common.Hash{0},
+				Number:     1,
+			},
+			ancestors:                nil,
+			expectedBlockInfoStorage: map[common.Hash]blockInfo{},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			view := NewBackingImplicitView(nil, nil)
+			view.leaves = tc.activeLeaves
+
+			view.ActivateLeafFromProspectiveParachains(tc.leaf, tc.ancestors)
+
+			// Verify leaf is activated
+			require.Contains(t, view.leaves, tc.leaf.Hash)
+
+			// Verify block info storage
+			require.EqualValues(t, tc.expectedBlockInfoStorage, view.blockInfoStorage)
+
+		})
+	}
+}
+
 func TestAllowedRelayParents_AllowedFor(t *testing.T) {
 	t.Parallel()
 
