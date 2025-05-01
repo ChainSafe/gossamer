@@ -123,19 +123,15 @@ func (view *BackingImplicitView) DeactivateLeaf(leafHash common.Hash) []common.H
 	// Prune everything before the minimum out of all leaves,
 	// pruning absolutely everything if there are no leaves (empty view)
 
-	// Collect and prune blocks with blockNumber < minimum
-	var leafToRemove []common.Hash
+	// prune blocks with blockNumber < minimum
+	var pruned []common.Hash
 	for hash, info := range view.blockInfoStorage {
 		if info.blockNumber < minimumBlockNumber {
-			leafToRemove = append(leafToRemove, hash)
+			delete(view.blockInfoStorage, hash)
+			pruned = append(pruned, hash)
 		}
 	}
-
-	for _, hash := range leafToRemove {
-		delete(view.blockInfoStorage, hash)
-	}
-
-	return leafToRemove
+	return pruned
 }
 
 // KnownAllowedRelayParentsUnder returns known, allowed relay-parents that are valid for parachain candidates
@@ -269,8 +265,7 @@ func (view *BackingImplicitView) fetchAncestorsUpToMinBlockNumber(
 // findMinRelayParents finds the minimum relay parents for a given leaf hash.
 // If the node is a collator, bypass prospective-parachains. We're only interested in the one paraid
 func (view *BackingImplicitView) findMinRelayParents(
-	leafHash common.Hash, blockHeader *types.Header,
-	subsystemToOverseer chan<- any,
+	leafHash common.Hash, blockHeader *types.Header, subsystemToOverseer chan<- any,
 ) ([]prospectiveparachain.ParaIDBlockNumber, error) {
 	paraID := view.collatingFor
 
@@ -302,7 +297,6 @@ func (*BackingImplicitView) fetchMinRelayParentsFromProspectiveParachains(
 	case result := <-getMin.Sender:
 		return result, nil
 	case <-time.After(5 * time.Second):
-		close(getMin.Sender)
 		return nil, fmt.Errorf("timeout while waiting for relay parents for leaf %s", leafHash)
 	}
 }
@@ -420,7 +414,7 @@ type fetchSummary struct {
 
 // BlockState interface defines the methods needed for block operations
 type BlockState interface {
-	// GetBlock returns runtime instance for a given block hash.
+	// GetRuntime returns runtime instance for a given block hash.
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	// GetHeader returns a block header for a given hash
 	GetHeader(hash common.Hash) (*types.Header, error)
