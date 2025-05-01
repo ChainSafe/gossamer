@@ -631,15 +631,15 @@ func TestBackingImplicitView_FindMinRelayParents(t *testing.T) {
 }
 
 func TestBackingImplicitView_ActivateLeafFromProspectiveParachains(t *testing.T) {
-	type testCase struct {
+	t.Parallel()
+
+	testCases := []struct {
 		name                     string
 		activeLeaves             map[common.Hash]activeLeafPruningInfo
 		leaf                     *BlockInfoProspectiveParachains
 		ancestors                []*BlockInfoProspectiveParachains
 		expectedBlockInfoStorage map[common.Hash]blockInfo
-	}
-
-	testCases := []testCase{
+	}{
 		{
 			name:         "activates_new_leaf_without_ancestors",
 			activeLeaves: make(map[common.Hash]activeLeafPruningInfo),
@@ -703,7 +703,7 @@ func TestBackingImplicitView_ActivateLeafFromProspectiveParachains(t *testing.T)
 		},
 		{
 			name:         "no_op_for_known_leaf",
-			activeLeaves: map[common.Hash]activeLeafPruningInfo{common.Hash{1}: {}},
+			activeLeaves: map[common.Hash]activeLeafPruningInfo{{1}: {}},
 			leaf: &BlockInfoProspectiveParachains{
 				Hash:       common.Hash{1},
 				ParentHash: common.Hash{0},
