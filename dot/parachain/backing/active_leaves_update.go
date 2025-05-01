@@ -20,7 +20,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 	activatedLeaf := update.Activated
 	// activate in implicit view before deactivate, per the docs on ImplicitView, this is more efficient.
 	if activatedLeaf != nil {
-		implicitViewFetchError = cb.ImplicitView.ActivateLeaf(activatedLeaf.Hash)
+		implicitViewFetchError = cb.ImplicitView.ActivateLeaf(activatedLeaf.Hash, cb.SubSystemToOverseer)
 	}
 
 	for _, deactivated := range update.Deactivated {

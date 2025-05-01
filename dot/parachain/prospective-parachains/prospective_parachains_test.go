@@ -10,9 +10,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
@@ -1700,13 +1700,13 @@ func TestActivateLeafSignalHandler(t *testing.T) {
 				mockImplicitView := NewMockImplicitView(ctrl)
 				mockImplicitView.EXPECT().
 					ActivateLeafFromProspectiveParachains(
-						&backing.BlockInfoProspectiveParachains{
+						&util.BlockInfoProspectiveParachains{
 							Hash:        activeLeafHash,
 							ParentHash:  activeLeafHeader.ParentHash,
 							Number:      parachaintypes.BlockNumber(activeLeafHeader.Number),
 							StorageRoot: activeLeafHeader.StateRoot,
 						},
-						[]*backing.BlockInfoProspectiveParachains{},
+						[]*util.BlockInfoProspectiveParachains{},
 					)
 				mockImplicitView.EXPECT().
 					AllAllowedRelayParents().
