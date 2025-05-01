@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	util "github.com/ChainSafe/gossamer/dot/parachain/util"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -125,21 +126,21 @@ func (m *MockImplicitView) EXPECT() *MockImplicitViewMockRecorder {
 }
 
 // ActivateLeaf mocks base method.
-func (m *MockImplicitView) ActivateLeaf(leafHash common.Hash) error {
+func (m *MockImplicitView) ActivateLeaf(leafHash common.Hash, subsystemToOverseer chan<- any) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ActivateLeaf", leafHash)
+	ret := m.ctrl.Call(m, "ActivateLeaf", leafHash, subsystemToOverseer)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ActivateLeaf indicates an expected call of ActivateLeaf.
-func (mr *MockImplicitViewMockRecorder) ActivateLeaf(leafHash any) *gomock.Call {
+func (mr *MockImplicitViewMockRecorder) ActivateLeaf(leafHash, subsystemToOverseer any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActivateLeaf", reflect.TypeOf((*MockImplicitView)(nil).ActivateLeaf), leafHash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActivateLeaf", reflect.TypeOf((*MockImplicitView)(nil).ActivateLeaf), leafHash, subsystemToOverseer)
 }
 
 // ActivateLeafFromProspectiveParachains mocks base method.
-func (m *MockImplicitView) ActivateLeafFromProspectiveParachains(leaf *BlockInfoProspectiveParachains, ancestors []*BlockInfoProspectiveParachains) {
+func (m *MockImplicitView) ActivateLeafFromProspectiveParachains(leaf *util.BlockInfoProspectiveParachains, ancestors []*util.BlockInfoProspectiveParachains) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ActivateLeafFromProspectiveParachains", leaf, ancestors)
 }

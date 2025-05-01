@@ -64,6 +64,7 @@ type Data struct {
 }
 
 var parachainTestData, parachainsConfigV190TestData, parachainsConfigV1171TestData Data
+var parachainsConfigStable2503Data Data
 
 func init() {
 	err := yaml.Unmarshal([]byte(parachainTestDataRaw), &parachainTestData)
@@ -102,6 +103,19 @@ func init() {
 	for _, s := range parachainsConfigV1171TestData.Storage {
 		if s.Name != "" {
 			parachainsConfigV1171TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
+		}
+	}
+
+	err = yaml.Unmarshal([]byte(parachainsConfigStable2503), &parachainsConfigStable2503Data)
+	if err != nil {
+		fmt.Println("Error unmarshalling test data:", err)
+		return
+	}
+	parachainsConfigStable2503Data.Lookups = make(map[string]any)
+
+	for _, s := range parachainsConfigStable2503Data.Storage {
+		if s.Name != "" {
+			parachainsConfigStable2503Data.Lookups[s.Name] = common.MustHexToBytes(s.Value)
 		}
 	}
 }
@@ -1745,6 +1759,43 @@ func TestInstance_ParachainHostNodeFeatures(t *testing.T) {
 	require.Equal(t, expectedNodeFeatures, actualNodeFeatures)
 }
 
+func TestInstance_ParachainHostSchedulingLookAhead(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name              string
+		targetRuntime     string
+		testDataStorage   []Storage
+		expectedLookahead uint32
+	}{
+		{
+			name:              "not_supported_by_runtime_version",
+			targetRuntime:     runtime.WESTEND_RUNTIME_v1017001,
+			testDataStorage:   parachainsConfigV1171TestData.Storage,
+			expectedLookahead: DefaultSchedulingLookahead,
+		},
+		{
+			name:              "supported_by_runtime_version",
+			targetRuntime:     runtime.WESTEND_RUNTIME_STABLE_2503,
+			testDataStorage:   parachainsConfigStable2503Data.Storage,
+			expectedLookahead: 10,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			tt := getParachainHostTrie(t, tc.testDataStorage)
+			rt := NewTestInstance(t, tc.targetRuntime, TestWithTrie(tt))
+
+			schedulingLookahead, err := rt.ParachainHostSchedulingLookAhead()
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedLookahead, schedulingLookahead)
+		})
+	}
+}
+
 func TestInstance_ParachainHostClaimQueue(t *testing.T) {
 	tt := getParachainHostTrie(t, parachainsConfigV1171TestData.Storage)
 	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
@@ -1816,21 +1867,6 @@ func TestInstance_ParachainHostDisputes(t *testing.T) {
 	}
 
 	require.Equal(t, expected, disputes)
-}
-
-func TestInstance_ParachainHostSchedulingLookAhead(t *testing.T) {
-	t.Parallel()
-	var disputesStateData Data
-	err := yaml.Unmarshal([]byte(parachainsConfigStable2503), &disputesStateData)
-	require.NoError(t, err)
-
-	tt := getParachainHostTrie(t, disputesStateData.Storage)
-	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_STABLE_2503, TestWithTrie(tt))
-
-	lookahead, err := rt.ParachainHostSchedulingLookAhead()
-	require.NoError(t, err)
-
-	require.Equal(t, uint32(10), lookahead)
 }
 
 func TestInstance_ParachainHostBackingConstraints(t *testing.T) {

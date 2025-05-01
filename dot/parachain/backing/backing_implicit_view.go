@@ -6,17 +6,11 @@ package backing
 
 import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// Information about a relay-chain block, to be used when calling this module from prospective
-// parachains.
-type BlockInfoProspectiveParachains struct {
-	Hash        common.Hash
-	ParentHash  common.Hash
-	Number      parachaintypes.BlockNumber
-	StorageRoot common.Hash
-}
+var _ ImplicitView = (*util.BackingImplicitView)(nil)
 
 // ImplicitView handles the implicit view of the relay chain derived from the immediate/explicit view,
 // which is composed of active leaves, and the minimum relay-parents allowed for candidates of various
@@ -38,7 +32,7 @@ type ImplicitView interface {
 	//
 	// To maximise reuse of outdated leaves, it's best to activate new leaves before
 	// deactivating old ones.
-	ActivateLeaf(leafHash common.Hash) error
+	ActivateLeaf(leafHash common.Hash, subsystemToOverseer chan<- any) error
 
 	// Activate a leaf in the view. To be used by the prospective parachains subsystem.
 	//
@@ -48,8 +42,8 @@ type ImplicitView interface {
 	// deadlock, as it calls prospective-parachains under the hood.
 	//
 	// No-op for known leaves.
-	ActivateLeafFromProspectiveParachains(leaf *BlockInfoProspectiveParachains,
-		ancestors []*BlockInfoProspectiveParachains)
+	ActivateLeafFromProspectiveParachains(leaf *util.BlockInfoProspectiveParachains,
+		ancestors []*util.BlockInfoProspectiveParachains)
 
 	// Deactivate a leaf in the view. This prunes any outdated implicit ancestors as well.
 	// Returns hashes of blocks pruned from storage.

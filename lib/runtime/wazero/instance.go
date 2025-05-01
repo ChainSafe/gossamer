@@ -1541,14 +1541,21 @@ func (in *Instance) ParachainHostDisputes() (map[parachaintypes.DisputeKey]parac
 	return result, nil
 }
 
+// / Default value for `SchedulerParams.lookahead`
+const DefaultSchedulingLookahead uint32 = 3
+
+// ParachainHostSchedulingLookAhead returns how far ahead parachain blocks are scheduled.
 func (in *Instance) ParachainHostSchedulingLookAhead() (uint32, error) {
-	encoded, err := in.Exec(runtime.ParachainHostSchedulingLookAhead, []byte{})
+	encodedLookahead, err := in.Exec(runtime.ParachainHostSchedulingLookAhead, []byte{})
 	if err != nil {
+		if errors.Is(err, ErrExportFunctionNotFound) {
+			return DefaultSchedulingLookahead, nil
+		}
 		return 0, fmt.Errorf("exec: %w", err)
 	}
 
 	var schedulingLookahead uint32
-	err = scale.Unmarshal(encoded, &schedulingLookahead)
+	err = scale.Unmarshal(encodedLookahead, &schedulingLookahead)
 	if err != nil {
 		return 0, fmt.Errorf("unmarshalling: %w", err)
 	}

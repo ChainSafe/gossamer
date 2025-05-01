@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -241,9 +241,9 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 func (pp *ProspectiveParachains) fetchBlockInfo(
 	cache map[common.Hash]*types.Header,
 	hash common.Hash,
-) (*backing.BlockInfoProspectiveParachains, error) {
+) (*util.BlockInfoProspectiveParachains, error) {
 	if header, ok := cache[hash]; ok {
-		return &backing.BlockInfoProspectiveParachains{
+		return &util.BlockInfoProspectiveParachains{
 			Hash:        header.Hash(),
 			ParentHash:  header.ParentHash,
 			Number:      parachaintypes.BlockNumber(header.Number),
@@ -258,7 +258,7 @@ func (pp *ProspectiveParachains) fetchBlockInfo(
 
 	cache[hash] = header
 
-	return &backing.BlockInfoProspectiveParachains{
+	return &util.BlockInfoProspectiveParachains{
 		Hash:        header.Hash(),
 		ParentHash:  header.ParentHash,
 		Number:      parachaintypes.BlockNumber(header.Number),
@@ -271,9 +271,9 @@ func (pp *ProspectiveParachains) fetchAncestry(
 	ancestryLen uint32,
 	requiredSession parachaintypes.SessionIndex,
 	cache map[common.Hash]*types.Header,
-) ([]*backing.BlockInfoProspectiveParachains, error) {
+) ([]*util.BlockInfoProspectiveParachains, error) {
 	if ancestryLen == 0 {
-		return []*backing.BlockInfoProspectiveParachains{}, nil
+		return []*util.BlockInfoProspectiveParachains{}, nil
 	}
 
 	curr, err := pp.fetchBlockInfo(cache, hash)
@@ -282,7 +282,7 @@ func (pp *ProspectiveParachains) fetchAncestry(
 	}
 
 	parentHash := curr.ParentHash
-	ancestorsBlockInfo := make([]*backing.BlockInfoProspectiveParachains, 0, ancestryLen)
+	ancestorsBlockInfo := make([]*util.BlockInfoProspectiveParachains, 0, ancestryLen)
 	for i := 0; i < int(ancestryLen); i++ {
 		ancestorInfo, err := pp.fetchBlockInfo(cache, parentHash)
 		if err != nil {

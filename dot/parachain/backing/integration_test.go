@@ -333,7 +333,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 
 	//mock ImplicitView
 	mockImplicitView.EXPECT().Leaves().Return([]common.Hash{relayParent})
-	mockImplicitView.EXPECT().ActivateLeaf(relayParent).Return(nil)
+	mockImplicitView.EXPECT().ActivateLeaf(relayParent, gomock.Any()).Return(nil)
 	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 		gomock.AssignableToTypeOf(common.Hash{}),
 		gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
@@ -550,7 +550,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
-	mockImplicitView.EXPECT().ActivateLeaf(relayParent).Return(nil)
+	mockImplicitView.EXPECT().ActivateLeaf(relayParent, gomock.Any()).Return(nil)
 	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 		gomock.AssignableToTypeOf(common.Hash{}),
 		nil,
@@ -767,7 +767,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
-	mockImplicitView.EXPECT().ActivateLeaf(relayParent).Return(nil)
+	mockImplicitView.EXPECT().ActivateLeaf(relayParent, gomock.Any()).Return(nil)
 	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 		gomock.AssignableToTypeOf(common.Hash{}),
 		nil,
@@ -920,7 +920,7 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
-	mockImplicitView.EXPECT().ActivateLeaf(relayParent).Return(nil)
+	mockImplicitView.EXPECT().ActivateLeaf(relayParent, gomock.Any()).Return(nil)
 	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 		gomock.AssignableToTypeOf(common.Hash{}),
 		nil,
@@ -1078,7 +1078,7 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 
 	//mock ImplicitView
 	mockImplicitView.EXPECT().Leaves().Return([]common.Hash{relayParent1})
-	mockImplicitView.EXPECT().ActivateLeaf(gomock.AssignableToTypeOf(common.Hash{})).Return(nil).Times(2)
+	mockImplicitView.EXPECT().ActivateLeaf(gomock.AssignableToTypeOf(common.Hash{}), gomock.Any()).Return(nil).Times(2)
 	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 		relayParent1,
 		gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
@@ -1245,7 +1245,7 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
-	mockImplicitView.EXPECT().ActivateLeaf(gomock.AssignableToTypeOf(common.Hash{})).Return(nil)
+	mockImplicitView.EXPECT().ActivateLeaf(gomock.AssignableToTypeOf(common.Hash{}), gomock.Any()).Return(nil)
 	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 		gomock.AssignableToTypeOf(common.Hash{}),
 		nil,

@@ -31,3 +31,5 @@ tests/polkadotjs_test/node_modules
 lib/erasure/rustlib/target
 
 *.so
+
+.DS_Store
