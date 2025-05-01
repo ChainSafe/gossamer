@@ -45,7 +45,7 @@ func TestIterator(t *testing.T) {
 	assert.NoError(t, err)
 
 	inmemoryDB := NewMemoryDB()
-	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](inmemoryDB)
+	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](inmemoryDB, trie.V0)
 
 	for k, v := range entries {
 		err := trieDB.Set([]byte(k), v)

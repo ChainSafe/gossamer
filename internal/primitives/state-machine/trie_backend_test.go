@@ -34,11 +34,17 @@ func testDB(
 	childInfo := storage.NewDefaultChildInfo(ChildKey1)
 	mdb := trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256]()
 	var root hash.H256
+	var layout trie.Layout
+	switch stateVersion {
+	case storage.StateVersionV1:
+		layout = trie.LayoutV1
+	case storage.StateVersionV0:
+		layout = trie.LayoutV0
+	}
 
 	{
 		ksdb := trie.NewKeyspacedDB(mdb, childInfo.Keyspace())
-		trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](ksdb)
-		trie.SetVersion(stateVersion.TrieLayout())
+		trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](ksdb, layout)
 		require.NoError(t, trie.Set([]byte("value3"), bytes.Repeat([]byte{142}, 33)))
 		require.NoError(t, trie.Set([]byte("value4"), bytes.Repeat([]byte{124}, 33)))
 		root = trie.MustHash()
@@ -58,8 +64,7 @@ func testDB(
 			}
 		}
 
-		trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](mdb)
-		trie.SetVersion(stateVersion.TrieLayout())
+		trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](mdb, layout)
 		build(trie, childInfo, subRoot)
 		root = trie.MustHash()
 	}
@@ -322,7 +327,14 @@ func TestTrieBackend(t *testing.T) {
 				cache = &local
 			}
 			testDB, testRoot := testDB(t, param.StateVersion)
-			iter, err := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](testRoot, testDB).Iterator()
+			var layout trie.Layout
+			switch param.StateVersion {
+			case storage.StateVersionV1:
+				layout = trie.LayoutV1
+			case storage.StateVersionV0:
+				layout = trie.LayoutV0
+			}
+			iter, err := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](testRoot, testDB, layout).Iterator()
 			require.NoError(t, err)
 			expected := make([][]byte, 0)
 			for {

@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/ChainSafe/gossamer/pkg/trie"
-
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
@@ -40,19 +38,36 @@ func WithRecorder[H hash.Hash, Hasher hash.Hasher[H]](r TrieRecorder) TrieDBOpts
 	}
 }
 
-type TrieLayout = trie.TrieLayout
+/// Trait with definition of trie layout.
+/// Contains all associated trait needed for
+/// a trie definition or implementation.
+// pub trait TrieLayout {
+// 	/// If true, the trie will use extension nodes and
+// 	/// no partial in branch, if false the trie will only
+// 	/// use branch and node with partials in both.
+// 	const USE_EXTENSION: bool;
+// 	/// If true, the trie will allow empty values into `TrieDBMut`
+// 	const ALLOW_EMPTY: bool = false;
+// 	/// Threshold above which an external node should be
+// 	/// use to store a node value.
+// 	const MAX_INLINE_VALUE: Option<u32>;
 
-var (
-	V0 = trie.V0
-	V1 = trie.V1
-)
+// 	/// Hasher to use for this trie.
+// 	type Hash: Hasher;
+// 	/// Codec to use (needs to match hasher and nibble ops).
+// 	type Codec: NodeCodec<HashOut = <Self::Hash as Hasher>::Out>;
+// }
+
+type TrieLayout interface {
+	MaxInlineValue() int
+}
 
 // TrieDB is a DB-backed patricia merkle trie implementation
 // using lazy loading to fetch nodes
 type TrieDB[H hash.Hash, Hasher hash.Hasher[H]] struct {
 	rootHash H
 	db       hashdb.HashDB[H]
-	version  trie.TrieLayout
+	layout   TrieLayout
 	// rootHandle is an in-memory-trie-like representation of the node
 	// references and new inserted nodes in the trie
 	rootHandle NodeHandle
@@ -69,10 +84,11 @@ type TrieDB[H hash.Hash, Hasher hash.Hasher[H]] struct {
 }
 
 func NewEmptyTrieDB[H hash.Hash, Hasher hash.Hasher[H]](
-	db hashdb.HashDB[H], opts ...TrieDBOpts[H, Hasher]) *TrieDB[H, Hasher] {
+	db hashdb.HashDB[H], layout TrieLayout, opts ...TrieDBOpts[H, Hasher],
+) *TrieDB[H, Hasher] {
 	hasher := *new(Hasher)
 	root := hasher.Hash([]byte{0})
-	return NewTrieDB[H, Hasher](root, db, opts...)
+	return NewTrieDB[H, Hasher](root, db, layout, opts...)
 }
 
 type hashPrefix[H hash.Hash] struct {
@@ -82,12 +98,16 @@ type hashPrefix[H hash.Hash] struct {
 
 // NewTrieDB creates a new TrieDB using the given root and db
 func NewTrieDB[H hash.Hash, Hasher hash.Hasher[H]](
-	rootHash H, db hashdb.HashDB[H], opts ...TrieDBOpts[H, Hasher]) *TrieDB[H, Hasher] {
+	rootHash H,
+	db hashdb.HashDB[H],
+	layout TrieLayout,
+	opts ...TrieDBOpts[H, Hasher],
+) *TrieDB[H, Hasher] {
 	rootHandle := persisted[H]{rootHash}
 
 	trieDB := &TrieDB[H, Hasher]{
 		rootHash:   rootHash,
-		version:    trie.V0,
+		layout:     layout,
 		db:         db,
 		storage:    newNodeStorage[H](),
 		rootHandle: rootHandle,
@@ -99,14 +119,6 @@ func NewTrieDB[H hash.Hash, Hasher hash.Hasher[H]](
 	}
 
 	return trieDB
-}
-
-func (t *TrieDB[H, Hasher]) SetVersion(v TrieLayout) {
-	if v < t.version {
-		panic("cannot regress trie version")
-	}
-
-	t.version = v
 }
 
 // Hash returns the hashed root of the trie.
@@ -152,6 +164,7 @@ func (t *TrieDB[H, Hasher]) lookup(fullKey []byte, handle NodeHandle) ([]byte, e
 				node.hash,
 				nil, // no cache intentionally
 				t.recorder,
+				t.layout,
 				func(data []byte) []byte {
 					return data
 				},
@@ -633,7 +646,7 @@ func (t *TrieDB[H, Hasher]) insertInspector(
 	case Empty:
 		// If the node is empty we have to replace it with a leaf node with the
 		// new value
-		value := NewValue[H](value, t.version.MaxInlineValue())
+		value := NewValue[H](value, t.layout.MaxInlineValue())
 		pnk := partial.NodeKey()
 		return replaceNode{node: Leaf[H]{partialKey: pnk, value: value}}, nil
 	case Leaf[H]:
@@ -643,7 +656,7 @@ func (t *TrieDB[H, Hasher]) insertInspector(
 		if common == existingKey.Len() && common == partial.Len() {
 			// We are trying to insert a value in the same leaf so we just need
 			// to replace the value
-			value := NewValue[H](value, t.version.MaxInlineValue())
+			value := NewValue[H](value, t.layout.MaxInlineValue())
 			unchanged := n.value.equal(value)
 			keyVal := keyNibbles.Clone()
 			keyVal.Advance(existingKey.Len())
@@ -702,7 +715,7 @@ func (t *TrieDB[H, Hasher]) insertInspector(
 		if common == existingKey.Len() && common == partial.Len() {
 			// We are trying to insert a value in the same branch so we just need
 			// to replace the value
-			value := NewValue[H](value, t.version.MaxInlineValue())
+			value := NewValue[H](value, t.layout.MaxInlineValue())
 			var unchanged bool
 			if n.value != nil {
 				unchanged = n.value.equal(value)
@@ -732,7 +745,7 @@ func (t *TrieDB[H, Hasher]) insertInspector(
 			ix := existingKey.At(common)
 			children[ix] = inMemory(allocStorage)
 
-			value := NewValue[H](value, t.version.MaxInlineValue())
+			value := NewValue[H](value, t.layout.MaxInlineValue())
 
 			if partial.Len()-common == 0 {
 				// The value should be part of the branch
@@ -783,7 +796,7 @@ func (t *TrieDB[H, Hasher]) insertInspector(
 				}
 			} else {
 				// Original has nothing here so we have to create a new leaf
-				value := NewValue[H](value, t.version.MaxInlineValue())
+				value := NewValue[H](value, t.layout.MaxInlineValue())
 				leaf := t.storage.alloc(NewStoredNode{node: Leaf[H]{keyNibbles.NodeKey(), value}})
 				n.children[idx] = inMemory(leaf)
 			}
@@ -1134,7 +1147,7 @@ func (t *TrieDB[H, Hasher]) recordAccess(access TrieAccess) {
 func (t *TrieDB[H, Hasher]) GetHash(key []byte) (*H, error) {
 	// TODO: look into moving query into Lookup method
 	lookup := NewTrieLookup[H, Hasher](
-		t.db, t.rootHash, t.cache, t.recorder,
+		t.db, t.rootHash, t.cache, t.recorder, t.layout,
 		func([]byte) any { return nil },
 	)
 	return lookup.LookupHash(key)
@@ -1145,14 +1158,14 @@ func GetWith[H hash.Hash, Hasher hash.Hasher[H], QueryItem any](
 	t *TrieDB[H, Hasher], key []byte, query Query[QueryItem],
 ) (*QueryItem, error) {
 	lookup := NewTrieLookup[H, Hasher](
-		t.db, t.rootHash, t.cache, t.recorder, query,
+		t.db, t.rootHash, t.cache, t.recorder, t.layout, query,
 	)
 	return lookup.Lookup(key)
 }
 
 func (t *TrieDB[H, Hasher]) LookupFirstDescendant(key []byte) (MerkleValue[H], error) {
 	lookup := NewTrieLookup[H, Hasher](
-		t.db, t.rootHash, t.cache, t.recorder, func([]byte) any { return nil },
+		t.db, t.rootHash, t.cache, t.recorder, t.layout, func([]byte) any { return nil },
 	)
 	return lookup.LookupFirstDescendant(key, nibbles.NewNibbles(slices.Clone(key)))
 }

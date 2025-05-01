@@ -26,8 +26,7 @@ func Test_TrieDBRawIterator(t *testing.T) {
 	}
 
 	db := NewMemoryDB()
-	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
-	trieDB.SetVersion(trie.V1)
+	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db, trie.V1)
 
 	for k, v := range entries {
 		err := trieDB.Set([]byte(k), v)
@@ -181,8 +180,7 @@ func TestTrieDBIterator(t *testing.T) {
 	}
 
 	db := NewMemoryDB()
-	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
-	trieDB.SetVersion(trie.V1)
+	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db, trie.V1)
 
 	for k, v := range entries {
 		err := trieDB.Set([]byte(k), v)
@@ -279,8 +277,7 @@ func TestTrieDBKeyIterator(t *testing.T) {
 	}
 
 	db := NewMemoryDB()
-	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
-	trieDB.SetVersion(trie.V1)
+	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db, trie.V1)
 
 	for k, v := range entries {
 		err := trieDB.Set([]byte(k), v)

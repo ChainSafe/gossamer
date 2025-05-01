@@ -25,8 +25,7 @@ func Benchmark_ValueCache(b *testing.B) {
 	version := trie.V1
 
 	db := NewMemoryDB()
-	trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
-	trie.SetVersion(version)
+	trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db, version)
 
 	for k, v := range entries {
 		require.NoError(b, trie.Set([]byte(k), v))
@@ -37,7 +36,7 @@ func Benchmark_ValueCache(b *testing.B) {
 	root := trie.rootHash
 
 	b.Run("get_value_without_cache", func(b *testing.B) {
-		trieDB := NewTrieDB[hash.H256, runtime.BlakeTwo256](root, db)
+		trieDB := NewTrieDB[hash.H256, runtime.BlakeTwo256](root, db, version)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Use the deepest key to ensure the trie is traversed fully
@@ -50,7 +49,7 @@ func Benchmark_ValueCache(b *testing.B) {
 	b.Run("get_value_with_cache", func(b *testing.B) {
 		cache := NewTestTrieCache[hash.H256]()
 		trieDB := NewTrieDB(
-			root, db, WithCache[hash.H256, runtime.BlakeTwo256](cache))
+			root, db, version, WithCache[hash.H256, runtime.BlakeTwo256](cache))
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Use the deepest key to ensure the trie is traversed fully
@@ -74,8 +73,7 @@ func Benchmark_NodesCache(b *testing.B) {
 	version := trie.V1
 
 	db := NewMemoryDB()
-	trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
-	trie.SetVersion(version)
+	trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db, version)
 
 	for k, v := range entries {
 		require.NoError(b, trie.Set([]byte(k), v))
@@ -86,7 +84,7 @@ func Benchmark_NodesCache(b *testing.B) {
 	root := trie.rootHash
 
 	b.Run("iterate_all_entries_without_cache", func(b *testing.B) {
-		trieDB := NewTrieDB[hash.H256, runtime.BlakeTwo256](root, db)
+		trieDB := NewTrieDB[hash.H256, runtime.BlakeTwo256](root, db, version)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Iterate through all keys
@@ -100,7 +98,7 @@ func Benchmark_NodesCache(b *testing.B) {
 	// This is the same as iterate_all_entries_without_cache since the raw iterator calls TrieDB.getNodeOrLookup
 	b.Run("iterate_all_entries_with_cache", func(b *testing.B) {
 		cache := NewTestTrieCache[hash.H256]()
-		trieDB := NewTrieDB(root, db, WithCache[hash.H256, runtime.BlakeTwo256](cache))
+		trieDB := NewTrieDB(root, db, version, WithCache[hash.H256, runtime.BlakeTwo256](cache))
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Iterate through all keys
