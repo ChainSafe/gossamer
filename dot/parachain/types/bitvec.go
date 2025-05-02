@@ -249,3 +249,11 @@ func (bv *BitVec) Mask(mask BitVec) {
 		_ = bv.Set(uint(i), value && !m) // oob is impossible
 	}
 }
+
+// Clone returns a deep copy of the BitVec
+func (bv *BitVec) Clone() BitVec {
+	return BitVec{
+		bits: append([]byte{}, bv.bits...),
+		len:  bv.len,
+	}
+}

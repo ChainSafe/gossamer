@@ -7,6 +7,18 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
+type StatementKind uint8
+
+const (
+	Seconded StatementKind = iota
+	Validated
+)
+
+type FilterQuery interface {
+	Contains(index uint, statementKind StatementKind) bool
+	Set(index uint, statementKind StatementKind)
+}
+
 // StatementFilter contains bitfields indicating the statements that are known or undesired about a candidate.
 type StatementFilter struct {
 	// Seconded statements. '1' is known or undesired.
@@ -14,6 +26,8 @@ type StatementFilter struct {
 	// Valid statements. '1' is known or undesired.
 	validatedInGroup parachaintypes.BitVec
 }
+
+var _ FilterQuery = (*StatementFilter)(nil)
 
 // NewStatementFilter creates a new StatementFilter.
 // If full is true, the StatementFilter will be initialised with all bits set to 1.
@@ -79,4 +93,44 @@ func (s *StatementFilter) MaskSeconded(mask parachaintypes.BitVec) {
 // Bits appearing in mask will not appear in the filter afterwards.
 func (s *StatementFilter) MaskValid(mask parachaintypes.BitVec) {
 	s.validatedInGroup.Mask(mask)
+}
+
+// FilterQuery implementation
+
+func (s *StatementFilter) Contains(index uint, statementKind StatementKind) bool {
+	switch statementKind {
+	case Seconded:
+		b, err := s.secondedInGroup.Get(index)
+		if err != nil {
+			logger.Warnf("failed to access index %d in secondedInGroup: %v", index, err)
+			return false
+		}
+		return b
+	case Validated:
+		b, err := s.validatedInGroup.Get(index)
+		if err != nil {
+			logger.Warnf("failed to access index %d in validatedInGroup: %v", index, err)
+			return false
+		}
+		return b
+	default:
+		panic("unreachable")
+	}
+}
+
+func (s *StatementFilter) Set(index uint, statementKind StatementKind) {
+	switch statementKind {
+	case Seconded:
+		err := s.secondedInGroup.Set(index, true)
+		if err != nil {
+			logger.Warnf("failed to set index %d in secondedInGroup: %v", index, err)
+		}
+	case Validated:
+		err := s.validatedInGroup.Set(index, true)
+		if err != nil {
+			logger.Warnf("failed to set index %d in validatedInGroup: %v", index, err)
+		}
+	default:
+		panic("unreachable")
+	}
 }
