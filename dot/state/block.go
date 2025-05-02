@@ -33,9 +33,9 @@ var (
 	blockBodyPrefix     = []byte("blb") // blockBodyPrefix + hash -> body
 	headerHashPrefix    = []byte("hsh") // headerHashPrefix + encodedBlockNum -> hash
 	arrivalTimePrefix   = []byte("arr") // arrivalTimePrefix || hash -> arrivalTime
-	receiptPrefix       = []byte("rcp") // receiptPrefix + hash -> receipt
-	messageQueuePrefix  = []byte("mqp") // messageQueuePrefix + hash -> message queue
-	JustificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
+	ReceiptPrefix       = []byte("rcp") // ReceiptPrefix + hash -> receipt
+	MessageQueuePrefix  = []byte("mqp") // MessageQueuePrefix + hash -> message queue
+	JustificationPrefix = []byte("jcp") // JustificationPrefix + hash -> justification
 	firstSlotNumberKey  = []byte("fsn") // firstSlotNumberKey -> First slot number
 
 	errNilBlockTree = errors.New("blocktree is nil")

@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
@@ -418,6 +419,11 @@ func (c *Client[H, Hasher, N, E, Header]) StorageChangesNotificationStream(
 	childFilterKeys []api.ChildFilterKeys,
 ) api.StorageEventStream[H] {
 	return c.storageNotifications.Listen(filterKeys, childFilterKeys)
+}
+
+// OffchainStorage returns the offchain storage implementation of the underlying backend.
+func (c *Client[H, Hasher, N, E, Header]) OffchainStorage() offchain.OffchainStorage {
+	return c.backend.OffchainStorage()
 }
 
 // HeaderBackend implementation for Client

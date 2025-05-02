@@ -14,12 +14,12 @@ func prefixKey(hash common.Hash, prefix []byte) []byte {
 
 // HasReceipt returns if the db contains a receipt at the given hash
 func (bs *DefaultBlockState) HasReceipt(hash common.Hash) (bool, error) {
-	return bs.db.Has(prefixKey(hash, receiptPrefix))
+	return bs.db.Has(prefixKey(hash, ReceiptPrefix))
 }
 
 // SetReceipt sets a Receipt in the database
 func (bs *DefaultBlockState) SetReceipt(hash common.Hash, data []byte) error {
-	err := bs.db.Put(prefixKey(hash, receiptPrefix), data)
+	err := bs.db.Put(prefixKey(hash, ReceiptPrefix), data)
 	if err != nil {
 		return err
 	}
@@ -29,7 +29,7 @@ func (bs *DefaultBlockState) SetReceipt(hash common.Hash, data []byte) error {
 
 // GetReceipt retrieves a Receipt from the database
 func (bs *DefaultBlockState) GetReceipt(hash common.Hash) ([]byte, error) {
-	data, err := bs.db.Get(prefixKey(hash, receiptPrefix))
+	data, err := bs.db.Get(prefixKey(hash, ReceiptPrefix))
 	if err != nil {
 		return nil, err
 	}
@@ -39,12 +39,12 @@ func (bs *DefaultBlockState) GetReceipt(hash common.Hash) ([]byte, error) {
 
 // HasMessageQueue returns if the db contains a MessageQueue at the given hash
 func (bs *DefaultBlockState) HasMessageQueue(hash common.Hash) (bool, error) {
-	return bs.db.Has(prefixKey(hash, messageQueuePrefix))
+	return bs.db.Has(prefixKey(hash, MessageQueuePrefix))
 }
 
 // SetMessageQueue sets a MessageQueue in the database
 func (bs *DefaultBlockState) SetMessageQueue(hash common.Hash, data []byte) error {
-	err := bs.db.Put(prefixKey(hash, messageQueuePrefix), data)
+	err := bs.db.Put(prefixKey(hash, MessageQueuePrefix), data)
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func (bs *DefaultBlockState) SetMessageQueue(hash common.Hash, data []byte) erro
 
 // GetMessageQueue retrieves a MessageQueue from the database
 func (bs *DefaultBlockState) GetMessageQueue(hash common.Hash) ([]byte, error) {
-	data, err := bs.db.Get(prefixKey(hash, messageQueuePrefix))
+	data, err := bs.db.Get(prefixKey(hash, MessageQueuePrefix))
 	if err != nil {
 		return nil, err
 	}
