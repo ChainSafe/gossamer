@@ -46,6 +46,12 @@ const (
 	WESTEND_RUNTIME_v1017001_FP  = "westend_runtime-v1017000.compact.wasm"
 	WESTEND_RUNTIME_v1017001_URL = "https://github.com/paritytech/polkadot-sdk/releases/download/" +
 		"polkadot-stable2412/westend_runtime-v1017001.compact.compressed.wasm?raw=true"
+
+	// Polkadot Stable 2503 | v1.18.0 westend
+	WESTEND_RUNTIME_STABLE_2503     = "westend_runtime-stable-2503"
+	WESTEND_RUNTIME_STABLE_2503_FP  = "westend_runtime-stable-2503.compact.wasm"
+	WESTEND_RUNTIME_STABLE_2503_URL = "https://github.com/paritytech/polkadot-sdk/releases/download/" +
+		"polkadot-stable2503/westend_runtime.compact.compressed.wasm?raw=true"
 )
 
 const (
@@ -119,6 +125,9 @@ const (
 	// ParachainHostNodeFeatures is the runtime API call ParachainHost_node_features
 	ParachainHostNodeFeatures = "ParachainHost_node_features"
 	// ParachainHostDisabledValidators is the runtime API call ParachainHost_disabled_validators
-	ParachainHostDisabledValidators = "ParachainHost_disabled_validators"
-	ParachainHostDisputes           = "ParachainHost_disputes"
+	ParachainHostDisabledValidators            = "ParachainHost_disabled_validators"
+	ParachainHostDisputes                      = "ParachainHost_disputes"
+	ParachainHostSchedulingLookAhead           = "ParachainHost_scheduling_lookahead"
+	ParachainHostBackingConstraints            = "ParachainHost_backing_constraints"
+	ParachainHostCandidatesPendingAvailability = "ParachainHost_candidates_pending_availability"
 )

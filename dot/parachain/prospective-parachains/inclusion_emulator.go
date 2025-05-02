@@ -434,7 +434,6 @@ func skipUmpSignals(
 				}
 				continue
 			}
-
 			return
 		}
 	}
@@ -453,10 +452,10 @@ func validateCommitments(
 		}
 	}
 
-	if uint(len(commitments.HeadData.Data)) > constraints.MaxHeadDataSize {
+	if uint32(len(commitments.HeadData.Data)) > constraints.MaxHeadDataSize {
 		return &errHeadDataTooLong{
 			max: constraints.MaxHeadDataSize,
-			got: uint(len(commitments.HeadData.Data)),
+			got: uint32(len(commitments.HeadData.Data)),
 		}
 	}
 

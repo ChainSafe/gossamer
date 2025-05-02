@@ -34,13 +34,24 @@ func NewView() *view {
 
 type ProspectiveParachains struct {
 	SubsystemToOverseer chan<- any
-	View                *view
+	view                *view
+	blockState          BlockState
 }
 
 type view struct {
 	activeLeaves   map[common.Hash]bool
 	perRelayParent map[common.Hash]*relayParentData
 	implicitView   backing.ImplicitView
+}
+
+func newView() *view {
+	return &view{
+		perRelayParent: make(map[common.Hash]*relayParentData),
+		activeLeaves:   make(map[common.Hash]bool),
+
+		// TODO: currently there's no implementation for ImplicitView
+		implicitView: nil,
+	}
 }
 
 type relayParentData struct {
@@ -56,7 +67,7 @@ func (*ProspectiveParachains) Name() parachaintypes.SubSystemName {
 func NewProspectiveParachains(overseerChan chan<- any) *ProspectiveParachains {
 	prospectiveParachain := ProspectiveParachains{
 		SubsystemToOverseer: overseerChan,
-		View:                NewView(),
+		view:                newView(),
 	}
 	return &prospectiveParachain
 }
@@ -88,7 +99,7 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 		_ = pp.ProcessBlockFinalizedSignal(msg)
 	case messages.IntroduceSecondedCandidate:
 		pp.introduceSecondedCandidate(
-			pp.View,
+			pp.view,
 			msg.Request,
 			msg.Response,
 		)
@@ -206,13 +217,13 @@ func (pp *ProspectiveParachains) handleCandidateBacked(msg messages.CandidateBac
 	foundCandidate := false
 	foundPara := false
 
-	for relayParent, rpData := range pp.View.perRelayParent {
+	for relayParent, rpData := range pp.view.perRelayParent {
 		chain, ok := rpData.fragmentChains[para]
 		if !ok {
 			continue
 		}
 
-		_, isActiveLeaf := pp.View.activeLeaves[relayParent]
+		_, isActiveLeaf := pp.view.activeLeaves[relayParent]
 
 		foundPara = true
 		if chain.isCandidateBacked(candidateHash) {
@@ -262,13 +273,6 @@ func (pp *ProspectiveParachains) handleCandidateBacked(msg messages.CandidateBac
 	}
 }
 
-// ProcessActiveLeavesUpdateSignal processes active leaves update signal
-func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
-	parachaintypes.ActiveLeavesUpdateSignal,
-) error {
-	panic("not implemented yet: see issue #4305")
-}
-
 // ProcessBlockFinalizedSignal processes block finalized signal
 func (*ProspectiveParachains) ProcessBlockFinalizedSignal(
 	parachaintypes.BlockFinalizedSignal,
@@ -284,9 +288,9 @@ func (pp *ProspectiveParachains) getMinimumRelayParents(
 	var result []messages.ParaIDBlockNumber
 
 	// Check if the relayChainBlockHash exists in active_leaves
-	if exists := pp.View.activeLeaves[relayChainBlockHash]; exists {
+	if exists := pp.view.activeLeaves[relayChainBlockHash]; exists {
 		// Retrieve data associated with the relayChainBlockHash
-		if leafData, found := pp.View.perRelayParent[relayChainBlockHash]; found {
+		if leafData, found := pp.view.perRelayParent[relayChainBlockHash]; found {
 			// Iterate over fragment_chains and collect the data
 			for paraID, fragmentChain := range leafData.fragmentChains {
 				result = append(result, messages.ParaIDBlockNumber{
@@ -312,7 +316,7 @@ func (pp *ProspectiveParachains) getBackableCandidates(
 	responseChan := msg.Response
 
 	// Check if the relay parent is active
-	if _, exists := pp.View.activeLeaves[relayParentHash]; !exists {
+	if _, exists := pp.view.activeLeaves[relayParentHash]; !exists {
 		logger.Debugf(
 			"Requested backable candidates for inactive relay-parent. "+
 				"RelayParentHash: %v, ParaId: %v",
@@ -323,7 +327,7 @@ func (pp *ProspectiveParachains) getBackableCandidates(
 	}
 
 	// Retrieve data for the relay parent
-	data, ok := pp.View.perRelayParent[relayParentHash]
+	data, ok := pp.view.perRelayParent[relayParentHash]
 	if !ok {
 		logger.Debugf(
 			"Requested backable candidates for nonexistent relay-parent. "+
@@ -395,8 +399,8 @@ func (pp *ProspectiveParachains) answerProspectiveValidationDataRequest(
 	var maxPovSize *uint32
 
 	// // iterate over active leaves
-	for leaf := range pp.View.activeLeaves {
-		relayBlockViewData, exists := pp.View.perRelayParent[leaf]
+	for leaf := range pp.view.activeLeaves {
+		relayBlockViewData, exists := pp.view.perRelayParent[leaf]
 
 		if !exists {
 			continue
@@ -462,13 +466,13 @@ func (pp *ProspectiveParachains) getHypotheticalMembership(
 	var activeLeaves []common.Hash
 
 	if msg.FragmentChainRelayParent == nil {
-		activeLeaves = maps.Keys(pp.View.activeLeaves)
-	} else if _, ok := pp.View.activeLeaves[*msg.FragmentChainRelayParent]; ok {
+		activeLeaves = maps.Keys(pp.view.activeLeaves)
+	} else if _, ok := pp.view.activeLeaves[*msg.FragmentChainRelayParent]; ok {
 		activeLeaves = []common.Hash{*msg.FragmentChainRelayParent}
 	}
 
 	for _, al := range activeLeaves {
-		leafView, ok := pp.View.perRelayParent[al]
+		leafView, ok := pp.view.perRelayParent[al]
 		if !ok {
 			continue
 		}
@@ -510,7 +514,7 @@ func (pp *ProspectiveParachains) getHypotheticalMembership(
 	for _, item := range response {
 		if len(item.HypotheticalMembership) == 0 {
 			var hashes []string
-			for _, hash := range maps.Keys(pp.View.activeLeaves) {
+			for _, hash := range maps.Keys(pp.view.activeLeaves) {
 				hashes = append(hashes, hash.String())
 			}
 

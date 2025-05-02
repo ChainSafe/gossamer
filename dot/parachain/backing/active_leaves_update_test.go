@@ -30,7 +30,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 			},
 			getCandidateBackig: func(ctrl *gomock.Controller) *CandidateBacking {
 				mockImplicitView := NewMockImplicitView(ctrl)
-				mockImplicitView.EXPECT().deactivateLeaf(common.Hash{1})
+				mockImplicitView.EXPECT().DeactivateLeaf(common.Hash{1})
 				mockImplicitView.EXPECT().AllAllowedRelayParents().Return([]common.Hash{})
 
 				backing := CandidateBacking{
@@ -51,7 +51,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 			},
 			getCandidateBackig: func(ctrl *gomock.Controller) *CandidateBacking {
 				mockImplicitView := NewMockImplicitView(ctrl)
-				mockImplicitView.EXPECT().ActivateLeaf(common.Hash{1}).Return(fmt.Errorf("mock error"))
+				mockImplicitView.EXPECT().ActivateLeaf(common.Hash{1}, gomock.Any()).Return(fmt.Errorf("mock error"))
 				mockImplicitView.EXPECT().AllAllowedRelayParents().Return([]common.Hash{{1}})
 
 				backing := CandidateBacking{
@@ -75,8 +75,8 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 
 				mockImplicitView := NewMockImplicitView(ctrl)
 
-				mockImplicitView.EXPECT().ActivateLeaf(common.Hash{1}).Return(nil)
-				mockImplicitView.EXPECT().deactivateLeaf(common.Hash{2})
+				mockImplicitView.EXPECT().ActivateLeaf(common.Hash{1}, gomock.Any()).Return(nil)
+				mockImplicitView.EXPECT().DeactivateLeaf(common.Hash{2})
 				mockImplicitView.EXPECT().AllAllowedRelayParents().Return([]common.Hash{{1}})
 				mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(common.Hash{1}, nil).Return([]common.Hash{{1}})
 

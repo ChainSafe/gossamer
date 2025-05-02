@@ -1297,7 +1297,7 @@ func (in *Instance) ParachainHostSessionIndexForChild() (parachaintypes.SessionI
 // for any parachain assigned to an occupied availability core.
 func (in *Instance) ParachainHostCandidatePendingAvailability(
 	parachainID parachaintypes.ParaID,
-) (*parachaintypes.CommittedCandidateReceipt, error) {
+) (*parachaintypes.CommittedCandidateReceiptV2, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachainID)
@@ -1313,7 +1313,7 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var candidateReceipt *parachaintypes.CommittedCandidateReceipt
+	var candidateReceipt *parachaintypes.CommittedCandidateReceiptV2
 	err = scale.Unmarshal(encodedCandidateReceipt, &candidateReceipt)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
@@ -1539,6 +1539,75 @@ func (in *Instance) ParachainHostDisputes() (map[parachaintypes.DisputeKey]parac
 	}
 
 	return result, nil
+}
+
+// / Default value for `SchedulerParams.lookahead`
+const DefaultSchedulingLookahead uint32 = 3
+
+// ParachainHostSchedulingLookAhead returns how far ahead parachain blocks are scheduled.
+func (in *Instance) ParachainHostSchedulingLookAhead() (uint32, error) {
+	encodedLookahead, err := in.Exec(runtime.ParachainHostSchedulingLookAhead, []byte{})
+	if err != nil {
+		if errors.Is(err, ErrExportFunctionNotFound) {
+			return DefaultSchedulingLookahead, nil
+		}
+		return 0, fmt.Errorf("exec: %w", err)
+	}
+
+	var schedulingLookahead uint32
+	err = scale.Unmarshal(encodedLookahead, &schedulingLookahead)
+	if err != nil {
+		return 0, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return schedulingLookahead, nil
+}
+
+func (in *Instance) ParachainHostBackingConstraints(
+	paraID parachaintypes.ParaID,
+) (*parachaintypes.VStagingConstraints, error) {
+	encodedParaID, err := scale.Marshal(paraID)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling para id: %w", err)
+	}
+
+	encoded, err := in.Exec(runtime.ParachainHostBackingConstraints, encodedParaID)
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var constraints *parachaintypes.VStagingConstraints
+	err = scale.Unmarshal(encoded, &constraints)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return constraints, nil
+}
+
+func (in *Instance) ParachainHostCandidatesPendingAvailability(
+	paraID parachaintypes.ParaID,
+) ([]parachaintypes.CommittedCandidateReceiptV2, error) {
+	encodedParaID, err := scale.Marshal(paraID)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling para id: %w", err)
+	}
+
+	encoded, err := in.Exec(
+		runtime.ParachainHostCandidatesPendingAvailability,
+		encodedParaID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var pendingCandidates []parachaintypes.CommittedCandidateReceiptV2
+	err = scale.Unmarshal(encoded, &pendingCandidates)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return pendingCandidates, nil
 }
 
 func (*Instance) RandomSeed() {
