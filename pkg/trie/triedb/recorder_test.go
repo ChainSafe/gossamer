@@ -7,8 +7,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hasher"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +15,7 @@ import (
 // https://github.com/dimartiro/substrate-trie-test/blob/master/src/substrate_trie_test.rs
 func TestRecorder(t *testing.T) {
 	inmemoryDB := NewMemoryDB()
-	triedb := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](inmemoryDB, trie.V0)
+	triedb := NewEmptyTrieDB[hash.H256, hasher.Blake2Hasher](inmemoryDB, layoutV0{})
 
 	triedb.Set([]byte("pol"), []byte("polvalue"))
 	triedb.Set([]byte("polka"), []byte("polkavalue"))
@@ -31,7 +30,7 @@ func TestRecorder(t *testing.T) {
 	t.Run("Record_pol_access_should_record_2_node", func(t *testing.T) {
 		recorder := NewRecorder[hash.H256]()
 		trie := NewTrieDB(
-			root, inmemoryDB, trie.V0, WithRecorder[hash.H256, runtime.BlakeTwo256](recorder))
+			root, inmemoryDB, layoutV0{}, WithRecorder[hash.H256, hasher.Blake2Hasher](recorder))
 
 		trie.Get([]byte("pol"))
 
@@ -67,8 +66,8 @@ func TestRecorder(t *testing.T) {
 
 	t.Run("Record_go_access_should_record_2_nodes", func(t *testing.T) {
 		recorder := NewRecorder[hash.H256]()
-		trie := NewTrieDB[hash.H256, runtime.BlakeTwo256](
-			root, inmemoryDB, trie.V0, WithRecorder[hash.H256, runtime.BlakeTwo256](recorder))
+		trie := NewTrieDB[hash.H256, hasher.Blake2Hasher](
+			root, inmemoryDB, layoutV0{}, WithRecorder[hash.H256, hasher.Blake2Hasher](recorder))
 
 		trie.Get([]byte("go"))
 

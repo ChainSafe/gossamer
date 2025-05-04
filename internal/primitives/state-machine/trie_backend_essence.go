@@ -265,7 +265,7 @@ func withTrieDB[H runtime.Hash, Hasher runtime.Hasher[H]](
 
 	withRecorderAndCache(tbe, &root, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
 		trieDB := triedb.NewTrieDB(
-			root, db, trie.LayoutV1, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
+			root, db, trie.LayoutV1[Hasher, H]{}, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 		callback(trieDB)
 	})
 }
@@ -355,7 +355,7 @@ func (tbe *trieBackendEssence[H, Hasher]) NextStorageKeyFromRoot(
 // Get the value of storage at given key.
 func (tbe *trieBackendEssence[H, Hasher]) Storage(key []byte) (val StorageValue, err error) {
 	withRecorderAndCache(tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
-		val, err = trie.ReadTrieValue[H, Hasher](tbe, tbe.root, key, recorder, cache, trie.LayoutV1)
+		val, err = trie.ReadTrieValue[H, Hasher](tbe, tbe.root, key, recorder, cache, trie.LayoutV1[Hasher, H]{})
 	})
 	return
 }
@@ -364,7 +364,7 @@ func (tbe *trieBackendEssence[H, Hasher]) Storage(key []byte) (val StorageValue,
 func (tbe *trieBackendEssence[H, Hasher]) StorageHash(key []byte) (hash *H, err error) {
 	withRecorderAndCache[H, Hasher](tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
 		trieDB := triedb.NewTrieDB(
-			tbe.root, tbe, trie.LayoutV1, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
+			tbe.root, tbe, trie.LayoutV1[Hasher, H]{}, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 		hash, err = trieDB.GetHash(key)
 	})
 	return
@@ -392,7 +392,7 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildStorage(childInfo storage.ChildIn
 			key,
 			recorder,
 			cache,
-			trie.LayoutV1,
+			trie.LayoutV1[Hasher, H]{},
 		)
 	})
 	return val, err
@@ -419,7 +419,7 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildStorageHash(childInfo storage.Chi
 			key,
 			recorder,
 			cache,
-			trie.LayoutV1,
+			trie.LayoutV1[Hasher, H]{},
 		)
 	})
 	return hash, err
@@ -428,7 +428,7 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildStorageHash(childInfo storage.Chi
 // Get the closest merkle value at given key.
 func (tbe *trieBackendEssence[H, Hasher]) ClosestMerkleValue(key []byte) (val triedb.MerkleValue[H], err error) {
 	withRecorderAndCache(tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
-		val, err = trie.ReadTrieFirstDescendantValue[H, Hasher](tbe, tbe.root, key, recorder, cache, trie.LayoutV1)
+		val, err = trie.ReadTrieFirstDescendantValue[H, Hasher](tbe, tbe.root, key, recorder, cache, trie.LayoutV1[Hasher, H]{})
 	})
 	return
 }
@@ -449,7 +449,7 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildClosestMerkleValue(
 
 	withRecorderAndCache(tbe, &childRoot, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
 		val, err = trie.ReadChildTrieFirstDescendantValue[H, Hasher](
-			childInfo.Keyspace(), tbe, tbe.root, key, recorder, cache, trie.LayoutV1)
+			childInfo.Keyspace(), tbe, tbe.root, key, recorder, cache, trie.LayoutV1[Hasher, H]{})
 	})
 	return
 }
@@ -522,12 +522,12 @@ func (tbe *trieBackendEssence[H, Hasher]) StorageRoot(
 	root := withRecorderAndCacheForStorageRoot(
 		tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) (*H, H) {
 			eph := newEphemeral[H, Hasher](tbe.BackendStorage(), writeOverlay)
-			var layout trie.Layout
+			var layout triedb.TrieLayout
 			switch stateVersion {
 			case storage.StateVersionV1:
-				layout = trie.LayoutV1
+				layout = trie.LayoutV1[Hasher, H]{}
 			case storage.StateVersionV0:
-				layout = trie.LayoutV0
+				layout = trie.LayoutV0[Hasher, H]{}
 			}
 			root, err := trie.DeltaTrieRoot[H, Hasher](eph, tbe.root, delta, recorder, cache, layout)
 			if err != nil {
@@ -562,12 +562,12 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildStorageRoot(
 	newChildRoot := withRecorderAndCacheForStorageRoot(
 		tbe, &childRoot, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) (*H, H) {
 			eph := newEphemeral(tbe.BackendStorage(), writeOverlay)
-			var layout trie.Layout
+			var layout triedb.TrieLayout
 			switch stateVersion {
 			case storage.StateVersionV1:
-				layout = trie.LayoutV1
+				layout = trie.LayoutV1[Hasher, H]{}
 			case storage.StateVersionV0:
-				layout = trie.LayoutV0
+				layout = trie.LayoutV0[Hasher, H]{}
 			}
 			root, err := trie.ChildDeltaTrieRoot[H, Hasher](
 				childInfo.Keyspace(), eph, childRoot, delta, recorder, cache, layout)

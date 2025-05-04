@@ -13,9 +13,7 @@ import "github.com/ChainSafe/gossamer/internal/primitives/runtime"
 type SelectChain[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] interface {
 	// Get all leaves of the chain, i.e. block hashes that have no children currently.
 	// Leaves that can never be finalized will not be returned.
-	Leaves() <-chan struct {
-		Leaves []H
-	}
+	Leaves() <-chan LeavesError[H]
 
 	// Among those leaves deterministically pick one chain as the generally best chain to author new blocks upon and
 	// probably (but not necessarily) finalize.
@@ -24,6 +22,11 @@ type SelectChain[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] 
 	// Get the best descendent of baseHash that we should attempt to finalize next, if any. It is valid to return the
 	// given baseHash itself if no better descendent exists.
 	FinalityTarget(baseHash H, maybeMaxNumber *N) <-chan HashError[H]
+}
+
+type LeavesError[H runtime.Hash] struct {
+	Leaves []H
+	Error  error
 }
 
 type HeaderError[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] struct {

@@ -371,7 +371,7 @@ type emptyStorage[H runtime.Hash] struct {
 func newEmptyStorage[H runtime.Hash, Hasher runtime.Hasher[H]]() emptyStorage[H] {
 	var root H
 	mdb := trie.NewMemoryDB[H, Hasher]()
-	trie := triedb.NewEmptyTrieDB[H, Hasher](mdb, trie.LayoutV1)
+	trie := triedb.NewEmptyTrieDB[H, Hasher](mdb, trie.LayoutV1[Hasher, H]{})
 	root = trie.MustHash()
 	return emptyStorage[H]{root}
 }

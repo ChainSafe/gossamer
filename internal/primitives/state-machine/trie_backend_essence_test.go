@@ -21,6 +21,8 @@ var (
 	_ hashdb.HashDB[hash.H256] = &ephemeral[hash.H256, runtime.BlakeTwo256]{}
 )
 
+var layoutV1 = trie.LayoutV1[runtime.BlakeTwo256, hash.H256]{}
+
 func TestTrieBackendEssence(t *testing.T) {
 	t.Run("next_storage_key_and_next_child_storage_key_work", func(t *testing.T) {
 		childInfo := storage.NewDefaultChildInfo([]byte("MyChild"))
@@ -31,7 +33,7 @@ func TestTrieBackendEssence(t *testing.T) {
 
 		mdb := trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256]()
 		{
-			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](mdb, trie.LayoutV1)
+			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](mdb, layoutV1)
 			require.NoError(t, trie.Set([]byte("3"), []byte{1}))
 			require.NoError(t, trie.Set([]byte("4"), []byte{1}))
 			require.NoError(t, trie.Set([]byte("6"), []byte{1}))
@@ -42,7 +44,7 @@ func TestTrieBackendEssence(t *testing.T) {
 			ksdb := trie.NewKeyspacedDB(mdb, childInfo.Keyspace())
 			// reuse of root_1 implicitly assert child trie root is same
 			// as top trie (contents must remain the same).
-			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](ksdb, trie.LayoutV1)
+			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](ksdb, layoutV1)
 			err := trie.Set([]byte("3"), []byte{1})
 			require.NoError(t, err)
 			require.NoError(t, trie.Set([]byte("3"), []byte{1}))
@@ -52,7 +54,7 @@ func TestTrieBackendEssence(t *testing.T) {
 			require.Equal(t, root1, root)
 		}
 		{
-			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](mdb, trie.LayoutV1)
+			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](mdb, layoutV1)
 			bleh := childInfo.PrefixedStorageKey()
 			require.NoError(t, trie.Set(slices.Clone(bleh), root1.Bytes()))
 			root2 = trie.MustHash()

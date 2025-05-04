@@ -1486,6 +1486,7 @@ func TestBackend(t *testing.T) {
 		require.Equal(t, []hash.H256{bestHash}, children)
 	})
 
+	var layoutV1 = trie.LayoutV1[runtime.BlakeTwo256, hash.H256]{}
 	t.Run("import_existing_block_as_new_head", func(t *testing.T) {
 		backend := newTestBackend(t, BlocksPruningSome(10), 3)
 
@@ -1500,7 +1501,7 @@ func TestBackend(t *testing.T) {
 		// Insert 1 as best again. This should fail because canonicalization_delay == 3
 		// and best == 5
 		trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
-			trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](), trie.LayoutV1,
+			trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](), layoutV1,
 		)
 		header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 			1,
@@ -1623,7 +1624,7 @@ func TestBackend(t *testing.T) {
 			err := backend.BeginStateOperation(op, block1)
 			require.NoError(t, err)
 			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
-				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](), trie.LayoutV1,
+				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](), layoutV1,
 			)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				3,
@@ -1648,7 +1649,7 @@ func TestBackend(t *testing.T) {
 			err := backend.BeginStateOperation(op, block2)
 			require.NoError(t, err)
 			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
-				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](), trie.LayoutV1,
+				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](), layoutV1,
 			)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				4,
@@ -1673,7 +1674,7 @@ func TestBackend(t *testing.T) {
 			err := backend.BeginStateOperation(op, block2)
 			require.NoError(t, err)
 			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
-				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](), trie.LayoutV1,
+				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](), layoutV1,
 			)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				3,

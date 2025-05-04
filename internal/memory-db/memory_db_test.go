@@ -8,7 +8,7 @@ import (
 
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
-	"github.com/ChainSafe/gossamer/internal/primitives/core/hashing"
+	"github.com/ChainSafe/gossamer/internal/primitives/crypto/hashing"
 	"github.com/stretchr/testify/assert"
 )
 

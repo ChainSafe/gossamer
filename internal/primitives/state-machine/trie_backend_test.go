@@ -34,12 +34,12 @@ func testDB(
 	childInfo := storage.NewDefaultChildInfo(ChildKey1)
 	mdb := trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256]()
 	var root hash.H256
-	var layout trie.Layout
+	var layout trie.Layout[hash.H256]
 	switch stateVersion {
 	case storage.StateVersionV1:
-		layout = trie.LayoutV1
+		layout = trie.LayoutV1[runtime.BlakeTwo256, hash.H256]{}
 	case storage.StateVersionV0:
-		layout = trie.LayoutV0
+		layout = trie.LayoutV0[runtime.BlakeTwo256, hash.H256]{}
 	}
 
 	{
@@ -327,12 +327,12 @@ func TestTrieBackend(t *testing.T) {
 				cache = &local
 			}
 			testDB, testRoot := testDB(t, param.StateVersion)
-			var layout trie.Layout
+			var layout trie.Layout[hash.H256]
 			switch param.StateVersion {
 			case storage.StateVersionV1:
-				layout = trie.LayoutV1
+				layout = trie.LayoutV1[runtime.BlakeTwo256, hash.H256]{}
 			case storage.StateVersionV0:
-				layout = trie.LayoutV0
+				layout = trie.LayoutV0[runtime.BlakeTwo256, hash.H256]{}
 			}
 			iter, err := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](testRoot, testDB, layout).Iterator()
 			require.NoError(t, err)
