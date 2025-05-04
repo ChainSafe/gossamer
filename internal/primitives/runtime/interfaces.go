@@ -5,7 +5,11 @@ package runtime
 
 import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
-	"github.com/ChainSafe/gossamer/internal/primitives/core/hashing"
+	"github.com/ChainSafe/gossamer/internal/primitives/crypto/hashing"
+	"github.com/ChainSafe/gossamer/internal/primitives/io/trie"
+
+	"github.com/ChainSafe/gossamer/internal/primitives/kv"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
 )
@@ -26,6 +30,8 @@ type Hash interface {
 	Length() int
 }
 
+type KeyValue = kv.KeyValue
+
 // Hasher is an interface around hashing
 type Hasher[H Hash] interface {
 	// Produce the hash of some byte-slice.
@@ -36,6 +42,9 @@ type Hasher[H Hash] interface {
 
 	// Construct new hash from source data
 	NewHash(data []byte) H
+
+	/// The Patricia tree root of the given mapping.
+	TrieRoot(input []KeyValue, stateVersion storage.StateVersion) H
 }
 
 // Blake2-256 Hash implementation.
@@ -55,6 +64,11 @@ func (bt256 BlakeTwo256) HashEncoded(s any) hash.H256 {
 
 func (bt256 BlakeTwo256) NewHash(data []byte) hash.H256 {
 	return hash.H256(data)
+}
+
+func (bt256 BlakeTwo256) TrieRoot(input []KeyValue, stateVersion storage.StateVersion) hash.H256 {
+	return trie.BlakeTwo256Root(input, stateVersion)
+	panic("unimpl")
 }
 
 var _ Hasher[hash.H256] = BlakeTwo256{}

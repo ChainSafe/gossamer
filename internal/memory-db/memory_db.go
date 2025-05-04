@@ -15,11 +15,7 @@ type dataRC struct {
 	RC   int32
 }
 
-type Hash interface {
-	constraints.Ordered
-	Bytes() []byte
-}
-
+type Hash = hashdb.Hash
 type Value interface {
 	~[]byte
 }

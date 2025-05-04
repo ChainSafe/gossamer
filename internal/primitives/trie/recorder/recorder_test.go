@@ -43,6 +43,11 @@ var testData []trie.KeyValue = []trie.KeyValue{
 	},
 }
 
+var (
+	layoutV0 = trie.LayoutV0[runtime.BlakeTwo256, hash.H256]{}
+	layoutV1 = trie.LayoutV1[runtime.BlakeTwo256, hash.H256]{}
+)
+
 type MemoryDB = memorydb.MemoryDB[
 	hash.H256, runtime.BlakeTwo256, hash.H256, memorydb.HashKey[hash.H256],
 ]
@@ -57,7 +62,7 @@ func newMemoryDB() *MemoryDB {
 func createTrie(t *testing.T) (db *MemoryDB, root hash.H256) {
 	t.Helper()
 	db = newMemoryDB()
-	trieDB := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db, trie.LayoutV1)
+	trieDB := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db, layoutV1)
 
 	for _, td := range testData {
 		err := trieDB.Set(td.Key, td.Value)
@@ -75,7 +80,7 @@ func TestRecorder(t *testing.T) {
 
 	{
 		trieRecorder := rec.TrieRecorder(root)
-		trieDB := triedb.NewTrieDB(root, db, trie.LayoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
+		trieDB := triedb.NewTrieDB(root, db, layoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
 		val, err := trieDB.Get(testData[0].Key)
 		require.NoError(t, err)
 		require.Equal(t, testData[0].Value, val)
@@ -85,7 +90,7 @@ func TestRecorder(t *testing.T) {
 	memDB := trie.NewMemoryDBFromStorageProof[hash.H256, runtime.BlakeTwo256](storageProof)
 
 	// Check that we recorded the required data
-	trieDB := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](root, memDB, trie.LayoutV1)
+	trieDB := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](root, memDB, layoutV1)
 	val, err := trieDB.Get(testData[0].Key)
 	require.NoError(t, err)
 	require.Equal(t, testData[0].Value, val)
@@ -123,7 +128,7 @@ func TestRecorder_TransactionsRollback(t *testing.T) {
 		rec.StartTransaction()
 		{
 			trieRecorder := rec.TrieRecorder(root)
-			trieDB := triedb.NewTrieDB(root, db, trie.LayoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
+			trieDB := triedb.NewTrieDB(root, db, layoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
 			val, err := trieDB.Get(testData[i].Key)
 			require.NoError(t, err)
 			require.Equal(t, testData[i].Value, val)
@@ -139,7 +144,7 @@ func TestRecorder_TransactionsRollback(t *testing.T) {
 		storageProof := rec.StorageProof()
 		memDB := trie.NewMemoryDBFromStorageProof[hash.H256, runtime.BlakeTwo256](storageProof)
 
-		trieDB := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](root, memDB, trie.LayoutV1)
+		trieDB := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](root, memDB, layoutV1)
 
 		// Check that the required data is still present.
 		for a := 0; a < 4; a++ {
@@ -171,7 +176,7 @@ func TestRecorder_TransactionsCommit(t *testing.T) {
 		rec.StartTransaction()
 		{
 			trieRecorder := rec.TrieRecorder(root)
-			trieDB := triedb.NewTrieDB(root, db, trie.LayoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
+			trieDB := triedb.NewTrieDB(root, db, layoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
 			val, err := trieDB.Get(testData[i].Key)
 			assert.NoError(t, err)
 			assert.Equal(t, testData[i].Value, val)
@@ -192,7 +197,7 @@ func TestRecorder_TransactionsCommit(t *testing.T) {
 	memDB := trie.NewMemoryDBFromStorageProof[hash.H256, runtime.BlakeTwo256](storageProof)
 
 	// Check that we recorded the required data
-	trieDB := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](root, memDB, trie.LayoutV1)
+	trieDB := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](root, memDB, layoutV1)
 
 	// Check that the required data is still present.
 	for i := 0; i < 4; i++ {
@@ -210,7 +215,7 @@ func TestRecorder_TransactionsCommitAndRollback(t *testing.T) {
 		rec.StartTransaction()
 		{
 			trieRecorder := rec.TrieRecorder(root)
-			trieDB := triedb.NewTrieDB(root, db, trie.LayoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
+			trieDB := triedb.NewTrieDB(root, db, layoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
 			val, err := trieDB.Get(testData[i].Key)
 			assert.NoError(t, err)
 			assert.Equal(t, testData[i].Value, val)
@@ -224,7 +229,7 @@ func TestRecorder_TransactionsCommitAndRollback(t *testing.T) {
 		rec.StartTransaction()
 		{
 			trieRecorder := rec.TrieRecorder(root)
-			trieDB := triedb.NewTrieDB(root, db, trie.LayoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
+			trieDB := triedb.NewTrieDB(root, db, layoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
 			val, err := trieDB.Get(testData[i].Key)
 			assert.NoError(t, err)
 			assert.Equal(t, testData[i].Value, val)
@@ -247,7 +252,7 @@ func TestRecorder_TransactionsCommitAndRollback(t *testing.T) {
 	memDB := trie.NewMemoryDBFromStorageProof[hash.H256, runtime.BlakeTwo256](storageProof)
 
 	// Check that we recorded the required data
-	trieDB := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](root, memDB, trie.LayoutV1)
+	trieDB := triedb.NewTrieDB[hash.H256, runtime.BlakeTwo256](root, memDB, layoutV1)
 
 	// Check that the required data is still present.
 	for i := 0; i < 4; i++ {
@@ -276,7 +281,7 @@ func TestRecorder_TransactionAccessedKeys(t *testing.T) {
 	rec.StartTransaction()
 	{
 		trieRecorder := rec.TrieRecorder(root)
-		trieDB := triedb.NewTrieDB(root, db, trie.LayoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
+		trieDB := triedb.NewTrieDB(root, db, layoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
 
 		hash, err := trieDB.GetHash(key)
 		require.NoError(t, err)
@@ -289,7 +294,7 @@ func TestRecorder_TransactionAccessedKeys(t *testing.T) {
 	rec.StartTransaction()
 	{
 		trieRecorder := rec.TrieRecorder(root)
-		trieDB := triedb.NewTrieDB(root, db, trie.LayoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
+		trieDB := triedb.NewTrieDB(root, db, layoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
 
 		val, err := triedb.GetWith(trieDB, testData[0].Key, func(data []byte) []byte { return data })
 		require.NoError(t, err)
@@ -316,7 +321,7 @@ func TestRecorder_TransactionAccessedKeys(t *testing.T) {
 	rec.StartTransaction()
 	{
 		trieRecorder := rec.TrieRecorder(root)
-		trieDB := triedb.NewTrieDB(root, db, trie.LayoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
+		trieDB := triedb.NewTrieDB(root, db, layoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
 
 		val, err := triedb.GetWith(trieDB, testData[0].Key, func(data []byte) []byte { return data })
 		require.NoError(t, err)
@@ -329,7 +334,7 @@ func TestRecorder_TransactionAccessedKeys(t *testing.T) {
 	rec.StartTransaction()
 	{
 		trieRecorder := rec.TrieRecorder(root)
-		trieDB := triedb.NewTrieDB(root, db, trie.LayoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
+		trieDB := triedb.NewTrieDB(root, db, layoutV1, triedb.WithRecorder[hash.H256, runtime.BlakeTwo256](trieRecorder))
 
 		hash, err := trieDB.GetHash(testData[0].Key)
 		require.NoError(t, err)

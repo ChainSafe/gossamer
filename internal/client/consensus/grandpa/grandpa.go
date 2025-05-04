@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/keystore"
 	"github.com/ChainSafe/gossamer/internal/client/network"
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
@@ -18,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	papi "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"

@@ -13,8 +13,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/client/api/utils"
-	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -649,7 +649,7 @@ type environment[
 	VoterSetState *SharedVoterSetState[H, N]
 	VotingRule    VotingRule[H, N, Header]
 	// TODO: metrics
-	JustificationSender *GrandpaJustificationSender[H, N, Header]
+	JustificationSender *GrandpaJustificationSender[H, N, Header] // meant to be optional
 	// TODO: telemetry
 }
 
