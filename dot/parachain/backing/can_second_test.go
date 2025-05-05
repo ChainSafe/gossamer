@@ -4,6 +4,7 @@
 package backing
 
 import (
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"testing"
 
 	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
@@ -125,15 +126,29 @@ func TestHandleCanSecondMessage(t *testing.T) {
 }
 
 // implicitViewForCanSecondMsg returns a mock ImplicitView for the CanSecondMessage test
-func implicitViewForCanSecondMsg(t *testing.T) *MockImplicitView {
+func implicitViewForCanSecondMsg(t *testing.T) *util.BackingImplicitView {
 	t.Helper()
 
-	ctrl := gomock.NewController(t)
-	mockImplicitView := NewMockImplicitView(ctrl)
-	mockImplicitView.EXPECT().Leaves().Return([]common.Hash{{0x01}})
-	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-		gomock.AssignableToTypeOf(common.Hash{}), gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
-	).Return([]common.Hash{{0x01}})
+	overseerCh := make(chan any)
+	go func() {
+		getMin := (<-overseerCh).(prospectiveparachains.GetMinimumRelayParents)
+		getMin.Sender <- []prospectiveparachains.ParaIDBlockNumber{{
+			ParaId:      3,
+			BlockNumber: 1,
+		}}
+		close(overseerCh)
+	}()
 
-	return mockImplicitView
+	ctrl := gomock.NewController(t)
+	bs := NewMockBlockState(ctrl)
+	view := util.NewBackingImplicitView(bs, nil)
+
+	chain := []common.Hash{{1}}
+	bs.EXPECT().GetHeader(chain[0]).Return(util.GetBlockHeader(t, chain, chain[0]), nil)
+
+	err := view.ActivateLeaf(common.Hash{1}, overseerCh)
+	require.NoError(t, err)
+	require.Len(t, view.Leaves(), 1)
+
+	return view
 }

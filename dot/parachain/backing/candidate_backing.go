@@ -27,7 +27,10 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -59,7 +62,7 @@ type CandidateBacking struct {
 	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
 	// The utility for managing the implicit and explicit views in a consistent way.
 	// We only feed leaves which have prospective parachains enabled to this view.
-	ImplicitView ImplicitView
+	ImplicitView *util.BackingImplicitView
 	// The handle to the Keystore used for signing.
 	Keystore   keystore.Keystore
 	BlockState BlockState
@@ -70,6 +73,7 @@ type CandidateBacking struct {
 
 type BlockState interface {
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+	GetHeader(hash common.Hash) (*types.Header, error)
 }
 
 // perCandidateState represents the state information for a candidate in the subsystem.
@@ -154,11 +158,14 @@ type StatementMessage struct {
 }
 
 // New creates a new CandidateBacking instance and initialises it with the provided overseer channel.
-func New(overseerChan chan<- any) *CandidateBacking {
+func New(overseerChan chan<- any, ks keystore.Keystore, blockState BlockState) *CandidateBacking {
 	return &CandidateBacking{
 		SubSystemToOverseer: overseerChan,
 		perRelayParent:      map[common.Hash]*perRelayParentState{},
 		perCandidate:        map[parachaintypes.CandidateHash]*perCandidateState{},
+		ImplicitView:        util.NewBackingImplicitView(blockState, nil),
+		Keystore:            ks,
+		BlockState:          blockState,
 		perSessionCache:     newPerSessionCache(2),
 	}
 }

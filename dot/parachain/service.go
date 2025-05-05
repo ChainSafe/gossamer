@@ -87,6 +87,9 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	cpvs.Keystore = ks
 	overseer.RegisterSubsystem(cpvs)
 
+	candidateBacking := backing.New(overseer.GetSubsystemToOverseerChannel(), ks, st.Block)
+	overseer.RegisterSubsystem(candidateBacking)
+
 	// register candidate validation subsystem
 	candidateValidationSubsystem := candidatevalidation.NewCandidateValidation(overseer.SubsystemsToOverseer, st.Block)
 
@@ -138,13 +141,7 @@ func (Service) Stop() error {
 }
 
 // main loop of parachain service
-func (s Service) run(blockState *state.BlockState) {
-	overseer := s.overseer
-
-	candidateBacking := backing.New(overseer.GetSubsystemToOverseerChannel())
-	candidateBacking.BlockState = blockState
-	overseer.RegisterSubsystem(candidateBacking)
-
+func (s Service) run(_ *state.BlockState) {
 	// TODO: Add `Prospective Parachains` Subsystem. create an issue.
 
 	// NOTE: this is a temporary test, just to show that we can send messages to peers

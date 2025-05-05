@@ -5,6 +5,7 @@ package backing_test
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"testing"
 	"time"
 
@@ -24,7 +25,7 @@ import (
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
-	gomock "go.uber.org/mock/gomock"
+	"go.uber.org/mock/gomock"
 )
 
 // Ensure overseer stops before test completion
@@ -39,15 +40,16 @@ func initBackingAndOverseerMock(t *testing.T) (*backing.CandidateBacking, *overs
 
 	overseerMock := overseer.NewMockableOverseer(t, true)
 
-	backing := backing.New(overseerMock.SubsystemsToOverseer)
-	overseerMock.RegisterSubsystem(backing)
-	backing.SubSystemToOverseer = overseerMock.GetSubsystemToOverseerChannel()
+	ctrl := gomock.NewController(t)
+	bs := backing.NewMockBlockState(ctrl)
+	ks := keystore.NewBasicKeystore("test", crypto.Sr25519Type)
 
-	backing.Keystore = keystore.NewBasicKeystore("test", crypto.Sr25519Type)
+	candidateBacking := backing.New(overseerMock.SubsystemsToOverseer, ks, bs)
+	overseerMock.RegisterSubsystem(candidateBacking)
+	err := overseerMock.Start()
+	require.NoError(t, err)
 
-	overseerMock.Start()
-
-	return backing, overseerMock
+	return candidateBacking, overseerMock
 }
 
 func getDummyHash(t *testing.T, num byte) common.Hash {
@@ -162,7 +164,9 @@ func parachainValidators(t *testing.T, ks keystore.Keystore) []parachaintypes.Va
 	for _, kp := range keyPairs {
 		var validatorID parachaintypes.ValidatorID
 
-		ks.Insert(kp)
+		err := ks.Insert(kp)
+		require.NoError(t, err)
+
 		bytes := kp.Public().Encode()
 		copy(validatorID[:], bytes)
 		validatorIds = append(validatorIds, validatorID)
@@ -287,10 +291,23 @@ func informToStatementDistribution(msg any) bool {
 	return ok
 }
 
+func getMinimumRelayParents(msg any) bool {
+	getMin, ok := msg.(prospectiveparachains.GetMinimumRelayParents)
+	if !ok {
+		return false
+	}
+
+	getMin.Sender <- []prospectiveparachains.ParaIDBlockNumber{{
+		ParaId:      1,
+		BlockNumber: 1,
+	}}
+	return true
+}
+
 // we can second a valid candidate when the previous candidate has been found invalid
 func TestSecondsValidCandidate(t *testing.T) {
-	candidateBacking, overseer := initBackingAndOverseerMock(t)
-	defer stopOverseerAndWaitForCompletion(overseer)
+	candidateBacking, mockableOverseer := initBackingAndOverseerMock(t)
+	defer stopOverseerAndWaitForCompletion(mockableOverseer)
 
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
@@ -303,14 +320,15 @@ func TestSecondsValidCandidate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
 	mockRuntime := backing.NewMockInstance(ctrl)
-	mockImplicitView := backing.NewMockImplicitView(ctrl)
 
 	candidateBacking.BlockState = mockBlockState
-	candidateBacking.ImplicitView = mockImplicitView
+	candidateBacking.ImplicitView = util.NewBackingImplicitView(mockBlockState, nil)
 
 	// mock BlockState methods
 	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(mockRuntime, nil).Times(3)
+	chain := []common.Hash{relayParent}
+	mockBlockState.EXPECT().GetHeader(chain[0]).Return(util.GetBlockHeader(t, chain, chain[0]), nil)
 
 	// mock Runtime Instance methods
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
@@ -330,16 +348,6 @@ func TestSecondsValidCandidate(t *testing.T) {
 		Return(claimQ, nil)
 	mockRuntime.EXPECT().ParachainHostDisabledValidators().
 		Return([]parachaintypes.ValidatorIndex{}, nil)
-
-	//mock ImplicitView
-	mockImplicitView.EXPECT().Leaves().Return([]common.Hash{relayParent})
-	mockImplicitView.EXPECT().ActivateLeaf(relayParent, gomock.Any()).Return(nil)
-	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-		gomock.AssignableToTypeOf(common.Hash{}),
-		gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
-	).Return([]common.Hash{relayParent}).Times(2)
-	mockImplicitView.EXPECT().AllAllowedRelayParents().
-		Return([]common.Hash{})
 
 	pov1 := parachaintypes.PoV{BlockData: []byte{42, 43, 44}}
 	pvd1 := dummyPVD(t)
@@ -362,8 +370,10 @@ func TestSecondsValidCandidate(t *testing.T) {
 		validationCode1,
 	)
 
+	mockableOverseer.ExpectActions(getMinimumRelayParents)
+
 	// to make entry in perRelayParent map
-	overseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
+	mockableOverseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{Hash: relayParent, Number: 1},
 	})
 
@@ -392,10 +402,10 @@ func TestSecondsValidCandidate(t *testing.T) {
 	}
 
 	// set expected actions for overseer messages we send from the subsystem.
-	overseer.ExpectActions(validate, reportInvalid)
+	mockableOverseer.ExpectActions(validate, reportInvalid)
 
 	// receive second message from overseer to candidate backing subsystem
-	overseer.ReceiveMessage(
+	mockableOverseer.ReceiveMessage(
 		backing.SecondMessage{
 			RelayParent:             relayParent,
 			CandidateReceipt:        candidate1.ToPlain(),
@@ -478,11 +488,11 @@ func TestSecondsValidCandidate(t *testing.T) {
 	}
 
 	// set expected actions for overseer messages we send from the subsystem.
-	overseer.ExpectActions(validate2, storeAvailableData, getHypotheticalMembership,
+	mockableOverseer.ExpectActions(validate2, storeAvailableData, getHypotheticalMembership,
 		introduceCandidate, distribute, informSeconded)
 
 	// receive second message from overseer to candidate backing subsystem
-	overseer.ReceiveMessage(
+	mockableOverseer.ReceiveMessage(
 		backing.SecondMessage{
 			RelayParent:             relayParent,
 			CandidateReceipt:        candidate2.ToPlain(),
@@ -496,8 +506,8 @@ func TestSecondsValidCandidate(t *testing.T) {
 // candidate reaches quorum.
 // in legacy backing, we need 2 approvals to reach quorum.
 func TestCandidateReachesQuorum(t *testing.T) {
-	candidateBacking, overseer := initBackingAndOverseerMock(t)
-	defer stopOverseerAndWaitForCompletion(overseer)
+	candidateBacking, mockableOverseer := initBackingAndOverseerMock(t)
+	defer stopOverseerAndWaitForCompletion(mockableOverseer)
 
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
@@ -519,14 +529,15 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
 	mockRuntime := backing.NewMockInstance(ctrl)
-	mockImplicitView := backing.NewMockImplicitView(ctrl)
 
 	candidateBacking.BlockState = mockBlockState
-	candidateBacking.ImplicitView = mockImplicitView
+	candidateBacking.ImplicitView = util.NewBackingImplicitView(mockBlockState, nil)
 
 	// mock BlockState methods
 	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(mockRuntime, nil).Times(2)
+	chain := []common.Hash{relayParent}
+	mockBlockState.EXPECT().GetHeader(chain[0]).Return(util.GetBlockHeader(t, chain, chain[0]), nil)
 
 	// mock Runtime Instance methods
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
@@ -549,17 +560,10 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	mockRuntime.EXPECT().ParachainHostDisabledValidators().
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
-	//mock ImplicitView
-	mockImplicitView.EXPECT().ActivateLeaf(relayParent, gomock.Any()).Return(nil)
-	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-		gomock.AssignableToTypeOf(common.Hash{}),
-		nil,
-	).Return([]common.Hash{})
-	mockImplicitView.EXPECT().AllAllowedRelayParents().
-		Return([]common.Hash{})
+	mockableOverseer.ExpectActions(getMinimumRelayParents)
 
 	// to make entry in perRelayParent map
-	overseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
+	mockableOverseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{Hash: relayParent, Number: 1},
 	})
 
@@ -617,7 +621,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	}
 
 	// set expected actions for overseer messages we send from the subsystem.
-	overseer.ExpectActions(
+	mockableOverseer.ExpectActions(
 		introduceCandidate,
 		fetchPov,
 		validate,
@@ -628,7 +632,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	)
 
 	// receive statement message from overseer to candidate backing subsystem containing seconded statement
-	overseer.ReceiveMessage(backing.StatementMessage{
+	mockableOverseer.ReceiveMessage(backing.StatementMessage{
 		RelayParent:         relayParent,
 		SignedFullStatement: signedStatementWithPVD,
 	})
@@ -648,7 +652,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	}
 
 	// receive get backable candidates message from overseer to candidate backing subsystem
-	overseer.ReceiveMessage(getBackable)
+	mockableOverseer.ReceiveMessage(getBackable)
 	backableCandidates := <-getBackable.ResCh
 
 	// we need minimum 2 approvals to consider candidate as backable(in legacy backing).
@@ -679,7 +683,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	}
 
 	// receive statement message from overseer to candidate backing subsystem containing valid statement
-	overseer.ReceiveMessage(backing.StatementMessage{
+	mockableOverseer.ReceiveMessage(backing.StatementMessage{
 		RelayParent:         relayParent,
 		SignedFullStatement: signedStatementValid,
 	})
@@ -698,7 +702,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 		ResCh: make(chan map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate),
 	}
 
-	overseer.ReceiveMessage(getBackable)
+	mockableOverseer.ReceiveMessage(getBackable)
 	backableCandidates = <-getBackable.ResCh
 
 	// we already have 2 approvals,
@@ -713,8 +717,8 @@ func TestCandidateReachesQuorum(t *testing.T) {
 // if the validation of the candidate has failed this does not stop the work of this subsystem
 // and so it is not fatal to the node.
 func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
-	candidateBacking, overseer := initBackingAndOverseerMock(t)
-	defer stopOverseerAndWaitForCompletion(overseer)
+	candidateBacking, mockableOverseer := initBackingAndOverseerMock(t)
+	defer stopOverseerAndWaitForCompletion(mockableOverseer)
 
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
@@ -736,14 +740,15 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
 	mockRuntime := backing.NewMockInstance(ctrl)
-	mockImplicitView := backing.NewMockImplicitView(ctrl)
 
 	candidateBacking.BlockState = mockBlockState
-	candidateBacking.ImplicitView = mockImplicitView
+	candidateBacking.ImplicitView = util.NewBackingImplicitView(mockBlockState, nil)
 
 	// mock BlockState methods
 	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(mockRuntime, nil).Times(2)
+	chain := []common.Hash{relayParent}
+	mockBlockState.EXPECT().GetHeader(chain[0]).Return(util.GetBlockHeader(t, chain, chain[0]), nil)
 
 	// mock Runtime Instance methods
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
@@ -766,17 +771,10 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 	mockRuntime.EXPECT().ParachainHostDisabledValidators().
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
-	//mock ImplicitView
-	mockImplicitView.EXPECT().ActivateLeaf(relayParent, gomock.Any()).Return(nil)
-	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-		gomock.AssignableToTypeOf(common.Hash{}),
-		nil,
-	).Return([]common.Hash{})
-	mockImplicitView.EXPECT().AllAllowedRelayParents().
-		Return([]common.Hash{})
+	mockableOverseer.ExpectActions(getMinimumRelayParents)
 
 	// to make entry in perRelayParent map
-	overseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
+	mockableOverseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{Hash: relayParent, Number: 1},
 	})
 
@@ -835,10 +833,10 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 		return true
 	}
 
-	overseer.ExpectActions(introduceCandidate, fetchPov, validate)
+	mockableOverseer.ExpectActions(introduceCandidate, fetchPov, validate)
 
 	// receive statement message from overseer to candidate backing subsystem containing seconded statement
-	overseer.ReceiveMessage(backing.StatementMessage{
+	mockableOverseer.ReceiveMessage(backing.StatementMessage{
 		RelayParent:         relayParent,
 		SignedFullStatement: statementWithPVD,
 	})
@@ -862,7 +860,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 
 	// to make sure the candidate backing subsystem has not stopped working,
 	// we receive get backable candidates message from overseer to candidate backing subsystem
-	overseer.ReceiveMessage(getBackable)
+	mockableOverseer.ReceiveMessage(getBackable)
 	backableCandidates := <-getBackable.ResCh
 
 	require.Len(t, backableCandidates, 0)
@@ -875,8 +873,8 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 	t.Skip("This test is not valid anymore as we want to remove all the code for prospective parachain mode disabled")
 
-	candidateBacking, overseer := initBackingAndOverseerMock(t)
-	defer stopOverseerAndWaitForCompletion(overseer)
+	candidateBacking, mockableOverseer := initBackingAndOverseerMock(t)
+	defer stopOverseerAndWaitForCompletion(mockableOverseer)
 
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
@@ -889,14 +887,15 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
 	mockRuntime := backing.NewMockInstance(ctrl)
-	mockImplicitView := backing.NewMockImplicitView(ctrl)
 
 	candidateBacking.BlockState = mockBlockState
-	candidateBacking.ImplicitView = mockImplicitView
+	candidateBacking.ImplicitView = util.NewBackingImplicitView(mockBlockState, nil)
 
 	// mock BlockState methods
 	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(mockRuntime, nil).Times(4)
+	chain := []common.Hash{relayParent}
+	mockBlockState.EXPECT().GetHeader(chain[0]).Return(util.GetBlockHeader(t, chain, chain[0]), nil)
 
 	// mock Runtime Instance methods
 	mockRuntime.EXPECT().ParachainHostAsyncBackingParams().
@@ -919,17 +918,10 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 	mockRuntime.EXPECT().ParachainHostDisabledValidators().
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
-	//mock ImplicitView
-	mockImplicitView.EXPECT().ActivateLeaf(relayParent, gomock.Any()).Return(nil)
-	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-		gomock.AssignableToTypeOf(common.Hash{}),
-		nil,
-	).Return([]common.Hash{})
-	mockImplicitView.EXPECT().AllAllowedRelayParents().
-		Return([]common.Hash{})
+	mockableOverseer.ExpectActions(getMinimumRelayParents)
 
 	// to make entry in perRelayParent map
-	overseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
+	mockableOverseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{Hash: relayParent, Number: 1},
 	})
 
@@ -982,13 +974,13 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 		return ok
 	}
 
-	overseer.ExpectActions(validate, storeAvailableData, introduceCandidate, distribute, informSeconded)
+	mockableOverseer.ExpectActions(validate, storeAvailableData, introduceCandidate, distribute, informSeconded)
 
 	// mocked for candidate1
 	mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(&validationCode1, nil)
 
-	overseer.ReceiveMessage(backing.SecondMessage{
+	mockableOverseer.ReceiveMessage(backing.SecondMessage{
 		RelayParent:             relayParent,
 		CandidateReceipt:        candidate1.ToPlain(),
 		PersistedValidationData: pvd,
@@ -1011,14 +1003,14 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 
 	// Validate the candidate, but the candidate is rejected because the leaf is already occupied.
 	// should not expect `StatementDistributionMessageShare` and `collator protocol messages.Seconded` overseer messages.
-	overseer.ExpectActions(validate, storeAvailableData)
+	mockableOverseer.ExpectActions(validate, storeAvailableData)
 
 	// mocked for candidate2
 	mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(&validationCode2, nil)
 
 	// Try to second candidate with the same relay parent again.
-	overseer.ReceiveMessage(backing.SecondMessage{
+	mockableOverseer.ReceiveMessage(backing.SecondMessage{
 		RelayParent:             relayParent,
 		CandidateReceipt:        candidate2.ToPlain(),
 		PersistedValidationData: pvd,
@@ -1030,8 +1022,8 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 
 // The new leaf view doesn't clobber the old view when we update active leaves.
 func TestNewLeafDoesNotClobberOld(t *testing.T) {
-	candidateBacking, overseer := initBackingAndOverseerMock(t)
-	defer stopOverseerAndWaitForCompletion(overseer)
+	candidateBacking, mockableOverseer := initBackingAndOverseerMock(t)
+	defer stopOverseerAndWaitForCompletion(mockableOverseer)
 
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
@@ -1046,14 +1038,16 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
 	mockRuntime := backing.NewMockInstance(ctrl)
-	mockImplicitView := backing.NewMockImplicitView(ctrl)
 
 	candidateBacking.BlockState = mockBlockState
-	candidateBacking.ImplicitView = mockImplicitView
+	candidateBacking.ImplicitView = util.NewBackingImplicitView(mockBlockState, nil)
 
 	// mock BlockState methods
 	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(mockRuntime, nil).Times(3)
+	chain := []common.Hash{relayParent1, relayParent2}
+	mockBlockState.EXPECT().GetHeader(chain[0]).Return(util.GetBlockHeader(t, chain, chain[0]), nil)
+	mockBlockState.EXPECT().GetHeader(chain[1]).Return(util.GetBlockHeader(t, chain, chain[1]), nil)
 
 	// mock Runtime Instance methods
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
@@ -1076,32 +1070,19 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 	mockRuntime.EXPECT().ParachainHostDisabledValidators().
 		Return([]parachaintypes.ValidatorIndex{}, nil).Times(2)
 
-	//mock ImplicitView
-	mockImplicitView.EXPECT().Leaves().Return([]common.Hash{relayParent1})
-	mockImplicitView.EXPECT().ActivateLeaf(gomock.AssignableToTypeOf(common.Hash{}), gomock.Any()).Return(nil).Times(2)
-	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-		relayParent1,
-		gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
-	).Return([]common.Hash{relayParent1}).Times(2)
-	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-		gomock.AssignableToTypeOf(common.Hash{}),
-		gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
-	).Return([]common.Hash{relayParent2})
-	mockImplicitView.EXPECT().AllAllowedRelayParents().
-		Return([]common.Hash{})
+	mockableOverseer.ExpectActions(getMinimumRelayParents)
 
 	// add relay parent 1 to active leaves
-	overseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
+	mockableOverseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{Hash: relayParent1, Number: 1},
 	})
 	time.Sleep(500 * time.Millisecond)
 
-	mockImplicitView.EXPECT().AllAllowedRelayParents().
-		Return([]common.Hash{relayParent1})
+	mockableOverseer.ExpectActions(getMinimumRelayParents)
 
 	// add relay parent 2 to active leaves that does not clobber relay parent 1
 	// and still allows seconding of candidates for relay parent 1
-	overseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
+	mockableOverseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{Hash: relayParent2, Number: 1},
 	})
 	time.Sleep(500 * time.Millisecond)
@@ -1176,10 +1157,10 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 	//
 	// But, when the old leaf view is not clobbered, the candidate will be seconded.
 	// so, oversee expects all four overseer messages.
-	overseer.ExpectActions(validate, storeAvailableData, getHypotheticalMembership,
+	mockableOverseer.ExpectActions(validate, storeAvailableData, getHypotheticalMembership, getHypotheticalMembership,
 		introduceCandidate, distribute, informSeconded)
 
-	overseer.ReceiveMessage(backing.SecondMessage{
+	mockableOverseer.ReceiveMessage(backing.SecondMessage{
 		RelayParent:             relayParent1,
 		CandidateReceipt:        candidate.ToPlain(),
 		PersistedValidationData: pvd,
@@ -1191,8 +1172,8 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 
 // Issuing conflicting statements on the same candidate should be a misbehaviour.
 func TestConflictingStatementIsMisbehavior(t *testing.T) {
-	candidateBacking, overseer := initBackingAndOverseerMock(t)
-	defer stopOverseerAndWaitForCompletion(overseer)
+	candidateBacking, mockableOverseer := initBackingAndOverseerMock(t)
+	defer stopOverseerAndWaitForCompletion(mockableOverseer)
 
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
@@ -1214,14 +1195,15 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
 	mockRuntime := backing.NewMockInstance(ctrl)
-	mockImplicitView := backing.NewMockImplicitView(ctrl)
 
 	candidateBacking.BlockState = mockBlockState
-	candidateBacking.ImplicitView = mockImplicitView
+	candidateBacking.ImplicitView = util.NewBackingImplicitView(mockBlockState, nil)
 
 	// mock BlockState methods
 	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(mockRuntime, nil).Times(2)
+	chain := []common.Hash{relayParent}
+	mockBlockState.EXPECT().GetHeader(chain[0]).Return(util.GetBlockHeader(t, chain, chain[0]), nil)
 
 	// mock Runtime Instance methods
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
@@ -1244,17 +1226,10 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 	mockRuntime.EXPECT().ParachainHostDisabledValidators().
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
-	//mock ImplicitView
-	mockImplicitView.EXPECT().ActivateLeaf(gomock.AssignableToTypeOf(common.Hash{}), gomock.Any()).Return(nil)
-	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-		gomock.AssignableToTypeOf(common.Hash{}),
-		nil,
-	).Return([]common.Hash{})
-	mockImplicitView.EXPECT().AllAllowedRelayParents().
-		Return([]common.Hash{})
+	mockableOverseer.ExpectActions(getMinimumRelayParents)
 
 	// to make entry in perRelayParent map
-	overseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
+	mockableOverseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{Hash: relayParent, Number: 1},
 	})
 	time.Sleep(500 * time.Millisecond)
@@ -1308,11 +1283,11 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 	}
 
 	// set expected actions for overseer messages we send from the subsystem.
-	overseer.ExpectActions(introduceCandidate, fetchPov, validate, storeAvailableData, distribute,
+	mockableOverseer.ExpectActions(introduceCandidate, fetchPov, validate, storeAvailableData, distribute,
 		informToProspectiveParachains, informToStatementDistribution)
 
 	// receive statement message from overseer to candidate backing subsystem containing `Seconded` statement
-	overseer.ReceiveMessage(backing.StatementMessage{
+	mockableOverseer.ReceiveMessage(backing.StatementMessage{
 		RelayParent:         relayParent,
 		SignedFullStatement: signedStatementSeconded,
 	})
@@ -1374,11 +1349,11 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 		return true
 	}
 
-	overseer.ExpectActions(reportMisbehavior)
+	mockableOverseer.ExpectActions(reportMisbehavior)
 
 	// receive statement message from overseer to candidate backing subsystem containing `Valid` statement.
 	// this candidate is already seconded by the same validator So, it is a misbehaviour for conflicting statements.
-	overseer.ReceiveMessage(backing.StatementMessage{
+	mockableOverseer.ReceiveMessage(backing.StatementMessage{
 		RelayParent:         relayParent,
 		SignedFullStatement: statementWithPVD,
 	})
