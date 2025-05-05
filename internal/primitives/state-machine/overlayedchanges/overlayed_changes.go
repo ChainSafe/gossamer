@@ -624,7 +624,7 @@ func (oc *OverlayedChanges[H, Hasher]) IterAfter(key StorageKey) iter.Seq2[Stora
 }
 
 func (oc *OverlayedChanges[H, Hasher]) ChildIterAfter(
-	storageKey StorageKey,
+	storageKey storage.StorageKey,
 	key StorageKey,
 ) iter.Seq2[StorageKey, *overlayedValue] {
 	entry, has := oc.children[string(storageKey)]

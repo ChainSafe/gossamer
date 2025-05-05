@@ -4,6 +4,7 @@
 package overlayedchanges
 
 import (
+	"bytes"
 	"encoding/binary"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/externalities"
@@ -298,11 +299,106 @@ func (e *Ext[H, Hasher, B]) ExistsChildStorage(childInfo storage.ChildInfo, key 
 }
 
 func (e Ext[H, Hasher, B]) NextStorageKey(key []byte) []byte {
-	panic("TODO unimplemented")
+	nextBackendKey, err := e.backend.NextStorageKey(key)
+
+	if err != nil {
+		panic(ExtNotAllowedToFail)
+	}
+
+	overlayedChangesIter := e.overlay.IterAfter(key)
+	overlayChanges := common.NewPeekable2[StorageKey, *OverlayedStorageEntry](overlayedChangesIter)
+
+	_, _, has := overlayChanges.Peek()
+
+	if !has {
+		return nextBackendKey
+	}
+
+	if nextBackendKey != nil && has {
+		for overlayKey, overlayValue := range overlayedChangesIter {
+			cmp := bytes.Compare(nextBackendKey, overlayKey)
+
+			// If `backend_key` is less than the `overlay_key`, we found out next key.
+			if cmp == -1 {
+				return nextBackendKey
+			} else if overlayValue != nil {
+				// If there exists a value for the `overlay_key` in the overlay
+				// (aka the key is still valid), it means we have found our next key.
+				return overlayKey
+			} else if cmp == 0 {
+				// If the `backend_key` and `overlay_key` are equal, it means that we need
+				// to search for the next backend key, because the overlay has overwritten
+				// this key.
+				nextBackendKey, err = e.backend.NextStorageKey(overlayKey)
+				if err != nil {
+					panic(ExtNotAllowedToFail)
+				}
+			}
+		}
+
+		return nextBackendKey
+	}
+
+	for k, v := range overlayedChangesIter {
+		if v.Value() != nil {
+			return k
+		}
+	}
+
+	return nil
 }
 
 func (e Ext[H, Hasher, B]) NextChildStorageKey(childInfo storage.ChildInfo, key []byte) []byte {
-	panic("TODO unimplemented")
+	nextBackendKey, err := e.backend.NextChildStorageKey(childInfo, key)
+
+	if err != nil {
+		panic(ExtNotAllowedToFail)
+	}
+
+	overlayedChangesIter := e.overlay.ChildIterAfter(childInfo.StorageKey(), key)
+	overlayChanges := common.NewPeekable2(overlayedChangesIter)
+
+	_, _, has := overlayChanges.Peek()
+
+	if !has {
+		return nextBackendKey
+
+	}
+
+	if nextBackendKey != nil && has {
+		for overlayKey, overlayValue := range overlayedChangesIter {
+			var cmp int
+			if nextBackendKey != nil {
+				cmp = bytes.Compare(nextBackendKey, overlayKey)
+			}
+
+			// If `backend_key` is less than the `overlay_key`, we found out next key.
+			if cmp == -1 {
+				return nextBackendKey
+			} else if overlayValue != nil {
+				// If there exists a value for the `overlay_key` in the overlay
+				// (aka the key is still valid), it means we have found our next key.
+				return overlayKey
+			} else if cmp == 0 {
+				// If the `backend_key` and `overlay_key` are equal, it means that we need
+				// to search for the next backend key, because the overlay has overwritten
+				// this key.
+				nextBackendKey, err = e.backend.NextChildStorageKey(childInfo, overlayKey)
+				if err != nil {
+					panic(ExtNotAllowedToFail)
+				}
+			}
+		}
+
+		return nextBackendKey
+	}
+	for k, v := range overlayedChangesIter {
+		if v.Value() != nil {
+			return k
+		}
+	}
+
+	return nil
 }
 
 func (e Ext[H, Hasher, B]) PlaceStorage(key []byte, value []byte) {
@@ -367,7 +463,7 @@ func (e Ext[H, Hasher, B]) KillChildStorage(
 	defer guard()
 
 	overlay := e.overlay.ClearChildStorage(childInfo)
-	cursor, backend, loops := e.limitRemoveFromBackend(&childInfo, nil, maybeLimit, maybeCursor)
+	cursor, backend, loops := e.limitRemoveFromBackend(childInfo, nil, maybeLimit, maybeCursor)
 	return externalities.MultiRemovalResults{
 		Cursor:  cursor,
 		Backend: backend,
@@ -428,7 +524,7 @@ func (e Ext[H, Hasher, B]) ClearChildPrefix(
 	defer guard()
 
 	overlay := e.overlay.ClearChildPrefix(childInfo, prefix)
-	cursor, backend, loops := e.limitRemoveFromBackend(&childInfo, prefix, limit, cursor)
+	cursor, backend, loops := e.limitRemoveFromBackend(childInfo, prefix, limit, cursor)
 
 	return externalities.MultiRemovalResults{
 		Cursor:  cursor,
@@ -533,7 +629,7 @@ func (e Ext[H, Hasher, B]) StorageRollbackTransaction() error {
 }
 
 func (e Ext[H, Hasher, B]) limitRemoveFromBackend(
-	childInfo *storage.ChildInfo,
+	childInfo storage.ChildInfo,
 	prefix []byte,
 	maybeLimit *uint32,
 	startAt []byte,
@@ -567,7 +663,7 @@ func (e Ext[H, Hasher, B]) limitRemoveFromBackend(
 		var overlay []byte
 
 		if childInfo != nil {
-			overlay, has = e.overlay.ChildStorage(*childInfo, key)
+			overlay, has = e.overlay.ChildStorage(childInfo, key)
 		} else {
 			overlay, has = e.overlay.Storage(key)
 		}
@@ -575,7 +671,7 @@ func (e Ext[H, Hasher, B]) limitRemoveFromBackend(
 		if has {
 			// not pending deletion from the backend - delete it.
 			if overlay != nil {
-				e.overlay.SetChildStorage(*childInfo, key, nil)
+				e.overlay.SetChildStorage(childInfo, key, nil)
 			} else {
 				e.overlay.SetStorage(key, nil)
 			}

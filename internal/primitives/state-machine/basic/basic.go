@@ -146,7 +146,7 @@ func (be *BasicExternalities) NextStorageKey(key []byte) []byte {
 }
 
 func (be *BasicExternalities) NextChildStorageKey(childInfo storage.ChildInfo, key []byte) []byte {
-	next, _ := iter.Pull2(be.overlay.ChildIterAfter(overlayedchanges.StorageKey(childInfo.StorageKey()), key))
+	next, _ := iter.Pull2(be.overlay.ChildIterAfter(childInfo.StorageKey(), key))
 	if nextKey, _, has := next(); has {
 		return nextKey
 	}

@@ -48,7 +48,7 @@ type IterArgs struct {
 	StartAtExclusive bool
 
 	// ChildInfo is the info of the child trie over which to iterate over.
-	ChildInfo *storage.ChildInfo
+	ChildInfo storage.ChildInfo
 
 	// StopOnIncompleteDatabase represents whether to stop iteration when a missing trie node is reached.
 	//
