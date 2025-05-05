@@ -538,7 +538,54 @@ func (e Ext[H, Hasher, B]) limitRemoveFromBackend(
 	maybeLimit *uint32,
 	startAt []byte,
 ) ([]byte, uint32, uint32) {
-	panic("TODO: uninmplemented")
+	iter, err := e.backend.Keys(statemachine.IterArgs{
+		ChildInfo: childInfo,
+		Prefix:    prefix,
+		StartAt:   startAt,
+	})
+
+	if err != nil {
+		logger.Debugf("error while iterating the storage: %w", err)
+	}
+
+	deleteCount := uint32(0)
+	loopCount := uint32(0)
+	var maybeNextKey []byte
+
+	for key, err := range iter.All() {
+		if err != nil {
+			logger.Debugf("error while iterating the storage: %w", err)
+			break
+		}
+
+		if maybeLimit != nil && *maybeLimit == loopCount {
+			maybeNextKey = key
+			break
+		}
+
+		var has bool
+		var overlay []byte
+
+		if childInfo != nil {
+			overlay, has = e.overlay.ChildStorage(*childInfo, key)
+		} else {
+			overlay, has = e.overlay.Storage(key)
+		}
+
+		if has {
+			// not pending deletion from the backend - delete it.
+			if overlay != nil {
+				e.overlay.SetChildStorage(*childInfo, key, nil)
+			} else {
+				e.overlay.SetStorage(key, nil)
+			}
+
+			deleteCount += 1
+		}
+		loopCount += 1
+	}
+
+	return maybeNextKey, deleteCount, loopCount
 }
 
 func leID(id uint16) []byte {
