@@ -87,10 +87,30 @@ type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// True if extrinsics stats must be collected.
 	collectExtrinsics bool
 	// Collect statistic on this execution.
-	stats *StateMachineStats
+	stats StateMachineStats
 	// Caches the "storage transaction" that is created while calling `storage_root`.
 	// This transaction can be applied to the backend to persist the state changes.
 	storageTransactionCache *storageTransactionCache[H, Hasher]
+}
+
+func NewOverlayedChangesFromStorage[
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+](storage storage.Storage) *OverlayedChanges[H, Hasher] {
+	children := make(map[string]childStorageValue)
+	for k, v := range storage.ChildrenDefault {
+		children[k] = childStorageValue{
+			overlayedChangeSet: newOverlayedChangeSetFromBtreeMap(v.Data),
+			ChildInfo:          v.ChildInfo,
+		}
+	}
+
+	return &OverlayedChanges[H, Hasher]{
+		top:      newOverlayedChangeSetFromBtreeMap(storage.Top),
+		children: children,
+		offchain: NewOffchainOverlayedChanges(),
+		stats:    NewStateMachineStats(),
+	}
 }
 
 func NewOverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]]() *OverlayedChanges[H, Hasher] {

@@ -17,6 +17,8 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/tidwall/btree"
 )
 
@@ -27,10 +29,50 @@ type BasicExternalities struct {
 	extensions externalities.Extensions
 }
 
-func NewBasicExternalities() *BasicExternalities {
+func NewBasicExternalities(inner storage.Storage) *BasicExternalities {
+	return &BasicExternalities{
+		overlay:    *overlayedchanges.NewOverlayedChangesFromStorage[hash.H256, runtime.BlakeTwo256](inner),
+		extensions: externalities.NewExtensions(),
+	}
+}
+
+func NewEmptyBasicExternalities() *BasicExternalities {
 	return &BasicExternalities{
 		overlay:    *overlayedchanges.NewOverlayedChanges[hash.H256, runtime.BlakeTwo256](),
 		extensions: externalities.NewExtensions(),
+	}
+}
+
+func (be *BasicExternalities) Insert(k overlayedchanges.StorageKey, v overlayedchanges.StorageValue) {
+	be.overlay.SetStorage(k, v)
+}
+
+func (be *BasicExternalities) IntoStorages() storage.Storage {
+	top := btree.Map[string, []byte]{}
+	for k, v := range be.overlay.Changes() {
+		if v.Value() != nil {
+			top.Set(string(k), v.Value())
+		}
+	}
+
+	childrenDefault := make(map[string]storage.StorageChild)
+	for iter, i := range be.overlay.Children() {
+		data := btree.Map[string, []byte]{}
+		for k, v := range iter {
+			if v.Value() != nil {
+				data.Set(string(k), v.Value())
+			}
+		}
+
+		childrenDefault[string(i.StorageKey())] = storage.StorageChild{
+			Data:      data,
+			ChildInfo: i,
+		}
+	}
+
+	return storage.Storage{
+		Top:             top,
+		ChildrenDefault: childrenDefault,
 	}
 }
 
@@ -167,11 +209,15 @@ func (be *BasicExternalities) StorageAppend(key []byte, element []byte) {
 }
 
 func (be *BasicExternalities) StorageRoot(stateVersion storage.StateVersion) []byte {
-	top := btree.Map[string, statemachine.StorageValue]{}
+	memDB := db.NewEmptyMemoryDB()
+	storageTrie := inmemory.NewTrie(nil, memDB)
 
 	for k, v := range be.overlay.Changes() {
 		if v.Value() != nil {
-			top.Set(string(k), v.Value())
+			err := storageTrie.Put([]byte(k), []byte(v.Value()))
+			if err != nil {
+				panic("error building trie to calculate storage root")
+			}
 		}
 	}
 
@@ -182,20 +228,19 @@ func (be *BasicExternalities) StorageRoot(stateVersion storage.StateVersion) []b
 
 	for _, childInfo := range be.overlay.Children() {
 		childRoot := be.ChildStorageRoot(childInfo, stateVersion)
+		var err error
 		if bytes.Equal(emptyHash.Bytes(), childRoot) {
-			top.Delete(string(childInfo.PrefixedStorageKey()))
+			err = storageTrie.Delete(childInfo.PrefixedStorageKey())
 		} else {
-			top.Set(string(childInfo.PrefixedStorageKey()), childRoot)
+			err = storageTrie.Put(childInfo.PrefixedStorageKey(), childRoot)
+		}
+
+		if err != nil {
+			panic("unexpected error updating child trie key")
 		}
 	}
 
-	iter := func(yield func(string, []byte) bool) {
-		top.Scan(func(k string, v statemachine.StorageValue) bool {
-			return yield(k, []byte(v))
-		})
-	}
-
-	return stateVersion.TrieLayout().TrieRoot(iter).Bytes()
+	return stateVersion.TrieLayout().MustHash(storageTrie).ToBytes()
 }
 
 func (be *BasicExternalities) ChildStorageRoot(

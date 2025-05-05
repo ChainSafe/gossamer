@@ -5,6 +5,8 @@ package overlayedchanges
 
 import (
 	"iter"
+
+	"github.com/tidwall/btree"
 )
 
 // Describes in which mode the node is currently executing.
@@ -62,6 +64,32 @@ type overlayedValue = OverlayedStorageEntry
 // Change set for basic key value with extrinsics index recording and removal support.
 type overlayedChangeSet struct {
 	OverlayedMap[string, storageEntry, *OverlayedStorageEntry]
+}
+
+func newOverlayedChangeSetFromBtreeMap(storage btree.Map[string, []byte]) overlayedChangeSet {
+	var changes btree.Map[string, *OverlayedStorageEntry]
+	storage.Scan(func(k string, v []byte) bool {
+		changes.Set(k, &OverlayedStorageEntry{
+			GenericOverlayedEntry: GenericOverlayedEntry[storageEntry]{
+				transactions: []transaction[storageEntry]{
+					{
+						value:      setStorageEntry{data: v},
+						extrinsics: extrinsics{},
+					},
+				},
+			},
+		})
+		return true
+	})
+
+	return overlayedChangeSet{
+		OverlayedMap: OverlayedMap[string, storageEntry, *OverlayedStorageEntry]{
+			changes:               changes,
+			dirtyKeys:             dirtyKeysSets[string]{},
+			numClientTransactions: 0,
+			executionMode:         executionModeClient,
+		},
+	}
 }
 
 func newOverlayedChangeSet() overlayedChangeSet {
@@ -136,11 +164,11 @@ func (oc *overlayedChangeSet) clearWhere(predicate func([]byte, *overlayedValue)
 		}
 
 		if predicate([]byte(k), v) {
-			v.Set(nil, oc.dirtyKeys.insertDirty(string(k)), atExtrinsic)
-			switch any(*v).(type) {
+			switch any(*v.ValueRef()).(type) {
 			case appendStorageEntry, setStorageEntry:
 				count++
 			}
+			v.Set(nil, oc.dirtyKeys.insertDirty(string(k)), atExtrinsic)
 		}
 	}
 

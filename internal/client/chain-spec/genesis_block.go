@@ -27,7 +27,7 @@ func ResolveStateVersionFromWasm[Hasher runtime.Hasher[H], H runtime.Hash, E exe
 		return primitives_storage.NoStateVersion, ErrMissingRuntime
 	}
 
-	ext := basic.NewBasicExternalities() // Just to read runtime version
+	ext := basic.NewEmptyBasicExternalities() // Just to read runtime version
 	codeFetcher := core.NewWrappedRuntimeCode(wasm)
 
 	hasher := *new(Hasher)

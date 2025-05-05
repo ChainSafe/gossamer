@@ -6,11 +6,9 @@ package trie
 import (
 	"errors"
 	"fmt"
-	"iter"
 	"math"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -97,10 +95,6 @@ func (v TrieLayout) Root(t Trie, entries Entries) (common.Hash, error) {
 	}
 
 	return t.Hash()
-}
-
-func (v TrieLayout) TrieRoot(input iter.Seq2[string, []byte]) hash.H256 {
-	panic("TODO: not implemented")
 }
 
 // Hash returns the root hash of the trie built using the given entries
