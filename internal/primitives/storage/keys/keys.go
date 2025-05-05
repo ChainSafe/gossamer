@@ -36,3 +36,11 @@ func IsDefaultChildStorageKey(key []byte) bool {
 	i := strings.Index(string(key), string(DefaultChildStorageKeyPrefix))
 	return i == 0
 }
+
+// Returns if the given key starts with [ChildStorageKeyPrefix] or collides with it.
+func StartsWithChildStorageKey(key []byte) bool {
+	if len(key) > len(ChildStorageKeyPrefix) {
+		return bytes.HasPrefix(key, ChildStorageKeyPrefix)
+	}
+	return bytes.HasPrefix(ChildStorageKeyPrefix, key)
+}

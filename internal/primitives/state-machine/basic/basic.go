@@ -204,8 +204,8 @@ func (be *BasicExternalities) ClearChildPrefix(
 	return externalities.MultiRemovalResults{Cursor: nil, Backend: count, Unique: count, Loops: count}
 }
 
-func (be *BasicExternalities) StorageAppend(key []byte, element []byte) {
-	be.overlay.AppendStorage(key, element, func() statemachine.StorageValue { return nil })
+func (be *BasicExternalities) StorageAppend(key []byte, value []byte) {
+	be.overlay.AppendStorage(key, value, func() statemachine.StorageValue { return nil })
 }
 
 func (be *BasicExternalities) StorageRoot(stateVersion storage.StateVersion) []byte {
