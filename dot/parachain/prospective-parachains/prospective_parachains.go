@@ -8,9 +8,9 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"golang.org/x/exp/maps"
@@ -41,16 +41,14 @@ type ProspectiveParachains struct {
 type view struct {
 	activeLeaves   map[common.Hash]bool
 	perRelayParent map[common.Hash]*relayParentData
-	implicitView   backing.ImplicitView
+	implicitView   *util.BackingImplicitView
 }
 
-func newView() *view {
+func newView(blockState BlockState) *view {
 	return &view{
 		perRelayParent: make(map[common.Hash]*relayParentData),
 		activeLeaves:   make(map[common.Hash]bool),
-
-		// TODO: currently there's no implementation for ImplicitView
-		implicitView: nil,
+		implicitView:   util.NewBackingImplicitView(blockState, nil),
 	}
 }
 
@@ -64,10 +62,11 @@ func (*ProspectiveParachains) Name() parachaintypes.SubSystemName {
 }
 
 // NewProspectiveParachains creates a new ProspectiveParachain subsystem
-func NewProspectiveParachains(overseerChan chan<- any) *ProspectiveParachains {
+func NewProspectiveParachains(overseerChan chan<- any, blockState BlockState) *ProspectiveParachains {
 	prospectiveParachain := ProspectiveParachains{
 		SubsystemToOverseer: overseerChan,
-		view:                newView(),
+		view:                newView(blockState),
+		blockState:          blockState,
 	}
 	return &prospectiveParachain
 }

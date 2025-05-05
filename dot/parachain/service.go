@@ -96,7 +96,8 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	overseer.RegisterSubsystem(candidateValidationSubsystem)
 
 	// register prospective parachains subsystem
-	prospectiveParachainsSubsystem := prospectiveparachains.NewProspectiveParachains(overseer.SubsystemsToOverseer)
+	prospectiveParachainsSubsystem := prospectiveparachains.NewProspectiveParachains(
+		overseer.SubsystemsToOverseer, st.Block)
 	overseer.RegisterSubsystem(prospectiveParachainsSubsystem)
 
 	// register bitfield signing subsystem
