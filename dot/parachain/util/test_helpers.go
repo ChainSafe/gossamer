@@ -1,9 +1,10 @@
 package util
 
 import (
+	"testing"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"testing"
 )
 
 var genesisHash = common.Hash{0}

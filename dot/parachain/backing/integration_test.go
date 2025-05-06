@@ -5,9 +5,10 @@ package backing_test
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"

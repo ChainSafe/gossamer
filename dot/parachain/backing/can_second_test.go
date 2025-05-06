@@ -4,14 +4,15 @@
 package backing
 
 import (
-	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 
 	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
-	gomock "go.uber.org/mock/gomock"
+	"go.uber.org/mock/gomock"
 )
 
 func TestHandleCanSecondMessage(t *testing.T) {

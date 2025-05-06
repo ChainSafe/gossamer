@@ -1,9 +1,10 @@
 package backing
 
 import (
+	"testing"
+
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
@@ -11,7 +12,7 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
-	gomock "go.uber.org/mock/gomock"
+	"go.uber.org/mock/gomock"
 )
 
 func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
