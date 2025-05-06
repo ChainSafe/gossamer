@@ -118,7 +118,7 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 	}
 }
 
-func (pp *ProspectiveParachains) introduceSecondedCandidate(
+func (*ProspectiveParachains) introduceSecondedCandidate(
 	view *view,
 	request messages.IntroduceSecondedCandidateRequest,
 	response chan bool,

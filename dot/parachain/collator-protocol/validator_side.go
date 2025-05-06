@@ -357,7 +357,7 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal pa
 	return nil
 }
 
-func (cpvs CollatorProtocolValidatorSide) Stop() {
+func (*CollatorProtocolValidatorSide) Stop() {
 }
 
 // requestCollation requests a collation from the network.
