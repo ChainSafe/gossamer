@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/multiformats/go-multiaddr"
 	"slices"
 	"sort"
 
@@ -409,8 +410,11 @@ func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService,
 	return peers
 }
 
+// TODO: implement those methods
 type AuthorityDiscoveryService interface {
 	GetPeerIDByAuthorityID(authorityID parachaintypes.AuthorityDiscoveryID) peer.ID
+	GetAddressesByAuthorityID(authority parachaintypes.AuthorityDiscoveryID) *map[multiaddr.Multiaddr]struct{}
+	GetAuthorityIDsByPeerID(peerID peer.ID) *map[parachaintypes.AuthorityDiscoveryID]struct{}
 }
 
 type Sync interface {
