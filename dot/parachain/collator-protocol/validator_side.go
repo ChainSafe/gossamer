@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
@@ -57,13 +59,23 @@ var (
 	ErrFinalizedNumber     = errors.New("finalized number is greater than or equal to the block number")
 )
 
-func New(net Network, protocolID protocol.ID, overseerChan chan<- any) *CollatorProtocolValidatorSide {
+func New(net Network, protocolID protocol.ID, overseerChan chan<- any,
+	blockState *state.BlockState, ks keystore.Keystore) *CollatorProtocolValidatorSide {
 	collationFetchingReqResProtocol := net.GetRequestResponseProtocol(
 		string(protocolID), collationFetchingRequestTimeout, collationFetchingMaxResponseSize)
 
 	return &CollatorProtocolValidatorSide{
+		BlockState:                      blockState,
+		Keystore:                        ks,
 		SubSystemToOverseer:             overseerChan,
 		collationFetchingReqResProtocol: collationFetchingReqResProtocol,
+		peerData:                        make(map[peer.ID]PeerData),
+		currentAssignments:              make(map[parachaintypes.ParaID]uint),
+		perRelayParent:                  make(map[common.Hash]PerRelayParent),
+		BlockedAdvertisements:           make(map[string][]blockedAdvertisement),
+		implicitView:                    util.NewBackingImplicitView(blockState, nil),
+		activeLeaves:                    make(map[common.Hash]parachaintypes.ProspectiveParachainsMode),
+		fetchedCandidates:               make(map[string]CollationEvent),
 	}
 }
 
@@ -431,7 +443,7 @@ func (peerData *PeerData) SetCollating(collatorID parachaintypes.CollatorID, par
 func IsRelayParentInImplicitView(
 	relayParent common.Hash,
 	relayParentMode parachaintypes.ProspectiveParachainsMode,
-	implicitView ImplicitView,
+	implicitView *util.BackingImplicitView,
 	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode,
 	paraID parachaintypes.ParaID,
 ) bool {
@@ -441,8 +453,8 @@ func IsRelayParentInImplicitView(
 	}
 
 	for hash, mode := range activeLeaves {
-		knownAllowedRelayParent := implicitView.KnownAllowedRelayParentsUnder(hash, paraID)
-		if mode.IsEnabled && knownAllowedRelayParent.String() == relayParent.String() {
+		knownAllowedRelayParent := implicitView.KnownAllowedRelayParentsUnder(hash, &paraID)
+		if mode.IsEnabled && slices.Contains(knownAllowedRelayParent, relayParent) {
 			return true
 		}
 	}
@@ -457,7 +469,7 @@ func (peerData *PeerData) InsertAdvertisement(
 	onRelayParent common.Hash,
 	relayParentMode parachaintypes.ProspectiveParachainsMode,
 	candidateHash *parachaintypes.CandidateHash,
-	implicitView ImplicitView,
+	implicitView *util.BackingImplicitView,
 	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode,
 ) (isAdvertisementInvalid bool, err error) {
 	switch peerData.state.PeerState {
@@ -495,7 +507,7 @@ func (peerData *PeerData) InsertAdvertisement(
 }
 
 // UpdateView updates the view clearing all advertisements that are no longer in the current view.
-func (peerData *PeerData) UpdateView(implicitView ImplicitView,
+func (peerData *PeerData) UpdateView(implicitView *util.BackingImplicitView,
 	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode, perRelayParent map[common.Hash]PerRelayParent,
 	newView parachaintypes.View) {
 
@@ -603,7 +615,7 @@ type CollatorProtocolValidatorSide struct {
 	// never included in the fragment trees of active leaves which do. In
 	// particular, this means that if a given relay parent belongs to implicit
 	// ancestry of some active leaf, then it does support prospective parachains.
-	implicitView ImplicitView
+	implicitView *util.BackingImplicitView
 
 	// All active leaves observed by us, including both that do and do not
 	// support prospective parachains. This mapping works as a replacement for

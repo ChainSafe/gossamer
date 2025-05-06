@@ -82,9 +82,8 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	overseer.RegisterSubsystem(availabilityStore)
 
 	// register collation protocol
-	cpvs := collatorprotocol.New(net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel())
-	cpvs.BlockState = st.Block
-	cpvs.Keystore = ks
+	cpvs := collatorprotocol.New(
+		net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel(), st.Block, ks)
 	overseer.RegisterSubsystem(cpvs)
 
 	candidateBacking := backing.New(overseer.GetSubsystemToOverseerChannel(), ks, st.Block)
