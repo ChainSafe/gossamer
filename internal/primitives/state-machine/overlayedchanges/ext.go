@@ -6,6 +6,7 @@ package overlayedchanges
 import (
 	"bytes"
 	"encoding/binary"
+	"math/rand"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/externalities"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -98,6 +99,16 @@ type Ext[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Has
 	Id uint16
 }
 
+func NewExt[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]](
+	overlay OverlayedChanges[H, Hasher],
+	backend B,
+) *Ext[H, Hasher, B] {
+	return &Ext[H, Hasher, B]{
+		overlay: overlay,
+		backend: backend,
+		Id:      uint16(rand.Intn(65536)),
+	}
+}
 func (e *Ext[H, Hasher, B]) SetOffchainStorage(key []byte, value []byte) {
 	e.overlay.SetOffchainStorage(key, value)
 }
@@ -172,6 +183,10 @@ func (e *Ext[H, Hasher, B]) ChildStorage(childInfo storage.ChildInfo, key []byte
 	defer guard()
 
 	result, has := e.overlay.ChildStorage(childInfo, key)
+	if has && result == nil {
+		return nil
+	}
+
 	if !has || result == nil {
 		var err error
 		result, err = e.backend.ChildStorage(childInfo, key)
@@ -202,6 +217,10 @@ func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []
 	var hash H
 	result, has := e.overlay.ChildStorage(childInfo, key)
 
+	if has && result == nil {
+		return nil
+	}
+
 	if has && result != nil {
 		hasher := *new(Hasher)
 		hash = hasher.Hash(result)
@@ -230,7 +249,7 @@ func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []
 	)
 
 	if hash.Bytes() != nil {
-		return scale.MustMarshal(result)
+		return scale.MustMarshal(hash)
 	}
 
 	return nil
@@ -306,7 +325,7 @@ func (e Ext[H, Hasher, B]) NextStorageKey(key []byte) []byte {
 	}
 
 	overlayedChangesIter := e.overlay.IterAfter(key)
-	overlayChanges := common.NewPeekable2[StorageKey, *OverlayedStorageEntry](overlayedChangesIter)
+	overlayChanges := common.NewPeekable2(overlayedChangesIter)
 
 	_, _, has := overlayChanges.Peek()
 
@@ -321,7 +340,7 @@ func (e Ext[H, Hasher, B]) NextStorageKey(key []byte) []byte {
 			// If `backend_key` is less than the `overlay_key`, we found out next key.
 			if cmp == -1 {
 				return nextBackendKey
-			} else if overlayValue != nil {
+			} else if overlayValue.Value() != nil {
 				// If there exists a value for the `overlay_key` in the overlay
 				// (aka the key is still valid), it means we have found our next key.
 				return overlayKey
@@ -375,7 +394,7 @@ func (e Ext[H, Hasher, B]) NextChildStorageKey(childInfo storage.ChildInfo, key 
 			// If `backend_key` is less than the `overlay_key`, we found out next key.
 			if cmp == -1 {
 				return nextBackendKey
-			} else if overlayValue != nil {
+			} else if overlayValue.Value() != nil {
 				// If there exists a value for the `overlay_key` in the overlay
 				// (aka the key is still valid), it means we have found our next key.
 				return overlayKey

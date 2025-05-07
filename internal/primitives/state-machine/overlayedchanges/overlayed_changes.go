@@ -184,7 +184,7 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorage(childInfo storage.ChildInfo,
 	entry, has := childEntry.overlayedChangeSet.Get(string(key))
 	if !has {
 		oc.stats.TallyReadModified(0)
-		return nil, true
+		return nil, false
 	}
 
 	value := entry.Value()
