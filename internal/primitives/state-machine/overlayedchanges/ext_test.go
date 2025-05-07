@@ -7,6 +7,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/btree"
 )
@@ -137,4 +138,27 @@ func TestChildStorageWorks(t *testing.T) {
 
 	require.Equal(t, []byte{31}, ext.ChildStorage(childInfo, []byte{30}))
 	require.Equal(t, runtime.BlakeTwo256{}.Hash([]byte{31}).Bytes(), ext.ChildStorageHash(childInfo, []byte{30}))
+}
+
+func TestClearPrefixCannotDeleteAChildRoot(t *testing.T) {
+	childInfo := storage.NewDefaultChildInfo([]byte("Child1"))
+	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
+
+	childData := btree.Map[string, []byte]{}
+	childData.Set(string([]byte{30}), []byte{40})
+	backend := statemachine.NewMemoryDBTrieBackendFromStorage[hash.H256, runtime.BlakeTwo256](storage.Storage{
+		ChildrenDefault: map[string]storage.StorageChild{
+			string(childInfo.Keyspace()): {
+				Data:      childData,
+				ChildInfo: childInfo,
+			},
+		},
+	}, storage.StateVersionV1)
+
+	ext := NewExt(*overlay, backend)
+
+	notUnderPrefix := keys.ChildStorageKeyPrefix
+	notUnderPrefix[4] = 88
+	notUnderPrefix = append(notUnderPrefix, []byte("path")...)
+	ext.SetStorage(notUnderPrefix, []byte{10})
 }

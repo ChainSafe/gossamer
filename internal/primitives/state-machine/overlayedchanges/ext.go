@@ -99,6 +99,7 @@ type Ext[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Has
 	Id uint16
 }
 
+// NewExt creates a new Ext instance.
 func NewExt[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]](
 	overlay OverlayedChanges[H, Hasher],
 	backend B,
@@ -109,10 +110,13 @@ func NewExt[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, 
 		Id:      uint16(rand.Intn(65536)),
 	}
 }
+
+// Write a key value pair to the offchain storage database.
 func (e *Ext[H, Hasher, B]) SetOffchainStorage(key []byte, value []byte) {
 	e.overlay.SetOffchainStorage(key, value)
 }
 
+// Read runtime storage.
 func (e *Ext[H, Hasher, B]) Storage(key []byte) []byte {
 	defer guard()
 
@@ -140,6 +144,8 @@ func (e *Ext[H, Hasher, B]) Storage(key []byte) []byte {
 	return result
 }
 
+// Get storage value hash.
+// This may be optimized for large values.
 func (e *Ext[H, Hasher, B]) StorageHash(key []byte) []byte {
 	defer guard()
 
@@ -179,6 +185,8 @@ func (e *Ext[H, Hasher, B]) StorageHash(key []byte) []byte {
 	return nil
 }
 
+// Read child runtime storage.
+// Returns an SCALE encoded hash.
 func (e *Ext[H, Hasher, B]) ChildStorage(childInfo storage.ChildInfo, key []byte) []byte {
 	defer guard()
 
@@ -211,6 +219,9 @@ func (e *Ext[H, Hasher, B]) ChildStorage(childInfo storage.ChildInfo, key []byte
 	return result
 }
 
+// Get child storage value hash.
+// This may be optimized for large values.
+// Returns an SCALE encoded hash.
 func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []byte) []byte {
 	defer guard()
 
@@ -255,6 +266,7 @@ func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []
 	return nil
 }
 
+// Whether a storage entry exists.
 func (e *Ext[H, Hasher, B]) ExistsStorage(key []byte) bool {
 	defer guard()
 
@@ -285,6 +297,7 @@ func (e *Ext[H, Hasher, B]) ExistsStorage(key []byte) bool {
 	return exists
 }
 
+// Whether a child storage entry exists.
 func (e *Ext[H, Hasher, B]) ExistsChildStorage(childInfo storage.ChildInfo, key []byte) bool {
 	defer guard()
 
@@ -317,6 +330,7 @@ func (e *Ext[H, Hasher, B]) ExistsChildStorage(childInfo storage.ChildInfo, key 
 	return exists
 }
 
+// Returns the key immediately following the given key, if it exists.
 func (e Ext[H, Hasher, B]) NextStorageKey(key []byte) []byte {
 	nextBackendKey, err := e.backend.NextStorageKey(key)
 
@@ -367,6 +381,7 @@ func (e Ext[H, Hasher, B]) NextStorageKey(key []byte) []byte {
 	return nil
 }
 
+// Returns the key immediately following the given key, if it exists, in child storage.
 func (e Ext[H, Hasher, B]) NextChildStorageKey(childInfo storage.ChildInfo, key []byte) []byte {
 	nextBackendKey, err := e.backend.NextChildStorageKey(childInfo, key)
 
@@ -420,6 +435,27 @@ func (e Ext[H, Hasher, B]) NextChildStorageKey(childInfo storage.ChildInfo, key 
 	return nil
 }
 
+// Set storage entry key of current contract being called (effective immediately).
+func (e Ext[H, Hasher, B]) SetStorage(key []byte, value []byte) {
+	e.PlaceStorage(key, value)
+}
+
+// Set child storage entry key of current contract being called (effective immediately).
+func (e Ext[H, Hasher, B]) SetChildStorage(childInfo storage.ChildInfo, key []byte, value []byte) {
+	e.PlaceChildStorage(childInfo, key, value)
+}
+
+// Clear a storage entry key of current contract being called (effective immediately).
+func (e Ext[H, Hasher, B]) ClearStorage(key []byte) {
+	e.PlaceStorage(key, nil)
+}
+
+// Clear a child storage entry key of current contract being called (effective immediately).
+func (e Ext[H, Hasher, B]) ClearChildStorage(childInfo storage.ChildInfo, key []byte) {
+	e.PlaceChildStorage(childInfo, key, nil)
+}
+
+// Set or clear a storage entry key of current contract being called (effective immediately).
 func (e Ext[H, Hasher, B]) PlaceStorage(key []byte, value []byte) {
 	defer guard()
 
@@ -442,6 +478,7 @@ func (e Ext[H, Hasher, B]) PlaceStorage(key []byte, value []byte) {
 	e.overlay.SetStorage(key, value)
 }
 
+// Set or clear a child storage entry.
 func (e Ext[H, Hasher, B]) PlaceChildStorage(
 	childInfo storage.ChildInfo,
 	key []byte,
@@ -465,6 +502,17 @@ func (e Ext[H, Hasher, B]) PlaceChildStorage(
 	e.overlay.SetChildStorage(childInfo, key, value)
 }
 
+// Clear an entire child storage.
+//
+// Deletes all keys from the overlay and up to maybeLimit keys from the backend. No
+// limit is applied if maybeLimit is nil. Returns the cursor for the next call
+// if the child trie deletion operation is incomplete. In this case, it should be passed into
+// the next call to avoid unaccounted iterations on the backend. Returns also the the number
+// of keys that were removed from the backend, the number of unique keys removed in total
+// (including from the overlay) and the number of backend iterations done.
+//
+// As long as maybeCursor is passed from the result of the previous call, then the number of
+// iterations done will only ever be one more than the number of keys removed.
 func (e Ext[H, Hasher, B]) KillChildStorage(
 	childInfo storage.ChildInfo,
 	maybeLimit *uint32,
@@ -491,6 +539,8 @@ func (e Ext[H, Hasher, B]) KillChildStorage(
 	}
 }
 
+// Clear storage entries which keys are start with the given prefix.
+// limit, cursor and result works as for [Ext.KillChildStorage].
 func (e Ext[H, Hasher, B]) ClearPrefix(
 	prefix []byte,
 	limit *uint32,
@@ -523,6 +573,8 @@ func (e Ext[H, Hasher, B]) ClearPrefix(
 	}
 }
 
+// Clear child storage entries which keys are start with the given prefix.
+// limit, cursor and result works as for [Ext.KillChildStorage].
 func (e Ext[H, Hasher, B]) ClearChildPrefix(
 	childInfo storage.ChildInfo,
 	prefix []byte,
@@ -553,6 +605,8 @@ func (e Ext[H, Hasher, B]) ClearChildPrefix(
 	}
 }
 
+// Append storage item.
+// This assumes specific format of the storage item. Also there is no way to undo this operation.
 func (e Ext[H, Hasher, B]) StorageAppend(key []byte, value []byte) {
 	logger.Tracef(
 		`target = state 
@@ -577,6 +631,9 @@ func (e Ext[H, Hasher, B]) StorageAppend(key []byte, value []byte) {
 	})
 }
 
+// Get the trie root of the current storage map.
+// This will also update all child storage keys in the top-level storage map.
+// The returned hash is defined by the `Block` and is SCALE encoded.
 func (e Ext[H, Hasher, B]) StorageRoot(stateVersion storage.StateVersion) []byte {
 	defer guard()
 
@@ -596,6 +653,10 @@ func (e Ext[H, Hasher, B]) StorageRoot(stateVersion storage.StateVersion) []byte
 	return scale.MustMarshal(root)
 }
 
+// Get the trie root of a child storage map.
+// This will also update the value of the child storage keys in the top-level storage map.
+// If the storage root equals the default hash as defined by the trie, the key in the top-level
+// storage map will be removed.
 func (e Ext[H, Hasher, B]) ChildStorageRoot(
 	childInfo storage.ChildInfo,
 	stateVersion storage.StateVersion,
@@ -623,6 +684,7 @@ func (e Ext[H, Hasher, B]) ChildStorageRoot(
 	return scale.MustMarshal(root)
 }
 
+// Index specified transaction slice and store it.
 func (e Ext[H, Hasher, B]) StorageIndexTransaction(index uint32, hash []byte, size uint32) {
 	logger.Tracef(
 		`target = state 
@@ -638,12 +700,32 @@ func (e Ext[H, Hasher, B]) StorageIndexTransaction(index uint32, hash []byte, si
 	e.overlay.AddTransactionIndex(IndexOperationRenew{Extrinsic: index, Hash: hash})
 }
 
+// Start a new nested transaction.
+//
+// This allows to either commit or roll back all changes made after this call to the
+// top changes or the default child changes. For every transaction there cam be a
+// matching call to either [Ext.StorageRollbackTransaction] or [Ext.StorageCommitTransaction].
+// Any transactions that are still open after returning from runtime are committed
+// automatically.
+//
+// Changes made without any open transaction are committed immediately.
 func (e Ext[H, Hasher, B]) StorageStartTransaction() {
 	e.overlay.StartTransaction()
 }
 
+// Rollback the last transaction started by [Ext.StorageStartTransaction].
+// Any changes made during that storage transaction are discarded. Returns an error when
+// no transaction is open that can be closed.
 func (e Ext[H, Hasher, B]) StorageRollbackTransaction() error {
 	_ = e.overlay.RollbackTransaction()
+	return nil
+}
+
+// Commit the last transaction started by [Ext.StorageStartTransaction].
+// Any changes made during that storage transaction are committed. Returns an error when
+// no transaction is open that can be closed.
+func (e Ext[H, Hasher, B]) StorageCommitTransaction() error {
+	_ = e.overlay.CommitTransaction()
 	return nil
 }
 
