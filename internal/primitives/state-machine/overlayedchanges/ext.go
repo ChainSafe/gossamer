@@ -89,6 +89,8 @@ type OverlayedExtension interface {
 	isOverlayedExtension()
 }
 
+var guard = statemachine.NewGuard(statemachine.Abort).Done
+
 // Wraps a read-only backend, call executor, and current overlayed changes.
 type Ext[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]] struct {
 	// The overlayed changes to write to.
@@ -107,7 +109,7 @@ func NewExt[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, 
 	return &Ext[H, Hasher, B]{
 		overlay: overlay,
 		backend: backend,
-		Id:      uint16(rand.Intn(65536)),
+		Id:      uint16(rand.Intn(65536)), //nolint:gosec
 	}
 }
 
@@ -145,7 +147,7 @@ func (e *Ext[H, Hasher, B]) Storage(key []byte) []byte {
 }
 
 // Get storage value hash.
-// This may be optimized for large values.
+// This may be optimised for large values.
 func (e *Ext[H, Hasher, B]) StorageHash(key []byte) []byte {
 	defer guard()
 
@@ -220,7 +222,7 @@ func (e *Ext[H, Hasher, B]) ChildStorage(childInfo storage.ChildInfo, key []byte
 }
 
 // Get child storage value hash.
-// This may be optimized for large values.
+// This may be optimised for large values.
 // Returns an SCALE encoded hash.
 func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []byte) []byte {
 	defer guard()
@@ -789,8 +791,4 @@ func leID(id uint16) []byte {
 	IDLe := make([]byte, 2)
 	binary.LittleEndian.PutUint16(IDLe, id)
 	return IDLe
-}
-
-func guard() func() {
-	return statemachine.NewGuard(statemachine.Abort).Done
 }
