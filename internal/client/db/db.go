@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/client/db/columns"
@@ -472,6 +473,19 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 		return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
 	}
 
+	now := time.Now()
+	logger.Debugf(`
+		target=db::blockchain,
+		leaves=%v,
+		finalized_block_hash=%s,
+		finalized_block_number=%d,
+		Checking for displaced leaves after finalization.
+	`,
+		leaves,
+		finalizedBlockHash.String(),
+		finalizedBlockNumber,
+	)
+
 	// If we have only one leaf there are no forks, and we can return early.
 	if finalizedBlockNumber == 0 || len(leaves) == 1 {
 		return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, nil
@@ -484,8 +498,28 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 
 	if err != nil {
 		if errors.Is(err, blockchain.ErrUnknownBlock) {
+			logger.Debugf(`
+				target=db::blockchain,
+				hash=%s,
+				elapsed=%f,
+				Tried to fetch unknown block, block ancestry has gaps.
+			`,
+				finalizedBlockHash.String(),
+				time.Since(now),
+			)
 			return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, nil
 		}
+		logger.Debugf(`
+				target=db::blockchain,
+				hash=%s,
+				err=%w,
+				elapsed=%f,
+				Failed to fetch block.
+			`,
+			finalizedBlockHash.String(),
+			err,
+			time.Since(now),
+		)
 		return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
 	}
 
@@ -509,6 +543,17 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 	for _, leafHash := range leaves {
 		headerMetadata, err := bdb.HeaderMetadata(leafHash)
 		if err != nil {
+			logger.Debugf(`
+				target=db::blockchain,
+				leaf_hash=%s,
+				err=%w,
+				elapsed=%f,
+				Failed to fetch leaf header.
+			`,
+				leafHash.String(),
+				err,
+				time.Since(now),
+			)
 			return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
 		}
 
@@ -526,8 +571,29 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 				Hash:   leafHash,
 				Number: leafNumber,
 			})
+			logger.Debugf(`
+				target=db::blockchain,
+				leaf_hash=%s,
+				elapsed=%f,
+				Added genesis leaf to displaced leaves.
+			`,
+				leafHash.String(),
+				time.Since(now),
+			)
 			continue
 		}
+
+		logger.Debugf(`
+				target=db::blockchain,
+				leaf_number=%d,
+				leaf_hash=%s,
+				elapsed=%f,
+				Handle displaced leaf.
+			`,
+			leafNumber,
+			leafHash.String(),
+			time.Since(now),
+		)
 
 		// Collect all block hashes until the height of the finalized block
 		displacedBlocksCandidates := make([]H, 0)
@@ -542,6 +608,19 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 			} else {
 				headerMetadata, err := bdb.HeaderMetadata(leafHash)
 				if err != nil {
+					logger.Debugf(`
+						target=db::blockchain,
+						err=%w,
+						parent_hash=%s,
+						leaf_hash=%s,
+						elapsed=%f,
+						Failed to fetch parent header during leaf tracking.
+					`,
+						err,
+						parentHash.String(),
+						leafHash.String(),
+						time.Since(now),
+					)
 					return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
 				}
 
@@ -559,6 +638,15 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 		// If points back to the finalized header then nothing left to do, this leaf will be
 		// checked again later
 		if currentHeaderMetadata.hash == finalizedBlockHash {
+			logger.Debugf(`
+					target=db::blockchain,
+					leaf_hash=%s,
+					elapsed=%f,
+					Leaf points to the finalized header, skipping for now.
+				`,
+				leafHash.String(),
+				time.Since(now),
+			)
 			continue
 		}
 
@@ -566,6 +654,20 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 		// This block is not displaced if there is a gap in the ancestry. We
 		// check for this gap later.
 		displacedBlocksCandidates = append(displacedBlocksCandidates, currentHeaderMetadata.hash)
+
+		logger.Debugf(`
+				target=db::blockchain,
+				current_hash=%s,
+				current_num=%d,
+				finalized_block_number=%d,
+				elapsed=%f,
+				Looking for path from finalized block number to current leaf number
+			`,
+			currentHeaderMetadata.hash.String(),
+			currentHeaderMetadata.number,
+			finalizedBlockNumber,
+			time.Since(now),
+		)
 
 		// Collect the rest of the displaced blocks of leaf branch
 		for distanceFromFinalized := 1; ; distanceFromFinalized++ {
@@ -585,8 +687,34 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 				headerMetadata, err := bdb.HeaderMetadata(toFetch.Value.(MinimalBlockMetadata[H, N]).hash)
 				if err != nil {
 					if errors.Is(err, blockchain.ErrUnknownBlock) {
+						logger.Debugf(`
+								target=db::blockchain,
+								distance_from_finalized=%d,
+								hash=%s,
+								number=%d,
+								elapsed=%f,
+								Tried to fetch unknown block, block ancestry has gaps.
+							`,
+							distanceFromFinalized,
+							toFetch.Value.(MinimalBlockMetadata[H, N]).hash.String(),
+							toFetch.Value.(MinimalBlockMetadata[H, N]).number,
+							time.Since(now),
+						)
 						break
 					}
+					logger.Debugf(`
+							target=db::blockchain,
+							hash=%s,
+							number=%d,
+							err=%w,
+							elapsed=%f,
+							Failed to fetch header for parent hash.
+						`,
+						toFetch.Value.(MinimalBlockMetadata[H, N]).hash.String(),
+						toFetch.Value.(MinimalBlockMetadata[H, N]).number,
+						err,
+						time.Since(now),
+					)
 					return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
 				}
 
@@ -607,6 +735,16 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 					Hash:   leafHash,
 					Number: leafNumber,
 				})
+
+				logger.Debugf(`
+						target=db::blockchain,
+						leaf_hash=%s,
+						elapsed=%f,
+						Leaf is ancestor of finalized block.
+					`,
+					leafHash.String(),
+					time.Since(now),
+				)
 				break
 			}
 
@@ -625,14 +763,45 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 					Hash:   leafHash,
 					Number: leafNumber,
 				})
+
+				logger.Debugf(`
+						target=db::blockchain,
+						leaf_hash=%s,
+						elapsed=%f,
+						Found displaced leaf.
+					`,
+					leafHash.String(),
+					time.Since(now),
+				)
 				break
 			}
 
 			// Store displaced block and look deeper for block on finalized chain
+			logger.Debugf(`
+					target=db::blockchain,
+					parent_hash=%s,
+					elapsed=%f,
+					Found displaced block. Looking further.
+				`,
+				parentHash.String(),
+				time.Since(now),
+			)
+
 			displacedBlocksCandidates = append(displacedBlocksCandidates, parentHash)
 
 			headerMetadata, err := bdb.HeaderMetadata(parentHash)
 			if err != nil {
+				logger.Debugf(`
+					target=db::blockchain,
+					err=%w,
+					parent_hash=%s,
+					elapsed=%f,
+					Failed to fetch header for parent during displaced block collection
+				`,
+					err,
+					parentHash.String(),
+					time.Since(now),
+				)
 				return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
 			}
 
@@ -646,6 +815,20 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 
 	// There could be duplicates shared by multiple branches, clean them up
 	result.SortAndDedupDisplacedBlocks()
+
+	logger.Debugf(`
+		target=db::blockchain,
+		finalized_block_hash=%s,
+		finalized_block_number=%d,
+		result=%v,
+		elapsed=%f,
+		Finished checking for displaced leaves after finalization.
+	`,
+		finalizedBlockHash.String(),
+		finalizedBlockNumber,
+		result,
+		time.Since(now),
+	)
 
 	return result, nil
 }
