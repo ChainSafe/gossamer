@@ -92,7 +92,7 @@ type OverlayedExtension interface {
 // Wraps a read-only backend, call executor, and current overlayed changes.
 type Ext[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]] struct {
 	// The overlayed changes to write to.
-	overlay OverlayedChanges[H, Hasher]
+	overlay *OverlayedChanges[H, Hasher]
 	// The storage backend to read from.
 	backend B
 	// Pseudo-unique id used for tracing.
@@ -101,7 +101,7 @@ type Ext[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Has
 
 // NewExt creates a new Ext instance.
 func NewExt[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]](
-	overlay OverlayedChanges[H, Hasher],
+	overlay *OverlayedChanges[H, Hasher],
 	backend B,
 ) *Ext[H, Hasher, B] {
 	return &Ext[H, Hasher, B]{

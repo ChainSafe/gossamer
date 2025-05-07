@@ -1,6 +1,7 @@
 package overlayedchanges
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
@@ -26,7 +27,7 @@ func TestNextStorageKeyWorks(t *testing.T) {
 		Top: top,
 	}, storage.StateVersionV1)
 
-	ext := NewExt(*overlay, backend)
+	ext := NewExt(overlay, backend)
 
 	// next_backend < next_overlay
 	require.Equal(t, []byte{10}, ext.NextStorageKey([]byte{5}))
@@ -38,7 +39,7 @@ func TestNextStorageKeyWorks(t *testing.T) {
 	require.Equal(t, []byte{40}, ext.NextStorageKey([]byte{30}))
 
 	overlay.SetStorage([]byte{50}, []byte{50})
-	ext = NewExt(*overlay, backend)
+	ext = NewExt(overlay, backend)
 
 	// next_overlay exist but next_backend doesn't exist
 	require.Equal(t, []byte{50}, ext.NextStorageKey([]byte{40}))
@@ -64,7 +65,7 @@ func TestNextStorageKeyWorksWithALotEmptyValuesInOverlay(t *testing.T) {
 		Top: top,
 	}, storage.StateVersionV1)
 
-	ext := NewExt(*overlay, backend)
+	ext := NewExt(overlay, backend)
 
 	require.Equal(t, []byte{30}, ext.NextStorageKey([]byte{5}))
 }
@@ -90,7 +91,7 @@ func TestNextChildStorageKeyWorks(t *testing.T) {
 		},
 	}, storage.StateVersionV1)
 
-	ext := NewExt(*overlay, backend)
+	ext := NewExt(overlay, backend)
 
 	// next_backend < next_overlay
 	require.Equal(t, []byte{10}, ext.NextChildStorageKey(childInfo, []byte{5}))
@@ -102,7 +103,7 @@ func TestNextChildStorageKeyWorks(t *testing.T) {
 	require.Equal(t, []byte{40}, ext.NextChildStorageKey(childInfo, []byte{30}))
 
 	overlay.SetChildStorage(childInfo, []byte{50}, []byte{50})
-	ext = NewExt(*overlay, backend)
+	ext = NewExt(overlay, backend)
 
 	// next_overlay exist but next_backend doesn't exist
 	require.Equal(t, []byte{50}, ext.NextChildStorageKey(childInfo, []byte{40}))
@@ -128,7 +129,7 @@ func TestChildStorageWorks(t *testing.T) {
 		},
 	}, storage.StateVersionV1)
 
-	ext := NewExt(*overlay, backend)
+	ext := NewExt(overlay, backend)
 
 	require.Equal(t, []byte{10}, ext.ChildStorage(childInfo, []byte{10}))
 	require.Equal(t, runtime.BlakeTwo256{}.Hash([]byte{10}).Bytes(), ext.ChildStorageHash(childInfo, []byte{10}))
@@ -155,10 +156,19 @@ func TestClearPrefixCannotDeleteAChildRoot(t *testing.T) {
 		},
 	}, storage.StateVersionV1)
 
-	ext := NewExt(*overlay, backend)
+	ext := NewExt(overlay, backend)
 
-	notUnderPrefix := keys.ChildStorageKeyPrefix
+	notUnderPrefix := slices.Clone(keys.ChildStorageKeyPrefix)
 	notUnderPrefix[4] = 88
 	notUnderPrefix = append(notUnderPrefix, []byte("path")...)
 	ext.SetStorage(notUnderPrefix, []byte{10})
+
+	ext.ClearPrefix([]byte{}, nil, nil)
+	ext.ClearPrefix(keys.ChildStorageKeyPrefix[:4], nil, nil)
+
+	require.Equal(t, []byte{40}, ext.ChildStorage(childInfo, []byte{30}))
+	require.Equal(t, []byte{10}, ext.Storage(notUnderPrefix))
+
+	ext.ClearPrefix(notUnderPrefix[:5], nil, nil)
+	require.Equal(t, []byte(nil), ext.Storage(notUnderPrefix))
 }
