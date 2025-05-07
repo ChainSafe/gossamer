@@ -4,12 +4,74 @@
 package blockchain
 
 import (
+	"bytes"
+	"sort"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 )
+
+// Result of DisplacedLeavesAfterFinalizing
+type DisplacedLeavesAfterFinalization[H runtime.Hash, N runtime.Number] struct {
+	// A list of hashes and block numbers of displaced leaves.
+	DisplacedLeaves []HashNumber[H, N]
+
+	// A list of hashes displaced blocks from all displaced leaves.
+	DisplacedBlocks []H
+}
+
+// Returns a collection of hashes for the displaced leaves.
+func (d DisplacedLeavesAfterFinalization[H, N]) Hashes() []H {
+	hashes := make([]H, 0, len(d.DisplacedLeaves))
+	for _, displacedLeaf := range d.DisplacedLeaves {
+		hashes = append(hashes, displacedLeaf.Hash)
+	}
+
+	return hashes
+}
+
+// SortDisplacedBlocks sorts the DisplacedBlocks slice in an unstable manner.
+// This is equivalent to sort_unstable() in Rust.
+func (d *DisplacedLeavesAfterFinalization[H, N]) SortDisplacedBlocks() {
+	// Implementation of unstable sort for DisplacedBlocks
+	sort.Slice(d.DisplacedBlocks, func(i, j int) bool {
+		return bytes.Compare(d.DisplacedBlocks[i].Bytes(), d.DisplacedBlocks[j].Bytes()) < 0
+	})
+}
+
+// DedupDisplacedBlocks removes consecutive duplicate elements from the
+// DisplacedBlocks slice. This is equivalent to dedup() in Rust.
+func (d *DisplacedLeavesAfterFinalization[H, N]) DedupDisplacedBlocks() {
+	if len(d.DisplacedBlocks) <= 1 {
+		return
+	}
+
+	j := 1
+	for i := 1; i < len(d.DisplacedBlocks); i++ {
+		// If current element is different from the last unique element,
+		// add it to the unique portion of the slice
+		if !bytes.Equal(d.DisplacedBlocks[i].Bytes(), d.DisplacedBlocks[j-1].Bytes()) {
+			d.DisplacedBlocks[j] = d.DisplacedBlocks[i]
+			j++
+		}
+	}
+
+	// Resize the slice to remove duplicates
+	d.DisplacedBlocks = d.DisplacedBlocks[:j]
+}
+
+// SortAndDedupDisplacedBlocks performs both unstable sorting and deduplication
+// of the DisplacedBlocks slice in a single method call.
+// This is equivalent to sort_unstable(); dedup(); in Rust.
+func (d *DisplacedLeavesAfterFinalization[H, N]) SortAndDedupDisplacedBlocks() {
+	// First sort the blocks
+	d.SortDisplacedBlocks()
+
+	// Then remove duplicates
+	d.DedupDisplacedBlocks()
+}
 
 // Represents the type of block gaps that may result from either warp sync or fast sync.
 type BlockGapType uint8
@@ -109,7 +171,7 @@ type Backend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]
 
 	// DisplacedLeavesAfterFinalizing returns displaced leaves after the given block would be finalized.
 	// The returned leaves do not contain the leaves from the same height as blockNumber.
-	DisplacedLeavesAfterFinalizing(blockNumber N) ([]Hash, error)
+	DisplacedLeavesAfterFinalizing(blockHash Hash, blockNumber N) (DisplacedLeavesAfterFinalization[Hash, N], error)
 
 	// Children returns hashes of all blocks that are children of the block with parentHash.
 	Children(parentHash Hash) ([]Hash, error)

@@ -9,10 +9,9 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	chainspec "github.com/ChainSafe/gossamer/internal/client/chain-spec"
-	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/executor"
+	genesisblock "github.com/ChainSafe/gossamer/internal/client/genesis-block"
 	"github.com/ChainSafe/gossamer/internal/log"
 	primitives_api "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
@@ -27,21 +26,23 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "client"))
 
+type BadBlocks[H runtime.Hash] map[H]struct{}
+
 type prepareStorageChangesResult interface {
 	isPrepareStorageChangesResult()
 }
 
 type (
-	storageChangesResultDiscard struct {
+	prepareStorageChangesResultDiscard struct {
 		common.ImportResult
 	}
-	storageChangesResultImport struct {
+	prepareStorageChangesResultImport struct {
 		common.StorageChanges
 	}
 )
 
-func (storageChangesResultDiscard) isPrepareStorageChangesResult() {}
-func (storageChangesResultImport) isPrepareStorageChangesResult()  {}
+func (prepareStorageChangesResultDiscard) isPrepareStorageChangesResult() {}
+func (prepareStorageChangesResultImport) isPrepareStorageChangesResult()  {}
 
 // Used in importing a block, where additional changes are made after the runtime executed.
 type PrePostHeaders[N runtime.Number, H runtime.Hash, Header runtime.Header[N, H]] interface {
@@ -63,12 +64,12 @@ type (
 func (pph PrePostHeadersSame[N, H, Header]) Post() Header      { return pph.Header }
 func (pph PrePostHeadersDifferent[N, H, Header]) Post() Header { return pph.PostHeader }
 
-// / Client configuration items.
+// Client configuration items.
 type ClientConfig[N runtime.Number] struct {
 	// Enable the offchain worker db.
 	OffchainWorkerEnabled bool
 	// If true, allows access from the runtime to write into offchain worker db.
-	OffchainIndexingApi bool
+	OffchainIndexingAPI bool
 	// Path where WASM files exist to override the on-chain WASM.
 	WasmRuntimeOverrides *string
 	// Skip writing genesis state on first start.
@@ -88,12 +89,7 @@ type Client[
 	E runtime.Extrinsic,
 	Executor ExecutorT,
 	Header runtime.Header[N, H],
-	RA primitives_api.ConstructRuntimeApi[
-		N, E, H, Hasher,
-		statemachine.Backend[H, Hasher],
-		any,
-		primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any],
-	],
+	RA primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any]],
 ] struct {
 	backend                         api.Backend[H, N, Hasher, Header, E]
 	executor                        Executor
@@ -132,11 +128,7 @@ func New[
 	E runtime.Extrinsic,
 	Executor ExecutorT,
 	Header runtime.Header[N, H],
-	RA primitives_api.ConstructRuntimeApi[N, E, H, Hasher,
-		statemachine.Backend[H, Hasher],
-		any,
-		primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any],
-	],
+	RA primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any]],
 ](
 	backend api.Backend[H, N, Hasher, Header, E],
 	config ClientConfig[N],
@@ -582,9 +574,11 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Block(hash H) (*generic.
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) BlockStatus(hash H) (
 	primivite_consensus_common.BlockStatus, error,
 ) {
+	c.importingBlockMtx.RLock()
 	if c.importingBlock != nil && *c.importingBlock == hash {
 		return primivite_consensus_common.BlockStatusQueued, nil
 	}
+	c.importingBlockMtx.RUnlock()
 
 	number, err := c.backend.Blockchain().Number(hash)
 	if err != nil {
@@ -630,9 +624,12 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Children(parent H) ([]H,
 	return c.backend.Blockchain().Children(parent)
 }
 
+// Note: This is an async function so the plan is to ensure we do call it in a goroutine
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) CheckBlock(block common.BlockCheckParams[H, N]) (
 	common.ImportResult, error,
 ) {
+	// Check the block against white and black lists if any are defined
+	// (i.e. fork blocks and bad blocks respectively)
 	switch lookupResult := c.blockRules.Lookup(block.Number, block.Hash).(type) {
 	case LookupResultKnownBad:
 		logger.Tracef("Rejecting known bad block: #%d %v", block.Number, block.Hash)
@@ -650,7 +647,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) CheckBlock(block common.
 	}
 
 	// Own status must be checked first. If the block and ancestry is pruned
-	// this function must return `AlreadyInChain` rather than `MissingState`
+	// this function must return [common.ImportResultAlreadyInChain] rather than [common.ImportResultMissingState]
 	blockStatus, err := c.BlockStatus(block.Hash)
 	if err != nil {
 		return nil, err
@@ -694,6 +691,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) CheckBlock(block common.
 	}, nil
 }
 
+// Note: This is an async function so the plan is to ensure we do call it in a goroutine
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) ImportBlock(
 	block *common.BlockImportParams[H, N, E, Header],
 ) (common.ImportResult, error) {
@@ -705,16 +703,16 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) ImportBlock(
 	var storageChanges common.StorageChanges
 
 	switch r := prepareStorageResult.(type) {
-	case storageChangesResultDiscard:
+	case prepareStorageChangesResultDiscard:
 		return r.ImportResult, nil
-	case storageChangesResultImport:
+	case prepareStorageChangesResultImport:
 		storageChanges = r.StorageChanges
 	}
 
 	importResult, err := c.LockImportRun(func(
 		clientImportOp *api.ClientImportOperation[H, Hasher, N, Header, E],
 	) (any, error) {
-		result, err := c.applyBlock(clientImportOp, block, storageChanges)
+		result, err := c.applyBlock(clientImportOp, *block, storageChanges)
 		return result, err
 	})
 
@@ -745,10 +743,10 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) prepareBlockStorageChang
 		switch action := stateAction.(type) {
 		case common.StateActionApplyChanges:
 			if _, ok := action.StorageChanges.(common.Changes[H, Hasher]); ok {
-				return storageChangesResultDiscard{common.ImportResultMissingState{}}, nil
+				return prepareStorageChangesResultDiscard{common.ImportResultMissingState{}}, nil
 			}
 		case common.StateActionExecute:
-			return storageChangesResultDiscard{common.ImportResultMissingState{}}, nil
+			return prepareStorageChangesResultDiscard{common.ImportResultMissingState{}}, nil
 		case common.StateActionExecuteIfPossible:
 			enactState = false
 			storageChanges = nil
@@ -757,7 +755,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) prepareBlockStorageChang
 		enactState = true
 		storageChanges = action.StorageChanges
 	} else if status == primivite_consensus_common.BlockStatusUnknown {
-		return storageChangesResultDiscard{common.ImportResultUnknownParent{}}, nil
+		return prepareStorageChangesResultDiscard{common.ImportResultUnknownParent{}}, nil
 	} else if _, ok := stateAction.(common.StateActionSkip); ok {
 		enactState = false
 		storageChanges = nil
@@ -789,7 +787,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) prepareBlockStorageChang
 			runtimeApi.RegisterExtension(recorder)
 		}
 
-		err := runtimeApi.ExecuteBlock(parentHash, generic.NewBlock[Hasher](importBlock.Header, *importBlock.Body))
+		err := runtimeApi.ExecuteBlock(parentHash, generic.NewBlock[Hasher](importBlock.Header, importBlock.Body))
 		if err != nil {
 			return nil, err
 		}
@@ -817,12 +815,12 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) prepareBlockStorageChang
 		storageChangesToApply = nil
 	}
 
-	return storageChangesResultImport{storageChangesToApply}, nil
+	return prepareStorageChangesResultImport{storageChangesToApply}, nil
 }
 
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyBlock(
 	operation *api.ClientImportOperation[H, Hasher, N, Header, E],
-	importBlock *common.BlockImportParams[H, N, E, Header],
+	importBlock common.BlockImportParams[H, N, E, Header],
 	storageChanges common.StorageChanges,
 ) (common.ImportResult, error) {
 	if len(importBlock.Intermediates) > 0 {
@@ -861,7 +859,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyBlock(
 		importBlock.Justifications,
 		importBlock.Body,
 		importBlock.IndexedBody,
-		&storageChanges,
+		storageChanges,
 		importBlock.Finalized,
 		importBlock.Auxiliary,
 		importBlock.ForkChoice,
@@ -880,13 +878,13 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyBlock(
 //gocyclo:ignore
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 	operation *api.ClientImportOperation[H, Hasher, N, Header, E],
-	origin consensus.BlockOrigin,
+	origin primivite_consensus_common.BlockOrigin,
 	hash H,
 	importHeaders PrePostHeaders[N, H, Header],
-	justifications *runtime.Justifications,
-	body *[]E,
-	indexedBody *[][]byte,
-	storageChanges *common.StorageChanges,
+	justifications runtime.Justifications,
+	body []E,
+	indexedBody [][]byte,
+	storageChanges common.StorageChanges,
 	finalized bool,
 	aux api.AuxDataOperations,
 	forkchoice common.ForkChoiceStrategy,
@@ -921,21 +919,21 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 	// this is a fairly arbitrary choice of where to draw the line on making notifications,
 	// but the general goal is to only make notifications when we are already fully synced
 	// and get a new chain head.
-	makeNotifications := origin == consensus.NetworkBroadcastBlockOrigin ||
-		origin == consensus.OwnBlockOrigin ||
-		origin == consensus.ConsensusBroadcastBlockOrigin
+	makeNotifications := origin == primivite_consensus_common.NetworkBroadcastBlockOrigin ||
+		origin == primivite_consensus_common.OwnBlockOrigin ||
+		origin == primivite_consensus_common.ConsensusBroadcastBlockOrigin
 
 	var finalStorageChanges *api.StorageChanges
 
 	if storageChanges != nil {
-		switch sc := (*storageChanges).(type) {
+		switch sc := (storageChanges).(type) {
 		case common.Changes[H, Hasher]:
 			err := c.backend.BeginStateOperation(operation.Op, parentHash)
 			if err != nil {
 				return nil, err
 			}
 
-			if c.config.OffchainIndexingApi {
+			if c.config.OffchainIndexingAPI {
 				err := operation.Op.UpdateOffchainStorage(sc.OffchainStorageChanges)
 				if err != nil {
 					return nil, err
@@ -975,7 +973,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 						if childType := storage.NewChildTypeFromPrefixedKey(prefixedStorageKey); childType != nil {
 							storageKey = childType.Key
 						} else {
-							return nil, blockchain.ErrInvalidChildStorageKey
+							return nil, fmt.Errorf("%w: Invalid child storage key", blockchain.ErrBackend)
 						}
 
 						entry, has := strg.ChildrenDefault[string(storageKey)]
@@ -994,7 +992,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 
 					// This is use by fast sync for runtime version to be resolvable from
 					// changes.
-					stateVersion, err := chainspec.ResolveStateVersionFromWasm[Hasher](strg, c.executor)
+					stateVersion, err := genesisblock.ResolveStateVersionFromWasm[Hasher](strg, c.executor)
 					if err != nil {
 						return nil, err
 					}
@@ -1017,7 +1015,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 
 	// Ensure parent chain is finalized to maintain invariant that finality is called sequentially.
 	if finalized && parentExists && info.FinalizedHash != parentHash {
-		_, err := c.applyFinalityWithBlockHash(operation, parentHash, nil, info, makeNotifications)
+		err := c.applyFinalityWithBlockHash(operation, parentHash, nil, info, makeNotifications)
 		if err != nil {
 			return nil, err
 		}
@@ -1066,9 +1064,9 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 
 	err = operation.Op.SetBlockData(
 		importHeaders.Post().Clone().(Header),
-		*body,
-		*indexedBody,
-		*justifications,
+		body,
+		indexedBody,
+		justifications,
 		leafState,
 	)
 
@@ -1100,11 +1098,10 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 					StaleHeads: []H{},
 				}
 			} else {
-				operation.NotifyFinalized.Header = header.Clone().(Header)
-				operation.NotifyFinalized.Finalized = append(operation.NotifyFinalized.Finalized, parentHash)
 				summary = *operation.NotifyFinalized
-
 				operation.NotifyFinalized = nil
+				summary.Header = header.Clone().(Header)
+				summary.Finalized = append(summary.Finalized, parentHash)
 			}
 
 			if parentExists {
@@ -1129,7 +1126,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 				}
 			}
 
-			*operation.NotifyFinalized = summary
+			operation.NotifyFinalized = &summary
 		}
 
 		var importNotificationAction api.ImportNotificationAction
@@ -1160,12 +1157,126 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyFinalityWithBlockHash(
 	operation *api.ClientImportOperation[H, Hasher, N, Header, E],
-	parentHash H,
-	justifications *runtime.Justifications,
+	hash H,
+	justification *runtime.Justification,
 	info blockchain.Info[H, N],
-	makeNotifications bool,
-) (common.ImportResult, error) {
-	panic("not implemented")
+	notify bool,
+) error {
+	if hash == info.FinalizedHash {
+		logger.Warnf(
+			"Possible safety violation: attempted to re-finalize last finalized block %v",
+			hash,
+		)
+		return nil
+	}
+
+	// Find tree route from last finalized to given block.
+	routeFromFinalized, err := blockchain.NewTreeRoute(c.backend.Blockchain(), info.FinalizedHash, hash)
+	if err != nil {
+		return err
+	}
+
+	if len(routeFromFinalized.Retracted()) > 0 {
+		retracted := routeFromFinalized.Retracted()[0]
+
+		logger.Warnf("Safety violation: attempted to revert finalized block %v "+
+			"which is not in the same chain as last finalized %v",
+			retracted, info.FinalizedHash)
+
+		return blockchain.ErrNotInFinalizedChain
+	}
+
+	// We may need to coercively update the best block if there is more than one
+	// leaf or if the finalized block number is greater than last best number recorded
+	// by the backend. This last condition may apply in case of consensus implementations
+	// not always checking this condition.
+	blockNumber, err := c.backend.Blockchain().Number(hash)
+	if err != nil {
+		return fmt.Errorf("failed to get header for hash %v", hash)
+	}
+
+	leaves, err := c.backend.Blockchain().Leaves()
+	if err != nil {
+		return err
+	}
+
+	if len(leaves) > 1 || info.BestNumber < *blockNumber {
+		routeFromBest, err := blockchain.NewTreeRoute(c.backend.Blockchain(), info.BestHash, hash)
+		if err != nil {
+			return err
+		}
+
+		// If the block is not a direct ancestor of the current best chain,
+		// then some other block is the common ancestor.
+		if routeFromBest.CommonBlock().Hash != hash {
+			// NOTE: we're setting the finalized block as best block, this might
+			// be slightly inaccurate since we might have a "better" block
+			// further along this chain, but since best chain selection logic is
+			// plugable we cannot make a better choice here. usages that need
+			// an accurate "best" block need to go through `SelectChain`
+			// instead.
+			if err := operation.Op.MarkHead(hash); err != nil {
+				return err
+			}
+		}
+	}
+
+	enacted := routeFromFinalized.Enacted()
+	if len(enacted) == 0 {
+		panic("no enacted blocks")
+	}
+
+	for _, finalizeNew := range enacted[:len(enacted)-1] {
+		if err := operation.Op.MarkFinalized(finalizeNew.Hash, nil); err != nil {
+			return err
+		}
+	}
+
+	if enacted[len(enacted)-1].Hash != hash {
+		panic("finalized block is not the last enacted block")
+	}
+	if err := operation.Op.MarkFinalized(hash, justification); err != nil {
+		return err
+	}
+
+	if notify {
+		var finalized []H
+		for _, elem := range routeFromFinalized.Enacted() {
+			finalized = append(finalized, elem.Hash)
+		}
+
+		lastFinalized := routeFromFinalized.Last()
+
+		if lastFinalized == nil {
+			panic("the block to finalize is always the latest block in the route to the finalized block; qed")
+		}
+
+		blockNumber := lastFinalized.Number
+
+		// The stale heads are the leaves that will be displaced after the
+		// block is finalized.
+		var staleHeads []H
+		displacedLeaves, err := c.backend.Blockchain().DisplacedLeavesAfterFinalizing(hash, blockNumber)
+		if err != nil {
+			return err
+		}
+
+		staleHeads = displacedLeaves.Hashes()
+
+		header, err := c.backend.Blockchain().Header(hash)
+		if err != nil {
+			return err
+		}
+
+		operation.NotifyFinalized = &api.FinalizeSummary[H, N, Header]{
+			Header:     *header,
+			Finalized:  finalized,
+			StaleHeads: staleHeads,
+		}
+
+	}
+
+	return nil
 }
 
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) RuntimeApi() primitives_api.ApiExt[

@@ -38,18 +38,10 @@ type TestClient struct {
 		runtime.OpaqueExtrinsic,
 		ExecutorT,
 		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
-		primitives_api.ConstructRuntimeApi[
-			uint64,
-			runtime.OpaqueExtrinsic,
-			hash.H256,
-			runtime.BlakeTwo256,
-			statemachine.Backend[hash.H256, runtime.BlakeTwo256],
-			any,
-			primitives_api.ApiExt[
-				uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
-				statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
-			],
-		],
+		primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
+			uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
+			statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
+		]],
 	]
 }
 
@@ -71,18 +63,10 @@ var (
 		runtime.OpaqueExtrinsic,
 		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
 	] = &TestClient{}
-	_ primitives_api.ProvideRuntimeApi[
-		uint64,
-		runtime.OpaqueExtrinsic,
-		hash.H256,
-		runtime.BlakeTwo256,
-		statemachine.Backend[hash.H256, runtime.BlakeTwo256],
-		any,
-		primitives_api.ApiExt[
-			uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
-			statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
-		],
-	] = &TestClient{}
+	_ primitives_api.ProvideRuntimeApi[primitives_api.ApiExt[
+		uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
+		statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
+	]] = &TestClient{}
 )
 
 type TestExecutor struct{}
@@ -122,18 +106,10 @@ func (e *RuntimeConstructor) ConstructRuntimeApi() primitives_api.ApiExt[
 	panic("not implemented")
 }
 
-func NewRuntimeConstructor(t *testing.T) primitives_api.ConstructRuntimeApi[
-	uint64,
-	runtime.OpaqueExtrinsic,
-	hash.H256,
-	runtime.BlakeTwo256,
-	statemachine.Backend[hash.H256, runtime.BlakeTwo256],
-	any,
-	primitives_api.ApiExt[
-		uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
-		statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
-	],
-] {
+func NewRuntimeConstructor(t *testing.T) primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
+	uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
+	statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
+]] {
 	t.Helper()
 	return &RuntimeConstructor{}
 }
@@ -189,18 +165,10 @@ func newTestClient(t *testing.T) *Client[
 	runtime.OpaqueExtrinsic,
 	ExecutorT,
 	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
-	primitives_api.ConstructRuntimeApi[
-		uint64,
-		runtime.OpaqueExtrinsic,
-		hash.H256,
-		runtime.BlakeTwo256,
-		statemachine.Backend[hash.H256, runtime.BlakeTwo256],
-		any,
-		primitives_api.ApiExt[
-			uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
-			statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
-		],
-	],
+	primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
+		uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
+		statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
+	]],
 ] {
 	return New(
 		NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0),
@@ -900,7 +868,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultDiscard{common.ImportResultMissingState{}}, result)
+		require.Equal(t, prepareStorageChangesResultDiscard{common.ImportResultMissingState{}}, result)
 	})
 
 	t.Run("unknown_parent_discard", func(t *testing.T) {
@@ -931,7 +899,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultDiscard{common.ImportResultUnknownParent{}}, result)
+		require.Equal(t, prepareStorageChangesResultDiscard{common.ImportResultUnknownParent{}}, result)
 	})
 
 	t.Run("execute_with_parent_pruned", func(t *testing.T) {
@@ -964,7 +932,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultDiscard{common.ImportResultMissingState{}}, result)
+		require.Equal(t, prepareStorageChangesResultDiscard{common.ImportResultMissingState{}}, result)
 	})
 
 	t.Run("parent_pruned_execute_if_possible", func(t *testing.T) {
@@ -997,7 +965,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultImport{StorageChanges: nil}, result)
+		require.Equal(t, prepareStorageChangesResultImport{StorageChanges: nil}, result)
 	})
 
 	t.Run("apply_changes", func(t *testing.T) {
@@ -1034,7 +1002,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultImport{StorageChanges: storageChanges}, result)
+		require.Equal(t, prepareStorageChangesResultImport{StorageChanges: storageChanges}, result)
 	})
 
 	t.Run("action_skip", func(t *testing.T) {
@@ -1067,7 +1035,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultImport{StorageChanges: nil}, result)
+		require.Equal(t, prepareStorageChangesResultImport{StorageChanges: nil}, result)
 	})
 
 	t.Run("action_execute_withouth_body", func(t *testing.T) {
@@ -1100,7 +1068,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultImport{StorageChanges: nil}, result)
+		require.Equal(t, prepareStorageChangesResultImport{StorageChanges: nil}, result)
 	})
 
 	t.Run("action_execute_if_possible_withouth_body", func(t *testing.T) {
@@ -1133,7 +1101,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, storageChangesResultImport{StorageChanges: nil}, result)
+		require.Equal(t, prepareStorageChangesResultImport{StorageChanges: nil}, result)
 	})
 
 	t.Run("action_execute_with_body", func(t *testing.T) {
@@ -1147,7 +1115,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 				runtime.Digest{},
 			),
 			StateAction: common.StateActionExecute{},
-			Body: &[]runtime.OpaqueExtrinsic{
+			Body: []runtime.OpaqueExtrinsic{
 				{
 					Data: []byte{1, 2, 3},
 				},
@@ -1186,7 +1154,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		runtimeApi.EXPECT().SetCallContext(core.CallContextOnchain).Return()
 		runtimeApi.EXPECT().RegisterExtension(recorder).Return()
 
-		blockInstance := generic.NewBlock[runtime.BlakeTwo256](block.Header, *block.Body)
+		blockInstance := generic.NewBlock[runtime.BlakeTwo256](block.Header, block.Body)
 		runtimeApi.EXPECT().ExecuteBlock(block.Header.ParentHash(), blockInstance).Return(nil)
 
 		state := &statemachine.TrieBackend[hash.H256, runtime.BlakeTwo256]{}
@@ -1210,7 +1178,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		require.Equal(
 			t,
-			storageChangesResultImport{
+			prepareStorageChangesResultImport{
 				StorageChanges: common.Changes[hash.H256, runtime.BlakeTwo256](storageChanges),
 			},
 			result,

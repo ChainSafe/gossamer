@@ -6,8 +6,8 @@ package api
 import (
 	"sync"
 
-	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
@@ -42,11 +42,11 @@ type ImportSummary[
 	N runtime.Number,
 	Header runtime.Header[N, H],
 ] struct {
-	Hash           H                     // Block hash of the imported block.
-	Origin         consensus.BlockOrigin // Import origin.
-	Header         Header                // Header of the imported block.
-	IsNewBest      bool                  // Is this block a new best block.
-	StorageChanges *StorageChanges       // Optional storage changes.
+	Hash           H                  // Block hash of the imported block.
+	Origin         common.BlockOrigin // Import origin.
+	Header         Header             // Header of the imported block.
+	IsNewBest      bool               // Is this block a new best block.
+	StorageChanges *StorageChanges    // Optional storage changes.
 	// TreeRoute from old best to new best.
 	// If nil, there was no re-org while importing.
 	TreeRoute                *blockchain.TreeRoute[H, N]

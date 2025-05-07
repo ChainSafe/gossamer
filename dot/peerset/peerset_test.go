@@ -154,7 +154,7 @@ func TestPeerSetIncoming(t *testing.T) {
 
 	for _, tt := range incomingPeers {
 
-		// all the incoming peers are unknow before calling the Incoming method
+		// all the incoming peers are unknown before calling the Incoming method
 		status := ps.peerState.peerStatus(testSetID, tt.pid)
 		require.Equal(t, unknownPeer, status)
 

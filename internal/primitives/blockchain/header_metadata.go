@@ -196,6 +196,13 @@ func (tr TreeRoute[H, N]) CommonBlock() HashNumber[H, N] {
 	return tr.Route[tr.Pivot]
 }
 
+func (tr TreeRoute[H, N]) Last() *HashNumber[H, N] {
+	if len(tr.Route) == 0 {
+		return nil
+	}
+	return &tr.Route[len(tr.Route)-1]
+}
+
 // Get a slice of enacted blocks (descendents of the common ancestor)
 func (tr TreeRoute[H, N]) Enacted() []HashNumber[H, N] {
 	return tr.Route[tr.Pivot+1:]

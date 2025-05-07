@@ -46,7 +46,7 @@ func TestStartService(t *testing.T) {
 	require.NoError(t, node.Stop())
 }
 
-// test broacast messages from core service
+// test broadcast messages from core service
 func TestBroadcastMessages(t *testing.T) {
 	t.Parallel()
 

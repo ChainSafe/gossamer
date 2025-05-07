@@ -5,7 +5,7 @@ package common
 
 import (
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	"github.com/ChainSafe/gossamer/internal/client/consensus"
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
@@ -134,7 +134,7 @@ func (Custom) isForkChoiceStrategy()       {}
 // Data required to import a Block.
 type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
 	// Origin of the Block
-	Origin consensus.BlockOrigin
+	Origin common.BlockOrigin
 	// The header, without consensus post-digests applied. This should be in the same
 	// state as it comes out of the runtime.
 	//
@@ -148,14 +148,14 @@ type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, He
 	// post-runtime digests are pushed back on after.
 	Header Header
 	// Justification(s) provided for this block from the outside.
-	Justifications *runtime.Justifications
+	Justifications runtime.Justifications
 	// Digest items that have been added after the runtime for external
 	// work, like a consensus signature.
 	PostDigests []runtime.DigestItem
 	// The body of the block.
-	Body *[]E
+	Body []E
 	// Indexed transaction body of the block.
-	IndexedBody *[][]byte
+	IndexedBody [][]byte
 	// Specify how the new state is computed.
 	StateAction StateAction
 	// Is this block finalized already?

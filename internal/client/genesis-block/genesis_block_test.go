@@ -1,12 +1,11 @@
 // Copyright 2025 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package chainspec
+package genesisblock
 
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/internal/client/executor"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -20,7 +19,6 @@ import (
 
 type Hasher = runtime.BlakeTwo256
 type Hash = hash.H256
-type Executor = executor.RuntimeVersionOf
 
 func TestResolveStateVersionFromWasmOk(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -37,7 +35,7 @@ func TestResolveStateVersionFromWasmOk(t *testing.T) {
 		SystemVersion: 1,
 	}, nil)
 
-	stateVersion, err := ResolveStateVersionFromWasm[Hasher, Hash, Executor](storage, executorMock)
+	stateVersion, err := ResolveStateVersionFromWasm[Hasher](storage, executorMock)
 
 	require.NoError(t, err)
 	require.Equal(t, primitives_storage.StateVersionV1, stateVersion)
@@ -50,10 +48,10 @@ func TestResolveStateVersionFromWasmMissingCode(t *testing.T) {
 		Top: storagetTopData,
 	}
 
-	stateVersion, err := ResolveStateVersionFromWasm[Hasher, Hash, Executor](storage, nil)
+	stateVersion, err := ResolveStateVersionFromWasm[Hasher](storage, nil)
 
-	require.ErrorIs(t, err, ErrMissingRuntime)
-	require.Equal(t, primitives_storage.NoStateVersion, stateVersion)
+	require.ErrorIs(t, err, blockchain.ErrVersionInvalid)
+	require.Equal(t, primitives_storage.DefaultStateVersion, stateVersion)
 }
 
 func TestResolveStateVersionFromWasmInvalidRuntimeVersion(t *testing.T) {
@@ -71,8 +69,8 @@ func TestResolveStateVersionFromWasmInvalidRuntimeVersion(t *testing.T) {
 		SystemVersion: 1,
 	}, blockchain.ErrVersionInvalid)
 
-	stateVersion, err := ResolveStateVersionFromWasm[Hasher, Hash, Executor](storage, executorMock)
+	stateVersion, err := ResolveStateVersionFromWasm[Hasher](storage, executorMock)
 
 	require.ErrorIs(t, err, blockchain.ErrVersionInvalid)
-	require.Equal(t, primitives_storage.NoStateVersion, stateVersion)
+	require.Equal(t, primitives_storage.DefaultStateVersion, stateVersion)
 }

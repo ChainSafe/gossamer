@@ -1,7 +1,7 @@
 // Copyright 2025 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package chainspec
+package genesisblock
 
 import (
 	"errors"
@@ -18,13 +18,13 @@ import (
 
 var ErrMissingRuntime = errors.New("runtime missing from initial storage, could not read state version")
 
-func ResolveStateVersionFromWasm[Hasher runtime.Hasher[H], H runtime.Hash, E executor.RuntimeVersionOf](
+func ResolveStateVersionFromWasm[Hasher runtime.Hasher[H], H runtime.Hash](
 	storage primitives_storage.Storage,
-	executor E,
+	executor executor.RuntimeVersionOf,
 ) (primitives_storage.StateVersion, error) {
 	wasm, has := storage.Top.Get(string(keys.Code))
 	if !has {
-		return primitives_storage.NoStateVersion, ErrMissingRuntime
+		return primitives_storage.DefaultStateVersion, blockchain.ErrVersionInvalid
 	}
 
 	ext := basic.NewEmptyBasicExternalities() // Just to read runtime version
@@ -39,7 +39,7 @@ func ResolveStateVersionFromWasm[Hasher runtime.Hasher[H], H runtime.Hash, E exe
 
 	runtimeVersion, err := executor.RuntimeVersion(ext, runtimeCode)
 	if err != nil {
-		return primitives_storage.NoStateVersion, blockchain.ErrVersionInvalid
+		return primitives_storage.DefaultStateVersion, blockchain.ErrVersionInvalid
 	}
 
 	return runtimeVersion.StateVersion(), nil

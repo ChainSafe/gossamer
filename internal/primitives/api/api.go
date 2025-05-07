@@ -12,15 +12,8 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/recorder"
 )
 
-type ProvideRuntimeApi[
-	N runtime.Number,
-	E runtime.Extrinsic,
-	H runtime.Hash,
-	Hasher runtime.Hasher[H],
-	Backend statemachine.Backend[H, Hasher],
-	Result any,
-	Api ApiExt[N, E, H, Hasher, Backend, Result],
-] interface {
+// Something that provides a runtime api.
+type ProvideRuntimeApi[Api any] interface {
 	// Returns the runtime api.
 	// The returned instance will keep track of modifications to the storage. Any successful
 	// call to an api function, will `commit` its changes to an internal buffer. Otherwise,
@@ -29,15 +22,8 @@ type ProvideRuntimeApi[
 	RuntimeApi() Api
 }
 
-type ConstructRuntimeApi[
-	N runtime.Number,
-	E runtime.Extrinsic,
-	H runtime.Hash,
-	Hasher runtime.Hasher[H],
-	Backend statemachine.Backend[H, Hasher],
-	Result any,
-	RuntimeApi ApiExt[N, E, H, Hasher, Backend, Result],
-] interface {
+// Something that can be constructed to a runtime api.
+type ConstructRuntimeApi[RuntimeApi any] interface {
 	// Construct an instance of the runtime api.
 	ConstructRuntimeApi() RuntimeApi
 }
@@ -45,6 +31,7 @@ type ConstructRuntimeApi[
 // A type that records all accessed trie nodes and generates a proof out of it.
 type ProofRecorder[H runtime.Hash] recorder.Recorder[H]
 
+// Extends the runtime api implementation with some common functionality.
 type ApiExt[
 	N runtime.Number,
 	E runtime.Extrinsic,
@@ -58,11 +45,11 @@ type ApiExt[
 	// The internal result of the closure is returned afterwards.
 	ExecuteInTransaction(call func(api ApiExt[N, E, H, Hasher, Backend, Result]) runtime.TransactionOutcome[Result]) Result
 	// Checks if the given api is implemented and versions match.
-	HasApi(atHash H) (bool, error)
+	HasAPI(atHash H) (bool, error)
 	// Check if the given api is implemented and the version passes a predicate.
-	HasApiWith(atHash H, pred func(uint32) bool) (bool, error)
+	HasAPIWith(atHash H, pred func(uint32) bool) (bool, error)
 	// Returns the version of the given api.
-	ApiVersion(atHash H) (*uint32, error)
+	APIVersion(atHash H) (*uint32, error)
 	// Start recording all accessed trie nodes for generating proofs.
 	RecordProof()
 	// Extract the recorded proof.
