@@ -249,3 +249,81 @@ func (bv *BitVec) Mask(mask BitVec) {
 		_ = bv.Set(uint(i), value && !m) // oob is impossible
 	}
 }
+
+// Clone returns a deep copy of the BitVec.
+func (bv *BitVec) Clone() BitVec {
+	return BitVec{
+		bits: append([]byte{}, bv.bits...),
+		len:  bv.len,
+	}
+}
+
+// Contains checks if this BitVec contains the other BitVec as a contiguous subsequence.
+// It returns true if the pattern represented by other appears anywhere within this BitVec.
+// For example:
+//
+//	BitVec{0,0,1,0,1,1,0,0}.Contains(BitVec{0,1,1,0}) == true
+//	BitVec{0,0,1,0,1,1,0,0}.Contains(BitVec{1,0,0,1}) == false
+func (bv *BitVec) Contains(other BitVec) bool {
+	// If other is empty, it's contained in any BitVec
+	if other.Len() == 0 {
+		return true
+	}
+
+	// If other is longer than bv, it can't be contained
+	if other.Len() > bv.Len() {
+		return false
+	}
+
+	thisBits := bv.Bits()
+	otherBits := other.Bits()
+
+	// Check each possible starting position in bv
+	for i := 0; i <= bv.Len()-other.Len(); i++ {
+		match := true
+
+		// Check if other matches at this position
+		for j := 0; j < other.Len(); j++ {
+			if thisBits[i+j] != otherBits[j] {
+				match = false
+				break
+			}
+		}
+
+		if match {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Or performs a bitwise OR operation with another BitVec.
+// It returns a new BitVec where a bit is set if it's set in either this BitVec or the other BitVec.
+// If the BitVecs have different lengths, the result will have the length of the longer BitVec,
+// and the shorter one will be treated as if padded with zeroes.
+func (bv *BitVec) Or(other BitVec) (BitVec, error) {
+	resultLen := max(bv.Len(), other.Len())
+	resultBits := make([]bool, resultLen)
+
+	thisBits := bv.Bits()
+	otherBits := other.Bits()
+
+	for i := 0; i < resultLen; i++ {
+		// For indices beyond the length of either BitVec, treat as if padded with zeroes
+		thisBit := false
+		if i < len(thisBits) {
+			thisBit = thisBits[i]
+		}
+
+		otherBit := false
+		if i < len(otherBits) {
+			otherBit = otherBits[i]
+		}
+
+		// Set the result bit if either bit is set
+		resultBits[i] = thisBit || otherBit
+	}
+
+	return NewBitVec(resultBits)
+}

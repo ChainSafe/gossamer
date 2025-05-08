@@ -80,3 +80,11 @@ func (s *StatementFilter) MaskSeconded(mask parachaintypes.BitVec) {
 func (s *StatementFilter) MaskValid(mask parachaintypes.BitVec) {
 	s.validatedInGroup.Mask(mask)
 }
+
+// Clone returns a deep copy of the statement filter.
+func (s *StatementFilter) Clone() StatementFilter {
+	return StatementFilter{
+		secondedInGroup:  s.secondedInGroup.Clone(),
+		validatedInGroup: s.validatedInGroup.Clone(),
+	}
+}
