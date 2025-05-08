@@ -7,18 +7,23 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/client/db"
+	"github.com/ChainSafe/gossamer/internal/client/db/offchain"
 	"github.com/ChainSafe/gossamer/internal/client/mocks"
 	statedb "github.com/ChainSafe/gossamer/internal/client/state-db"
 	memorykvdb "github.com/ChainSafe/gossamer/internal/kvdb/memory-kvdb"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	offchainapi "github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -519,4 +524,81 @@ func TestBlockBackendImplementation(t *testing.T) {
 	requiresFullSync := c.RequiresFullSync()
 	require.NoError(t, err)
 	require.True(t, requiresFullSync)
+}
+
+func TestCompareAndSetBlockData(t *testing.T) {
+	setup := func(t *testing.T) (
+		*Client[
+			hash.H256,
+			runtime.BlakeTwo256,
+			uint64,
+			runtime.OpaqueExtrinsic,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+		],
+		offchainapi.OffchainStorage,
+	) {
+		kvdb := memorykvdb.New(13)
+		dbase := database.NewDBAdapter[hash.H256](kvdb)
+		ocStorage := offchain.NewLocalStorage(dbase)
+
+		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+			runtime.OpaqueExtrinsic](t)
+
+		backendMock.EXPECT().OffchainStorage().Return(ocStorage)
+
+		return New(backendMock), ocStorage
+	}
+
+	r := []byte("test_receipt")
+	m := []byte("test_message_queue")
+
+	t.Run("no_receipt_and_message_queue", func(t *testing.T) {
+		client, ocStorage := setup(t)
+
+		blockHash := common.NewHash([]byte{0})
+
+		bd := &types.BlockData{
+			Hash:          blockHash,
+			Header:        nil,
+			Body:          nil,
+			Receipt:       &r,
+			MessageQueue:  &m,
+			Justification: nil,
+		}
+
+		require.Nil(t, ocStorage.Get(state.ReceiptPrefix, blockHash[:]))
+		require.Nil(t, ocStorage.Get(state.MessageQueuePrefix, blockHash[:]))
+
+		err := client.CompareAndSetBlockData(bd)
+		require.NoError(t, err)
+
+		require.Equal(t, r, ocStorage.Get(state.ReceiptPrefix, blockHash[:]))
+		require.Equal(t, m, ocStorage.Get(state.MessageQueuePrefix, blockHash[:]))
+	})
+
+	t.Run("no_receipt_or_message_queue", func(t *testing.T) {
+		client, ocStorage := setup(t)
+
+		blockHash := common.NewHash([]byte{0})
+
+		bd := &types.BlockData{
+			Hash:          blockHash,
+			Header:        nil,
+			Body:          nil,
+			Receipt:       nil,
+			MessageQueue:  nil,
+			Justification: nil,
+		}
+
+		// to check that existing values are not overwritten with nil
+		ocStorage.Set(state.ReceiptPrefix, blockHash[:], r)
+		ocStorage.Set(state.MessageQueuePrefix, blockHash[:], m)
+
+		err := client.CompareAndSetBlockData(bd)
+		require.NoError(t, err)
+
+		require.Equal(t, r, ocStorage.Get(state.ReceiptPrefix, blockHash[:]))
+		require.Equal(t, m, ocStorage.Get(state.MessageQueuePrefix, blockHash[:]))
+	})
 }

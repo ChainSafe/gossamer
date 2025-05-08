@@ -8,10 +8,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
-	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
@@ -421,9 +422,21 @@ func (c *Client[H, Hasher, N, E, Header]) StorageChangesNotificationStream(
 	return c.storageNotifications.Listen(filterKeys, childFilterKeys)
 }
 
-// OffchainStorage returns the offchain storage implementation of the underlying backend.
-func (c *Client[H, Hasher, N, E, Header]) OffchainStorage() offchain.OffchainStorage {
-	return c.backend.OffchainStorage()
+func (c *Client[H, Hasher, N, E, Header]) CompareAndSetBlockData(bd *types.BlockData) error {
+	storage := c.backend.OffchainStorage()
+	hash := bd.Hash[:]
+
+	if bd.Receipt != nil {
+		oldReceipt := storage.Get(state.ReceiptPrefix, hash)
+		_ = storage.CompareAndSet(state.ReceiptPrefix, hash, oldReceipt, *bd.Receipt)
+	}
+
+	if bd.MessageQueue != nil {
+		oldMessageQueue := storage.Get(state.MessageQueuePrefix, hash)
+		_ = storage.CompareAndSet(state.MessageQueuePrefix, hash, oldMessageQueue, *bd.MessageQueue)
+	}
+
+	return nil
 }
 
 // HeaderBackend implementation for Client

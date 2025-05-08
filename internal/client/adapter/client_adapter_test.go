@@ -10,12 +10,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/client/adapter/mocks"
-	"github.com/ChainSafe/gossamer/internal/client/db/offchain"
-	memorykvdb "github.com/ChainSafe/gossamer/internal/kvdb/memory-kvdb"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
-	offchainapi "github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
-	"github.com/ChainSafe/gossamer/internal/primitives/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -713,74 +709,5 @@ func TestHasJustification(t *testing.T) {
 		has, err := adapter.HasJustification(common.NewHashFromGeneric(blockHash))
 		require.NoError(t, err)
 		require.True(t, has)
-	})
-}
-
-func TestCompareAndSetBlockData(t *testing.T) {
-	setup := func() (
-		*ClientAdapter[Hash, Hasher, Number, Extrinsic, Header],
-		offchainapi.OffchainStorage,
-	) {
-		client, _, adapter := setupTest(t)
-
-		kvdb := memorykvdb.New(13)
-		db := database.NewDBAdapter[hash.H256](kvdb)
-		storage := offchain.NewLocalStorage(db)
-
-		client.EXPECT().OffchainStorage().Return(storage)
-
-		return adapter, storage
-	}
-
-	r := []byte("test_receipt")
-	m := []byte("test_message_queue")
-
-	t.Run("no_receipt_and_message_queue", func(t *testing.T) {
-		adapter, storage := setup()
-
-		blockHash := common.NewHash([]byte{0})
-
-		bd := &types.BlockData{
-			Hash:          blockHash,
-			Header:        nil,
-			Body:          nil,
-			Receipt:       &r,
-			MessageQueue:  &m,
-			Justification: nil,
-		}
-
-		require.Nil(t, storage.Get(state.ReceiptPrefix, blockHash[:]))
-		require.Nil(t, storage.Get(state.MessageQueuePrefix, blockHash[:]))
-
-		err := adapter.CompareAndSetBlockData(bd)
-		require.NoError(t, err)
-
-		require.Equal(t, r, storage.Get(state.ReceiptPrefix, blockHash[:]))
-		require.Equal(t, m, storage.Get(state.MessageQueuePrefix, blockHash[:]))
-	})
-
-	t.Run("no_receipt_or_message_queue", func(t *testing.T) {
-		adapter, storage := setup()
-
-		blockHash := common.NewHash([]byte{0})
-
-		bd := &types.BlockData{
-			Hash:          blockHash,
-			Header:        nil,
-			Body:          nil,
-			Receipt:       nil,
-			MessageQueue:  nil,
-			Justification: nil,
-		}
-
-		// to check that existing values are not overwritten with nil
-		storage.Set(state.ReceiptPrefix, blockHash[:], r)
-		storage.Set(state.MessageQueuePrefix, blockHash[:], m)
-
-		err := adapter.CompareAndSetBlockData(bd)
-		require.NoError(t, err)
-
-		require.Equal(t, r, storage.Get(state.ReceiptPrefix, blockHash[:]))
-		require.Equal(t, m, storage.Get(state.MessageQueuePrefix, blockHash[:]))
 	})
 }
