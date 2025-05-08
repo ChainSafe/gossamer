@@ -3,8 +3,6 @@ package test
 import (
 	"github.com/ChainSafe/gossamer/internal/client"
 	"github.com/ChainSafe/gossamer/internal/client/network/common/sync"
-	"github.com/ChainSafe/gossamer/internal/primitives/api"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/test-utils/runtime"
 	testruntimeclient "github.com/ChainSafe/gossamer/internal/test-utils/runtime/client"
@@ -19,10 +17,7 @@ import (
 //
 // >;
 type PeersFullClient = client.Client[
-	runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, client.ExecutorT, runtime.Header, api.ConstructRuntimeApi[api.ApiExt[
-		runtime.BlockNumber, runtime.Extrinsic, runtime.Hash, runtime.Hasher,
-		statemachine.Backend[runtime.Hash, runtime.Hasher], any,
-	]],
+	runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header,
 ]
 
 // #[derive(Clone)]
