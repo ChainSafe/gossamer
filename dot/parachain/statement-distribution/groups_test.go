@@ -16,7 +16,7 @@ func TestNewGroups(t *testing.T) {
 	t.Run("empty_groups", func(t *testing.T) {
 		t.Parallel()
 
-		emptyGroups := [][]parachaintypes.ValidatorIndex{}
+		var emptyGroups [][]parachaintypes.ValidatorIndex
 
 		g := newGroups(emptyGroups, 2)
 
