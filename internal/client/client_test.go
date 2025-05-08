@@ -36,12 +36,7 @@ type TestClient struct {
 		runtime.BlakeTwo256,
 		uint64,
 		runtime.OpaqueExtrinsic,
-		ExecutorT,
 		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
-		primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
-			uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
-			statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
-		]],
 	]
 }
 
@@ -88,7 +83,7 @@ func (e *TestExecutor) RuntimeVersion(
 	panic("not implemented")
 }
 
-func NewTestExecutor(t *testing.T) ExecutorT {
+func NewTestExecutor(t *testing.T) Executor {
 	t.Helper()
 	return &TestExecutor{}
 }
@@ -163,12 +158,7 @@ func newTestClient(t *testing.T) *Client[
 	runtime.BlakeTwo256,
 	uint64,
 	runtime.OpaqueExtrinsic,
-	ExecutorT,
 	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
-	primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
-		uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
-		statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
-	]],
 ] {
 	return New(
 		NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0),

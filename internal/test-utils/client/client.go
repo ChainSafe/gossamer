@@ -9,9 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/db"
 	"github.com/ChainSafe/gossamer/internal/client/executor"
-	primitives_api "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/tidwall/btree"
 )
@@ -42,8 +40,6 @@ type TestClientBuilder[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 	G GenesisInit,
-	Executor client.ExecutorT,
-	RA primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any]],
 ] struct {
 	// genesis_init: G,
 	genesisInit G
@@ -93,11 +89,10 @@ func NewTestClientBuilderWithDefaultBackend[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 	G GenesisInit,
-	Executor client.ExecutorT,
-	RA primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any]],
-]() TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA] {
+
+]() TestClientBuilder[H, Hasher, N, E, Header, G] {
 	backend := db.NewTestBackend[H, N, E, Hasher, Header](math.MaxUint32, math.MaxUint64)
-	return NewTestClientBuilderWithBackend[H, Hasher, N, E, Header, G, Executor, RA](backend)
+	return NewTestClientBuilderWithBackend[H, Hasher, N, E, Header, G](backend)
 }
 
 // / Create new `TestClientBuilder` with default backend and pruning window size
@@ -113,11 +108,9 @@ func NewTestClientBuilderWithPruningWindow[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 	G GenesisInit,
-	Executor client.ExecutorT,
-	RA primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any]],
-](blocksPruning uint32) TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA] {
+](blocksPruning uint32) TestClientBuilder[H, Hasher, N, E, Header, G] {
 	backend := db.NewTestBackend[H, N, E, Hasher, Header](blocksPruning, 0)
-	return NewTestClientBuilderWithBackend[H, Hasher, N, E, Header, G, Executor, RA](backend)
+	return NewTestClientBuilderWithBackend[H, Hasher, N, E, Header, G](backend)
 }
 
 // / Create new `TestClientBuilder` with default backend and storage chain mode
@@ -135,11 +128,9 @@ func NewTestClientBuilderWithTxStorage[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 	G GenesisInit,
-	Executor client.ExecutorT,
-	RA primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any]],
-](blocksPruning uint32) TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA] {
+](blocksPruning uint32) TestClientBuilder[H, Hasher, N, E, Header, G] {
 	backend := db.NewTestBackendWithTxStorage[H, N, E, Hasher, Header](db.BlocksPruningSome(blocksPruning), 0)
-	return NewTestClientBuilderWithBackend[H, Hasher, N, E, Header, G, Executor, RA](backend)
+	return NewTestClientBuilderWithBackend[H, Hasher, N, E, Header, G](backend)
 }
 
 // impl<Block: BlockT, ExecutorDispatch, Backend, G: GenesisInit>
@@ -168,10 +159,8 @@ func NewTestClientBuilderWithBackend[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 	G GenesisInit,
-	Executor client.ExecutorT,
-	RA primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any]],
-](backend *db.Backend[H, Hasher, N, E, Header]) TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA] {
-	return TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA]{
+](backend *db.Backend[H, Hasher, N, E, Header]) TestClientBuilder[H, Hasher, N, E, Header, G] {
+	return TestClientBuilder[H, Hasher, N, E, Header, G]{
 		backend:               backend,
 		childStorageExtension: make(map[string]storage.StorageChild),
 		// genesisInit:                nil,
@@ -188,7 +177,7 @@ func NewTestClientBuilderWithBackend[
 //	pub fn genesis_init_mut(&mut self) -> &mut G {
 //		&mut self.genesis_init
 //	}
-func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA]) GenesisInitMut() G {
+func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G]) GenesisInitMut() G {
 	return tcb.genesisInit
 }
 
@@ -197,7 +186,7 @@ func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA]) GenesisI
 //	pub fn backend(&self) -> Arc<Backend> {
 //		self.backend.clone()
 //	}
-func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA]) Backend() *db.Backend[H, Hasher, N, E, Header] {
+func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G]) Backend() *db.Backend[H, Hasher, N, E, Header] {
 	return tcb.backend
 }
 
@@ -245,7 +234,7 @@ func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA]) Backend(
 //		self.no_genesis = true;
 //		self
 //	}
-func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA]) SetNoGenesis() {
+func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G]) SetNoGenesis() {
 	tcb.noGenesis = true
 }
 
@@ -274,9 +263,9 @@ type ExecutorDispatch interface {
 //	<Backend as sc_client_api::backend::Backend<Block>>::OffchainStorage: 'static,
 //
 // {
-func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA]) BuildWithExecutor(
+func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G]) BuildWithExecutor(
 	executor ExecutorDispatch,
-) (client.Client[H, Hasher, N, E, Executor, Header, RA], common.LongestChain[H, N, Hasher, Header, E]) {
+) (client.Client[H, Hasher, N, E, Header], common.LongestChain[H, N, Hasher, Header, E]) {
 	// 		let storage = {
 	// 			let mut storage = self.genesis_init.genesis_storage();
 	// 			// Add some child storage keys.
@@ -385,9 +374,9 @@ func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA]) BuildWit
 //			Backend: sc_client_api::backend::Backend<Block> + 'static,
 //			H: sc_executor::HostFunctions,
 //		{
-func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G, Executor, RA]) BuildWithNativeExecutor(
+func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G]) BuildWithNativeExecutor(
 	exec *executor.WasmExecutor,
-) (client.Client[H, Hasher, N, E, Executor, Header, RA], common.LongestChain[H, N, Hasher, Header, E]) {
+) (client.Client[H, Hasher, N, E, Header], common.LongestChain[H, N, Hasher, Header, E]) {
 
 	// 		let executor = executor.into().unwrap_or_else(|| WasmExecutor::<H>::builder().build());
 	// 		let executor = LocalCallExecutor::new(

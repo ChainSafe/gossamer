@@ -4,9 +4,7 @@ import (
 	service_client "github.com/ChainSafe/gossamer/internal/client"
 	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/db"
-	primitives_api "github.com/ChainSafe/gossamer/internal/primitives/api"
 	pruntime "github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/test-utils/client"
 	"github.com/ChainSafe/gossamer/internal/test-utils/runtime"
@@ -60,21 +58,11 @@ func (g GenesisParameters) GenesisStorage() storage.Storage {
 
 type TestClientBuilder = client.TestClientBuilder[
 	runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header, *GenesisParameters,
-	service_client.ExecutorT,
-	primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
-		runtime.BlockNumber, runtime.Extrinsic, runtime.Hash, runtime.Hasher,
-		statemachine.Backend[runtime.Hash, runtime.Hasher], any,
-	]],
 ]
 
 func NewTestClientBuilderWithDefaultBackend() TestClientBuilder {
 	return client.NewTestClientBuilderWithDefaultBackend[
 		runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header, *GenesisParameters,
-		service_client.ExecutorT,
-		primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
-			runtime.BlockNumber, runtime.Extrinsic, runtime.Hash, runtime.Hasher,
-			statemachine.Backend[runtime.Hash, runtime.Hasher], any,
-		]],
 	]()
 }
 
@@ -87,11 +75,6 @@ func NewTestClientBuilderWithDefaultBackend() TestClientBuilder {
 func NewTestClientBuilderWithPruningWindow(blocksPruning uint32) TestClientBuilder {
 	return client.NewTestClientBuilderWithPruningWindow[
 		runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header, *GenesisParameters,
-		service_client.ExecutorT,
-		primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
-			runtime.BlockNumber, runtime.Extrinsic, runtime.Hash, runtime.Hasher,
-			statemachine.Backend[runtime.Hash, runtime.Hasher], any,
-		]],
 	](blocksPruning)
 }
 
@@ -106,11 +89,6 @@ func NewTestClientBuilderWithPruningWindow(blocksPruning uint32) TestClientBuild
 func NewTestClientBuilderWithTxStorage(blocksPruning uint32) TestClientBuilder {
 	return client.NewTestClientBuilderWithTxStorage[
 		runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header, *GenesisParameters,
-		service_client.ExecutorT,
-		primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
-			runtime.BlockNumber, runtime.Extrinsic, runtime.Hash, runtime.Hasher,
-			statemachine.Backend[runtime.Hash, runtime.Hasher], any,
-		]],
 	](blocksPruning)
 }
 
@@ -126,12 +104,7 @@ func NewTestClientBuilderWithTxStorage(blocksPruning uint32) TestClientBuilder {
 type Client struct {
 	service_client.Client[
 		runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic,
-		service_client.ExecutorT,
 		runtime.Header,
-		primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
-			runtime.BlockNumber, runtime.Extrinsic, runtime.Hash, runtime.Hasher,
-			statemachine.Backend[runtime.Hash, runtime.Hasher], any,
-		]],
 	]
 }
 
