@@ -7,20 +7,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"time"
+
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/multiformats/go-multiaddr"
-	"math"
-	"time"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-gossip-support"))
 
 const (
-	LowConnectivityWarnDelay = time.Duration(600 * time.Second)
+	LowConnectivityWarnDelay = 600 * time.Second
 )
 
 // GossipSupport is the parachain subsystem that is responsible for keeping track of session changes and issuing a

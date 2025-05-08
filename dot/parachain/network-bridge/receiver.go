@@ -7,9 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/multiformats/go-multiaddr"
 	"slices"
 	"sort"
+
+	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 

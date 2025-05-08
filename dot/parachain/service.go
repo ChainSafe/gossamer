@@ -5,8 +5,9 @@ package parachain
 
 import (
 	"fmt"
-	gossipsupport "github.com/ChainSafe/gossamer/dot/parachain/gossip-support"
 	"time"
+
+	gossipsupport "github.com/ChainSafe/gossamer/dot/parachain/gossip-support"
 
 	bitfielddistribution "github.com/ChainSafe/gossamer/dot/parachain/bitfield-distribution"
 
