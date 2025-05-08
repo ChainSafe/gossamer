@@ -169,11 +169,13 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByNumber(blockNumber u
 	return types.NewBlockFromGeneric(signedBlock.Block)
 }
 
+// GetFinalisedHeader is unimplemented
 // TODO: remove from BlockState interface since it is only use by RPC and is not part of the standard
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetFinalisedHeader(round, setID uint64) (*types.Header, error) {
 	panic("unimplemented")
 }
 
+// GetHashesByNumber returns all block hashes at the given height.
 // TODO: check if this is the right implementation
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHashesByNumber(blockNumber uint) ([]common.Hash, error) {
 	hash, err := ca.client.BlockHash(N(blockNumber))
@@ -408,8 +410,11 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) UnregisterRuntimeUpdatedChanne
 	panic("unimplemented")
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) HandleRuntimeChanges(newState *rtstorage.TrieState,
-	in rt.Instance, bHash common.Hash) error {
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) HandleRuntimeChanges(
+	newState *rtstorage.TrieState,
+	in rt.Instance,
+	bHash common.Hash,
+) error {
 	panic("unimplemented")
 }
 

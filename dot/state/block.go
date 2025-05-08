@@ -128,7 +128,7 @@ type BlockState interface {
 	Pause() error
 }
 
-// BlockState contains the historical block data of the blockchain, including block headers and bodies.
+// DefaultBlockState contains the historical block data of the blockchain, including block headers and bodies.
 // It wraps the blocktree (which contains unfinalised blocks) and the database (which contains finalised blocks).
 type DefaultBlockState struct {
 	bt                *blocktree.BlockTree
@@ -583,7 +583,7 @@ func (bs *DefaultBlockState) SetFirstNonOriginSlotNumber(slotNumber uint64) erro
 	return bs.db.Put(firstSlotNumberKey, buf)
 }
 
-// getFirstNonOriginSlotNumber returns the slot number of the first non origin block
+// GetFirstNonOriginSlotNumber returns the slot number of the first non origin block
 func (s *DefaultBlockState) GetFirstNonOriginSlotNumber() (uint64, error) {
 	slotVal, err := s.db.Get(firstSlotNumberKey)
 	if err != nil {

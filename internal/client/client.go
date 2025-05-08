@@ -91,7 +91,7 @@ func (c *Client[H, Hasher, N, E, Header]) unpin(message api.Unpin[H]) error {
 	}
 }
 
-func (c *Client[H, Hasher, N, E, Header]) lockImportRun(
+func (c *Client[H, Hasher, N, E, Header]) lockImportRun( //skipcq: GO-R1005
 	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) error,
 ) error {
 	c.backend.GetImportLock().Lock()
@@ -196,7 +196,7 @@ func (c *Client[H, Hasher, N, E, Header]) lockImportRun(
 	return nil
 }
 
-func (c *Client[H, Hasher, N, E, Header]) LockImportRun(
+func (c *Client[H, Hasher, N, E, Header]) LockImportRun( //skipcq: RVV-B0001
 	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) error,
 ) error {
 	err := c.lockImportRun(f)
