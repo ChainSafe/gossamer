@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/keystore"
 	"github.com/ChainSafe/gossamer/internal/client/network"
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
+	"github.com/ChainSafe/gossamer/internal/client/network/service"
 	peerid "github.com/ChainSafe/gossamer/internal/client/network/types/peer-id"
 	"github.com/ChainSafe/gossamer/internal/log"
 	papi "github.com/ChainSafe/gossamer/internal/primitives/api"
@@ -186,6 +187,42 @@ func (vcca voterCommandChangeAuthorities[H, N]) Error() string {
 }
 func (voterCommandChangeAuthorities[H, N]) isVoterCommand() {}
 
+// / Link between the block importer and the background voter.
+// pub struct LinkHalf<Block: BlockT, C, SC> {
+type LinkHalf[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+] struct {
+	// client: Arc<C>,
+	client ClientForGrandpa[H, N, Hasher, Header, E]
+	// select_chain: SC,
+	selectChain common.SelectChain[H, N, Header]
+	// persistent_data: PersistentData<Block>,
+	persistentData persistentData[H, N]
+	// voter_commands_rx: TracingUnboundedReceiver<VoterCommand<Block::Hash, NumberFor<Block>>>,
+	voterCommandsRx chan voterCommand
+	// justification_sender: GrandpaJustificationSender<Block>,
+	justificationSender GrandpaJustificationSender[H, N, Header]
+	// justification_stream: GrandpaJustificationStream<Block>,
+	justificationStream GrandpaJustificationStream[H, N, Header]
+	// telemetry: Option<TelemetryHandle>,
+}
+
+// impl<Block: BlockT, C, SC> LinkHalf<Block, C, SC> {
+// 	/// Get the shared authority set.
+// 	pub fn shared_authority_set(&self) -> &SharedAuthoritySet<Block::Hash, NumberFor<Block>> {
+// 		&self.persistent_data.authority_set
+// 	}
+
+// 	/// Get the receiving end of justification notifications.
+// 	pub fn justification_stream(&self) -> GrandpaJustificationStream<Block> {
+// 		self.justification_stream.clone()
+// 	}
+// }
+
 // fn global_communication<BE, Block: BlockT, C, N, S>(
 //
 //	set_id: SetId,
@@ -274,6 +311,227 @@ func globalCommunication[
 	return mappedIn, out
 }
 
+// / Parameters used to run Grandpa.
+// pub struct GrandpaParams<Block: BlockT, C, N, S, SC, VR> {
+type GrandpaParams[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+] struct {
+	/// Configuration for the GRANDPA service.
+	// pub config: Config,
+	Config Config
+	/// A link to the block import worker.
+	// pub link: LinkHalf<Block, C, SC>,
+	LinkHalf LinkHalf[H, N, Hasher, Header, E]
+	/// The Network instance.
+	///
+	/// It is assumed that this network will feed us Grandpa notifications. When using the
+	/// `sc_network` crate, it is assumed that the Grandpa notifications protocol has been passed
+	/// to the configuration of the networking. See [`grandpa_peers_set_config`].
+	// pub network: N,
+	Network Network
+	/// Event stream for syncing-related events.
+	// pub sync: S,
+	Sync Syncing[H, N]
+	/// Handle for interacting with `Notifications`.
+	// pub notification_service: Box<dyn NotificationService>,
+	NotificationService service.NotificationService
+	/// A voting rule used to potentially restrict target votes.
+	// pub voting_rule: VR,
+	VotingRule VotingRule[H, N, Header]
+	/// The prometheus metrics registry.
+	// pub prometheus_registry: Option<prometheus_endpoint::Registry>,
+	/// The voter state is exposed at an RPC endpoint.
+	// pub shared_voter_state: SharedVoterState,
+	SharedVoterState *SharedVoterState[primitives.AuthorityID]
+	/// TelemetryHandle instance.
+	// pub telemetry: Option<TelemetryHandle>,
+	/// Offchain transaction pool factory.
+	///
+	/// This will be used to create an offchain transaction pool instance for sending an
+	/// equivocation report from the runtime.
+	// pub offchain_tx_pool_factory: OffchainTransactionPoolFactory<Block>,
+}
+
+// / Run a GRANDPA voter as a task. Provide configuration and a link to a
+// / block import worker that has already been instantiated with `block_import`.
+// pub fn run_grandpa_voter<Block: BlockT, BE: 'static, C, N, S, SC, VR>(
+//
+//	grandpa_params: GrandpaParams<Block, C, N, S, SC, VR>,
+//
+// ) -> sp_blockchain::Result<impl Future<Output = ()> + Send>
+// where
+//
+//	BE: Backend<Block> + 'static,
+//	N: NetworkT<Block> + Sync + 'static,
+//	S: SyncingT<Block> + Sync + 'static,
+//	SC: SelectChain<Block> + 'static,
+//	VR: VotingRule<Block, C> + Clone + 'static,
+//	NumberFor<Block>: BlockNumberOps,
+//	C: ClientForGrandpa<Block, BE> + 'static,
+//	C::Api: GrandpaApi<Block>,
+//
+// {
+func RunGrandpaVoter[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+](
+	grandpaParams GrandpaParams[H, N, Hasher, Header, E],
+) (done chan struct{}, err error) {
+	var (
+		config              = grandpaParams.Config
+		link                = grandpaParams.LinkHalf
+		network             = grandpaParams.Network
+		sync                = grandpaParams.Sync
+		notificationService = grandpaParams.NotificationService
+		votingRule          = grandpaParams.VotingRule
+		sharedVoterState    = grandpaParams.SharedVoterState
+	)
+	// 	let GrandpaParams {
+	// 		mut config,
+	// 		link,
+	// 		network,
+	// 		sync,
+	// 		notification_service,
+	// 		voting_rule,
+	// 		prometheus_registry,
+	// 		shared_voter_state,
+	// 		telemetry,
+	// 		offchain_tx_pool_factory,
+	// 	} = grandpa_params;
+
+	// 	// NOTE: we have recently removed `run_grandpa_observer` from the public
+	// 	// API, I felt it is easier to just ignore this field rather than removing
+	// 	// it from the config temporarily. This should be removed after #5013 is
+	// 	// fixed and we re-add the observer to the public API.
+	// 	config.observer_enabled = false;
+	config.ObserverEnabled = false
+
+	// 	let LinkHalf {
+	// 		client,
+	// 		select_chain,
+	// 		persistent_data,
+	// 		voter_commands_rx,
+	// 		justification_sender,
+	// 		justification_stream: _,
+	// 		telemetry: _,
+	// 	} = link;
+	var (
+		client              = link.client
+		selectChain         = link.selectChain
+		persistentData      = link.persistentData
+		voterCommandsRx     = link.voterCommandsRx
+		justificationSender = link.justificationSender
+	)
+
+	// 	let network = NetworkBridge::new(
+	// 		network,
+	// 		sync,
+	// 		notification_service,
+	// 		config.clone(),
+	// 		persistent_data.set_state.clone(),
+	// 		prometheus_registry.as_ref(),
+	// 		telemetry.clone(),
+	// 	);
+	networkBridge := newNetworkBridge[H, N, Hasher](
+		network,
+		sync,
+		notificationService,
+		config,
+		persistentData.setState,
+	)
+	// 	let conf = config.clone();
+	// 	let telemetry_task =
+	// 		if let Some(telemetry_on_connect) = telemetry.as_ref().map(|x| x.on_connect_stream()) {
+	// 			let authorities = persistent_data.authority_set.clone();
+	// 			let telemetry = telemetry.clone();
+	// 			let events = telemetry_on_connect.for_each(move |_| {
+	// 				let current_authorities = authorities.current_authorities();
+	// 				let set_id = authorities.set_id();
+	// 				let maybe_authority_id =
+	// 					local_authority_id(&current_authorities, conf.keystore.as_ref());
+
+	// 				let authorities =
+	// 					current_authorities.iter().map(|(id, _)| id.to_string()).collect::<Vec<_>>();
+
+	// 				let authorities = serde_json::to_string(&authorities).expect(
+	// 					"authorities is always at least an empty vector; \
+	// 					 elements are always of type string",
+	// 				);
+
+	// 				telemetry!(
+	// 					telemetry;
+	// 					CONSENSUS_INFO;
+	// 					"afg.authority_set";
+	// 					"authority_id" => maybe_authority_id.map_or("".into(), |s| s.to_string()),
+	// 					"authority_set_id" => ?set_id,
+	// 					"authorities" => authorities,
+	// 				);
+
+	// 				future::ready(())
+	// 			});
+	// 			future::Either::Left(events)
+	// 		} else {
+	// 			future::Either::Right(future::pending())
+	// 		};
+
+	// 	let voter_work = VoterWork::new(
+	// 		client,
+	// 		config,
+	// 		network,
+	// 		select_chain,
+	// 		voting_rule,
+	// 		persistent_data,
+	// 		voter_commands_rx,
+	// 		prometheus_registry,
+	// 		shared_voter_state,
+	// 		justification_sender,
+	// 		telemetry,
+	// 		offchain_tx_pool_factory,
+	// 	);
+	voterWork := newVoterWork[H, N, Hasher, Header, E](
+		client,
+		config,
+		networkBridge,
+		selectChain,
+		votingRule,
+		persistentData,
+		voterCommandsRx,
+		sharedVoterState,
+		justificationSender,
+	)
+
+	// 	let voter_work = voter_work.map(|res| match res {
+	// 		Ok(()) => error!(
+	// 			target: LOG_TARGET,
+	// 			"GRANDPA voter future has concluded naturally, this should be unreachable."
+	// 		),
+	// 		Err(e) => error!(target: LOG_TARGET, "GRANDPA voter error: {}", e),
+	// 	});
+	done = make(chan struct{})
+	go func() {
+		defer close(done)
+		err := voterWork.run()
+		if err != nil {
+			logger.Errorf("GRANDPA voter error: %v", err)
+			return
+		}
+		logger.Error("GRANDPA voter future has concluded naturally, this should be unreachable.")
+	}()
+
+	// 	// Make sure that `telemetry_task` doesn't accidentally finish and kill grandpa.
+	// 	let telemetry_task = telemetry_task.then(|_| future::pending::<()>());
+
+	// Ok(future::select(voter_work, telemetry_task).map(drop))
+	return done, nil
+}
+
 // / Future that powers the voter.
 type voterWork[
 	H runtime.Hash,
@@ -307,7 +565,7 @@ func newVoterWork[
 	persistentData persistentData[H, N],
 	voterCommandsRx <-chan voterCommand,
 	sharedVoterState *SharedVoterState[primitives.AuthorityID],
-	justificationSender *GrandpaJustificationSender[H, N, Header],
+	justificationSender GrandpaJustificationSender[H, N, Header],
 	// TODO: telemetry
 ) voterWork[H, N, Hasher, Header, E] {
 	// TODO: register to prometheus registry
@@ -323,7 +581,7 @@ func newVoterWork[
 		SetID:               SetID(persistentData.authoritySet.inner.SetID),
 		AuthoritySet:        persistentData.authoritySet,
 		VoterSetState:       persistentData.setState,
-		JustificationSender: justificationSender,
+		JustificationSender: &justificationSender,
 	}
 
 	work := voterWork[H, N, Hasher, Header, E]{
@@ -682,6 +940,15 @@ func (vw *voterWork[H, N, Hasher, Header, E]) poll() error {
 	default:
 	}
 	return nil
+}
+
+func (vw *voterWork[H, N, Hasher, Header, E]) run() error {
+	for {
+		err := vw.poll()
+		if err != nil {
+			return err
+		}
+	}
 }
 
 // Checks if this node has any available keys in the keystore for any authority id in the givenvoter set.  Returns the

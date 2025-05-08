@@ -81,6 +81,16 @@ type ClientConfig[N runtime.Number] struct {
 	EnableImportProofRecording bool
 }
 
+func NewClientConfig[N runtime.Number]() ClientConfig[N] {
+	return ClientConfig[N]{
+		OffchainWorkerEnabled:      false,
+		OffchainIndexingAPI:        false,
+		WasmRuntimeSubstitutes:     make(map[N][]byte),
+		NoGenesis:                  false,
+		EnableImportProofRecording: false,
+	}
+}
+
 // Client type that implements a number of client interfaces
 type Client[
 	H runtime.Hash,
@@ -1025,9 +1035,9 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 
 	if !gapBlock && finalized {
 		switch fc := forkchoice.(type) {
-		case common.LongestChain:
+		case common.ForkChoiceStrategyLongestChain:
 			isNewBest = importHeaders.Post().Number() > info.BestNumber
-		case common.Custom:
+		case common.ForkChoiceStrategyCustom:
 			isNewBest = bool(fc)
 		default:
 			panic("unreachable")
