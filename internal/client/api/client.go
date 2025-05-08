@@ -24,6 +24,20 @@ type FinalityNotifications[
 	Header runtime.Header[N, H],
 ] chan FinalityNotification[H, N, Header]
 
+// / Expected hashes of blocks at given heights.
+// /
+// / This may be used as chain spec extension to set trusted checkpoints, i.e.
+// / the client will refuse to import a block with a different hash at the given
+// / height.
+// pub type ForkBlocks<Block> = Option<Vec<(NumberFor<Block>, <Block as BlockT>::Hash)>>;
+type ForkBlocks[H runtime.Hash, N runtime.Number] []blockchain.HashNumber[H, N]
+
+// / Known bad block hashes.
+// /
+// / This may be used as chain spec extension to filter out known, unwanted forks.
+// pub type BadBlocks<Block> = Option<HashSet<<Block as BlockT>::Hash>>;
+type BadBlocks[H runtime.Hash] map[H]struct{}
+
 // BlockchainEvents is the source of blockchain events.
 type BlockchainEvents[
 	H runtime.Hash,
