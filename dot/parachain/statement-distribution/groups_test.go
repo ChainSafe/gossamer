@@ -55,7 +55,7 @@ func TestNewGroups(t *testing.T) {
 	})
 }
 
-func TestGroups_All(t *testing.T) {
+func TestGroups_all(t *testing.T) {
 	t.Parallel()
 
 	initGroups := [][]parachaintypes.ValidatorIndex{
@@ -69,7 +69,7 @@ func TestGroups_All(t *testing.T) {
 	assert.Equal(t, initGroups, result)
 }
 
-func TestGroups_Group(t *testing.T) {
+func TestGroups_get(t *testing.T) {
 	t.Parallel()
 
 	initGroups := [][]parachaintypes.ValidatorIndex{
@@ -81,11 +81,11 @@ func TestGroups_Group(t *testing.T) {
 	t.Run("valid_group_indices", func(t *testing.T) {
 		t.Parallel()
 
-		group0 := g.group(0)
+		group0 := g.get(0)
 
 		assert.Equal(t, initGroups[0], group0)
 
-		group1 := g.group(1)
+		group1 := g.get(1)
 
 		assert.Equal(t, initGroups[1], group1)
 	})
@@ -93,13 +93,13 @@ func TestGroups_Group(t *testing.T) {
 	t.Run("invalid_group_index", func(t *testing.T) {
 		t.Parallel()
 
-		invalidGroup := g.group(2)
+		invalidGroup := g.get(2)
 
 		assert.Nil(t, invalidGroup)
 	})
 }
 
-func TestGroups_GetSizeAndBackingThreshold(t *testing.T) {
+func TestGroups_getSizeAndBackingThreshold(t *testing.T) {
 	t.Parallel()
 
 	initGroups := [][]parachaintypes.ValidatorIndex{
@@ -128,7 +128,7 @@ func TestGroups_GetSizeAndBackingThreshold(t *testing.T) {
 	})
 }
 
-func TestGroups_ByValidatorIndex(t *testing.T) {
+func TestGroups_byValidatorIndex(t *testing.T) {
 	t.Parallel()
 
 	initGroups := [][]parachaintypes.ValidatorIndex{

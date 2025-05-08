@@ -40,7 +40,7 @@ func (g *groups) all() [][]parachaintypes.ValidatorIndex {
 	return g.groups
 }
 
-func (g *groups) group(groupIndex parachaintypes.GroupIndex) []parachaintypes.ValidatorIndex {
+func (g *groups) get(groupIndex parachaintypes.GroupIndex) []parachaintypes.ValidatorIndex {
 	if int(groupIndex) > len(g.groups)-1 {
 		return nil
 	}
@@ -49,7 +49,7 @@ func (g *groups) group(groupIndex parachaintypes.GroupIndex) []parachaintypes.Va
 }
 
 func (g *groups) getSizeAndBackingThreshold(groupIndex parachaintypes.GroupIndex) (*uint32, *uint32) {
-	group := g.group(groupIndex)
+	group := g.get(groupIndex)
 	if group == nil {
 		return nil, nil
 	}
