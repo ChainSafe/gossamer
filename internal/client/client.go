@@ -172,7 +172,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) unpin(message api.Unpin[
 	}
 }
 
-func (c *Client[H, Hasher, N, E, Header]) lockImportRun( //skipcq: GO-R1005
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) lockImportRun(
 	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) (any, error),
 ) (any, error) {
 	c.backend.GetImportLock().Lock()
@@ -277,7 +277,7 @@ func (c *Client[H, Hasher, N, E, Header]) lockImportRun( //skipcq: GO-R1005
 	return result, nil
 }
 
-func (c *Client[H, Hasher, N, E, Header]) LockImportRun( //skipcq: RVV-B0001
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) LockImportRun(
 	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) (any, error),
 ) (any, error) {
 	result, err := c.lockImportRun(f)
@@ -508,7 +508,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) StorageChangesNotificati
 	return c.storageNotifications.Listen(filterKeys, childFilterKeys)
 }
 
-func (c *Client[H, Hasher, N, E, Header]) CompareAndSetBlockData(bd *types.BlockData) error {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) CompareAndSetBlockData(bd *types.BlockData) error {
 	storage := c.backend.OffchainStorage()
 	hash := bd.Hash[:]
 
