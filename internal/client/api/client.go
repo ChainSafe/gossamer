@@ -50,7 +50,7 @@ type BlockchainEvents[
 	UnregisterEveryImportNotificationStream(ImportNotifications[H, N, Header])
 
 	// RegisterFinalityNotificationStream will get a channel of finality notifications. Not guaranteed to be fired for
-	//every finalized block.
+	// every finalized block.
 	RegisterFinalityNotificationStream() FinalityNotifications[H, N, Header]
 	// UnregisterFinalityNotificationStream will unregister a registered channel.
 	UnregisterFinalityNotificationStream(FinalityNotifications[H, N, Header])
