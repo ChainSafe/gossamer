@@ -5,6 +5,7 @@ package recorder
 
 import (
 	"fmt"
+	"maps"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -214,9 +215,7 @@ func (r *Recorder[H]) CommitTransaction() error {
 
 	if len(r.inner.transactions) != 0 {
 		parentTx := r.inner.transactions[len(r.inner.transactions)-1]
-		for h, v := range tx.accessedNodes {
-			parentTx.accessedNodes[h] = v
-		}
+		maps.Copy(parentTx.accessedNodes, tx.accessedNodes)
 
 		for storageRoot, keys := range tx.recordedKeys {
 			for k, oldState := range keys {
