@@ -7,31 +7,24 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
-type StatementKind uint8
+type statementKind uint8
 
 const (
-	Seconded StatementKind = iota
-	Validated
+	seconded statementKind = iota
+	validated
 )
 
-type FilterQuery interface {
-	Contains(index uint, statementKind StatementKind) bool
-	Set(index uint, statementKind StatementKind)
-}
-
-// StatementFilter contains bitfields indicating the statements that are known or undesired about a candidate.
-type StatementFilter struct {
-	// Seconded statements. '1' is known or undesired.
+// statementFilter contains bitfields indicating the statements that are known or undesired about a candidate.
+type statementFilter struct {
+	// seconded statements. '1' is known or undesired.
 	secondedInGroup parachaintypes.BitVec
 	// Valid statements. '1' is known or undesired.
 	validatedInGroup parachaintypes.BitVec
 }
 
-var _ FilterQuery = (*StatementFilter)(nil)
-
-// NewStatementFilter creates a new StatementFilter.
-// If full is true, the StatementFilter will be initialised with all bits set to 1.
-func NewStatementFilter(groupSize uint, full bool) (*StatementFilter, error) {
+// newStatementFilter creates a new statementFilter.
+// If full is true, the statementFilter will be initialised with all bits set to 1.
+func newStatementFilter(groupSize uint, full bool) (*statementFilter, error) {
 	bits := make([]bool, groupSize)
 	if full {
 		for i := range bits {
@@ -49,19 +42,19 @@ func NewStatementFilter(groupSize uint, full bool) (*StatementFilter, error) {
 		return nil, err
 	}
 
-	return &StatementFilter{
+	return &statementFilter{
 		secondedInGroup:  secondedInGroup,
 		validatedInGroup: validatedInGroup,
 	}, nil
 }
 
-// HasLen returns true if the StatementFilter has the specified length in both groups.
-func (s *StatementFilter) HasLen(len int) bool {
+// hasLen returns true if the statementFilter has the specified length in both groups.
+func (s *statementFilter) hasLen(len int) bool {
 	return s.secondedInGroup.Len() == len && s.validatedInGroup.Len() == len
 }
 
-// BackingValidators determines the number of backing validators in the StatementFilter.
-func (s *StatementFilter) BackingValidators() int {
+// backingValidators determines the number of backing validators in the statementFilter.
+func (s *statementFilter) backingValidators() int {
 	count := 0
 
 	for i, seconded := range s.secondedInGroup.Bits() {
@@ -78,35 +71,33 @@ func (s *StatementFilter) BackingValidators() int {
 	return count
 }
 
-// HasSeconded returns true if the StatementFilter has at least one seconded statement.
-func (s *StatementFilter) HasSeconded() bool {
+// hasSeconded returns true if the statementFilter has at least one seconded statement.
+func (s *statementFilter) hasSeconded() bool {
 	return s.secondedInGroup.CountOnes() > 0
 }
 
-// MaskSeconded masks out Seconded statements in the filter according to the provided BitVec.
+// maskSeconded masks out seconded statements in the filter according to the provided BitVec.
 // Bits appearing in mask will not appear in the filter afterwards.
-func (s *StatementFilter) MaskSeconded(mask parachaintypes.BitVec) {
+func (s *statementFilter) maskSeconded(mask parachaintypes.BitVec) {
 	s.secondedInGroup.Mask(mask)
 }
 
-// MaskValid masks out Valid statements in the filter according to the provided BitVec.
+// maskValid masks out Valid statements in the filter according to the provided BitVec.
 // Bits appearing in mask will not appear in the filter afterwards.
-func (s *StatementFilter) MaskValid(mask parachaintypes.BitVec) {
+func (s *statementFilter) maskValid(mask parachaintypes.BitVec) {
 	s.validatedInGroup.Mask(mask)
 }
 
-// FilterQuery implementation
-
-func (s *StatementFilter) Contains(index uint, statementKind StatementKind) bool {
+func (s *statementFilter) contains(index uint, statementKind statementKind) bool {
 	switch statementKind {
-	case Seconded:
+	case seconded:
 		b, err := s.secondedInGroup.Get(index)
 		if err != nil {
 			logger.Warnf("failed to access index %d in secondedInGroup: %v", index, err)
 			return false
 		}
 		return b
-	case Validated:
+	case validated:
 		b, err := s.validatedInGroup.Get(index)
 		if err != nil {
 			logger.Warnf("failed to access index %d in validatedInGroup: %v", index, err)
@@ -118,14 +109,14 @@ func (s *StatementFilter) Contains(index uint, statementKind StatementKind) bool
 	}
 }
 
-func (s *StatementFilter) Set(index uint, statementKind StatementKind) {
+func (s *statementFilter) set(index uint, statementKind statementKind) {
 	switch statementKind {
-	case Seconded:
+	case seconded:
 		err := s.secondedInGroup.Set(index, true)
 		if err != nil {
 			logger.Warnf("failed to set index %d in secondedInGroup: %v", index, err)
 		}
-	case Validated:
+	case validated:
 		err := s.validatedInGroup.Set(index, true)
 		if err != nil {
 			logger.Warnf("failed to set index %d in validatedInGroup: %v", index, err)
