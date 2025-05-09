@@ -643,7 +643,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) CheckBlock(block common.
 		)
 		return common.ImportResultKnownBad{}, nil
 	case LookupResultNotSpecial:
-		//do nothing
+		// do nothing
 	}
 
 	// Own status must be checked first. If the block and ancestry is pruned
