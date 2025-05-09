@@ -69,21 +69,21 @@ func NewGossipSupport(
 	}
 }
 
-func (gs *GossipSupport) Name() parachaintypes.SubSystemName {
+func (*GossipSupport) Name() parachaintypes.SubSystemName {
 	return parachaintypes.GossipSupport
 }
 
-func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
+func (*GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
 	//TODO implement in #4507
 	return nil
 }
 
-func (gs *GossipSupport) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
+func (*GossipSupport) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
 	//TODO implement #4507
 	return nil
 }
 
-func (gs *GossipSupport) Stop() {
+func (*GossipSupport) Stop() {
 	logger.Tracef("Stopping GossipSupport subsystem")
 }
 
@@ -127,15 +127,15 @@ func (gs *GossipSupport) processMessage(msg any) error {
 	return nil
 }
 
-func (gs *GossipSupport) processPeerConnectedEvent(event networkbridgeevents.PeerConnected) {
+func (*GossipSupport) processPeerConnectedEvent(event networkbridgeevents.PeerConnected) {
 	//TODO implement in #4509
 
 }
 
-func (gs *GossipSupport) processPeerDisconnectedEvent(event networkbridgeevents.PeerDisconnected) {
+func (*GossipSupport) processPeerDisconnectedEvent(event networkbridgeevents.PeerDisconnected) {
 	//TODO implement in #4509
 }
 
-func (gs *GossipSupport) checkConnectivity() {
+func (*GossipSupport) checkConnectivity() {
 	//TODO implement in #4507
 }
