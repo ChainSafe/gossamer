@@ -4,6 +4,8 @@ package mocks
 
 import (
 	blockchain "github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
+
 	generic "github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 
 	mock "github.com/stretchr/testify/mock"
@@ -377,22 +379,22 @@ func (_c *Client_BlockNumberFromID_Call[H, Hasher, N, E, Header]) RunAndReturn(r
 }
 
 // BlockStatus provides a mock function with given fields: hash
-func (_m *Client[H, Hasher, N, E, Header]) BlockStatus(hash H) (blockchain.BlockStatus, error) {
+func (_m *Client[H, Hasher, N, E, Header]) BlockStatus(hash H) (common.BlockStatus, error) {
 	ret := _m.Called(hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BlockStatus")
 	}
 
-	var r0 blockchain.BlockStatus
+	var r0 common.BlockStatus
 	var r1 error
-	if rf, ok := ret.Get(0).(func(H) (blockchain.BlockStatus, error)); ok {
+	if rf, ok := ret.Get(0).(func(H) (common.BlockStatus, error)); ok {
 		return rf(hash)
 	}
-	if rf, ok := ret.Get(0).(func(H) blockchain.BlockStatus); ok {
+	if rf, ok := ret.Get(0).(func(H) common.BlockStatus); ok {
 		r0 = rf(hash)
 	} else {
-		r0 = ret.Get(0).(blockchain.BlockStatus)
+		r0 = ret.Get(0).(common.BlockStatus)
 	}
 
 	if rf, ok := ret.Get(1).(func(H) error); ok {
@@ -422,12 +424,12 @@ func (_c *Client_BlockStatus_Call[H, Hasher, N, E, Header]) Run(run func(hash H)
 	return _c
 }
 
-func (_c *Client_BlockStatus_Call[H, Hasher, N, E, Header]) Return(_a0 blockchain.BlockStatus, _a1 error) *Client_BlockStatus_Call[H, Hasher, N, E, Header] {
+func (_c *Client_BlockStatus_Call[H, Hasher, N, E, Header]) Return(_a0 common.BlockStatus, _a1 error) *Client_BlockStatus_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *Client_BlockStatus_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) (blockchain.BlockStatus, error)) *Client_BlockStatus_Call[H, Hasher, N, E, Header] {
+func (_c *Client_BlockStatus_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) (common.BlockStatus, error)) *Client_BlockStatus_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -594,29 +596,27 @@ func (_c *Client_CompareAndSetBlockData_Call[H, Hasher, N, E, Header]) RunAndRet
 	return _c
 }
 
-// DisplacedLeavesAfterFinalizing provides a mock function with given fields: blockNumber
-func (_m *Client[H, Hasher, N, E, Header]) DisplacedLeavesAfterFinalizing(blockNumber N) ([]H, error) {
-	ret := _m.Called(blockNumber)
+// DisplacedLeavesAfterFinalizing provides a mock function with given fields: blockHash, blockNumber
+func (_m *Client[H, Hasher, N, E, Header]) DisplacedLeavesAfterFinalizing(blockHash H, blockNumber N) (blockchain.DisplacedLeavesAfterFinalization[H, N], error) {
+	ret := _m.Called(blockHash, blockNumber)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DisplacedLeavesAfterFinalizing")
 	}
 
-	var r0 []H
+	var r0 blockchain.DisplacedLeavesAfterFinalization[H, N]
 	var r1 error
-	if rf, ok := ret.Get(0).(func(N) ([]H, error)); ok {
-		return rf(blockNumber)
+	if rf, ok := ret.Get(0).(func(H, N) (blockchain.DisplacedLeavesAfterFinalization[H, N], error)); ok {
+		return rf(blockHash, blockNumber)
 	}
-	if rf, ok := ret.Get(0).(func(N) []H); ok {
-		r0 = rf(blockNumber)
+	if rf, ok := ret.Get(0).(func(H, N) blockchain.DisplacedLeavesAfterFinalization[H, N]); ok {
+		r0 = rf(blockHash, blockNumber)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]H)
-		}
+		r0 = ret.Get(0).(blockchain.DisplacedLeavesAfterFinalization[H, N])
 	}
 
-	if rf, ok := ret.Get(1).(func(N) error); ok {
-		r1 = rf(blockNumber)
+	if rf, ok := ret.Get(1).(func(H, N) error); ok {
+		r1 = rf(blockHash, blockNumber)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -630,24 +630,25 @@ type Client_DisplacedLeavesAfterFinalizing_Call[H runtime.Hash, Hasher runtime.H
 }
 
 // DisplacedLeavesAfterFinalizing is a helper method to define mock.On call
+//   - blockHash H
 //   - blockNumber N
-func (_e *Client_Expecter[H, Hasher, N, E, Header]) DisplacedLeavesAfterFinalizing(blockNumber interface{}) *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header] {
-	return &Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("DisplacedLeavesAfterFinalizing", blockNumber)}
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) DisplacedLeavesAfterFinalizing(blockHash interface{}, blockNumber interface{}) *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header] {
+	return &Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("DisplacedLeavesAfterFinalizing", blockHash, blockNumber)}
 }
 
-func (_c *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header]) Run(run func(blockNumber N)) *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header] {
+func (_c *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header]) Run(run func(blockHash H, blockNumber N)) *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header] {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(N))
+		run(args[0].(H), args[1].(N))
 	})
 	return _c
 }
 
-func (_c *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header]) Return(_a0 []H, _a1 error) *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header] {
+func (_c *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header]) Return(_a0 blockchain.DisplacedLeavesAfterFinalization[H, N], _a1 error) *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(N) ([]H, error)) *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header] {
+func (_c *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, N) (blockchain.DisplacedLeavesAfterFinalization[H, N], error)) *Client_DisplacedLeavesAfterFinalizing_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(run)
 	return _c
 }
