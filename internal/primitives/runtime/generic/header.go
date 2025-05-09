@@ -75,6 +75,11 @@ func (h Header[N, H, Hasher]) DigestMut() *runtime.Digest {
 	return &h.digest
 }
 
+// Clone returns a new copy of the header.
+func (h Header[N, H, Hasher]) Clone() runtime.Header[N, H] {
+	return NewHeader[N, H, Hasher](h.number, h.extrinsicsRoot, h.stateRoot, h.parentHash, h.digest)
+}
+
 type encodingHelper[H any] struct {
 	ParentHash H
 	// uses compact encoding so we need to cast to uint

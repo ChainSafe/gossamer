@@ -4,11 +4,93 @@
 package blockchain
 
 import (
+	"bytes"
+	"sort"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 )
+
+// Result of DisplacedLeavesAfterFinalizing
+type DisplacedLeavesAfterFinalization[H runtime.Hash, N runtime.Number] struct {
+	// A list of hashes and block numbers of displaced leaves.
+	DisplacedLeaves []HashNumber[H, N]
+
+	// A list of hashes displaced blocks from all displaced leaves.
+	DisplacedBlocks []H
+}
+
+// Returns a collection of hashes for the displaced leaves.
+func (d DisplacedLeavesAfterFinalization[H, N]) Hashes() []H {
+	hashes := make([]H, 0, len(d.DisplacedLeaves))
+	for _, displacedLeaf := range d.DisplacedLeaves {
+		hashes = append(hashes, displacedLeaf.Hash)
+	}
+
+	return hashes
+}
+
+// SortDisplacedBlocks sorts the DisplacedBlocks slice in an unstable manner.
+// This is equivalent to sort_unstable() in Rust.
+func (d *DisplacedLeavesAfterFinalization[H, N]) SortDisplacedBlocks() {
+	// Implementation of unstable sort for DisplacedBlocks
+	sort.Slice(d.DisplacedBlocks, func(i, j int) bool {
+		return bytes.Compare(d.DisplacedBlocks[i].Bytes(), d.DisplacedBlocks[j].Bytes()) < 0
+	})
+}
+
+// DedupDisplacedBlocks removes consecutive duplicate elements from the
+// DisplacedBlocks slice. This is equivalent to dedup() in Rust.
+func (d *DisplacedLeavesAfterFinalization[H, N]) DedupDisplacedBlocks() {
+	if len(d.DisplacedBlocks) <= 1 {
+		return
+	}
+
+	j := 1
+	for i := 1; i < len(d.DisplacedBlocks); i++ {
+		// If current element is different from the last unique element,
+		// add it to the unique portion of the slice
+		if !bytes.Equal(d.DisplacedBlocks[i].Bytes(), d.DisplacedBlocks[j-1].Bytes()) {
+			d.DisplacedBlocks[j] = d.DisplacedBlocks[i]
+			j++
+		}
+	}
+
+	// Resize the slice to remove duplicates
+	d.DisplacedBlocks = d.DisplacedBlocks[:j]
+}
+
+// SortAndDedupDisplacedBlocks performs both unstable sorting and deduplication
+// of the DisplacedBlocks slice in a single method call.
+// This is equivalent to sort_unstable(); dedup(); in Rust.
+func (d *DisplacedLeavesAfterFinalization[H, N]) SortAndDedupDisplacedBlocks() {
+	// First sort the blocks
+	d.SortDisplacedBlocks()
+
+	// Then remove duplicates
+	d.DedupDisplacedBlocks()
+}
+
+// Represents the type of block gaps that may result from either warp sync or fast sync.
+type BlockGapType uint8
+
+const (
+	// Both the header and body are missing, as a result of warp sync.
+	BlockGapMissingHeaderAndBody BlockGapType = iota
+	// The block body is missing, as a result of fast sync.
+	BlockGapMissingBody
+)
+
+type BlockGap[N any] struct {
+	// The starting block number of the gap (inclusive).
+	Start N
+	// The ending block number of the gap (inclusive).
+	End N
+	// The type of gap.
+	Type BlockGapType
+}
 
 // BlockBackend is an interface for fetching block data
 type BlockBackend[
@@ -28,7 +110,7 @@ type BlockBackend[
 	Block(hash H) (*generic.SignedBlock[N, H, Hasher, E], error)
 
 	// BlockStatus gets block status by block hash.
-	BlockStatus(hash H) (BlockStatus, error)
+	BlockStatus(hash H) (common.BlockStatus, error)
 
 	// Justifications gets block justifications for the block with the given hash.
 	Justifications(hash H) (runtime.Justifications, error)
@@ -89,7 +171,7 @@ type Backend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]
 
 	// DisplacedLeavesAfterFinalizing returns displaced leaves after the given block would be finalized.
 	// The returned leaves do not contain the leaves from the same height as blockNumber.
-	DisplacedLeavesAfterFinalizing(blockNumber N) ([]Hash, error)
+	DisplacedLeavesAfterFinalizing(blockHash Hash, blockNumber N) (DisplacedLeavesAfterFinalization[Hash, N], error)
 
 	// Children returns hashes of all blocks that are children of the block with parentHash.
 	Children(parentHash Hash) ([]Hash, error)
@@ -125,8 +207,8 @@ type Info[H, N any] struct {
 		Hash   H
 		Number N
 	}
-	NumberLeaves uint  // Number of concurrent leave forks.
-	BlockGap     *[2]N // Missing blocks after warp sync. (start, end).
+	NumberLeaves uint         // Number of concurrent leave forks.
+	BlockGap     *BlockGap[N] // Missing blocks after warp sync. (start, end).
 }
 
 // BlockStatus is block status.

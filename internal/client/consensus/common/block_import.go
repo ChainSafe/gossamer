@@ -4,15 +4,12 @@
 package common
 
 import (
+	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 )
-
-type ImportResult interface {
-	isImportResult()
-}
 
 // Auxiliary data associated with an imported block result.
 type ImportedAux struct {
@@ -26,6 +23,9 @@ type ImportedAux struct {
 	BadJustification bool
 	// Whether the block that was imported is the new best block.
 	IsNewBest bool
+}
+type ImportResult interface {
+	isImportResult()
 }
 
 type (
@@ -47,11 +47,11 @@ func (ImportResultKnownBad) isImportResult()       {}
 func (ImportResultUnknownParent) isImportResult()  {}
 func (ImportResultMissingState) isImportResult()   {}
 
-type BlockImport[H runtime.Hash, N runtime.Number] interface {
+type BlockImport[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] interface {
 	// Check block preconditions.
 	CheckBlock(block BlockCheckParams[H, N]) (ImportResult, error)
-	// Import a block.
-	ImportBlock(block BlockImportParams[H, N]) (ImportResult, error)
+	/// Import a block.
+	ImportBlock(block *BlockImportParams[H, N, E, Header]) (ImportResult, error)
 }
 
 // Data required to check validity of a Block.
@@ -111,6 +111,11 @@ type (
 	StateActionSkip struct{}
 )
 
+func (StateActionApplyChanges) isStateAction()      {}
+func (StateActionExecute) isStateAction()           {}
+func (StateActionExecuteIfPossible) isStateAction() {}
+func (StateActionSkip) isStateAction()              {}
+
 // Fork choice strategy.
 type ForkChoiceStrategy interface {
 	isForkChoiceStrategy()
@@ -123,8 +128,11 @@ type (
 	Custom bool
 )
 
+func (LongestChain) isForkChoiceStrategy() {}
+func (Custom) isForkChoiceStrategy()       {}
+
 // Data required to import a Block.
-type BlockImportParams[H runtime.Hash, N runtime.Number] struct {
+type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
 	// Origin of the Block
 	Origin common.BlockOrigin
 	// The header, without consensus post-digests applied. This should be in the same
@@ -138,16 +146,16 @@ type BlockImportParams[H runtime.Hash, N runtime.Number] struct {
 	// The reason for this distinction is so the header can be directly
 	// re-executed in a runtime that checks digest equivalence -- the
 	// post-runtime digests are pushed back on after.
-	Header runtime.Header[N, H]
+	Header Header
 	// Justification(s) provided for this block from the outside.
-	Justifications *runtime.Justifications
+	Justifications runtime.Justifications
 	// Digest items that have been added after the runtime for external
 	// work, like a consensus signature.
 	PostDigests []runtime.DigestItem
 	// The body of the block.
-	Body *[]runtime.Extrinsic
+	Body []E
 	// Indexed transaction body of the block.
-	IndexedBody *[][]byte
+	IndexedBody [][]byte
 	// Specify how the new state is computed.
 	StateAction StateAction
 	// Is this block finalized already?
@@ -160,14 +168,14 @@ type BlockImportParams[H runtime.Hash, N runtime.Number] struct {
 	// Contains a list of key-value pairs. If values are nil, the keys will be deleted. These
 	// changes will be applied to AuxStore database all as one batch, which is more efficient
 	// than updating AuxStore directly.
-	Auxiliary overlayedchanges.StorageCollection
+	Auxiliary api.AuxDataOperations
 	// Fork choice strategy of this import. This should only be set by a
 	// synchronous import, otherwise it may race against other imports.
 	// nil indicates that the current verifier or importer cannot yet
 	// determine the fork choice value, and it expects subsequent importer
 	// to modify it. If nil is passed all the way down to bottom block
 	// importer, the import fails with an IncompletePipeline error.
-	ForkChoice *ForkChoiceStrategy
+	ForkChoice ForkChoiceStrategy
 	// Re-validate existing block.
 	ImportExisting bool
 	// Whether to create "block gap" in case this block doesn't have parent.

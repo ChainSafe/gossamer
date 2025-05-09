@@ -38,6 +38,12 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "client/db"))
 
+type MinimalBlockMetadata[H runtime.Hash, N runtime.Number] struct {
+	number N
+	hash   H
+	parent H
+}
+
 // BlocksPruning represent block pruning settings.
 type BlocksPruning interface {
 	isBlocksPruning()
@@ -140,6 +146,7 @@ type BlockImportOperation[
 	finalizedBlocks        []finalizedBlock[H]
 	setHead                *H // can be nil to represent no head
 	commitState            bool
+	createGap              bool
 	indexOps               []overlayedchanges.IndexOperation
 }
 
@@ -316,10 +323,14 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateTransactionIndex
 	return nil
 }
 
+func (bio *BlockImportOperation[H, Hasher, N, Header, E]) SetCreateGap(createGap bool) {
+	bio.createGap = createGap
+}
+
 type pendingBlock[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H], E runtime.Extrinsic] struct {
 	header         Header
 	justifications runtime.Justifications // can be nil
-	body           []E                    // can be nil to reprsent no body
+	body           []E                    // can be nil to represent no body
 	indexedBody    [][]byte               // can be nil to represent no indexed body
 	leafState      api.NewBlockState
 }
@@ -700,6 +711,7 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 	lastFinalizedHash := meta.FinalizedHash
 	lastFinalizedNumber := meta.FinalizedNumber
 	blockGap := meta.BlockGap
+	blockGapUpdated := false
 
 	b.blockchain.metaMtx.RUnlock()
 
@@ -750,6 +762,8 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 			}
 			existingHeader = header != nil
 		}
+
+		existingBody := pendingBlock.body != nil
 
 		// blocks are keyed by number + hash.
 		lookupKey, err := newLookupKey(number, hash)
@@ -924,36 +938,90 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 				children = append(children, hash)
 				writeChildren(&transaction, columns.Meta, metakeys.ChildrenPrefix, parentHash, children)
 			}
+		}
+
+		shouldCheckBlockGap := !existingHeader && !existingBody
+		if shouldCheckBlockGap {
+			insertNewGap := func(
+				transaction *database.Transaction[dbHash],
+				newGap blockchain.BlockGap[N],
+				gap *blockchain.BlockGap[N],
+			) {
+				transaction.Set(columns.Meta, metakeys.BlockGap, scale.MustMarshal(newGap))
+				transaction.Set(columns.Meta, metakeys.BlockGapVersion, scale.MustMarshal(blockGapCurrentVersion))
+				*gap = newGap
+			}
 
 			if blockGap != nil {
-				start := blockGap[0]
-				end := blockGap[1]
-				if number == start {
-					start += 1
-					err := insertNumberToKeyMapping(&transaction, uint32(columns.KeyLookup), number, hash)
-					if err != nil {
-						return err
+				switch blockGap.Type {
+				case blockchain.BlockGapMissingHeaderAndBody:
+					if number == blockGap.Start {
+						blockGap.Start += 1
+						err := insertNumberToKeyMapping(&transaction, uint32(columns.KeyLookup), number, hash)
+						if err != nil {
+							return err
+						}
+
+						if blockGap.Start > blockGap.End {
+							transaction.Remove(columns.Meta, metakeys.BlockGap)
+							transaction.Remove(columns.Meta, metakeys.BlockGapVersion)
+							blockGap = nil
+							logger.Debugf("Removed block gap")
+						} else {
+							insertNewGap(&transaction, *blockGap, blockGap)
+							logger.Debugf("Updated block gap %v", *blockGap)
+						}
+						blockGapUpdated = true
+					}
+				case blockchain.BlockGapMissingBody:
+					// Gap increased when syncing the header chain during fast sync.
+					if number == blockGap.End+1 && !existingBody {
+						blockGap.End += 1
+						err := insertNumberToKeyMapping(&transaction, uint32(columns.KeyLookup), number, hash)
+						if err != nil {
+							return err
+						}
+						insertNewGap(&transaction, *blockGap, blockGap)
+						logger.Debugf("Updated block gap %v", *blockGap)
+						blockGapUpdated = true
+
+					} else if number == blockGap.Start && existingBody { // Gap decreased when downloading the full blocks.
+						blockGap.Start += 1
+						if blockGap.Start > blockGap.End {
+							transaction.Remove(columns.Meta, metakeys.BlockGap)
+							transaction.Remove(columns.Meta, metakeys.BlockGapVersion)
+							blockGap = nil
+							logger.Debugf("Removed block gap")
+						} else {
+							insertNewGap(&transaction, *blockGap, blockGap)
+							logger.Debugf("Updated block gap %v", *blockGap)
+						}
+						blockGapUpdated = true
 					}
 				}
-				if start > end {
-					transaction.Remove(columns.Meta, metakeys.BlockGap)
-					blockGap = nil
-					logger.Debugf("Removed block gap.")
-				} else {
-					blockGap = &[2]N{start, end}
-					logger.Debugf("Update block gap. %v", *blockGap)
-					transaction.Set(columns.Meta, metakeys.BlockGap, scale.MustMarshal(*blockGap))
-				}
-			} else if number > bestNum+1 && number > 1 {
-				header, err := b.blockchain.Header(parentHash)
+			} else if operation.createGap {
+				parentHeader, err := b.blockchain.Header(parentHash)
 				if err != nil {
 					return err
 				}
-				if header == nil {
-					gap := [2]N{bestNum + 1, number - 1}
-					transaction.Set(columns.Meta, metakeys.BlockGap, scale.MustMarshal(gap))
-					blockGap = &gap
-					logger.Debugf("Detected block gap. %v", *blockGap)
+				if number > bestNum+1 && parentHeader == nil {
+					newGap := blockchain.BlockGap[N]{
+						Start: bestNum + 1,
+						End:   number - 1,
+						Type:  blockchain.BlockGapMissingHeaderAndBody,
+					}
+					insertNewGap(&transaction, newGap, blockGap)
+					blockGapUpdated = true
+					logger.Debugf("Detected block gap (warp sync) %v", blockGap)
+				} else if number == bestNum+1 && parentHeader != nil && !existingBody {
+					newGap := blockchain.BlockGap[N]{
+						Start: number,
+						End:   number,
+						Type:  blockchain.BlockGapMissingBody,
+					}
+					insertNewGap(&transaction, newGap, blockGap)
+					blockGapUpdated = true
+					logger.Debugf("Detected block gap (fast sync) %v", blockGap)
 				}
 			}
 		}
@@ -1018,7 +1086,10 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 	for _, m := range metaUpdates {
 		b.blockchain.updateMeta(m)
 	}
-	b.blockchain.updateBlockGap(blockGap)
+
+	if blockGapUpdated {
+		b.blockchain.updateBlockGap(blockGap)
+	}
 
 	return nil
 }

@@ -9,6 +9,10 @@ import (
 
 // List of all well known keys and prefixes in storage.
 var (
+	// Wasm code of the runtime.
+	// Stored as a raw byte vector. Required by substrate.
+	// Encodes to `0x3A636F6465`.
+	Code = []byte(":code")
 	// DefaultChildStorageKeyPrefix is a prefix of the default child storage keys in the top trie.
 	DefaultChildStorageKeyPrefix = []byte(":child_storage:default:")
 	// Current extrinsic index (u32) is stored under this key.

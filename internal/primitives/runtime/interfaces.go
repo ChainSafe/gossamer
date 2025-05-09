@@ -90,6 +90,9 @@ type Header[N Number, H Hash] interface {
 
 	// Returns the hash of the header.
 	Hash() H
+
+	// Clone the header.
+	Clone() Header[N, H]
 }
 
 // Block represents a block. It has types for Extrinsic pieces of information as well as a Header.

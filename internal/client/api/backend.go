@@ -6,8 +6,8 @@ package api
 import (
 	"sync"
 
-	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
@@ -42,11 +42,11 @@ type ImportSummary[
 	N runtime.Number,
 	Header runtime.Header[N, H],
 ] struct {
-	Hash           H                     // Block hash of the imported block.
-	Origin         consensus.BlockOrigin // Import origin.
-	Header         Header                // Header of the imported block.
-	IsNewBest      bool                  // Is this block a new best block.
-	StorageChanges *StorageChanges       // Optional storage changes.
+	Hash           H                  // Block hash of the imported block.
+	Origin         common.BlockOrigin // Import origin.
+	Header         Header             // Header of the imported block.
+	IsNewBest      bool               // Is this block a new best block.
+	StorageChanges *StorageChanges    // Optional storage changes.
 	// TreeRoute from old best to new best.
 	// If nil, there was no re-org while importing.
 	TreeRoute                *blockchain.TreeRoute[H, N]
@@ -154,6 +154,9 @@ type BlockImportOperation[
 
 	// UpdateTransactionIndex adds a transaction index operation.
 	UpdateTransactionIndex(index []overlayedchanges.IndexOperation) error
+
+	// Configure whether to create a block gap if newly imported block is missing parent
+	SetCreateGap(createGap bool)
 }
 
 // LockImportRun is the interface for performing operations on the backend.
@@ -166,8 +169,8 @@ type LockImportRun[
 ] interface {
 	/// LockImportRun locks the import lock, and run operations inside.
 	LockImportRun(
-		f func(*ClientImportOperation[H, Hasher, N, Header, E]) error,
-	) error
+		f func(*ClientImportOperation[H, Hasher, N, Header, E]) (any, error),
+	) (any, error)
 }
 
 // KeyValue is used in [AuxStore.InsertAux].  Key and Value should not be nil.

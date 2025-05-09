@@ -171,6 +171,8 @@ const (
 	StateVersionV1
 )
 
+const DefaultStateVersion StateVersion = StateVersionV1
+
 func (svv StateVersion) TrieLayout() trie.TrieLayout {
 	switch svv {
 	case StateVersionV0:
