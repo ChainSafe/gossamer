@@ -4,6 +4,7 @@ package db
 
 import (
 	"fmt"
+	"maps"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -76,9 +77,7 @@ func (mdb *MemoryDB) Copy() Database {
 	newDB := NewEmptyMemoryDB()
 	copyData := make(map[common.Hash][]byte, len(mdb.data))
 
-	for k, v := range mdb.data {
-		copyData[k] = v
-	}
+	maps.Copy(copyData, mdb.data)
 
 	newDB.data = copyData
 	return newDB
