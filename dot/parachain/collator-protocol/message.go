@@ -61,7 +61,7 @@ type blockedAdvertisement struct {
 	candidateHash        parachaintypes.CandidateHash
 }
 
-func (cpvs CollatorProtocolValidatorSide) canSecond(
+func (cpvs *CollatorProtocolValidatorSide) canSecond(
 	candidateParaID parachaintypes.ParaID,
 	candidateRelayParent common.Hash,
 	candidateHash parachaintypes.CandidateHash,
@@ -87,7 +87,7 @@ func (cpvs CollatorProtocolValidatorSide) canSecond(
 
 // Enqueue collation for fetching. The advertisement is expected to be
 // validated.
-func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
+func (cpvs *CollatorProtocolValidatorSide) enqueueCollation(
 	collations Collations,
 	relayParent common.Hash,
 	paraID parachaintypes.ParaID,
@@ -302,7 +302,7 @@ func getDeclareSignaturePayload(peerID peer.ID) []byte {
 	return payload
 }
 
-func (cpvs CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender peer.ID,
+func (cpvs *CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender peer.ID,
 	msg collatorprotocolmessages.CollationProtocol) error {
 
 	collatorProtocolV, err := msg.Value()

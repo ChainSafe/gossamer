@@ -196,7 +196,7 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem <-chan 
 	}
 }
 
-func (cb *CandidateBacking) Stop() {}
+func (*CandidateBacking) Stop() {}
 
 func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CandidateBacking
@@ -229,7 +229,7 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	return nil
 }
 
-func (cb *CandidateBacking) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) error {
+func (*CandidateBacking) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) error {
 	// Nothing to do here
 	return nil
 }

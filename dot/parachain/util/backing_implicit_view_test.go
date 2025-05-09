@@ -111,7 +111,7 @@ func TestBackingImplicitView_DeactivateLeaf(t *testing.T) {
 
 		view.blockInfoStorage[leafHash] = blockInfo{blockNumber: 10}      // Should not be pruned
 		view.blockInfoStorage[common.Hash{3}] = blockInfo{blockNumber: 4} // Should be pruned
-		view.blockInfoStorage[common.Hash{4}] = blockInfo{blockNumber: 6} //Should be pruned
+		view.blockInfoStorage[common.Hash{4}] = blockInfo{blockNumber: 6} // Should be pruned
 
 		pruned := view.DeactivateLeaf(leafHash)
 		require.Len(t, pruned, 2)

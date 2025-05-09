@@ -79,7 +79,7 @@ func New(net Network, protocolID protocol.ID, overseerChan chan<- any,
 	}
 }
 
-func (cpvs CollatorProtocolValidatorSide) Run(
+func (cpvs *CollatorProtocolValidatorSide) Run(
 	ctx context.Context, overseerToSubSystem <-chan any) {
 	inactivityTicker := time.NewTicker(activityPoll)
 
@@ -124,11 +124,11 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 	}
 }
 
-func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
+func (*CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CollationProtocol
 }
 
-func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
+func (*CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
 	signal parachaintypes.ActiveLeavesUpdateSignal) error {
 	// nothing to do
 	return nil
@@ -351,7 +351,7 @@ func (s SortableActivatedLeaves) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal parachaintypes.
+func (*CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal parachaintypes.
 	BlockFinalizedSignal) error {
 	// nothing to do
 	return nil
@@ -364,7 +364,7 @@ func (*CollatorProtocolValidatorSide) Stop() {
 // This function will
 // - check for duplicate requests
 // - check if the requested collation is in our view
-func (cpvs CollatorProtocolValidatorSide) requestCollation(relayParent common.Hash,
+func (cpvs *CollatorProtocolValidatorSide) requestCollation(relayParent common.Hash,
 	paraID parachaintypes.ParaID, peerID peer.ID) (*parachaintypes.Collation, error) {
 
 	// TODO: Make sure that the request can be done in MAX_UNSHARED_DOWNLOAD_TIME timeout
@@ -462,7 +462,7 @@ func IsRelayParentInImplicitView(
 	return false
 }
 
-// Note an advertisement by the collator. Returns `true` if the advertisement was imported
+// InsertAdvertisement Notes an advertisement by the collator. Returns `true` if the advertisement was imported
 // successfully. Fails if the advertisement is duplicate, out of view, or the peer has not
 // declared itself a collator.
 func (peerData *PeerData) InsertAdvertisement(
@@ -553,7 +553,7 @@ const (
 	Collating
 )
 
-// The maximum amount of heads a peer is allowed to have in their view at any time.
+// MaxViewHeads represents the maximum amount of heads a peer is allowed to have in their view at any time.
 // We use the same limit to compute the view sent to peers locally.
 const MaxViewHeads uint8 = 5
 
@@ -707,7 +707,7 @@ func (collations Collations) IsSecondedLimitReached(relayParentMode parachaintyp
 	return collations.secondedCount >= secondedLimit
 }
 
-func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID parachaintypes.CollatorID,
+func (cpvs *CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID parachaintypes.CollatorID,
 ) (peer.ID, bool) {
 	for peerID, peerData := range cpvs.peerData {
 		if peerData.state.CollatingPeerState.CollatorID == collatorID {
@@ -718,7 +718,7 @@ func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID par
 	return "", false
 }
 
-func (cpvs CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) error {
+func (cpvs *CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) error {
 	switch msg := msg.(type) {
 	case networkbridgeevents.PeerConnected:
 		_, ok := cpvs.peerData[msg.PeerID]
@@ -752,7 +752,7 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) err
 	return nil
 }
 
-func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
+func (cpvs *CollatorProtocolValidatorSide) processMessage(msg any) error {
 	// run this function as a goroutine, ideally
 
 	switch msg := msg.(type) {
@@ -905,7 +905,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 }
 
 // requestUnblockedCollations Checks whether any of the advertisements are unblocked and attempts to fetch them.
-func (cpvs CollatorProtocolValidatorSide) requestUnblockedCollations(backed collatorprotocolmessages.Backed) error {
+func (cpvs *CollatorProtocolValidatorSide) requestUnblockedCollations(backed collatorprotocolmessages.Backed) error {
 	for _, blockedAdvertisements := range cpvs.BlockedAdvertisements {
 		newBlockedAdvertisements := []blockedAdvertisement{}
 
