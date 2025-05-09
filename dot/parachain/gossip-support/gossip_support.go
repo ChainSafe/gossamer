@@ -74,12 +74,12 @@ func (*GossipSupport) Name() parachaintypes.SubSystemName {
 }
 
 func (*GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
-	//TODO implement in #4507
+	// TODO implement in #4507
 	return nil
 }
 
 func (*GossipSupport) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
-	//TODO implement #4507
+	// TODO implement #4507
 	return nil
 }
 
@@ -128,14 +128,14 @@ func (gs *GossipSupport) processMessage(msg any) error {
 }
 
 func (*GossipSupport) processPeerConnectedEvent(event networkbridgeevents.PeerConnected) {
-	//TODO implement in #4509
+	// TODO implement in #4509
 
 }
 
 func (*GossipSupport) processPeerDisconnectedEvent(event networkbridgeevents.PeerDisconnected) {
-	//TODO implement in #4509
+	// TODO implement in #4509
 }
 
 func (*GossipSupport) checkConnectivity() {
-	//TODO implement in #4507
+	// TODO implement in #4507
 }
