@@ -5,13 +5,15 @@ package gossipsupport
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/pkg/errors"
 	"math"
 	"time"
 
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
-	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -21,15 +23,32 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-gossip-support"))
 
 const (
+	// LowConnectivityWarnDelay indicates the duration after which we consider low connectivity a problem
 	LowConnectivityWarnDelay = 600 * time.Second
+	// LowConnectivityWarnThreshold means if connectivity is lower than this in percent, issue warning in logs
+	LowConnectivityWarnThreshold = 90
+	// BackoffDuration indicates how much time should we wait to reissue a connection request since the last
+	// authority discovery resolution failure
+	BackoffDuration = 5
+	// TryReResolveAuthorities indicates the authority discovery queries runs every time minutes
+	TryReResolveAuthorities = 300
 )
+
+type leafSession struct {
+	currentIndex parachaintypes.SessionIndex
+	Leaf         common.Hash
+}
+
+type BlockState interface {
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+}
 
 // GossipSupport is the parachain subsystem that is responsible for keeping track of session changes and issuing a
 // connection request to all validators in the next, current and a few past sessions if we are a validator
 // in these sessions.
 type GossipSupport struct {
-	subSystemToOverseer chan<- any
-
+	subSystemToOverseer    chan<- any
+	blockState             BlockState
 	keystore               keystore.Keystore
 	lastSessionIndex       *parachaintypes.SessionIndex
 	minKnownSession        parachaintypes.SessionIndex
@@ -74,7 +93,83 @@ func (gs *GossipSupport) Name() parachaintypes.SubSystemName {
 }
 
 func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
-	//TODO implement in #4507
+	logger.Trace("Process ActiveLeavesUpdateSignal")
+
+	leaf := signal.Activated.Hash
+
+	rt, err := gs.blockState.GetRuntime(leaf)
+
+	currentIndex, err := rt.ParachainHostSessionIndexForChild()
+	if err != nil {
+		return err
+	}
+
+	sinceFailure := time.Duration(0)
+	if gs.lastFailure != nil {
+		sinceFailure = time.Now().Sub(*gs.lastFailure)
+	}
+
+	sinceLastReconnect := time.Duration(0)
+	if gs.lastConnectionRequest != nil {
+		sinceLastReconnect = time.Now().Sub(*gs.lastConnectionRequest)
+	}
+
+	forceRequest := sinceFailure >= BackoffDuration
+	reResolveAuthorities := sinceLastReconnect >= TryReResolveAuthorities
+	ls := &leafSession{
+		currentIndex,
+		leaf,
+	}
+
+	maybeNewSession := ls
+	if gs.lastSessionIndex != nil && currentIndex <= *gs.lastSessionIndex {
+		maybeNewSession = nil
+	}
+
+	maybeIssueConnection := maybeNewSession
+	if forceRequest || reResolveAuthorities {
+		maybeIssueConnection = ls
+	}
+
+	if maybeIssueConnection != nil {
+		sessionIndex := maybeIssueConnection.currentIndex
+		relayParent := maybeIssueConnection.Leaf
+
+		sessionInfo, err := rt.ParachainHostSessionInfo(sessionIndex)
+		if err != nil {
+			logger.Warnf("failed to get session info for session %d", sessionIndex)
+			return err
+		}
+
+		isNewSession := maybeNewSession != nil
+		if isNewSession {
+			logger.Debugf("new session detected for session %d", sessionIndex)
+			gs.lastSessionIndex = &sessionIndex
+		}
+
+		// TODO: Connect to authorities from the past/present/future.
+
+		if isNewSession {
+			err := gs.buildTopologyForLastFinalizedIfNeeded(sessionIndex)
+			if err != nil {
+				logger.Warnf("failed to build topology for last finalized session %d, %s", sessionIndex, err.Error())
+				return err
+			}
+
+			ourIndex, err := gs.getKeyIndexAndUpdateMetrics(sessionInfo)
+			if err != nil {
+				logger.Warnf("failed to get our index for session %d, %s", sessionIndex, err.Error())
+				return err
+			}
+
+			gs.updateGossipTopology(ourIndex)
+		}
+
+		// authority discovery is just a cache so let's try every time we try to re-connect
+		// if new authorities are present
+		gs.updateAuthorityIDs(sessionInfo.DiscoveryKeys)
+	}
+
 	return nil
 }
 
@@ -83,9 +178,7 @@ func (gs *GossipSupport) ProcessBlockFinalizedSignal(signal parachaintypes.Block
 	return nil
 }
 
-func (gs *GossipSupport) Stop() {
-	logger.Tracef("Stopping GossipSupport subsystem")
-}
+func (gs *GossipSupport) Stop() { logger.Tracef("Stopping GossipSupport subsystem") }
 
 // Run starts the GossipSupport subsystem
 func (gs *GossipSupport) Run(ctx context.Context, overseerToSubsystem <-chan any) {
@@ -136,6 +229,49 @@ func (gs *GossipSupport) processPeerDisconnectedEvent(event networkbridgeevents.
 	//TODO implement in #4509
 }
 
+// checkConnectivity checks connectivity and report on it in logs.
 func (gs *GossipSupport) checkConnectivity() {
-	//TODO implement in #4507
+	absoluteConnected := len(gs.connectedAuthorities)
+	absoluteResolved := len(gs.resolvedAuthorities)
+
+	connectedRatio := 100
+	if absoluteResolved != 0 {
+		connectedRatio = 100 * absoluteConnected / absoluteResolved
+	}
+
+	unconnectedAuthorities := make(map[parachaintypes.AuthorityDiscoveryID]map[multiaddr.Multiaddr]struct{})
+	for authID, v := range gs.resolvedAuthorities {
+		if _, ok := gs.connectedAuthorities[authID]; !ok {
+			unconnectedAuthorities[authID] = v
+		}
+	}
+
+	if connectedRatio <= LowConnectivityWarnThreshold {
+		logger.Debugf("connectivity seems low, we are only connected to %d of available validators"+
+			" (see debug logs for details)", connectedRatio)
+	}
+
+	logger.Debugf("connectivity Report: \n"+
+		"connected ratio: %d, \n"+
+		"absolute connected: %d, \n"+
+		"absolute resolved: %d, \n"+
+		"unconnected authorities: %+v \n", connectedRatio, absoluteConnected, absoluteResolved, unconnectedAuthorities)
+}
+
+func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(currentSessionIndex parachaintypes.SessionIndex) error {
+	// TODO:
+	return nil
+}
+
+func (gs *GossipSupport) getKeyIndexAndUpdateMetrics(SessionInfo *parachaintypes.SessionInfo) (uint, error) {
+	// TODO:
+	return 0, nil
+}
+
+func (gs *GossipSupport) updateGossipTopology(_ourIndex uint) {
+	// TODO: implement in #4510
+}
+
+func (gs *GossipSupport) updateAuthorityIDs([]parachaintypes.AuthorityDiscoveryID) {
+	// TODO:
 }
