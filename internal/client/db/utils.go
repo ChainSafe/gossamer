@@ -251,31 +251,17 @@ func readMeta[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 
 	blockGapVersionBytes := db.Get(columnMeta, metakeys.BlockGapVersion)
 
-	if blockGapVersionBytes == nil {
-		blockGapBytes := db.Get(columnMeta, metakeys.BlockGap)
-		if blockGapBytes != nil {
-			var decodedBlockGap [2]N
-			if err = scale.Unmarshal(blockGapBytes, &decodedBlockGap); err == nil {
-				blockGap = &blockchain.BlockGap[N]{
-					Start: decodedBlockGap[0],
-					End:   decodedBlockGap[1],
-					Type:  blockchain.BlockGapMissingHeaderAndBody,
-				}
-			}
-		}
-	} else {
-		var decodedBlockGapVersion uint32
-		if err = scale.Unmarshal(blockGapVersionBytes, &decodedBlockGapVersion); err == nil {
-			if decodedBlockGapVersion == blockGapCurrentVersion {
-				blockGapBytes := db.Get(columnMeta, metakeys.BlockGap)
+	var decodedBlockGapVersion uint32
+	if err = scale.Unmarshal(blockGapVersionBytes, &decodedBlockGapVersion); err == nil {
+		if decodedBlockGapVersion == blockGapCurrentVersion {
+			blockGapBytes := db.Get(columnMeta, metakeys.BlockGap)
 
-				err = scale.Unmarshal(blockGapBytes, &blockGap)
-				if err != nil {
-					return meta[H, N]{}, err
-				}
-			} else {
-				return meta[H, N]{}, fmt.Errorf("unsupported block gap DB version: %d", decodedBlockGapVersion)
+			err = scale.Unmarshal(blockGapBytes, &blockGap)
+			if err != nil {
+				return meta[H, N]{}, err
 			}
+		} else {
+			return meta[H, N]{}, fmt.Errorf("unsupported block gap DB version: %d", decodedBlockGapVersion)
 		}
 	}
 	logger.Debugf("block_gap=%v", blockGap)
