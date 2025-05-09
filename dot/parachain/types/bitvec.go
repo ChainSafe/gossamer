@@ -151,7 +151,7 @@ func (bv *BitVec) ExtendByByte(b byte) error {
 }
 
 // MarshalSCALE encodes the BitVec into a byte slice
-func (bv BitVec) MarshalSCALE() ([]byte, error) {
+func (bv BitVec) MarshalSCALE() ([]byte, error) { // skipcq:GO-W1029
 	if bv.len > MaxBitVecLength {
 		// as we ensure that the length is always less than MaxBitVecLength, this should never happen practically.
 		// but we still check for it to prevent memory issues
