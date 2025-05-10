@@ -19,6 +19,7 @@ import (
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 )
 
@@ -609,7 +610,6 @@ func TestInsertAdvertisement(t *testing.T) {
 		peerData        PeerData
 		relayParentMode parachaintypes.ProspectiveParachainsMode
 		candidateHash   *parachaintypes.CandidateHash
-		implicitView    ImplicitView
 		activeLeaves    map[common.Hash]parachaintypes.ProspectiveParachainsMode
 		err             error
 	}{
@@ -685,8 +685,9 @@ func TestInsertAdvertisement(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
 
+			implicitView := &util.BackingImplicitView{}
 			_, err := c.peerData.InsertAdvertisement(
-				relayParent, c.relayParentMode, c.candidateHash, c.implicitView, c.activeLeaves)
+				relayParent, c.relayParentMode, c.candidateHash, implicitView, c.activeLeaves)
 			require.ErrorIs(t, err, c.err)
 		},
 		)
