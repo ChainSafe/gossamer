@@ -6,11 +6,13 @@ package backing
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+
 	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
-	gomock "go.uber.org/mock/gomock"
+	"go.uber.org/mock/gomock"
 )
 
 func TestHandleCanSecondMessage(t *testing.T) {
@@ -35,7 +37,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 				ResponseCh:           make(chan bool, 1),
 			},
 			mockOverseer:     func(overseerChannel chan any) {},
-			expectedError:    errUnknwnRelayParent.Error(),
+			expectedError:    errUnknownRelayParent.Error(),
 			expectedResponse: false,
 		},
 		{
@@ -43,7 +45,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 			candidateBacking: func() *CandidateBacking {
 				cb := &CandidateBacking{
 					perRelayParent: map[common.Hash]*perRelayParentState{{0x01}: {}},
-					ImplicitView:   implicitViewForCanSecondMsg(t),
+					implicitView:   implicitViewForCanSecondMsg(t),
 				}
 				return cb
 			},
@@ -76,7 +78,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 			candidateBacking: func() *CandidateBacking {
 				cb := &CandidateBacking{
 					perRelayParent: make(map[common.Hash]*perRelayParentState),
-					ImplicitView:   implicitViewForCanSecondMsg(t),
+					implicitView:   implicitViewForCanSecondMsg(t),
 				}
 				cb.perRelayParent[common.Hash{0x01}] = &perRelayParentState{}
 				return cb
@@ -124,16 +126,30 @@ func TestHandleCanSecondMessage(t *testing.T) {
 	}
 }
 
-// implicitViewForCanSecondMsg returns a mock ImplicitView for the CanSecondMessage test
-func implicitViewForCanSecondMsg(t *testing.T) *MockImplicitView {
+// implicitViewForCanSecondMsg returns a mock implicitView for the CanSecondMessage test
+func implicitViewForCanSecondMsg(t *testing.T) *util.BackingImplicitView {
 	t.Helper()
 
-	ctrl := gomock.NewController(t)
-	mockImplicitView := NewMockImplicitView(ctrl)
-	mockImplicitView.EXPECT().Leaves().Return([]common.Hash{{0x01}})
-	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-		gomock.AssignableToTypeOf(common.Hash{}), gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
-	).Return([]common.Hash{{0x01}})
+	overseerCh := make(chan any)
+	go func() {
+		getMin := (<-overseerCh).(prospectiveparachains.GetMinimumRelayParents)
+		getMin.Sender <- []prospectiveparachains.ParaIDBlockNumber{{
+			ParaId:      3,
+			BlockNumber: 1,
+		}}
+		close(overseerCh)
+	}()
 
-	return mockImplicitView
+	ctrl := gomock.NewController(t)
+	bs := NewMockBlockState(ctrl)
+	view := util.NewBackingImplicitView(bs, nil)
+
+	chain := []common.Hash{{1}}
+	bs.EXPECT().GetHeader(chain[0]).Return(util.GetBlockHeader(t, chain, chain[0]), nil)
+
+	err := view.ActivateLeaf(common.Hash{1}, overseerCh)
+	require.NoError(t, err)
+	require.Len(t, view.Leaves(), 1)
+
+	return view
 }

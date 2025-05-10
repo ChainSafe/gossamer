@@ -12,7 +12,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
@@ -96,7 +95,7 @@ func TestFailedIntroduceSecondedCandidateWhenMissingViewPerRelayParent(
 	subsystemToOverseer := make(chan any)
 	overseerToSubsystem := make(chan any)
 
-	prospectiveParachains := NewProspectiveParachains(subsystemToOverseer)
+	prospectiveParachains := NewProspectiveParachains(subsystemToOverseer, nil)
 
 	go prospectiveParachains.Run(context.Background(), overseerToSubsystem)
 
@@ -131,7 +130,7 @@ func TestFailedIntroduceSecondedCandidateWhenParentHeadAndHeadDataEquals(
 	subsystemToOverseer := make(chan any)
 	overseerToSubsystem := make(chan any)
 
-	prospectiveParachains := NewProspectiveParachains(subsystemToOverseer)
+	prospectiveParachains := NewProspectiveParachains(subsystemToOverseer, nil)
 
 	relayParent := relayChainBlockInfo{
 		Hash:        candidateRelayParent,
@@ -185,7 +184,7 @@ func TestHandleIntroduceSecondedCandidate(
 	subsystemToOverseer := make(chan any)
 	overseerToSubsystem := make(chan any)
 
-	prospectiveParachains := NewProspectiveParachains(subsystemToOverseer)
+	prospectiveParachains := NewProspectiveParachains(subsystemToOverseer, nil)
 
 	relayParent := relayChainBlockInfo{
 		Hash:        candidateRelayParent,
@@ -304,7 +303,6 @@ func makeCandidate(
 	commitmentsHash := commitments.Hash()
 
 	candidate := dummyCandidateReceiptBadSig(relayParent, &commitmentsHash)
-	candidate.CommitmentsHash = commitments.Hash()
 	candidate.Descriptor.ParaID = paraID
 
 	pvdh, err := pvd.Hash()
@@ -1603,7 +1601,7 @@ func TestHandleBacked(
 	subsystemToOverseer := make(chan any)
 	overseerToSubsystem := make(chan any)
 
-	prospectiveParachains := NewProspectiveParachains(subsystemToOverseer)
+	prospectiveParachains := NewProspectiveParachains(subsystemToOverseer, nil)
 
 	relayParent := relayChainBlockInfo{
 		Hash:        candidateRelayParent,
@@ -1697,21 +1695,6 @@ func TestActivateLeafSignalHandler(t *testing.T) {
 				}
 
 				ctrl := gomock.NewController(t)
-				mockImplicitView := NewMockImplicitView(ctrl)
-				mockImplicitView.EXPECT().
-					ActivateLeafFromProspectiveParachains(
-						&util.BlockInfoProspectiveParachains{
-							Hash:        activeLeafHash,
-							ParentHash:  activeLeafHeader.ParentHash,
-							Number:      parachaintypes.BlockNumber(activeLeafHeader.Number),
-							StorageRoot: activeLeafHeader.StateRoot,
-						},
-						[]*util.BlockInfoProspectiveParachains{},
-					)
-				mockImplicitView.EXPECT().
-					AllAllowedRelayParents().
-					Return([]common.Hash{activeLeafHash})
-
 				mockRuntime := NewMockInstance(ctrl)
 				mockRuntime.EXPECT().
 					ParachainHostClaimQueue().
@@ -1763,9 +1746,7 @@ func TestActivateLeafSignalHandler(t *testing.T) {
 
 				subsystemToOverseer := make(chan any)
 
-				pp := NewProspectiveParachains(subsystemToOverseer)
-				pp.blockState = mockBlockState
-				pp.view.implicitView = mockImplicitView
+				pp := NewProspectiveParachains(subsystemToOverseer, mockBlockState)
 
 				msg := parachaintypes.ActiveLeavesUpdateSignal{
 					Activated: &parachaintypes.ActivatedLeaf{

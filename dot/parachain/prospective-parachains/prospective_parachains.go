@@ -8,9 +8,9 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"golang.org/x/exp/maps"
@@ -21,17 +21,6 @@ var logger = log.NewFromGlobal(
 	log.SetLevel(log.Debug),
 )
 
-// Initialize with empty values.
-func NewView() *view {
-	//nolint:lll
-	return &view{
-		perRelayParent: make(map[common.Hash]*relayParentData),
-		activeLeaves:   make(map[common.Hash]bool),
-		implicitView:   nil, // TODO: currently there's no implementation for ImplicitView, reference is: //nolint:lll
-		//  https://github.com/paritytech/polkadot-sdk/blob/028e61be43f05f6f6c88c5cca94160f8db075585/polkadot/node/subsystem-util/src/backing_implicit_view.rs#L40 //nolint:lll
-	}
-}
-
 type ProspectiveParachains struct {
 	SubsystemToOverseer chan<- any
 	view                *view
@@ -41,16 +30,14 @@ type ProspectiveParachains struct {
 type view struct {
 	activeLeaves   map[common.Hash]bool
 	perRelayParent map[common.Hash]*relayParentData
-	implicitView   backing.ImplicitView
+	implicitView   *util.BackingImplicitView
 }
 
-func newView() *view {
+func newView(blockState BlockState) *view {
 	return &view{
 		perRelayParent: make(map[common.Hash]*relayParentData),
 		activeLeaves:   make(map[common.Hash]bool),
-
-		// TODO: currently there's no implementation for ImplicitView
-		implicitView: nil,
+		implicitView:   util.NewBackingImplicitView(blockState, nil),
 	}
 }
 
@@ -64,10 +51,11 @@ func (*ProspectiveParachains) Name() parachaintypes.SubSystemName {
 }
 
 // NewProspectiveParachains creates a new ProspectiveParachain subsystem
-func NewProspectiveParachains(overseerChan chan<- any) *ProspectiveParachains {
+func NewProspectiveParachains(overseerChan chan<- any, blockState BlockState) *ProspectiveParachains {
 	prospectiveParachain := ProspectiveParachains{
 		SubsystemToOverseer: overseerChan,
-		view:                newView(),
+		view:                newView(blockState),
+		blockState:          blockState,
 	}
 	return &prospectiveParachain
 }
@@ -119,7 +107,7 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 	}
 }
 
-func (pp *ProspectiveParachains) introduceSecondedCandidate(
+func (*ProspectiveParachains) introduceSecondedCandidate(
 	view *view,
 	request messages.IntroduceSecondedCandidateRequest,
 	response chan bool,
