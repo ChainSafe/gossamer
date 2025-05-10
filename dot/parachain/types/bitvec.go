@@ -47,7 +47,7 @@ func NewBitVec(bits []bool) (BitVec, error) {
 }
 
 // Bits returns all bits in the BitVec as a slice of bools
-func (bv *BitVec) Bits() []bool {
+func (bv *BitVec) Bits() []bool { // skipcq:GO-W1029
 	bits := make([]bool, bv.len)
 	for i := 0; i < bv.len; i++ {
 		byteIndex := i / 8
@@ -58,12 +58,12 @@ func (bv *BitVec) Bits() []bool {
 }
 
 // Len returns the number of bits in the BitVec
-func (bv *BitVec) Len() int {
+func (bv *BitVec) Len() int { // skipcq:GO-W1029
 	return bv.len
 }
 
 // PushBits adds multiple bits to the end of the BitVec
-func (bv *BitVec) PushBits(bits []bool) error {
+func (bv *BitVec) PushBits(bits []bool) error { // skipcq:GO-W1029
 	if len(bits) == 0 {
 		return nil
 	}
@@ -96,7 +96,7 @@ func (bv *BitVec) PushBits(bits []bool) error {
 }
 
 // Set sets a bit at the specified index
-func (bv *BitVec) Set(index uint, bit bool) error {
+func (bv *BitVec) Set(index uint, bit bool) error { // skipcq:GO-W1029
 	if index >= uint(bv.len) {
 		return errors.New("index out of bounds")
 	}
@@ -113,7 +113,7 @@ func (bv *BitVec) Set(index uint, bit bool) error {
 }
 
 // Get returns the bit at the specified index
-func (bv *BitVec) Get(index uint) (bool, error) {
+func (bv *BitVec) Get(index uint) (bool, error) { // skipcq:GO-W1029
 	if index >= uint(bv.len) {
 		return false, errors.New("index out of bounds")
 	}
@@ -125,7 +125,7 @@ func (bv *BitVec) Get(index uint) (bool, error) {
 }
 
 // ExtendByByte adds a byte to the BitVec. The bits are added in LSB0 order,
-func (bv *BitVec) ExtendByByte(b byte) error {
+func (bv *BitVec) ExtendByByte(b byte) error { // skipcq:GO-W1029
 	// Check if the new length exceeds the maximum allowed length
 	if bv.len+8 > MaxBitVecLength {
 		return fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", bv.len+8, MaxBitVecLength)
@@ -174,7 +174,7 @@ func (bv BitVec) MarshalSCALE() ([]byte, error) { // skipcq:GO-W1029
 }
 
 // UnmarshalSCALE decodes into the BitVec
-func (bv *BitVec) UnmarshalSCALE(r io.Reader) error {
+func (bv *BitVec) UnmarshalSCALE(r io.Reader) error { // skipcq:GO-W1029
 	if r == nil {
 		return errors.New("reader is nil")
 	}
@@ -208,7 +208,7 @@ func (bv *BitVec) UnmarshalSCALE(r io.Reader) error {
 }
 
 // IsEqual checks if two BitVecs are equal by comparing their lengths and bits
-func (bv *BitVec) IsEqual(other *BitVec) bool {
+func (bv *BitVec) IsEqual(other *BitVec) bool { // skipcq:GO-W1029
 	if bv.len != other.len {
 		return false
 	}
@@ -217,7 +217,7 @@ func (bv *BitVec) IsEqual(other *BitVec) bool {
 }
 
 // CountOnes returns the count of set bits (1s) in the BitVec following LSB0 ordering
-func (bv *BitVec) CountOnes() int {
+func (bv *BitVec) CountOnes() int { // skipcq:GO-W1029
 	if bv.len == 0 {
 		return 0
 	}
@@ -236,7 +236,7 @@ func (bv *BitVec) CountOnes() int {
 // Mask masks out bits according to the provided mask BitVec.
 // For each position, the bit is kept only if it was set and the mask bit is not set.
 // This implements the logic: (x, mask) => x && !mask
-func (bv *BitVec) Mask(mask BitVec) {
+func (bv *BitVec) Mask(mask BitVec) { // skipcq:GO-W1029
 	for i, value := range bv.Bits() {
 		// (x, mask) => x
 		// (true, true) => false
@@ -251,7 +251,7 @@ func (bv *BitVec) Mask(mask BitVec) {
 }
 
 // Clone returns a deep copy of the BitVec.
-func (bv *BitVec) Clone() BitVec {
+func (bv *BitVec) Clone() BitVec { // skipcq:GO-W1029
 	return BitVec{
 		bits: append([]byte{}, bv.bits...),
 		len:  bv.len,
@@ -264,7 +264,7 @@ func (bv *BitVec) Clone() BitVec {
 //
 //	BitVec{0,0,1,0,1,1,0,0}.Contains(BitVec{0,1,1,0}) == true
 //	BitVec{0,0,1,0,1,1,0,0}.Contains(BitVec{1,0,0,1}) == false
-func (bv *BitVec) Contains(other BitVec) bool {
+func (bv *BitVec) Contains(other BitVec) bool { // skipcq:GO-W1029
 	// If other is empty, it's contained in any BitVec
 	if other.Len() == 0 {
 		return true
@@ -302,7 +302,7 @@ func (bv *BitVec) Contains(other BitVec) bool {
 // It returns a new BitVec where a bit is set if it's set in either this BitVec or the other BitVec.
 // If the BitVecs have different lengths, the result will have the length of the longer BitVec,
 // and the shorter one will be treated as if padded with zeroes.
-func (bv *BitVec) Or(other BitVec) (BitVec, error) {
+func (bv *BitVec) Or(other BitVec) (BitVec, error) { // skipcq:GO-W1029
 	resultLen := max(bv.Len(), other.Len())
 	resultBits := make([]bool, resultLen)
 
