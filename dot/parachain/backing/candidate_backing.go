@@ -62,7 +62,7 @@ type CandidateBacking struct {
 	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
 	// The utility for managing the implicit and explicit views in a consistent way.
 	// We only feed leaves which have prospective parachains enabled to this view.
-	ImplicitView *util.BackingImplicitView
+	implicitView *util.BackingImplicitView
 	// The handle to the Keystore used for signing.
 	Keystore   keystore.Keystore
 	BlockState BlockState
@@ -163,7 +163,7 @@ func New(overseerChan chan<- any, ks keystore.Keystore, blockState BlockState) *
 		SubSystemToOverseer: overseerChan,
 		perRelayParent:      map[common.Hash]*perRelayParentState{},
 		perCandidate:        map[parachaintypes.CandidateHash]*perCandidateState{},
-		ImplicitView:        util.NewBackingImplicitView(blockState, nil),
+		implicitView:        util.NewBackingImplicitView(blockState, nil),
 		Keystore:            ks,
 		BlockState:          blockState,
 		perSessionCache:     newPerSessionCache(2),

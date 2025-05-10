@@ -54,7 +54,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 				require.NoError(t, err)
 
 				backing := CandidateBacking{
-					ImplicitView: view,
+					implicitView: view,
 					perRelayParent: map[common.Hash]*perRelayParentState{
 						{1}: {},
 					},
@@ -94,7 +94,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 				require.NoError(t, err)
 
 				backing := CandidateBacking{
-					ImplicitView: view,
+					implicitView: view,
 				}
 
 				return &backing
@@ -154,7 +154,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 
 				backing := CandidateBacking{
 					SubSystemToOverseer: subsystemToOverseer,
-					ImplicitView:        view,
+					implicitView:        view,
 					perRelayParent: map[common.Hash]*perRelayParentState{
 						{2}: {},
 						{3}: {},

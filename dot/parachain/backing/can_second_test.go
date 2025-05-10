@@ -37,7 +37,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 				ResponseCh:           make(chan bool, 1),
 			},
 			mockOverseer:     func(overseerChannel chan any) {},
-			expectedError:    errUnknwnRelayParent.Error(),
+			expectedError:    errUnknownRelayParent.Error(),
 			expectedResponse: false,
 		},
 		{
@@ -45,7 +45,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 			candidateBacking: func() *CandidateBacking {
 				cb := &CandidateBacking{
 					perRelayParent: map[common.Hash]*perRelayParentState{{0x01}: {}},
-					ImplicitView:   implicitViewForCanSecondMsg(t),
+					implicitView:   implicitViewForCanSecondMsg(t),
 				}
 				return cb
 			},
@@ -78,7 +78,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 			candidateBacking: func() *CandidateBacking {
 				cb := &CandidateBacking{
 					perRelayParent: make(map[common.Hash]*perRelayParentState),
-					ImplicitView:   implicitViewForCanSecondMsg(t),
+					implicitView:   implicitViewForCanSecondMsg(t),
 				}
 				cb.perRelayParent[common.Hash{0x01}] = &perRelayParentState{}
 				return cb
@@ -126,7 +126,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 	}
 }
 
-// implicitViewForCanSecondMsg returns a mock ImplicitView for the CanSecondMessage test
+// implicitViewForCanSecondMsg returns a mock implicitView for the CanSecondMessage test
 func implicitViewForCanSecondMsg(t *testing.T) *util.BackingImplicitView {
 	t.Helper()
 
