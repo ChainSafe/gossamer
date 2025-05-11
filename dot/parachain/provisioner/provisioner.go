@@ -105,7 +105,7 @@ func (*Provisioner) Stop() {}
 
 type perRelayParent struct {
 	leaf             *parachaintypes.ActivatedLeaf
-	signedBitFields  []parachaintypes.CheckedSignedAvailabilityBitfield //nolint:unused
+	signedBitfields  []parachaintypes.CheckedSignedAvailabilityBitfield //nolint:unused
 	isInherentReady  bool                                               //nolint:unused
 	awaitingInherent []chan provisionermessages.ProvisionerInherentData //nolint:unused
 }
