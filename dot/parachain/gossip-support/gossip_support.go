@@ -129,7 +129,6 @@ func (gs *GossipSupport) processMessage(msg any) error {
 
 func (*GossipSupport) processPeerConnectedEvent(event networkbridgeevents.PeerConnected) {
 	// TODO implement in #4509
-
 }
 
 func (*GossipSupport) processPeerDisconnectedEvent(event networkbridgeevents.PeerDisconnected) {
