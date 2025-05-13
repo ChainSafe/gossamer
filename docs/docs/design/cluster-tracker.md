@@ -1,4 +1,4 @@
-# ClusterTrack
+# ClusterTracker
 
 ## Background
 In the early stage of parablock life cycle, collator forwards the parablock(candidate) and its PoV to the validator set 
@@ -30,35 +30,35 @@ If a validator is disabled in the runtime, other validators should no longer acc
 There are `Seconded` statement and `Valid` statement. Seconded statement must be sent before Valid statement. The statement
 is always a `CompactStatement` carrying a hash and signature.
 
-## ClusterTrack
-The cluster module(AKA ClusterTrack) provides direct distribution of unbacked candidates within a group.
-The clusterTrack determines whether to accept/reject messages from other validators in the same group. 
+## ClusterTracker
+The cluster module(AKA ClusterTracker) provides direct distribution of unbacked candidates within a group.
+The clusterTracker determines whether to accept/reject messages from other validators in the same group. 
 It keeps track of what we have sent to other validators in the group, and pending statements.  
 
-## ClusterTrack Struct
+## ClusterTracker Struct
 ```go
 package statementdistribution
 
 import parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 
-// ClusterTrack is utility for keeping track of limits on direct statements within a group.
-type ClusterTrack[T parachaintypes.CompactStatementValues, F TaggedKnowledge[T]] struct {
-   Validators     []parachaintypes.ValidatorIndex
-   SecondingLimit uint
-   Knowledge      map[parachaintypes.ValidatorIndex]map[F]struct{}
+// ClusterTracker is utility for keeping track of limits on direct statements within a group.
+type ClusterTracker[T parachaintypes.CompactStatementValues, F taggedKnowledge[T]] struct {
+   validators     []parachaintypes.ValidatorIndex
+   secondingLimit uint
+   knowledge      map[parachaintypes.ValidatorIndex]map[F]struct{}
    // Statements known locally which haven't been sent to particular validators.
    // maps target validator to (originator, statement) pairs.
-   Pending map[parachaintypes.ValidatorIndex]map[OriginatorCompactStatement[T]]struct{}
+   pending map[parachaintypes.ValidatorIndex]map[originatorCompactStatement[T]]struct{}
 }
 
-// OriginatorCompactStatement is a pair of (originator, statement)
-type OriginatorCompactStatement[T parachaintypes.CompactStatementValues] struct {
-	Validator        parachaintypes.ValidatorIndex
-	CompactStatement T
+// originatorCompactStatement is a pair of (originator, statement)
+type originatorCompactStatement[T parachaintypes.CompactStatementValues] struct {
+	validator        parachaintypes.ValidatorIndex
+	compactStatement T
 }
 ```
 
-### Dependencies of ClusterTrack
+### Dependencies of ClusterTracker
 
 #### 1.Seconding Limit
 The seconding limit is a per-validator limit. Validator is able to second multiple candidates per relay parent.
@@ -72,20 +72,20 @@ package statementdistribution
 
 import parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 
-// General knowledge
-type General struct {
+// general knowledge
+type general struct {
    parachaintypes.CandidateHash
 }
 
-// Specific knowledge of a given statement (with its originator)
-type Specific[T parachaintypes.CompactStatementValues] struct {
-   Validator        parachaintypes.ValidatorIndex
-   CompactStatement T
+// specific knowledge of a given statement (with its originator)
+type specific[T parachaintypes.CompactStatementValues] struct {
+   validator        parachaintypes.ValidatorIndex
+   compactStatement T
 }
 
-// Knowledge is a piece of knowledge about a candidate
-type Knowledge[T parachaintypes.CompactStatementValues] interface {
-   General | Specific[T]
+// knowledge is a piece of knowledge about a candidate
+type knowledge[T parachaintypes.CompactStatementValues] interface {
+   general | specific[T]
 }
 ```
 
@@ -96,21 +96,21 @@ package statementdistribution
 
 import parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 
-// IncomingP2P is one possible type of TaggedKnowledge we have received from the validator on the p2p layer.
-type IncomingP2P[T parachaintypes.CompactStatementValues] Knowledge[T]
+// incomingP2P is one possible type of TaggedKnowledge we have received from the validator on the p2p layer.
+type incomingP2P[T parachaintypes.CompactStatementValues] knowledge[T]
 
-// OutgoingP2P is one possible type if TaggedKnowledge we have sent to the validator on the p2p layer.
-type OutgoingP2P[T parachaintypes.CompactStatementValues] Knowledge[T]
+// outgoingP2P is one possible type of TaggedKnowledge we have sent to the validator on the p2p layer.
+type outgoingP2P[T parachaintypes.CompactStatementValues] knowledge[T]
 
-// Seconded is one possible type of TaggedKnowledge of candidates the validator has seconded.
-// This is limited only to `Seconded` statements we have accepted
-type Seconded struct {
+// seconded is one possible type of TaggedKnowledge of candidates the validator has seconded.
+// This is limited only to `Seconded` statements we have accepted without prejudice
+type seconded struct {
    parachaintypes.CandidateHash
 }
 
-// TaggedKnowledge is Knowledge paired with its source.
-type TaggedKnowledge[T parachaintypes.CompactStatementValues] interface {
-   IncomingP2P[T] | OutgoingP2P[T] | Seconded
+// taggedKnowledge is Knowledge paired with its source.
+type taggedKnowledge[T parachaintypes.CompactStatementValues] interface {
+   incomingP2P[T] | outgoingP2P[T] | seconded
 }
 ```
 
@@ -141,64 +141,64 @@ var errRejectOutgoingKnown = errors.New("The statement was already known to the 
 var errRejectOutgoingNotInGroup = errors.New("Target or originator not in the group.")
 ```
 
-## Methods of ClusterTrack
+## Methods of ClusterTracker
 
-1. Constructor of ClusterTrack: Instantiate a new ClusterTracker tracker. Fails if cluster_validators is empty
+1. Constructor of ClusterTracker: Instantiate a new ClusterTracker. Fails if clusterValidators is empty
 ```go
-func NewClusterTrack[T parachaintypes.CompactStatementValues, F TaggedKnowledge[T]](
+func NewClusterTracker[T parachaintypes.CompactStatementValues, F taggedKnowledge[T]](
 clusterValidators []parachaintypes.ValidatorIndex,
 secondingLimit uint,
-) (*ClusterTrack[T, F], error)
+) (*ClusterTracker[T, F], error)
 ```
 
 2. CanReceive: Query whether we can receive some statement from the given validator.
 ```go
-func (c *ClusterTrack[T, F]) CanReceive(sender parachaintypes.ValidatorIndex, originator parachaintypes.ValidatorIndex, statement T) (Accept, error)
+func (c *ClusterTracker[T, F]) CanReceive(sender parachaintypes.ValidatorIndex, originator parachaintypes.ValidatorIndex, statement T) (Accept, error)
 ```
 
 3. NoteIssued: Note that we issued a statement. This updates internal structures.
 ```go
-func (c *ClusterTrack[T, F]) NoteIssued(originator parachaintypes.ValidatorIndex, statement T)
+func (c *ClusterTracker[T, F]) NoteIssued(originator parachaintypes.ValidatorIndex, statement T)
 ```
 
 4. NoteReceived: Note that we accepted an incoming statement. This updates internal structures.
 ```go
-func (c *ClusterTrack[T, F]) NoteReceived(sender parachaintypes.ValidatorIndex, originator parachaintypes.ValidatorIndex, statement T)
+func (c *ClusterTracker[T, F]) NoteReceived(sender parachaintypes.ValidatorIndex, originator parachaintypes.ValidatorIndex, statement T)
 ```
 
 5. CanSend: Query whether we can send a statement to a given validator.
 ```go
-func (c *ClusterTrack[T, F]) CanSend(target parachaintypes.ValidatorIndex, originator parachaintypes.ValidatorIndex, statement T) error
+func (c *ClusterTracker[T, F]) CanSend(target parachaintypes.ValidatorIndex, originator parachaintypes.ValidatorIndex, statement T) error
 ```
 
 6. NoteSent: Note that we sent an outgoing statement to a peer in the group. This must be preceded by a successful can_send call.
 ```go
-func (c *ClusterTrack[T, F]) NoteSend(target parachaintypes.ValidatorIndex, originator parachaintypes.ValidatorIndex, statement T)
+func (c *ClusterTracker[T, F]) NoteSend(target parachaintypes.ValidatorIndex, originator parachaintypes.ValidatorIndex, statement T)
 ```
 
 7. Targets: Get all targets as validator-indices. This doesn't attempt to filter out the local validator index.
 ```go
-func (c *ClusterTrack[T, F]) targets() []parachaintypes.ValidatorIndex
+func (c *ClusterTracker[T, F]) targets() []parachaintypes.ValidatorIndex
 ```
 
 8. SendersForOriginator: Get all possible senders for the given originator. Returns the empty slice in the case that the originator is not part of the cluster.
 ```go
-func (c *ClusterTrack[T, F]) SendersForOriginator(originator parachaintypes.ValidatorIndex) []parachaintypes.ValidatorIndex
+func (c *ClusterTracker[T, F]) SendersForOriginator(originator parachaintypes.ValidatorIndex) []parachaintypes.ValidatorIndex
 ```
 
 9. KnowsCandidate: Whether a validator knows the candidate is Seconded.
 ```go
-func (c *ClusterTrack[T, F]) KnowsCandidate(validator parachaintypes.ValidatorIndex, candidateHash parachaintypes.CandidateHash) bool
+func (c *ClusterTracker[T, F]) KnowsCandidate(validator parachaintypes.ValidatorIndex, candidateHash parachaintypes.CandidateHash) bool
 ```
 
 10. CanRequest: Whether a validator can request a candidate from us.
 ```go
-func (c *ClusterTrack[T, F]) CanRequest(target parachaintypes.ValidatorIndex, candidateHash parachaintypes.CandidateHash) bool
+func (c *ClusterTracker[T, F]) CanRequest(target parachaintypes.ValidatorIndex, candidateHash parachaintypes.CandidateHash) bool
 ```
 
 11. PendingStatementsFor: Returns a slice of pending statements to be sent to a particular validator index. Seconded statements are sorted to the front of the vector.
 ```go
-func (c *ClusterTrack[T, F]) PendingStatementsFor(target parachaintypes.ValidatorIndex) []OriginatorCompactStatement[T]
+func (c *ClusterTracker[T, F]) PendingStatementsFor(target parachaintypes.ValidatorIndex) []OriginatorCompactStatement[T]
 ```
 
 12. WarnIfTooManyPendingStatements: Dumps pending statement for this cluster into log
@@ -250,4 +250,3 @@ Query whether a validator knows the candidate is Seconded, then return the targe
 
 6. Answer an incoming request for a candidate:
 Query whether a validator can request a candidate from us.
-
