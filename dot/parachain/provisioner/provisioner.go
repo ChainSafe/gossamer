@@ -67,7 +67,7 @@ func (p *Provisioner) processMessage(msg any) error {
 	case provisionermessages.RequestInherentData:
 		// TODO #4159
 	case provisionermessages.ProvisionableData:
-		// TODO #4160
+		p.processProvisionableData(msg)
 	default:
 		return parachaintypes.ErrUnknownOverseerMessage
 	}
@@ -103,9 +103,27 @@ func (*Provisioner) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSig
 
 func (*Provisioner) Stop() {}
 
+func (p *Provisioner) processProvisionableData(provisionableData provisionermessages.ProvisionableData) {
+	state, exists := p.perRelayParent[provisionableData.RelayParent]
+	if !exists {
+		return
+	}
+
+	// note provisionable data
+	switch data := provisionableData.Data.(type) {
+	case provisionermessages.ProvisionableDataBitfield:
+		state.signedBitfields = append(state.signedBitfields, data.Bitfield)
+	case provisionermessages.ProvisionableDataMisbehaviorReport:
+		// We choose not to punish these forms of misbehaviour for the time being.
+		// Risks from misbehaviour are sufficiently mitigated at the protocol level
+		// via reputation changes. Punitive actions here may become desirable
+		// enough to dedicate time to in the future.
+	}
+}
+
 type perRelayParent struct {
 	leaf             *parachaintypes.ActivatedLeaf
-	signedBitfields  []parachaintypes.CheckedSignedAvailabilityBitfield //nolint:unused
+	signedBitfields  []parachaintypes.CheckedSignedAvailabilityBitfield
 	isInherentReady  bool                                               //nolint:unused
 	awaitingInherent []chan provisionermessages.ProvisionerInherentData //nolint:unused
 }
