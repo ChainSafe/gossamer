@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package parachaintypes
 
 import (
@@ -643,6 +646,7 @@ func TestBitVec_Clone(t *testing.T) {
 
 	b := a.Clone()
 	require.Equal(t, a.Bits(), b.Bits())
+	require.Equal(t, a.len, b.len)
 
 	err = b.Set(0, false)
 	require.NoError(t, err)
