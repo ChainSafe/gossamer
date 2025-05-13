@@ -20,7 +20,7 @@ const inherentPreProposeTimeout = 2 * time.Second
 
 func New() *Provisioner {
 	return &Provisioner{
-		perRelayParent: make(map[common.Hash]perRelayParent),
+		perRelayParent: make(map[common.Hash]*perRelayParent),
 
 		// Buffer size 2: one active delay + safety margin
 		availableInherent: make(chan common.Hash, 2),
@@ -28,7 +28,7 @@ func New() *Provisioner {
 }
 
 type Provisioner struct {
-	perRelayParent map[common.Hash]perRelayParent
+	perRelayParent map[common.Hash]*perRelayParent
 
 	// TODO #4162
 	// This doesn't have to be a channel with buffer.
@@ -86,7 +86,7 @@ func (p *Provisioner) ProcessActiveLeavesUpdateSignal(update parachaintypes.Acti
 	}
 
 	if update.Activated != nil {
-		p.perRelayParent[update.Activated.Hash] = perRelayParent{leaf: update.Activated}
+		p.perRelayParent[update.Activated.Hash] = &perRelayParent{leaf: update.Activated}
 
 		go func() {
 			time.Sleep(inherentPreProposeTimeout)

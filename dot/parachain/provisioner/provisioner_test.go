@@ -14,14 +14,14 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 
 	testCases := []struct {
 		name               string
-		perRP              map[common.Hash]perRelayParent // Initial state of perRelayParent
+		perRP              map[common.Hash]*perRelayParent // Initial state of perRelayParent
 		update             parachaintypes.ActiveLeavesUpdateSignal
 		expectedRemaining  []common.Hash // Expected hashes remaining in perRelayParent
 		expectInherentHash *common.Hash  // Expected hash to be sent on availableInherent channel
 	}{
 		{
 			name: "deactivate_single_leaf",
-			perRP: map[common.Hash]perRelayParent{
+			perRP: map[common.Hash]*perRelayParent{
 				{1}: {leaf: &parachaintypes.ActivatedLeaf{Hash: common.Hash{1}}},
 			},
 			update: parachaintypes.ActiveLeavesUpdateSignal{
@@ -30,8 +30,10 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 			expectedRemaining: nil,
 		},
 		{
-			name:  "activate_new_leaf",
-			perRP: map[common.Hash]perRelayParent{},
+			name: "activate_new_leaf",
+			perRP: map[common.Hash]*perRelayParent{
+				{1}: {leaf: &parachaintypes.ActivatedLeaf{Hash: common.Hash{1}}},
+			},
 			update: parachaintypes.ActiveLeavesUpdateSignal{
 				Activated: &parachaintypes.ActivatedLeaf{Hash: common.Hash{1}},
 			},
@@ -40,7 +42,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 		},
 		{
 			name: "activate_and_deactivate",
-			perRP: map[common.Hash]perRelayParent{
+			perRP: map[common.Hash]*perRelayParent{
 				{1}: {leaf: &parachaintypes.ActivatedLeaf{Hash: common.Hash{1}}},
 				{2}: {leaf: &parachaintypes.ActivatedLeaf{Hash: common.Hash{2}}},
 			},
