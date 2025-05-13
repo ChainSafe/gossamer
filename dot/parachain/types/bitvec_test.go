@@ -634,3 +634,19 @@ func TestBitVec_Mask(t *testing.T) {
 		})
 	}
 }
+
+func TestBitVec_Clone(t *testing.T) {
+	t.Parallel()
+
+	a, err := NewBitVec([]bool{true, true, false, true, true})
+	require.NoError(t, err)
+
+	b := a.Clone()
+	require.Equal(t, a.Bits(), b.Bits())
+	require.Equal(t, a.len, b.len)
+
+	err = b.Set(0, false)
+	require.NoError(t, err)
+	require.Equal(t, []bool{false, true, false, true, true}, b.Bits())
+	require.NotEqual(t, a.Bits(), b.Bits())
+}
