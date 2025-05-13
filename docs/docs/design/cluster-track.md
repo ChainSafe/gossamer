@@ -205,3 +205,49 @@ func (c *ClusterTrack[T, F]) PendingStatementsFor(target parachaintypes.Validato
 ```go
 func (c *ClusterTrack[T, F]) WarnIfTooManyPendingStatements(parentHash common.Hash)
 ```
+
+## Usage in Statement Distribution Subsystem
+
+ClusterTracker is one of the params in the `ActiveValidatorState` which is the param of `LocalValidatorState`.
+
+```rust
+// per-relay-parent local validator state.
+struct LocalValidatorState {
+	// the grid-level communication at this relay-parent.
+	grid_tracker: GridTracker,
+	// additional fields in case local node is an active validator.
+	active: Option<ActiveValidatorState>,
+	// local index actually exists in case node is inactive validator, however,
+	// it's not needed outside of `build_session_topology`, where it's known.
+}
+
+struct ActiveValidatorState {
+	// The index of the validator.
+	index: ValidatorIndex,
+	// our validator group
+	group: GroupIndex,
+	// the assignments of our validator group, if any.
+	assignments: Vec<ParaId>,
+	// the 'direct-in-group' communication at this relay-parent.
+	cluster_tracker: ClusterTracker,
+}
+```
+
+1. Send a peer all pending cluster statements for a relay parent:
+Query the pending statement first and then call `NoteSent` to modify the validator knowledge.  
+
+2. Import a locally originating statement and distributes it to peers:
+Call `NoteIssue` to issue a statement.  
+
+3. Circulate a compact statement to all peers who need it:
+First query all validators and see if we can send statement to each one of them, and then call `NoteSend` to mark that.  
+
+4. Handle an incoming statement:
+Query all possible senders for the given originator, and see whether a statement is allowed, if so call `NoteReceived` to mark as accepted incoming statement.
+
+5. Dispatch pending requests for candidate data & statements:
+Query whether a validator knows the candidate is Seconded, then return the targeted validators set.
+
+6. Answer an incoming request for a candidate:
+Query whether a validator can request a candidate from us.
+
