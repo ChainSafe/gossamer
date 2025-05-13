@@ -19,6 +19,9 @@ var FinalizedState = []byte("fstate")
 // BlockGap key.
 var BlockGap = []byte("gap")
 
+// Block gap version.
+var BlockGapVersion = []byte("gap_ver")
+
 // GenesisHash is genesis block hash key.
 var GenesisHash = []byte("gen")
 

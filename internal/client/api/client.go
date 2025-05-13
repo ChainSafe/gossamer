@@ -4,8 +4,8 @@
 package api
 
 import (
-	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
@@ -50,7 +50,7 @@ type BlockchainEvents[
 	UnregisterEveryImportNotificationStream(ImportNotifications[H, N, Header])
 
 	// RegisterFinalityNotificationStream will get a channel of finality notifications. Not guaranteed to be fired for
-	//every finalized block.
+	// every finalized block.
 	RegisterFinalityNotificationStream() FinalityNotifications[H, N, Header]
 	// UnregisterFinalityNotificationStream will unregister a registered channel.
 	UnregisterFinalityNotificationStream(FinalityNotifications[H, N, Header])
@@ -163,10 +163,10 @@ type BlockImportNotification[
 	N runtime.Number,
 	Header runtime.Header[N, H],
 ] struct {
-	Hash      H                     // Imported block header hash.
-	Origin    consensus.BlockOrigin // Imported block origin.
-	Header    Header                // Imported block header.
-	IsNewBest bool                  // Is this the new best block.
+	Hash      H                  // Imported block header hash.
+	Origin    common.BlockOrigin // Imported block origin.
+	Header    Header             // Imported block header.
+	IsNewBest bool               // Is this the new best block.
 	// TreeRoute from old best to new best. If nil, there was no re-org while importing.
 	TreeRoute   *blockchain.TreeRoute[H, N]
 	unpinHandle UnpinHandle[H] // Handle to unpin the block this notification is associated with.

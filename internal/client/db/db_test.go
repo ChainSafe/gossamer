@@ -85,9 +85,13 @@ func TestBlockchainDB_updateBlockGap(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, db)
 
-	expected := &[2]uint32{1, 1}
+	expected := &blockchain.BlockGap[uint32]{
+		Start: 1,
+		End:   1,
+		Type:  blockchain.BlockGapMissingHeaderAndBody,
+	}
 	db.updateBlockGap(expected)
-	assert.Equal(t, &[2]uint32{1, 1}, expected)
+	assert.Equal(t, expected, db.meta.BlockGap)
 }
 
 func TestBlockchainDB_clearPinningCache(t *testing.T) {
