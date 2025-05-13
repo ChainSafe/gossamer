@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/provisioner"
+
 	bitfielddistribution "github.com/ChainSafe/gossamer/dot/parachain/bitfield-distribution"
 
 	availabilitydistribution "github.com/ChainSafe/gossamer/dot/parachain/availability-distribution"
@@ -98,6 +100,9 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	prospectiveParachainsSubsystem := prospectiveparachains.NewProspectiveParachains(
 		overseer.SubsystemsToOverseer, st.Block)
 	overseer.RegisterSubsystem(prospectiveParachainsSubsystem)
+
+	provisionerSubsystem := provisioner.New()
+	overseer.RegisterSubsystem(provisionerSubsystem)
 
 	// register bitfield signing subsystem
 	bitfieldSigningsSubsystem := bitfieldsigning.NewBitfieldSigning(overseer.SubsystemsToOverseer, ks, st.Block)
