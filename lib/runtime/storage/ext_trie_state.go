@@ -149,9 +149,13 @@ func (t *ExtTrieState[H, Hasher, B]) GetChildNextKey(keyToChild, key []byte) ([]
 	return next, nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]byte, error) {
-	// TODO: remove this from the interface
-	panic("not implemented")
+func (t *ExtTrieState[H, Hasher, B]) LoadCode() []byte {
+	return t.ext.Storage(common.CodeKey)
+}
+
+func (t *ExtTrieState[H, Hasher, B]) LoadCodeHash() (common.Hash, error) {
+	code := t.LoadCode()
+	return common.Blake2bHash(code)
 }
 
 func (t *ExtTrieState[H, Hasher, B]) Trie() trie.Trie {
@@ -161,5 +165,9 @@ func (t *ExtTrieState[H, Hasher, B]) Trie() trie.Trie {
 
 func (t *ExtTrieState[H, Hasher, B]) TrieEntries() map[string][]byte {
 	// TODO: remove this from the interface
+	panic("not implemented")
+}
+
+func (t *ExtTrieState[H, Hasher, B]) GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error) {
 	panic("not implemented")
 }
