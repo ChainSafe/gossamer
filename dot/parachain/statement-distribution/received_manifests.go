@@ -47,7 +47,7 @@ func (rm *receivedManifests) candidateStatementFilter(candidateHash parachaintyp
 		return nil
 	}
 
-	filter := manifestSummary.statementKnowledge.Clone()
+	filter := manifestSummary.statementKnowledge.clone()
 	return &filter
 }
 
