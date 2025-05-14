@@ -1071,7 +1071,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		require.Equal(t, prepareStorageChangesResultImport{StorageChanges: nil}, result)
 	})
 
-	t.Run("action_execute_if_possible_withouth_body", func(t *testing.T) {
+	t.Run("action_execute_if_possible_without_body", func(t *testing.T) {
 		block := common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
 			Header: generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
