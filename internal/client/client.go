@@ -712,8 +712,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) ImportBlock(
 	importResult, err := c.LockImportRun(func(
 		clientImportOp *api.ClientImportOperation[H, Hasher, N, Header, E],
 	) (any, error) {
-		result, err := c.applyBlock(clientImportOp, *block, storageChanges)
-		return result, err
+		return c.applyBlock(clientImportOp, *block, storageChanges)
 	})
 
 	if err != nil {
