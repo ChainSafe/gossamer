@@ -104,12 +104,9 @@ func (rm *receivedManifests) importReceived(
 		return errManifestImportConflicting
 	}
 
-	freshSeconded, err := manifestSummary.statementKnowledge.secondedInGroup.Or(
+	freshSeconded := manifestSummary.statementKnowledge.secondedInGroup.Or(
 		previousSummary.statementKnowledge.secondedInGroup,
 	)
-	if err != nil {
-		return err
-	}
 
 	withinLimits := updatingEnsureWithinSecondingLimit(
 		rm.secondedCounts,
@@ -140,7 +137,7 @@ func updatingEnsureWithinSecondingLimit(
 	groupIndex parachaintypes.GroupIndex,
 	groupSize uint,
 	secondingLimit uint,
-	newSeconded parachaintypes.BitVec, // polkadot-sdk uses a &BitSlice<u8, Lsb0>
+	newSeconded parachaintypes.BitVec,
 ) bool {
 	if secondingLimit == 0 {
 		return false

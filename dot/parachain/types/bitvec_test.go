@@ -736,9 +736,8 @@ func TestBitVec_Or(t *testing.T) {
 		bv2, err := NewBitVec([]bool{})
 		require.NoError(t, err)
 
-		result, err := bv1.Or(bv2)
+		result := bv1.Or(bv2)
 
-		require.NoError(t, err)
 		require.Empty(t, result.Bits())
 	})
 
@@ -751,9 +750,8 @@ func TestBitVec_Or(t *testing.T) {
 		bv2, err := NewBitVec([]bool{})
 		require.NoError(t, err)
 
-		result, err := bv1.Or(bv2)
+		result := bv1.Or(bv2)
 
-		require.NoError(t, err)
 		require.Equal(t, bv1.Bits(), result.Bits())
 	})
 
@@ -766,9 +764,8 @@ func TestBitVec_Or(t *testing.T) {
 		bv2, err := NewBitVec([]bool{false, true, false, true})
 		require.NoError(t, err)
 
-		result, err := bv1.Or(bv2)
+		result := bv1.Or(bv2)
 
-		require.NoError(t, err)
 		expected := []bool{true, true, true, true}
 		require.Equal(t, expected, result.Bits())
 	})
@@ -776,34 +773,36 @@ func TestBitVec_Or(t *testing.T) {
 	t.Run("first_longer_than_second", func(t *testing.T) {
 		t.Parallel()
 
-		bv1, err := NewBitVec([]bool{true, false, true, false, true})
+		// longer than 8 bits; the BitVec uses two bytes internally
+		bv1, err := NewBitVec([]bool{false, true, false, true, false, false, false, false, true, true, false, true})
 		require.NoError(t, err)
 
-		bv2, err := NewBitVec([]bool{false, true, false})
+		// shorter than 8 bits; the BitVec uses one byte internally
+		bv2, err := NewBitVec([]bool{true, false, true})
 		require.NoError(t, err)
 
-		result, err := bv1.Or(bv2)
+		result := bv1.Or(bv2)
 
-		require.NoError(t, err)
 		// Expected result: OR of overlapping bits, then bits from longer BitVec
-		expected := []bool{true, true, true, false, true}
+		expected := []bool{true, true, true, true, false, false, false, false, true, true, false, true}
 		require.Equal(t, expected, result.Bits())
 	})
 
 	t.Run("second_longer_than_first", func(t *testing.T) {
 		t.Parallel()
 
+		// shorter than 8 bits; the BitVec uses one byte internally
 		bv1, err := NewBitVec([]bool{true, false, true})
 		require.NoError(t, err)
 
-		bv2, err := NewBitVec([]bool{false, true, false, true, false})
+		// longer than 8 bits; the BitVec uses two bytes internally
+		bv2, err := NewBitVec([]bool{false, true, false, true, false, false, false, false, true, true, false, true})
 		require.NoError(t, err)
 
-		result, err := bv1.Or(bv2)
+		result := bv1.Or(bv2)
 
-		require.NoError(t, err)
 		// Expected result: OR of overlapping bits, then bits from longer BitVec
-		expected := []bool{true, true, true, true, false}
+		expected := []bool{true, true, true, true, false, false, false, false, true, true, false, true}
 		require.Equal(t, expected, result.Bits())
 	})
 
@@ -816,9 +815,8 @@ func TestBitVec_Or(t *testing.T) {
 		bv2, err := NewBitVec([]bool{false, true, false, true, true, false, false})
 		require.NoError(t, err)
 
-		result, err := bv1.Or(bv2)
+		result := bv1.Or(bv2)
 
-		require.NoError(t, err)
 		expected := []bool{true, true, false, true, true, true, false}
 		require.Equal(t, expected, result.Bits())
 	})
