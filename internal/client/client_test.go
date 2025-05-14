@@ -405,11 +405,11 @@ func TestPreCommitActions(t *testing.T) {
 		c := newTestClient(t)
 
 		var count int
-		c.RegisterImportAction(func(bin BlockImportOperation) api.AuxDataOperations {
+		c.RegisterImportAction(func(_ BlockImportOperation) api.AuxDataOperations {
 			count++
 			return api.AuxDataOperations{}
 		})
-		c.RegisterFinalityAction(func(fn FinalityNotification) api.AuxDataOperations {
+		c.RegisterFinalityAction(func(_ FinalityNotification) api.AuxDataOperations {
 			count++
 			return api.AuxDataOperations{}
 		})
@@ -447,7 +447,7 @@ func TestHeaderBackendImplementation(t *testing.T) {
 	blockchainMock.EXPECT().Number(expectedHash).Return(&expectedNumber, nil)
 	blockchainMock.EXPECT().Hash(expectedNumber).Return(&expectedHash, nil)
 
-	expectedExtrinsics := []runtime.OpaqueExtrinsic{}
+	expectedExtrinsics := []runtime.OpaqueExtrinsic{} // skipcq: GO-W1027
 	blockchainMock.EXPECT().Body(expectedHash).Return(expectedExtrinsics, nil)
 
 	expectedInfo := blockchain.Info[hash.H256, uint64]{
@@ -541,7 +541,7 @@ func TestBlockBackendImplementation(t *testing.T) {
 	blockchainMock.EXPECT().Header(expectedHash).Return(&expectedHeader, nil)
 	blockchainMock.EXPECT().Hash(expectedNumber).Return(&expectedHash, nil)
 
-	expectedExtrinsics := []runtime.OpaqueExtrinsic{}
+	expectedExtrinsics := []runtime.OpaqueExtrinsic{} // skipcq: GO-W1027
 	blockchainMock.EXPECT().Body(expectedHash).Return(expectedExtrinsics, nil)
 
 	expectedStatus := primivite_consensus_common.BlockStatusInChainWithState
