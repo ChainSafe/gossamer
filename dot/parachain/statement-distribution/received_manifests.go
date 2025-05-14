@@ -25,7 +25,7 @@ type manifestSummary struct {
 	// claimedGroupIndex is the claimed group index assigned to the candidate.
 	claimedGroupIndex parachaintypes.GroupIndex
 	// statementKnowledge is a statement filter sent alongside the candidate, communicating knowledge.
-	statementKnowledge StatementFilter
+	statementKnowledge statementFilter
 }
 
 // receivedManifests contains the knowledge we are aware of counterparties having of manifests.
@@ -37,7 +37,7 @@ type receivedManifests struct {
 	secondedCounts map[parachaintypes.GroupIndex][]uint
 }
 
-func (rm *receivedManifests) candidateStatementFilter(candidateHash parachaintypes.CandidateHash) *StatementFilter {
+func (rm *receivedManifests) candidateStatementFilter(candidateHash parachaintypes.CandidateHash) *statementFilter {
 	if rm.received == nil {
 		return nil
 	}
@@ -47,7 +47,7 @@ func (rm *receivedManifests) candidateStatementFilter(candidateHash parachaintyp
 		return nil
 	}
 
-	filter := manifestSummary.statementKnowledge.Clone()
+	filter := manifestSummary.statementKnowledge.clone()
 	return &filter
 }
 

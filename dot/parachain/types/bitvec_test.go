@@ -642,6 +642,8 @@ func TestBitVec_Clone(t *testing.T) {
 	require.NoError(t, err)
 
 	b := a.Clone()
+	require.Equal(t, a.bits, b.bits)
+	require.Equal(t, a.len, b.len)
 	require.Equal(t, a.Bits(), b.Bits())
 
 	err = b.Set(0, false)

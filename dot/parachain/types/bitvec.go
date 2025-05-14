@@ -302,7 +302,7 @@ func (bv *BitVec) Contains(other BitVec) bool { // skipcq:GO-W1029
 // It returns a new BitVec where a bit is set if it's set in either this BitVec or the other BitVec.
 // If the BitVecs have different lengths, the result will have the length of the longer BitVec,
 // and the shorter one will be treated as if padded with zeroes.
-func (bv *BitVec) Or(other BitVec) BitVec {
+func (bv *BitVec) Or(other BitVec) BitVec { // skipcq:GO-W1029
 	maxL := max(len(bv.bits), len(other.bits))
 	result := make([]byte, maxL)
 	copy(result, bv.bits)
