@@ -384,14 +384,14 @@ func TestReceivedManifests_updatingEnsureWithinSecondingLimit(t *testing.T) {
 		{
 			name: "existing_counts_would_exceed_limit",
 			secondedCounts: map[parachaintypes.GroupIndex][]uint{
-				1: {2, 0, 0},
+				1: {1, 0, 2},
 			},
 			groupIndex:     1,
 			groupSize:      3,
 			secondingLimit: 2,
-			newSeconded:    newBitVec(t, true, false, false),
+			newSeconded:    newBitVec(t, true, false, true),
 			want:           false,
-			wantCounts:     []uint{2, 0, 0}, // should not be modified
+			wantCounts:     []uint{1, 0, 2}, // should not be modified
 		},
 		{
 			name: "one_validator_would_exceed_another_would_not",

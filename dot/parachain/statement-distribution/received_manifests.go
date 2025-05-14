@@ -155,7 +155,7 @@ func updatingEnsureWithinSecondingLimit(
 			continue
 		}
 
-		if i < len(counts)-1 && counts[i] == secondingLimit {
+		if i < len(counts) && counts[i] == secondingLimit {
 			return false
 		}
 	}
@@ -165,7 +165,7 @@ func updatingEnsureWithinSecondingLimit(
 			continue
 		}
 
-		if i < len(counts)-1 {
+		if i < len(counts) {
 			counts[i] += 1
 		} else {
 			// polkadot-sdk does not contain this case and assumes groupSize == len(newSeconded)
