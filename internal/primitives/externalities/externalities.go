@@ -49,7 +49,7 @@ type ExtensionStore interface {
 	RegisterExtensionWithTypeId(typeId TypeId, extension Extension)
 
 	// Deregister extension with specified 'typeId' and drop it.
-	DeregisterExtensionByTypId(typeId TypeId) error
+	DeregisterExtensionByTypeId(typeId TypeId) error
 }
 
 // Externalities provides access to the storage and to other registered extensions.
