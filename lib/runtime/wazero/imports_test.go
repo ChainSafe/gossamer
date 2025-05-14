@@ -1120,7 +1120,7 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 	}
 
 	// Confirm if value is set
-	keys, err := inst.Context.Storage.(storage.TrieState).
+	keys, err := inst.Context.Storage.(*storage.InMemoryTrieState).
 		GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(keys))
@@ -1134,7 +1134,7 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_default_child_storage_clear_prefix_version_1", append(encChildKey, encPrefix...))
 	require.NoError(t, err)
 
-	keys, err = inst.Context.Storage.(storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	keys, err = inst.Context.Storage.(*storage.InMemoryTrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(keys))
 }
@@ -1689,7 +1689,7 @@ func Test_ext_default_child_storage_clear_prefix_version_2(t *testing.T) {
 	}
 
 	// Confirm if value is set
-	keys, err := inst.Context.Storage.(storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	keys, err := inst.Context.Storage.(*storage.InMemoryTrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(keys))
 
@@ -1712,7 +1712,7 @@ func Test_ext_default_child_storage_clear_prefix_version_2(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_default_child_storage_clear_prefix_version_2", data)
 	require.NoError(t, err)
 
-	keys, err = inst.Context.Storage.(storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	keys, err = inst.Context.Storage.(*storage.InMemoryTrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	// since one key is removed, there will be two remaining.
 	require.Equal(t, 2, len(keys))

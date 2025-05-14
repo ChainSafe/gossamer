@@ -33,7 +33,6 @@ type TrieState interface {
 	ClearPrefixInChild(keyToChild, prefix []byte) error
 	ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, uint32, bool, error)
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
-	GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]byte, error)
 	LoadCode() []byte
 	LoadCodeHash() (common.Hash, error)
 	GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error)
