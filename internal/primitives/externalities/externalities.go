@@ -52,7 +52,7 @@ type ExtensionStore interface {
 	DeregisterExtensionByTypId(typeId TypeId) error
 }
 
-// Provides access to the storage and to other registered extensions.
+// Externalities provides access to the storage and to other registered extensions.
 type Externalities interface {
 	// SetOffchainStorage writes a key value pair to the offchain storage database.
 	SetOffchainStorage(key []byte, value []byte)
