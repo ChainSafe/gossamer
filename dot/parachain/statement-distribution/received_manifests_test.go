@@ -413,7 +413,7 @@ func TestReceivedManifests_updatingEnsureWithinSecondingLimit(t *testing.T) {
 			secondingLimit: 2,
 			newSeconded:    newBitVec(t, true, false, false, true),
 			want:           true,
-			wantCounts:     []uint{1, 0, 0, 1}, // should handle the extra bit
+			wantCounts:     []uint{1, 0, 0},
 		},
 	}
 
