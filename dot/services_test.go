@@ -159,7 +159,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
+	rtCfg.Storage = rtstorage.NewInMemoryTrieState(genTrie)
 
 	rtCfg.CodeHash, err = stateSrvc.Storage.LoadCodeHash(nil)
 	require.NoError(t, err)

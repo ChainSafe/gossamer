@@ -43,7 +43,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 	trie, err := storage.LoadFromDB(root)
 	require.NoError(t, err)
-	ts2 := runtime.NewTrieState(trie).Trie()
+	ts2 := runtime.NewInMemoryTrieState(trie).Trie()
 
 	require.Equal(t, trie.MustHash(), ts2.MustHash())
 }
@@ -194,7 +194,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	storage, err := NewStorageState(db, blockState, tries)
 	require.NoError(t, err)
 
-	trieState := runtime.NewTrieState(genTrie)
+	trieState := runtime.NewInMemoryTrieState(genTrie)
 
 	header := types.NewHeader(blockState.GenesisHash(), trieState.Trie().MustHash(),
 		common.Hash{}, 1, types.NewDigest())

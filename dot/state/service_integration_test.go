@@ -464,7 +464,7 @@ func TestService_Import(t *testing.T) {
 }
 
 func generateBlockWithRandomTrie(t *testing.T, serv *Service,
-	parent *common.Hash, bNum uint) (*types.Block, *runtime.TrieState) {
+	parent *common.Hash, bNum uint) (*types.Block, runtime.TrieState) {
 	trieState, err := serv.Storage.TrieState(nil)
 	require.NoError(t, err)
 

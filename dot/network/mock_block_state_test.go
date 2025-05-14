@@ -585,7 +585,7 @@ func (mr *MockBlockStateMockRecorder) GetTries() *gomock.Call {
 }
 
 // HandleRuntimeChanges mocks base method.
-func (m *MockBlockState) HandleRuntimeChanges(arg0 *storage.TrieState, arg1 runtime.Instance, arg2 common.Hash) error {
+func (m *MockBlockState) HandleRuntimeChanges(arg0 storage.TrieState, arg1 runtime.Instance, arg2 common.Hash) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleRuntimeChanges", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)

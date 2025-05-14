@@ -586,7 +586,7 @@ func (mr *MockBlockStateMockRecorder) GetTries() *gomock.Call {
 }
 
 // HandleRuntimeChanges mocks base method.
-func (m *MockBlockState) HandleRuntimeChanges(arg0 *storage.TrieState, arg1 runtime.Instance, arg2 common.Hash) error {
+func (m *MockBlockState) HandleRuntimeChanges(arg0 storage.TrieState, arg1 runtime.Instance, arg2 common.Hash) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleRuntimeChanges", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -1140,7 +1140,7 @@ func (mr *MockStorageStateMockRecorder) StorageRoot() *gomock.Call {
 }
 
 // StoreTrie mocks base method.
-func (m *MockStorageState) StoreTrie(arg0 *storage.TrieState, arg1 *types.Header) error {
+func (m *MockStorageState) StoreTrie(arg0 storage.TrieState, arg1 *types.Header) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StoreTrie", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -1154,10 +1154,10 @@ func (mr *MockStorageStateMockRecorder) StoreTrie(arg0, arg1 any) *gomock.Call {
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.TrieState, error) {
+func (m *MockStorageState) TrieState(arg0 *common.Hash) (storage.TrieState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TrieState", arg0)
-	ret0, _ := ret[0].(*storage.TrieState)
+	ret0, _ := ret[0].(storage.TrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

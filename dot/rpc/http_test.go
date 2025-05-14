@@ -344,7 +344,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
+	rtCfg.Storage = rtstorage.NewInMemoryTrieState(genesisTrie)
 
 	rtCfg.CodeHash, err = cfg.StorageState.(*state.InmemoryStorageState).LoadCodeHash(nil)
 	require.NoError(t, err)

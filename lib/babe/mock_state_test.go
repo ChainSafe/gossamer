@@ -331,7 +331,7 @@ func (m *MockBlockImportHandler) EXPECT() *MockBlockImportHandlerMockRecorder {
 }
 
 // HandleBlockProduced mocks base method.
-func (m *MockBlockImportHandler) HandleBlockProduced(arg0 *types.Block, arg1 *storage.TrieState) error {
+func (m *MockBlockImportHandler) HandleBlockProduced(arg0 *types.Block, arg1 storage.TrieState) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleBlockProduced", arg0, arg1)
 	ret0, _ := ret[0].(error)

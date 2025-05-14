@@ -22,7 +22,7 @@ func createTestTrieState(t *testing.T) (trie.Trie, common.Hash) {
 	t.Helper()
 
 	_, genesisTrie, _ := newWestendLocalGenesisWithTrieAndHeader(t)
-	tr := rtstorage.NewTrieState(genesisTrie)
+	tr := rtstorage.NewInMemoryTrieState(genesisTrie)
 
 	err := tr.SetChildStorage([]byte(":child_storage_key"), []byte(":child_first"), []byte(":child_first_value"))
 	require.NoError(t, err)

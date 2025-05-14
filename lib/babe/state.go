@@ -58,7 +58,7 @@ type EpochState interface {
 
 // BlockImportHandler is the interface for the handler of new blocks
 type BlockImportHandler interface {
-	HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error
+	HandleBlockProduced(block *types.Block, state rtstorage.TrieState) error
 }
 
 func GetNextEpochDataRawFromState(state trie.Trie) (*types.EpochDataRaw, error) {
