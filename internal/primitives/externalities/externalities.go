@@ -136,7 +136,7 @@ type Externalities interface {
 	// Start a new nested transaction.
 	//
 	// This allows to either commit or roll back all changes made after this call to the
-	// top changes or the default child changes. For every transaction there cam be a
+	// top changes or the default child changes. For every transaction there can be a
 	// matching call to either `StorageRollbackTransaction` or `StorageCommitTransaction`.
 	// Any transactions that are still open after returning from runtime are committed
 	// automatically.
