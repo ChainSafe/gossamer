@@ -1191,7 +1191,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyFinalityWithBlockHa
 	// not always checking this condition.
 	blockNumber, err := c.backend.Blockchain().Number(hash)
 	if err != nil {
-		return fmt.Errorf("failed to get header for hash %v", hash)
+		return fmt.Errorf("failed to get block number for hash %v", hash)
 	}
 
 	leaves, err := c.backend.Blockchain().Leaves()
