@@ -835,11 +835,11 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyBlock(
 	if len(importBlock.PostDigests) == 0 {
 		importHeaders = PrePostHeadersSame[N, H, Header]{importBlock.Header}
 	} else {
-		postHeader := importBlock.Header.Clone()
+		postHeader := importBlock.Header.Clone().(Header)
 		for _, item := range importBlock.PostDigests {
 			postHeader.DigestMut().Push(item)
 		}
-		importHeaders = PrePostHeadersDifferent[N, H, Header]{importBlock.Header, importBlock.Header}
+		importHeaders = PrePostHeadersDifferent[N, H, Header]{importBlock.Header, postHeader}
 	}
 
 	hash := importHeaders.Post().Hash()
