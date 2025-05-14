@@ -66,7 +66,7 @@ func (t *InMemoryTrieState) StartTransaction() {
 }
 
 // RollbackTransaction back all storage changes made since StartTransaction was called.
-func (t *InMemoryTrieState) RollbackTransaction() {
+func (t *InMemoryTrieState) RollbackTransaction() error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -75,10 +75,11 @@ func (t *InMemoryTrieState) RollbackTransaction() {
 	}
 
 	t.transactions.Remove(t.transactions.Back())
+	return nil
 }
 
 // CommitTransaction all storage changes made since StartTransaction was called.
-func (t *InMemoryTrieState) CommitTransaction() {
+func (t *InMemoryTrieState) CommitTransaction() error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -94,6 +95,8 @@ func (t *InMemoryTrieState) CommitTransaction() {
 		tx := t.transactions.Remove(t.transactions.Back()).(*storageDiff)
 		tx.applyToTrie(t.state)
 	}
+
+	return nil
 }
 
 // Trie returns the TrieState's underlying trie
@@ -142,7 +145,10 @@ func (t *InMemoryTrieState) Get(key []byte) []byte {
 // we commit the changeset we started in the beginning
 // WARN: this function should be called only by ext_storage_root_version_1
 func (t *InMemoryTrieState) Root() (common.Hash, error) {
-	t.CommitTransaction()
+	err := t.CommitTransaction()
+	if err != nil {
+		return common.Hash{}, err
+	}
 
 	// Since the Root function is called without running transactions we can do:
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {

@@ -8,22 +8,23 @@ import (
 type TrieState interface {
 	SetVersion(v trie.TrieLayout)
 	StartTransaction()
-	RollbackTransaction()
-	CommitTransaction()
+	RollbackTransaction() error
+	CommitTransaction() error
 	Put(key, value []byte) error
 	Get(key []byte) []byte
 	Root() (common.Hash, error)
-	Trie() trie.Trie
+	Trie() trie.Trie // TODO: remove this method from the interface
 	Has(key []byte) bool
 	Delete(key []byte) error
 	NextKey(key []byte) []byte
 	ClearPrefix(prefix []byte) error
 	ClearPrefixLimit(prefix []byte, limit uint32) (loops uint32, deleted uint32, allDeleted bool, err error)
-	TrieEntries() map[string][]byte
+	TrieEntries() map[string][]byte // TODO: remove this method from the interface
 	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildRoot(keyToChild []byte) (common.Hash, error)
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	DeleteChild(keyToChild []byte) error
+	// TODO: use limit as *uint32
 	DeleteChildLimit(key []byte, limit *[]byte) (deleted uint32, allDeleted bool, err error)
 	ClearChildStorage(keyToChild, key []byte) error
 	ClearPrefixInChild(keyToChild, prefix []byte) error
