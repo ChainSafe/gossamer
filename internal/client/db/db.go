@@ -523,7 +523,7 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 		return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
 	}
 
-	finalizedChain.PushFront(MinimalBlockMetadata[H, N]{
+	finalizedChain.PushFront(minimalBlockMetadata[H, N]{
 		number: currentFinalized.Number,
 		hash:   currentFinalized.Hash,
 		parent: currentFinalized.Parent,
@@ -531,7 +531,7 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 
 	// Local cache is a performance optimization in case of finalized block deep below the
 	// tip of the chain with a lot of leaves above finalized block
-	localCache := make(map[H]MinimalBlockMetadata[H, N])
+	localCache := make(map[H]minimalBlockMetadata[H, N])
 
 	result := blockchain.DisplacedLeavesAfterFinalization[H, N]{
 		DisplacedLeaves: make([]blockchain.HashNumber[H, N], 0),
@@ -557,7 +557,7 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 			return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
 		}
 
-		currentHeaderMetadata := MinimalBlockMetadata[H, N]{
+		currentHeaderMetadata := minimalBlockMetadata[H, N]{
 			number: headerMetadata.Number,
 			hash:   headerMetadata.Hash,
 			parent: headerMetadata.Parent,
@@ -624,7 +624,7 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 					return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
 				}
 
-				currentHeaderMetadata = MinimalBlockMetadata[H, N]{
+				currentHeaderMetadata = minimalBlockMetadata[H, N]{
 					number: headerMetadata.Number,
 					hash:   headerMetadata.Hash,
 					parent: headerMetadata.Parent,
@@ -674,7 +674,7 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 			var finalizedChainBlockNumber N
 			var finalizedChainBlockHash H
 
-			header, ok := findNthFromEnd[MinimalBlockMetadata[H, N]](finalizedChain, distanceFromFinalized)
+			header, ok := findNthFromEnd[minimalBlockMetadata[H, N]](finalizedChain, distanceFromFinalized)
 			if ok {
 				finalizedChainBlockNumber = header.number
 				finalizedChainBlockHash = header.hash
@@ -684,7 +684,7 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 					panic("expect not empty")
 				}
 
-				headerMetadata, err := bdb.HeaderMetadata(toFetch.Value.(MinimalBlockMetadata[H, N]).hash)
+				headerMetadata, err := bdb.HeaderMetadata(toFetch.Value.(minimalBlockMetadata[H, N]).hash)
 				if err != nil {
 					if errors.Is(err, blockchain.ErrUnknownBlock) {
 						logger.Debugf(`
@@ -696,8 +696,8 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 								Tried to fetch unknown block, block ancestry has gaps.
 							`,
 							distanceFromFinalized,
-							toFetch.Value.(MinimalBlockMetadata[H, N]).hash.String(),
-							toFetch.Value.(MinimalBlockMetadata[H, N]).number,
+							toFetch.Value.(minimalBlockMetadata[H, N]).hash.String(),
+							toFetch.Value.(minimalBlockMetadata[H, N]).number,
 							time.Since(now),
 						)
 						break
@@ -710,15 +710,15 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 							elapsed=%f,
 							Failed to fetch header for parent hash.
 						`,
-						toFetch.Value.(MinimalBlockMetadata[H, N]).hash.String(),
-						toFetch.Value.(MinimalBlockMetadata[H, N]).number,
+						toFetch.Value.(minimalBlockMetadata[H, N]).hash.String(),
+						toFetch.Value.(minimalBlockMetadata[H, N]).number,
 						err,
 						time.Since(now),
 					)
 					return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
 				}
 
-				metadata := MinimalBlockMetadata[H, N]{
+				metadata := minimalBlockMetadata[H, N]{
 					number: headerMetadata.Number,
 					hash:   headerMetadata.Hash,
 					parent: headerMetadata.Parent,
@@ -805,7 +805,7 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
 				return blockchain.DisplacedLeavesAfterFinalization[H, N]{}, err
 			}
 
-			currentHeaderMetadata = MinimalBlockMetadata[H, N]{
+			currentHeaderMetadata = minimalBlockMetadata[H, N]{
 				number: headerMetadata.Number,
 				hash:   headerMetadata.Hash,
 				parent: headerMetadata.Parent,
