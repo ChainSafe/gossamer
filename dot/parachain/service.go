@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	gossipsupport "github.com/ChainSafe/gossamer/dot/parachain/gossip-support"
 	"github.com/ChainSafe/gossamer/dot/parachain/provisioner"
 
 	bitfielddistribution "github.com/ChainSafe/gossamer/dot/parachain/bitfield-distribution"
@@ -124,6 +125,10 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	// register disputes coordinator subsystem
 	disputesCoordinatorSubsystem := disputescoordinator.New(overseer.SubsystemsToOverseer)
 	overseer.RegisterSubsystem(disputesCoordinatorSubsystem)
+
+	// register gossip support subsystem
+	gossipSupportSubsystem := gossipsupport.NewGossipSupport(ks, overseer.SubsystemsToOverseer)
+	overseer.RegisterSubsystem(gossipSupportSubsystem)
 
 	parachainService := &Service{
 		Network:  net,
