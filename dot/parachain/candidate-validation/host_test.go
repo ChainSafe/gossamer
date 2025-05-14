@@ -26,8 +26,6 @@ func TestHost_validate(t *testing.T) {
 	candidateReceiptCommitmentsMismatch.CommitmentsHash = common.MustHexToHash(
 		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
 
-	pvfHost := newValidationHost()
-
 	bd, err := scale.Marshal(BlockDataInAdderParachain{
 		State: uint64(1),
 		Add:   uint64(1),
@@ -200,6 +198,7 @@ func TestHost_validate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
+			pvfHost := newValidationHost()
 			taskResult, err := pvfHost.validate(tt.validationTask)
 
 			require.NoError(t, err)
