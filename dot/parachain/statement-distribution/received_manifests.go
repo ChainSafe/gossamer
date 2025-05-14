@@ -170,7 +170,11 @@ func updatingEnsureWithinSecondingLimit(
 		} else {
 			// polkadot-sdk does not contain this case and assumes groupSize == len(newSeconded)
 			// https://github.com/paritytech/polkadot-sdk/blob/3b4c48e7e3bba96091024643407994938607e3b9/polkadot/node/network/statement-distribution/src/v2/grid.rs#L865
-			counts = append(counts, 1)
+			logger.Warnf(
+				"unexpectedly got more new seconded statements (%d) than members in group (%d)",
+				len(nsBits),
+				groupSize,
+			)
 		}
 	}
 	secondedCounts[groupIndex] = counts
