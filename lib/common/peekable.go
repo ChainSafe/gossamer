@@ -7,8 +7,7 @@ import (
 	"iter"
 )
 
-// Peekable2 wraps a Seq2[K, V] so you can mirar (peek) la siguiente
-// pareja sin consumirla.
+// Peekable2 wraps a Seq2[K, V] so you can peek the next item without consuming it
 type Peekable2[K, V any] struct {
 	next      func() (K, V, bool)
 	stop      func()
@@ -17,15 +16,13 @@ type Peekable2[K, V any] struct {
 	hasBuffer bool
 }
 
-// NewPeekable2 convierte un iter.Seq2[K, V] en *Peekable2[K, V].
-// Internamente usa iter.Pull2. :contentReference[oaicite:0]{index=0}
+// NewPeekable2 converts an iter.Seq2[K, V] into a *Peekable2[K, V].
 func NewPeekable2[K, V any](seq iter.Seq2[K, V]) *Peekable2[K, V] {
 	next, stop := iter.Pull2(seq)
 	return &Peekable2[K, V]{next: next, stop: stop}
 }
 
-// Peek devuelve (k, v, true) de la siguiente pareja sin consumirla.
-// Si la secuencia ya terminó, retorna (zero, zero, false).
+// Peek returns (k, v, true) of the next pair without consuming it
 func (p *Peekable2[K, V]) Peek() (K, V, bool) {
 	if p.hasBuffer {
 		return p.bufK, p.bufV, true
@@ -40,8 +37,7 @@ func (p *Peekable2[K, V]) Peek() (K, V, bool) {
 	return k, v, true
 }
 
-// Next devuelve (k, v, true) consumiendo la siguiente pareja.
-// Si ya se hizo Peek, devuelve lo que esté en el buffer.
+// Next returns (k, v, true) consuming it
 func (p *Peekable2[K, V]) Next() (K, V, bool) {
 	if p.hasBuffer {
 		p.hasBuffer = false
@@ -50,9 +46,7 @@ func (p *Peekable2[K, V]) Next() (K, V, bool) {
 	return p.next()
 }
 
-// Close debe llamarse (normalmente con defer) si sales antes de
-// consumir todo, para permitir que el iterador “push” termine.
-// Equivale a llamar a stop() de iter.Pull2. :contentReference[oaicite:1]{index=1}
+// Close must be called (usually using defer) if you exit before the iterator is done
 func (p *Peekable2[K, V]) Close() {
 	p.stop()
 }
