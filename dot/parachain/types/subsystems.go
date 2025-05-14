@@ -26,6 +26,7 @@ const (
 	BitfieldDistribution     SubSystemName = "BitfieldDistribution"
 	ApprovalDistribution     SubSystemName = "ApprovalDistribution"
 	DisputesCoordinator      SubSystemName = "DisputesCoordinator"
+	GossipSupport            SubSystemName = "GossipSupport"
 )
 
 var SubsystemRequestTimeout = 5 * time.Second
