@@ -100,7 +100,7 @@ type Externalities interface {
 	// it is able to do that in constant time.
 	KillChildStorage(childInfo storage.ChildInfo, maybeLimit *uint32, maybeCursor []byte) MultiRemovalResults
 
-	// Clear storage entries which keys are start with the given prefix.
+	// ClearPrefix clears storage entries which keys are start with the given prefix.
 	// `maybeLimit`, `maybeCursor` and result works as for `KillChildStorage`.
 	ClearPrefix(prefix []byte, limit *uint32, cursor []byte) MultiRemovalResults
 
