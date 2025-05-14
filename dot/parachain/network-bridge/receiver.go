@@ -413,8 +413,8 @@ func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService,
 
 type AuthorityDiscoveryService interface {
 	GetPeerIDByAuthorityID(authorityID parachaintypes.AuthorityDiscoveryID) peer.ID
-	GetAddressesByAuthorityID(authority parachaintypes.AuthorityDiscoveryID) *map[multiaddr.Multiaddr]struct{}
-	GetAuthorityIDsByPeerID(peerID peer.ID) *map[parachaintypes.AuthorityDiscoveryID]struct{}
+	GetAddressesByAuthorityID(authority parachaintypes.AuthorityDiscoveryID) map[multiaddr.Multiaddr]struct{}
+	GetAuthorityIDsByPeerID(peerID peer.ID) map[parachaintypes.AuthorityDiscoveryID]struct{}
 }
 
 type Sync interface {

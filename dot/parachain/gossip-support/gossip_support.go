@@ -41,8 +41,6 @@ type GossipSupport struct {
 	connectedPeers         map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}
 	authorityDiscovery     networkbridge.AuthorityDiscoveryService
 	finalizedNeededSession *uint32
-
-	// TODO: Metrics
 }
 
 func NewGossipSupport(
