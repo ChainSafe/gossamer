@@ -4,8 +4,15 @@
 package externalities
 
 import (
+	"errors"
+
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/tidwall/btree"
+)
+
+var (
+	ErrExtensionAlreadyRegistered = errors.New("extension already registered")
+	ErrExtensionNotFound          = errors.New("extension is not registered")
 )
 
 // Id from any type
@@ -24,6 +31,30 @@ func NewExtensions() Extensions {
 	return Extensions{
 		extensions: btree.Map[string, Extension]{},
 	}
+}
+
+func (e *Extensions) Get(key TypeId) Extension {
+	extension, ok := e.extensions.Get(string(key))
+	if !ok {
+		return nil
+	}
+
+	return extension
+}
+
+func (e *Extensions) RegisterWithTypeId(key TypeId, extension Extension) error {
+	_, has := e.extensions.Get(string(key))
+	if has {
+		return ErrExtensionAlreadyRegistered
+	}
+
+	e.extensions.Set(string(key), extension)
+	return nil
+}
+
+func (e *Extensions) Deregister(key TypeId) bool {
+	_, has := e.extensions.Delete(string(key))
+	return has
 }
 
 // Results concerning an operation to remove many keys.
@@ -46,7 +77,7 @@ type ExtensionStore interface {
 	ExtensionById(typeId TypeId) any
 
 	// Register extension `extension` with specified `typeId`.
-	RegisterExtensionWithTypeId(typeId TypeId, extension Extension)
+	RegisterExtensionWithTypeId(typeId TypeId, extension Extension) error
 
 	// Deregister extension with specified 'typeId' and drop it.
 	DeregisterExtensionByTypeId(typeId TypeId) error
@@ -54,6 +85,7 @@ type ExtensionStore interface {
 
 // Externalities provides access to the storage and to other registered extensions.
 type Externalities interface {
+	ExtensionStore
 	// SetOffchainStorage writes a key value pair to the offchain storage database.
 	SetOffchainStorage(key []byte, value []byte)
 	// Storage reads runtime storage.

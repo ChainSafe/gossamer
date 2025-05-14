@@ -5,6 +5,8 @@ package basic
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"iter"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -286,4 +288,23 @@ func (be *BasicExternalities) StorageIndexTransaction(index uint32, hash []byte,
 
 func (be *BasicExternalities) StorageRenewTransactionIndex(index uint32, hash []byte) {
 	panic("not implemented StorageRenewTransactionIndex")
+}
+
+func (be *BasicExternalities) ExtensionById(typeId externalities.TypeId) any {
+	return be.extensions.Get(typeId)
+}
+
+func (be *BasicExternalities) RegisterExtensionWithTypeId(
+	typeId externalities.TypeId,
+	extension externalities.Extension,
+) error {
+	return be.extensions.RegisterWithTypeId(typeId, extension)
+}
+
+func (be *BasicExternalities) DeregisterExtensionByTypeId(typeId externalities.TypeId) error {
+	if be.extensions.Deregister(typeId) {
+		return nil
+	}
+
+	return errors.Join(externalities.ErrExtensionNotFound, fmt.Errorf("typeId: %s", typeId))
 }
