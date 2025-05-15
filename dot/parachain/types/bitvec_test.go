@@ -642,11 +642,184 @@ func TestBitVec_Clone(t *testing.T) {
 	require.NoError(t, err)
 
 	b := a.Clone()
-	require.Equal(t, a.Bits(), b.Bits())
+	require.Equal(t, a.bits, b.bits)
 	require.Equal(t, a.len, b.len)
+	require.Equal(t, a.Bits(), b.Bits())
 
 	err = b.Set(0, false)
 	require.NoError(t, err)
 	require.Equal(t, []bool{false, true, false, true, true}, b.Bits())
 	require.NotEqual(t, a.Bits(), b.Bits())
+}
+
+func TestBitVec_Contains(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty_pattern", func(t *testing.T) {
+		t.Parallel()
+
+		bits, err := NewBitVec([]bool{true, false, true, false})
+		require.NoError(t, err)
+
+		empty, err := NewBitVec([]bool{})
+		require.NoError(t, err)
+
+		result := bits.Contains(empty)
+
+		require.True(t, result, "Empty BitVec should be contained in any BitVec")
+	})
+
+	t.Run("longer_pattern", func(t *testing.T) {
+		t.Parallel()
+
+		bits, err := NewBitVec([]bool{true, false})
+		require.NoError(t, err)
+
+		longer, err := NewBitVec([]bool{true, false, true})
+		require.NoError(t, err)
+
+		result := bits.Contains(longer)
+
+		require.False(t, result, "Longer pattern should not be contained")
+	})
+
+	t.Run("exact_match", func(t *testing.T) {
+		t.Parallel()
+
+		bits, err := NewBitVec([]bool{true, false, true})
+		require.NoError(t, err)
+
+		same, err := NewBitVec([]bool{true, false, true})
+		require.NoError(t, err)
+
+		result := bits.Contains(same)
+
+		require.True(t, result, "Exact match should be contained")
+	})
+
+	t.Run("pattern_in_the_middle", func(t *testing.T) {
+		t.Parallel()
+
+		bits, err := NewBitVec([]bool{false, false, true, true, false, false})
+		require.NoError(t, err)
+
+		pattern, err := NewBitVec([]bool{true, true, false})
+		require.NoError(t, err)
+
+		result := bits.Contains(pattern)
+
+		require.True(t, result, "Pattern in middle should be found")
+	})
+
+	t.Run("not_contained", func(t *testing.T) {
+		t.Parallel()
+
+		bits, err := NewBitVec([]bool{false, false, true, false, true, true, false, false})
+		require.NoError(t, err)
+
+		pattern, err := NewBitVec([]bool{true, false, false, true})
+		require.NoError(t, err)
+
+		result := bits.Contains(pattern)
+
+		require.False(t, result, "Non-existent pattern should not be found")
+	})
+}
+
+func TestBitVec_Or(t *testing.T) {
+	t.Parallel()
+
+	t.Run("both_empty", func(t *testing.T) {
+		t.Parallel()
+
+		bv1, err := NewBitVec([]bool{})
+		require.NoError(t, err)
+
+		bv2, err := NewBitVec([]bool{})
+		require.NoError(t, err)
+
+		result := bv1.Or(bv2)
+
+		require.Empty(t, result.Bits())
+	})
+
+	t.Run("one_empty", func(t *testing.T) {
+		t.Parallel()
+
+		bv1, err := NewBitVec([]bool{true, false, true})
+		require.NoError(t, err)
+
+		bv2, err := NewBitVec([]bool{})
+		require.NoError(t, err)
+
+		result := bv1.Or(bv2)
+
+		require.Equal(t, bv1.Bits(), result.Bits())
+	})
+
+	t.Run("same_length", func(t *testing.T) {
+		t.Parallel()
+
+		bv1, err := NewBitVec([]bool{true, false, true, false})
+		require.NoError(t, err)
+
+		bv2, err := NewBitVec([]bool{false, true, false, true})
+		require.NoError(t, err)
+
+		result := bv1.Or(bv2)
+
+		expected := []bool{true, true, true, true}
+		require.Equal(t, expected, result.Bits())
+	})
+
+	t.Run("first_longer_than_second", func(t *testing.T) {
+		t.Parallel()
+
+		// longer than 8 bits; the BitVec uses two bytes internally
+		bv1, err := NewBitVec([]bool{false, true, false, true, false, false, false, false, true, true, false, true})
+		require.NoError(t, err)
+
+		// shorter than 8 bits; the BitVec uses one byte internally
+		bv2, err := NewBitVec([]bool{true, false, true})
+		require.NoError(t, err)
+
+		result := bv1.Or(bv2)
+
+		// Expected result: OR of overlapping bits, then bits from longer BitVec
+		expected := []bool{true, true, true, true, false, false, false, false, true, true, false, true}
+		require.Equal(t, expected, result.Bits())
+	})
+
+	t.Run("second_longer_than_first", func(t *testing.T) {
+		t.Parallel()
+
+		// shorter than 8 bits; the BitVec uses one byte internally
+		bv1, err := NewBitVec([]bool{true, false, true})
+		require.NoError(t, err)
+
+		// longer than 8 bits; the BitVec uses two bytes internally
+		bv2, err := NewBitVec([]bool{false, true, false, true, false, false, false, false, true, true, false, true})
+		require.NoError(t, err)
+
+		result := bv1.Or(bv2)
+
+		// Expected result: OR of overlapping bits, then bits from longer BitVec
+		expected := []bool{true, true, true, true, false, false, false, false, true, true, false, true}
+		require.Equal(t, expected, result.Bits())
+	})
+
+	t.Run("complex_patterns", func(t *testing.T) {
+		t.Parallel()
+
+		bv1, err := NewBitVec([]bool{true, false, false, true, false, true, false})
+		require.NoError(t, err)
+
+		bv2, err := NewBitVec([]bool{false, true, false, true, true, false, false})
+		require.NoError(t, err)
+
+		result := bv1.Or(bv2)
+
+		expected := []bool{true, true, false, true, true, true, false}
+		require.Equal(t, expected, result.Bits())
+	})
 }

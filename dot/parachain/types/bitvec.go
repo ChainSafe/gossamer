@@ -250,10 +250,73 @@ func (bv *BitVec) Mask(mask BitVec) { // skipcq:GO-W1029
 	}
 }
 
-// Clone returns a deep copy of the BitVec
+// Clone returns a deep copy of the BitVec.
 func (bv *BitVec) Clone() BitVec { // skipcq:GO-W1029
 	return BitVec{
 		bits: append([]byte{}, bv.bits...),
 		len:  bv.len,
+	}
+}
+
+// Contains checks if this BitVec contains the other BitVec as a contiguous subsequence.
+// It returns true if the pattern represented by other appears anywhere within this BitVec.
+// For example:
+//
+//	BitVec{0,0,1,0,1,1,0,0}.Contains(BitVec{0,1,1,0}) == true
+//	BitVec{0,0,1,0,1,1,0,0}.Contains(BitVec{1,0,0,1}) == false
+func (bv *BitVec) Contains(other BitVec) bool { // skipcq:GO-W1029
+	// If other is empty, it's contained in any BitVec
+	if other.Len() == 0 {
+		return true
+	}
+
+	// If other is longer than bv, it can't be contained
+	if other.Len() > bv.Len() {
+		return false
+	}
+
+	thisBits := bv.Bits()
+	otherBits := other.Bits()
+
+	// Check each possible starting position in bv
+	for i := 0; i <= bv.Len()-other.Len(); i++ {
+		match := true
+
+		// Check if other matches at this position
+		for j := 0; j < other.Len(); j++ {
+			if thisBits[i+j] != otherBits[j] {
+				match = false
+				break
+			}
+		}
+
+		if match {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Or performs a bitwise OR operation with another BitVec.
+// It returns a new BitVec where a bit is set if it's set in either this BitVec or the other BitVec.
+// If the BitVecs have different lengths, the result will have the length of the longer BitVec,
+// and the shorter one will be treated as if padded with zeroes.
+func (bv *BitVec) Or(other BitVec) BitVec { // skipcq:GO-W1029
+	maxL := max(len(bv.bits), len(other.bits))
+	result := make([]byte, maxL)
+	copy(result, bv.bits)
+
+	for i := 0; i < len(result); i++ {
+		if i < len(other.bits) {
+			result[i] |= other.bits[i]
+		} else {
+			break
+		}
+	}
+
+	return BitVec{
+		bits: result,
+		len:  max(bv.len, other.len),
 	}
 }

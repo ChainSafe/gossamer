@@ -88,6 +88,14 @@ func (s *statementFilter) maskValid(mask parachaintypes.BitVec) {
 	s.validatedInGroup.Mask(mask)
 }
 
+// clone returns a deep copy of the statement filter.
+func (s *statementFilter) clone() statementFilter {
+	return statementFilter{
+		secondedInGroup:  s.secondedInGroup.Clone(),
+		validatedInGroup: s.validatedInGroup.Clone(),
+	}
+}
+
 func (s *statementFilter) contains(index uint, statementKind statementKind) bool {
 	switch statementKind {
 	case seconded:
