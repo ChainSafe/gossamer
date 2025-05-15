@@ -15,7 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
-	events "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
+	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -156,7 +156,7 @@ func (nbr *NetworkBridgeReceiver) handleNetworkEvents(event network.NetworkEvent
 	}
 }
 
-func (nbr *NetworkBridgeReceiver) Name() parachaintypes.SubSystemName {
+func (*NetworkBridgeReceiver) Name() parachaintypes.SubSystemName {
 	return parachaintypes.NetworkBridgeReceiver
 }
 
@@ -168,7 +168,7 @@ func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
 		Number: signal.Activated.Number,
 	})
 
-	newLiveHeads := []parachaintypes.ActivatedLeaf{}
+	var newLiveHeads []parachaintypes.ActivatedLeaf
 
 	for _, head := range nbr.liveHeads {
 		if slices.Contains(signal.Deactivated, head.Hash) {
@@ -204,7 +204,7 @@ func (s SortableActivatedLeaves) Swap(i, j int) {
 }
 
 func (nbr *NetworkBridgeReceiver) updateOurView() error { //nolint
-	headHashes := []common.Hash{}
+	var headHashes []common.Hash
 	for _, head := range nbr.liveHeads {
 		headHashes = append(headHashes, head.Hash)
 	}
@@ -411,7 +411,6 @@ func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService,
 	return peers
 }
 
-// TODO: implement those methods
 type AuthorityDiscoveryService interface {
 	GetPeerIDByAuthorityID(authorityID parachaintypes.AuthorityDiscoveryID) peer.ID
 	GetAddressesByAuthorityID(authority parachaintypes.AuthorityDiscoveryID) *map[multiaddr.Multiaddr]struct{}

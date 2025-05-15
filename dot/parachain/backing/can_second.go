@@ -14,14 +14,14 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-var errUnknwnRelayParent = errors.New("unknown relay parent")
+var errUnknownRelayParent = errors.New("unknown relay parent")
 
 // handleCanSecondMessage performs seconding sanity check for an advertisement.
 func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 	_, ok := cb.perRelayParent[msg.CandidateRelayParent]
 	if !ok {
 		msg.ResponseCh <- false
-		return fmt.Errorf("%w: %s", errUnknwnRelayParent, msg.CandidateRelayParent.String())
+		return fmt.Errorf("%w: %s", errUnknownRelayParent, msg.CandidateRelayParent.String())
 	}
 
 	hypotheticalCandidate := parachaintypes.HypotheticalCandidateIncomplete{
@@ -43,7 +43,7 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 func (cb *CandidateBacking) secondingSanityCheck(
 	hypotheticalCandidate parachaintypes.HypotheticalCandidate,
 ) []common.Hash {
-	activeLeaves := cb.ImplicitView.Leaves()
+	activeLeaves := cb.implicitView.Leaves()
 	leavesForSecondingCh := make(chan common.Hash, len(activeLeaves))
 	var wg sync.WaitGroup
 
@@ -76,7 +76,7 @@ func (cb *CandidateBacking) checkLeafForSeconding(
 	candidateHash := hypotheticalCandidate.CandidateHash()
 
 	// Check that the candidate relay parent is allowed for para, skip the leaf otherwise.
-	allowedParentsForPara := cb.ImplicitView.KnownAllowedRelayParentsUnder(
+	allowedParentsForPara := cb.implicitView.KnownAllowedRelayParentsUnder(
 		activeLeaf,
 		&candidateParaID,
 	)

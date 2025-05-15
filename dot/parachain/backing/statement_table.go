@@ -336,7 +336,7 @@ func (table *statementTable) attestedCandidate(
 
 	var validityThreshold uint
 	if group, ok := tableCtx.groups[parachaintypes.CoreIndex{Index: uint32(data.groupID)}]; ok {
-		validityThreshold = effectiveMinimumBackingVotes(uint(len(group)), minimumBackingVotes)
+		validityThreshold = EffectiveMinimumBackingVotes(uint(len(group)), minimumBackingVotes)
 	} else {
 		validityThreshold = math.MaxUint
 	}
@@ -344,10 +344,10 @@ func (table *statementTable) attestedCandidate(
 	return data.attested(validityThreshold)
 }
 
-// effectiveMinimumBackingVotes adjusts the configured needed backing votes with the size of the backing group.
+// EffectiveMinimumBackingVotes adjusts the configured needed backing votes with the size of the backing group.
 //
 // groupLen is the size of the backing group.
-func effectiveMinimumBackingVotes(groupLen uint, configuredMinimumBackingVotes uint32) uint {
+func EffectiveMinimumBackingVotes(groupLen uint, configuredMinimumBackingVotes uint32) uint {
 	return min(groupLen, uint(configuredMinimumBackingVotes))
 }
 

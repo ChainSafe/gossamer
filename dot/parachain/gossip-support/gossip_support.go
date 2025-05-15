@@ -6,6 +6,7 @@ package gossipsupport
 import (
 	"context"
 	"fmt"
+	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -13,7 +14,6 @@ import (
 	"math"
 	"time"
 
-	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -47,21 +47,21 @@ type BlockState interface {
 // connection request to all validators in the next, current and a few past sessions if we are a validator
 // in these sessions.
 type GossipSupport struct {
-	subSystemToOverseer    chan<- any
-	blockState             BlockState
-	keystore               keystore.Keystore
-	lastSessionIndex       *parachaintypes.SessionIndex
-	minKnownSession        parachaintypes.SessionIndex
-	lastFailure            *time.Time
-	lastConnectionRequest  *time.Time
-	failureStart           *time.Time
-	resolvedAuthorities    map[parachaintypes.AuthorityDiscoveryID]map[multiaddr.Multiaddr]struct{}
-	connectedAuthorities   map[parachaintypes.AuthorityDiscoveryID]parachaintypes.PeerID
-	connectedPeers         map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}
-	authorityDiscovery     networkbridge.AuthorityDiscoveryService
-	finalizedNeededSession *uint32
+	subSystemToOverseer chan<- any
+	blockState          BlockState
 
-	// TODO: Metrics
+	keystore              keystore.Keystore
+	lastSessionIndex      *parachaintypes.SessionIndex
+	minKnownSession       parachaintypes.SessionIndex
+	lastFailure           *time.Time
+	lastConnectionRequest *time.Time
+	failureStart          *time.Time
+	resolvedAuthorities   map[parachaintypes.AuthorityDiscoveryID]map[multiaddr.Multiaddr]struct{}
+	connectedAuthorities  map[parachaintypes.AuthorityDiscoveryID]parachaintypes.PeerID
+	connectedPeers        map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}
+
+	authorityDiscovery     networkbridge.AuthorityDiscoveryService
+	finalizedNeededSession *parachaintypes.SessionIndex
 }
 
 func NewGossipSupport(
@@ -98,6 +98,9 @@ func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.A
 	leaf := signal.Activated.Hash
 
 	rt, err := gs.blockState.GetRuntime(leaf)
+	if err != nil {
+		return err
+	}
 
 	currentIndex, err := rt.ParachainHostSessionIndexForChild()
 	if err != nil {
@@ -150,18 +153,18 @@ func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.A
 		// TODO: Connect to authorities from the past/present/future.
 
 		if isNewSession {
-			err := gs.buildTopologyForLastFinalizedIfNeeded(sessionIndex)
+			err := gs.buildTopologyForLastFinalizedIfNeeded(sessionIndex, rt)
 			if err != nil {
 				logger.Warnf("failed to build topology for last finalized session %d, %s", sessionIndex, err.Error())
 				return err
 			}
 
+			// Gossip topology is only relevant for authorities in the current session.
 			ourIndex, err := gs.getKeyIndexAndUpdateMetrics(sessionInfo)
 			if err != nil {
 				logger.Warnf("failed to get our index for session %d, %s", sessionIndex, err.Error())
 				return err
 			}
-
 			gs.updateGossipTopology(ourIndex)
 		}
 
@@ -174,7 +177,17 @@ func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.A
 }
 
 func (gs *GossipSupport) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
-	//TODO implement #4507
+	rt, err := gs.blockState.GetRuntime(signal.Hash)
+	if err != nil {
+		return err
+	}
+
+	if gs.lastSessionIndex != nil {
+		if err := gs.buildTopologyForLastFinalizedIfNeeded(*gs.lastSessionIndex, rt); err != nil {
+			logger.Warnf("Failed to build topology for last finalized session: %s", err.Error())
+			return err
+		}
+	}
 	return nil
 }
 
@@ -222,7 +235,6 @@ func (gs *GossipSupport) processMessage(msg any) error {
 
 func (gs *GossipSupport) processPeerConnectedEvent(event networkbridgeevents.PeerConnected) {
 	//TODO implement in #4509
-
 }
 
 func (gs *GossipSupport) processPeerDisconnectedEvent(event networkbridgeevents.PeerDisconnected) {
@@ -258,8 +270,44 @@ func (gs *GossipSupport) checkConnectivity() {
 		"unconnected authorities: %+v \n", connectedRatio, absoluteConnected, absoluteResolved, unconnectedAuthorities)
 }
 
-func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(currentSessionIndex parachaintypes.SessionIndex) error {
-	// TODO:
+// buildTopologyForLastFinalizedIfNeeded builds the gossip topology for the session of the last finalized block
+// if we haven't built one
+func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(currentSessionIndex parachaintypes.SessionIndex, rt runtime.Instance) error {
+	if currentSessionIndex < gs.minKnownSession {
+		gs.minKnownSession = currentSessionIndex
+	}
+
+	if gs.finalizedNeededSession == nil || (gs.finalizedNeededSession != nil && *gs.finalizedNeededSession < gs.minKnownSession) {
+		finalizedBlock, err := rt.FinalizeBlock()
+		if err != nil {
+			return err
+		}
+
+		finalizedSessionIndex, err := rt.ParachainHostSessionIndexForChild()
+		if err != nil {
+			return err
+		}
+
+		if finalizedSessionIndex < gs.minKnownSession &&
+			gs.finalizedNeededSession != nil && *gs.finalizedNeededSession != finalizedSessionIndex {
+			logger.Debugf("Building topology for finalized block session: block number: %d, block hash: %s, "+
+				"session index: %d", finalizedBlock.Number, finalizedBlock.Hash(), finalizedSessionIndex)
+
+			finalizedSessionInfo, err := rt.ParachainHostSessionInfo(finalizedSessionIndex)
+			if err != nil {
+				return err
+			}
+
+			ourIndex, err := gs.getKeyIndexAndUpdateMetrics(finalizedSessionInfo)
+			if err != nil {
+				return err
+			}
+
+			gs.updateGossipTopology(ourIndex)
+		}
+		gs.finalizedNeededSession = &finalizedSessionIndex
+	}
+
 	return nil
 }
 

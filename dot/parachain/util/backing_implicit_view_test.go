@@ -12,42 +12,8 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-var genesisHash = common.Hash{0}
-
 func chainOfBlock() []common.Hash {
 	return []common.Hash{{4}, {5}, {6}, {7}, {8}, {9}}
-}
-
-func getBlockHeader(chain []common.Hash, hash common.Hash) *types.Header {
-	idx := -1
-	for i, h := range chain {
-		if h == hash {
-			idx = i
-			break
-		}
-	}
-	if idx == -1 {
-		return nil
-	}
-
-	var parentHash common.Hash
-	if idx > 0 {
-		parentHash = chain[idx-1]
-	} else {
-		parentHash = genesisHash
-	}
-
-	var number uint
-	if hash == genesisHash {
-		number = 0
-	} else {
-		number = uint(idx) + 1
-	}
-
-	return &types.Header{
-		ParentHash: parentHash,
-		Number:     number,
-	}
 }
 
 func setupTest(t *testing.T) (*MockBlockState, *MockInstance, *BackingImplicitView) {
@@ -74,8 +40,8 @@ func TestBackingImplicitView_ActivateLeaf(t *testing.T) {
 		parentHash := chain[chainLen-2]
 
 		// Setup expectations
-		mockBlockState.EXPECT().GetHeader(leafHash).Return(getBlockHeader(chain, leafHash), nil)
-		mockBlockState.EXPECT().GetHeader(parentHash).Return(getBlockHeader(chain, parentHash), nil)
+		mockBlockState.EXPECT().GetHeader(leafHash).Return(GetBlockHeader(t, chain, leafHash), nil)
+		mockBlockState.EXPECT().GetHeader(parentHash).Return(GetBlockHeader(t, chain, parentHash), nil)
 
 		ch := make(chan any)
 		go func() {
@@ -145,7 +111,7 @@ func TestBackingImplicitView_DeactivateLeaf(t *testing.T) {
 
 		view.blockInfoStorage[leafHash] = blockInfo{blockNumber: 10}      // Should not be pruned
 		view.blockInfoStorage[common.Hash{3}] = blockInfo{blockNumber: 4} // Should be pruned
-		view.blockInfoStorage[common.Hash{4}] = blockInfo{blockNumber: 6} //Should be pruned
+		view.blockInfoStorage[common.Hash{4}] = blockInfo{blockNumber: 6} // Should be pruned
 
 		pruned := view.DeactivateLeaf(leafHash)
 		require.Len(t, pruned, 2)
@@ -325,10 +291,10 @@ func TestBackingImplicitView_FetchAncestorsUpToMinBlockNumber(t *testing.T) {
 		minBlockNumber := parachaintypes.BlockNumber(1)
 
 		nextHash := chain[2]
-		header := getBlockHeader(chain, nextHash)
+		header := GetBlockHeader(t, chain, nextHash)
 
 		parentHash := chain[1]
-		parentHeader := getBlockHeader(chain, parentHash)
+		parentHeader := GetBlockHeader(t, chain, parentHash)
 
 		mockBlockState.EXPECT().GetHeader(nextHash).Return(header, nil)
 		mockBlockState.EXPECT().GetHeader(parentHash).Return(parentHeader, nil)
@@ -375,14 +341,14 @@ func TestBackingImplicitView_FetchFreshLeafAndInsertAncestry(t *testing.T) {
 		mockBlockState, _, view := setupTest(t)
 		chain := chainOfBlock()
 		leafHash := chain[3] // block 4
-		header := getBlockHeader(chain, leafHash)
+		header := GetBlockHeader(t, chain, leafHash)
 
 		// Mock getting block header
 		mockBlockState.EXPECT().GetHeader(leafHash).Return(header, nil)
 
 		// Mock headers for ancestors
-		mockBlockState.EXPECT().GetHeader(chain[2]).Return(getBlockHeader(chain, chain[2]), nil)
-		mockBlockState.EXPECT().GetHeader(chain[1]).Return(getBlockHeader(chain, chain[1]), nil)
+		mockBlockState.EXPECT().GetHeader(chain[2]).Return(GetBlockHeader(t, chain, chain[2]), nil)
+		mockBlockState.EXPECT().GetHeader(chain[1]).Return(GetBlockHeader(t, chain, chain[1]), nil)
 
 		// Set up channel to handle prospective parachains request
 		ch := make(chan any)
@@ -461,7 +427,7 @@ func TestBackingImplicitView_FetchFreshLeafAndInsertAncestry(t *testing.T) {
 		leafHash := chain[1] // block 2
 
 		// Mock getting block header
-		mockBlockState.EXPECT().GetHeader(leafHash).Return(getBlockHeader(chain, leafHash), nil)
+		mockBlockState.EXPECT().GetHeader(leafHash).Return(GetBlockHeader(t, chain, leafHash), nil)
 
 		// Set up channel to handle prospective parachains request with empty response
 		ch := make(chan any)
@@ -494,7 +460,7 @@ func TestBackingImplicitView_FindMinRelayParents(t *testing.T) {
 		_, _, view := setupTest(t)
 		chain := chainOfBlock()
 		leafHash := chain[5]
-		header := getBlockHeader(chain, leafHash)
+		header := GetBlockHeader(t, chain, leafHash)
 
 		ch := make(chan any)
 		go func() {
@@ -517,7 +483,7 @@ func TestBackingImplicitView_FindMinRelayParents(t *testing.T) {
 		_, _, view := setupTest(t)
 		chain := chainOfBlock()
 		leafHash := chain[5]
-		header := getBlockHeader(chain, leafHash)
+		header := GetBlockHeader(t, chain, leafHash)
 
 		ch := make(chan any)
 		// Consume messages but don't respond to simulate timeout
@@ -553,7 +519,7 @@ func TestBackingImplicitView_FindMinRelayParents(t *testing.T) {
 		// Set up ancestors with same session index
 		for i := 0; i < lookahead; i++ {
 			mockBlockState.EXPECT().GetHeader(chain[lastBlockIndex-i]).
-				Return(getBlockHeader(chain, chain[lastBlockIndex-i]), nil)
+				Return(GetBlockHeader(t, chain, chain[lastBlockIndex-i]), nil)
 
 			// mock runtime instance for a parent block, except genesis block
 			if lastBlockIndex-i > 1 {
@@ -564,7 +530,7 @@ func TestBackingImplicitView_FindMinRelayParents(t *testing.T) {
 
 		}
 
-		minParents, err := view.findMinRelayParents(leafHash, getBlockHeader(chain, leafHash), nil)
+		minParents, err := view.findMinRelayParents(leafHash, GetBlockHeader(t, chain, leafHash), nil)
 		require.NoError(t, err)
 		require.Len(t, minParents, 1)
 		require.EqualValues(t, paraID, minParents[0].ParaId)
@@ -579,7 +545,7 @@ func TestBackingImplicitView_FindMinRelayParents(t *testing.T) {
 
 		chain := chainOfBlock()
 		leafHash := chain[5]
-		header := getBlockHeader(chain, leafHash)
+		header := GetBlockHeader(t, chain, leafHash)
 
 		mockBlockState.EXPECT().GetRuntime(leafHash).Return(nil, errors.New("runtime error"))
 
@@ -597,7 +563,7 @@ func TestBackingImplicitView_FindMinRelayParents(t *testing.T) {
 
 		chain := chainOfBlock()
 		leafHash := chain[5]
-		header := getBlockHeader(chain, leafHash)
+		header := GetBlockHeader(t, chain, leafHash)
 
 		mockBlockState.EXPECT().GetRuntime(leafHash).Return(mockInstance, nil)
 		mockInstance.EXPECT().ParachainHostSessionIndexForChild().
@@ -617,7 +583,7 @@ func TestBackingImplicitView_FindMinRelayParents(t *testing.T) {
 
 		chain := chainOfBlock()
 		leafHash := chain[5]
-		header := getBlockHeader(chain, leafHash)
+		header := GetBlockHeader(t, chain, leafHash)
 
 		mockBlockState.EXPECT().GetRuntime(leafHash).Return(mockInstance, nil)
 		mockInstance.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(2), nil)
