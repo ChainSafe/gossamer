@@ -40,7 +40,7 @@ func ConstructGenesisBlock[
 ](
 	stateRoot H,
 	stateVersion storage.StateVersion,
-) runtime.Block[N, H, E] {
+) runtime.Block[H, N, E, Header] {
 
 	// 	let extrinsics_root = <<<Block as BlockT>::Header as HeaderT>::Hashing as HashT>::trie_root(
 	// 		Vec::new(),
@@ -67,10 +67,12 @@ func ConstructGenesisBlock[
 	var parentHash H
 	var digest runtime.Digest
 	var extrinsics []E
-	return generic.NewBlock[Hasher, E, N, H](
-		generic.NewHeader[N, H, Hasher](0, extrinsicsRoot, stateRoot, parentHash, digest),
+	header := generic.NewHeader[N, H, Hasher](0, extrinsicsRoot, stateRoot, parentHash, digest)
+	block := generic.NewBlock[Hasher, E, N, H, Header](
+		any(header).(Header),
 		extrinsics,
 	)
+	return block
 }
 
 // / Trait for building the genesis block.
@@ -88,7 +90,7 @@ type BuildGenesisBlock[
 	// /// Returns the built genesis block along with the block import operation
 	// /// after setting the genesis storage.
 	// fn build_genesis_block(self) -> sp_blockchain::Result<(Block, Self::BlockImportOperation)>;
-	BuildGenesisBlock(runtime.Block[N, H, E], api.BlockImportOperation[N, H, Hasher, Header, E])
+	BuildGenesisBlock(runtime.Block[H, N, E, Header], api.BlockImportOperation[N, H, Hasher, Header, E])
 }
 
 // /// Default genesis block builder in Substrate.
@@ -189,7 +191,7 @@ func NewGenesisBlockBuilderWithStorage[
 // 	type BlockImportOperation = <B as Backend<Blgenesisock>>::BlockImportOperation;
 
 // fn build_genesis_block(self) -> sp_blockchain::Result<(Block, Self::BlockImportOperation)> {
-func (g *GenesisBlockBuilder[H, N, Hasher, Header, E]) BuildGenesisBlock() (runtime.Block[N, H, E], api.BlockImportOperation[N, H, Hasher, Header, E], error) {
+func (g *GenesisBlockBuilder[H, N, Hasher, Header, E]) BuildGenesisBlock() (runtime.Block[H, N, E, Header], api.BlockImportOperation[N, H, Hasher, Header, E], error) {
 	// 		let Self { genesis_storage, commit_genesis_state, backend, executor, _phantom } = self;
 
 	// 		let genesis_state_version =

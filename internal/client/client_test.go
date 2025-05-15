@@ -16,7 +16,7 @@ import (
 	memorykvdb "github.com/ChainSafe/gossamer/internal/kvdb/memory-kvdb"
 	primitives_api "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
-	primivite_consensus_common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
+	primitives_common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/core"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
@@ -61,6 +61,7 @@ var (
 	_ primitives_api.ProvideRuntimeAPI[primitives_api.ApiExt[
 		uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
 		statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
+		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
 	]] = &TestClient{}
 )
 
@@ -97,6 +98,7 @@ func (e *RuntimeConstructor) ConstructRuntimeAPI() primitives_api.ApiExt[
 	runtime.BlakeTwo256,
 	statemachine.Backend[hash.H256, runtime.BlakeTwo256],
 	any,
+	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
 ] {
 	panic("not implemented")
 }
@@ -104,6 +106,7 @@ func (e *RuntimeConstructor) ConstructRuntimeAPI() primitives_api.ApiExt[
 func NewRuntimeConstructor(t *testing.T) primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
 	uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
 	statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
+	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
 ]] {
 	t.Helper()
 	return &RuntimeConstructor{}
@@ -160,12 +163,15 @@ func newTestClient(t *testing.T) *Client[
 	runtime.OpaqueExtrinsic,
 	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
 ] {
-	return New(
+	client, err := New(
 		NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0),
 		ClientConfig[uint64]{},
 		NewTestExecutor(t),
 		NewRuntimeConstructor(t),
+		nil,
 	)
+	require.NoError(t, err)
+	return client
 }
 
 func TestNew(t *testing.T) {
@@ -460,7 +466,8 @@ func TestHeaderBackendImplementation(t *testing.T) {
 
 	backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-	c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+	c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+	require.NoError(t, err)
 
 	// Get Header
 	header, err := c.Header(expectedHash)
@@ -515,7 +522,11 @@ func TestBlockBackendImplementation(t *testing.T) {
 	blockchainMock := mocks.NewBlockchainBackend[hash.H256, uint64,
 		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
 
-	c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+	backendMock.EXPECT().Blockchain().Return(blockchainMock)
+	blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
+
+	c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+	require.NoError(t, err)
 
 	expectedHeader := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 		1,
@@ -534,7 +545,7 @@ func TestBlockBackendImplementation(t *testing.T) {
 	expectedExtrinsics := []runtime.OpaqueExtrinsic{} // skipcq: GO-W1027
 	blockchainMock.EXPECT().Body(expectedHash).Return(expectedExtrinsics, nil)
 
-	expectedStatus := primivite_consensus_common.BlockStatusInChainWithState
+	expectedStatus := primitives_common.BlockStatusInChainWithState
 
 	expectedIndexedExtrinsics := [][]byte{
 		[]byte("extrinsic1"),
@@ -666,11 +677,13 @@ func TestCheckBlock(t *testing.T) {
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
 
 		blockchainMock.EXPECT().Number(importedBlockWithStatus.Hash).Return(&importedBlockWithStatus.Number, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 		backendMock.EXPECT().HaveStateAt(importedBlockWithStatus.Hash, importedBlockWithStatus.Number).Return(true)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 		result, err := c.CheckBlock(importedBlockWithStatus)
 		require.NoError(t, err)
 		require.Equal(t, common.ImportResultAlreadyInChain{}, result)
@@ -691,11 +704,13 @@ func TestCheckBlock(t *testing.T) {
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
 
 		blockchainMock.EXPECT().Number(prunedBlock.Hash).Return(&prunedBlock.Number, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 		backendMock.EXPECT().HaveStateAt(prunedBlock.Hash, prunedBlock.Number).Return(false)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
 		result, err := c.CheckBlock(prunedBlock)
 		require.NoError(t, err)
@@ -718,10 +733,12 @@ func TestCheckBlock(t *testing.T) {
 
 		blockchainMock.EXPECT().Number(blockUnknownParent.Hash).Return(nil, nil)
 		blockchainMock.EXPECT().Number(blockUnknownParent.ParentHash).Return(nil, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
 		result, err := c.CheckBlock(blockUnknownParent)
 		require.NoError(t, err)
@@ -748,12 +765,14 @@ func TestCheckBlock(t *testing.T) {
 		parentNumber := blockUnknownParent.Number - 1
 
 		blockchainMock.EXPECT().Number(parentHash).Return(&parentNumber, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 
 		backendMock.EXPECT().HaveStateAt(parentHash, parentNumber).Return(false)
 
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
 		result, err := c.CheckBlock(blockUnknownParent)
 		require.NoError(t, err)
@@ -775,6 +794,7 @@ func TestCheckBlock(t *testing.T) {
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
 
 		blockchainMock.EXPECT().Number(blockUnknownParent.Hash).Return(nil, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 
 		parentHash := blockUnknownParent.ParentHash
 		parentNumber := blockUnknownParent.Number - 1
@@ -783,7 +803,8 @@ func TestCheckBlock(t *testing.T) {
 		backendMock.EXPECT().HaveStateAt(parentHash, parentNumber).Return(true)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
 		result, err := c.CheckBlock(blockUnknownParent)
 		require.NoError(t, err)
@@ -813,12 +834,14 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		expectedError := errors.New("error")
 		blockchainMock.EXPECT().Number(block.Header.ParentHash()).Return(nil, expectedError)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
-		_, err := c.prepareBlockStorageChanges(&block)
+		_, err = c.prepareBlockStorageChanges(&block)
 		require.Error(t, err)
 		require.Equal(t, expectedError, err)
 
@@ -849,11 +872,14 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		parentNumber := block.Header.Number() - 1
 		blockchainMock.EXPECT().Number(block.Header.ParentHash()).Return(&parentNumber, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
+
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(false)
 
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
@@ -882,9 +908,11 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
 
 		blockchainMock.EXPECT().Number(block.Header.ParentHash()).Return(nil, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
@@ -914,10 +942,12 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		parentNumber := block.Header.Number() - 1
 		blockchainMock.EXPECT().Number(block.Header.ParentHash()).Return(&parentNumber, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(false)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
@@ -947,10 +977,12 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		parentNumber := block.Header.Number() - 1
 		blockchainMock.EXPECT().Number(block.Header.ParentHash()).Return(&parentNumber, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(false)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
@@ -984,10 +1016,12 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		parentNumber := block.Header.Number() - 1
 		blockchainMock.EXPECT().Number(block.Header.ParentHash()).Return(&parentNumber, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(true)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
@@ -1017,10 +1051,12 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		parentNumber := block.Header.Number() - 1
 		blockchainMock.EXPECT().Number(block.Header.ParentHash()).Return(&parentNumber, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(true)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
@@ -1050,10 +1086,12 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		parentNumber := block.Header.Number() - 1
 		blockchainMock.EXPECT().Number(block.Header.ParentHash()).Return(&parentNumber, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(true)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
@@ -1083,10 +1121,12 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		parentNumber := block.Header.Number() - 1
 		blockchainMock.EXPECT().Number(block.Header.ParentHash()).Return(&parentNumber, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(true)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
@@ -1121,6 +1161,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		parentNumber := block.Header.Number() - 1
 		blockchainMock.EXPECT().Number(block.Header.ParentHash()).Return(&parentNumber, nil)
+		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(true)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
@@ -1130,12 +1171,14 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		primitives_api.ApiExt[
 			uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
 			statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
 		]](t)
 
 		runtimeApi := mocks.NewApiExt[
 			uint64, runtime.OpaqueExtrinsic, hash.H256,
 			runtime.BlakeTwo256, statemachine.Backend[hash.H256, runtime.BlakeTwo256],
 			any,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
 		](t)
 		runtimeApi.EXPECT().RecordProof().Return()
 
@@ -1157,11 +1200,13 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		runtimeConstructorMock.EXPECT().ConstructRuntimeAPI().Return(runtimeApi)
 
-		c := New(backendMock,
+		c, err := New(backendMock,
 			ClientConfig[uint64]{EnableImportProofRecording: true},
 			NewTestExecutor(t),
 			runtimeConstructorMock,
+			nil,
 		)
+		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)

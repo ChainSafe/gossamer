@@ -112,13 +112,13 @@ type Header[N Number, H Hash] interface {
 // Block represents a block. It has types for Extrinsic pieces of information as well as a Header.
 //
 // You can iterate over each of the Extrinsics and retrieve the Header.
-type Block[N Number, H Hash, E Extrinsic] interface {
+type Block[H Hash, N Number, E Extrinsic, Head Header[N, H]] interface {
 	// Returns a reference to the header.
-	Header() Header[N, H]
+	Header() Head
 	// Returns a reference to the list of extrinsics.
 	Extrinsics() []E
 	// Split the block into header and list of extrinsics.
-	Deconstruct() (header Header[N, H], extrinsics []E)
+	Deconstruct() (header Head, extrinsics []E)
 	// Returns the hash of the block.
 	Hash() H
 }

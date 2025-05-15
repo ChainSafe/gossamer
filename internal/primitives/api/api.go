@@ -38,11 +38,12 @@ type ApiExt[
 	Hasher runtime.Hasher[H],
 	Backend statemachine.Backend[H, Hasher],
 	Result any,
+	Header runtime.Header[N, H],
 ] interface {
 	// Execute the given closure inside a new transaction.
 	// Depending on the outcome of the closure, the transaction is committed or rolled-back.
 	// The internal result of the closure is returned afterwards.
-	ExecuteInTransaction(call func(api ApiExt[N, E, H, Hasher, Backend, Result]) runtime.TransactionOutcome[Result]) Result
+	ExecuteInTransaction(call func(api ApiExt[N, E, H, Hasher, Backend, Result, Header]) runtime.TransactionOutcome[Result]) Result
 	// Checks if the given api is implemented and versions match.
 	HasAPI(atHash H) (bool, error)
 	// Check if the given api is implemented and the version passes a predicate.
@@ -66,5 +67,5 @@ type ApiExt[
 	// Register an [Extension] that will be accessible while executing a runtime api call.
 	RegisterExtension(extension any)
 	// Execute the given block
-	ExecuteBlock(runtimeApiAtParam H, block runtime.Block[N, H, E]) error
+	ExecuteBlock(runtimeApiAtParam H, block runtime.Block[H, N, E, Header]) error
 }

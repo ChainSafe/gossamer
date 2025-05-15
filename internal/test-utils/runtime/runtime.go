@@ -43,7 +43,7 @@ type BlockNumber uint64
 
 // / A test block.
 // pub type Block = sp_runtime::generic::Block<Header, Extrinsic>;
-type Block = generic.Block[BlockNumber, Hash, Hasher, Extrinsic]
+type Block = generic.Block[BlockNumber, Hash, Hasher, Extrinsic, Header]
 
 // / A test block's header.
 // pub type Header = sp_runtime::generic::Header<BlockNumber, Hashing>;
