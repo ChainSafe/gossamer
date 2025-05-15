@@ -16,6 +16,13 @@ var (
 	errManifestImportOverflow = errors.New(
 		"the manifest has overflowed beyond the limits of what the counterparty was allowed to send us",
 	)
+
+	errManifestImportInsufficient = errors.New(
+		"the manifest claims insufficient attestations to achieve the backing threshold",
+	)
+
+	errManifestImportMalformed  = errors.New("the manifest is malformed")
+	errManifestImportDisallowed = errors.New("the manifest was not allowed to be sent")
 )
 
 // manifestSummary represents a summary of a manifest being sent by a counterparty.
