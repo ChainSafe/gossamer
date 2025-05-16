@@ -130,7 +130,7 @@ func TestKnownBackedCandidate_sentManifestTo(t *testing.T) {
 	filter, err := newStatementFilter(5, false)
 	require.NoError(t, err)
 
-	kbc.sentManifestTo(validatorIndex, *filter)
+	kbc.manifestSentTo(validatorIndex, *filter)
 
 	mk, ok := kbc.mutualKnowledge[validatorIndex]
 	require.True(t, ok)

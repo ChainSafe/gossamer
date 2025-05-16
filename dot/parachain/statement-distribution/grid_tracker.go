@@ -28,7 +28,7 @@ type validatorGroupPair struct {
 	group     parachaintypes.GroupIndex
 }
 
-type candidateHashByManifestKind map[parachaintypes.CandidateHash]manifestKind
+type manifestKindByCandidateHash map[parachaintypes.CandidateHash]manifestKind
 
 type originatorStatementPair /* [T parachaintypes.CompactStatementValues] */ struct {
 	validatorIndex parachaintypes.ValidatorIndex
@@ -42,7 +42,7 @@ type gridTracker struct {
 	received         map[parachaintypes.ValidatorIndex]receivedManifests
 	confirmedBacked  map[parachaintypes.CandidateHash]knownBackedCandidate
 	unconfirmed      map[parachaintypes.CandidateHash][]validatorGroupPair
-	pendingManifests map[parachaintypes.ValidatorIndex]candidateHashByManifestKind
+	pendingManifests map[parachaintypes.ValidatorIndex]manifestKindByCandidateHash
 
 	// maps target to (originator, statement) pairs.
 	pendingStatements map[parachaintypes.ValidatorIndex]originatorStatementPairSet
@@ -54,7 +54,7 @@ func newGridTracker() *gridTracker {
 		received:         make(map[parachaintypes.ValidatorIndex]receivedManifests),
 		confirmedBacked:  make(map[parachaintypes.CandidateHash]knownBackedCandidate),
 		unconfirmed:      make(map[parachaintypes.CandidateHash][]validatorGroupPair),
-		pendingManifests: make(map[parachaintypes.ValidatorIndex]candidateHashByManifestKind),
+		pendingManifests: make(map[parachaintypes.ValidatorIndex]manifestKindByCandidateHash),
 	}
 }
 
@@ -143,8 +143,8 @@ func (g *gridTracker) importManifest(
 	g.received[sender] = receivedManifest
 
 	ack := false
-	confirmed, ok := g.confirmedBacked[candidateHash]
-	if ok && receivingFrom && confirmed.hasSentManifestTo(sender) {
+	known, ok := g.confirmedBacked[candidateHash]
+	if ok && receivingFrom && known.hasSentManifestTo(sender) {
 		// due to checks above, the manifest `kind` is guaranteed to be `full`
 		g.insertPendingManifest(sender, candidateHash, acknowledgement)
 
@@ -153,8 +153,8 @@ func (g *gridTracker) importManifest(
 
 	// add all statements in local_knowledge & !remote_knowledge
 	// to `pendingStatements` for this validator.
-	confirmed.manifestReceivedFrom(sender, remoteKnowledge)
-	pendingStatements := confirmed.pendingStatements(sender)
+	known.manifestReceivedFrom(sender, remoteKnowledge)
+	pendingStatements := known.pendingStatements(sender)
 
 	if pendingStatements != nil {
 		originatorStatementPairs := decomposeStatementFilter(
@@ -189,10 +189,10 @@ func (g *gridTracker) addBackedCandidate(
 	localKnowledge statementFilter,
 ) []validatorManifestKindPair {
 	if _, ok := g.confirmedBacked[candidateHash]; ok {
-		return []validatorManifestKindPair{}
+		return nil
 	}
 
-	confirmedBacked := knownBackedCandidate{
+	known := knownBackedCandidate{
 		groupIndex:      groupIndex,
 		localKnowledge:  localKnowledge,
 		mutualKnowledge: make(map[parachaintypes.ValidatorIndex]mutualKnowledge),
@@ -216,14 +216,14 @@ func (g *gridTracker) addBackedCandidate(
 		}
 
 		// No need to send direct statements, because our local knowledge is nil
-		confirmedBacked.manifestReceivedFrom(pair.validator, *statementFilter)
+		known.manifestReceivedFrom(pair.validator, *statementFilter)
 
-		g.confirmedBacked[candidateHash] = confirmedBacked
+		g.confirmedBacked[candidateHash] = known
 	}
 
 	groupTopology, ok := sessionTopology.groupViews[groupIndex]
 	if !ok {
-		return []validatorManifestKindPair{}
+		return nil
 	}
 
 	// advertise onwards and accept received advertisements
@@ -241,7 +241,7 @@ func (g *gridTracker) addBackedCandidate(
 	}
 
 	for validator, _ := range groupTopology.receiving {
-		if confirmedBacked.hasReceivedManifestFrom(validator) {
+		if known.hasReceivedManifestFrom(validator) {
 			logger.Tracef("Preparing to send manifest acknowledgement to validator at index %d", validator)
 			g.insertPendingManifest(validator, candidateHash, acknowledgement)
 			targets = append(targets, validatorManifestKindPair{validator, acknowledgement})
@@ -258,18 +258,30 @@ func (g *gridTracker) manifestSentTo(
 	candidateHash parachaintypes.CandidateHash,
 	localKnowledge statementFilter,
 ) {
-	if confirmedBacked, ok := g.confirmedBacked[candidateHash]; ok {
-		confirmedBacked.sentManifestTo(validatorIndex, localKnowledge)
+	if known, ok := g.confirmedBacked[candidateHash]; ok {
+		known.manifestSentTo(validatorIndex, localKnowledge)
 
+		if pendingStatements := known.pendingStatements(validatorIndex); pendingStatements != nil {
+			originatorStatementPairs := decomposeStatementFilter(
+				groups,
+				known.groupIndex,
+				candidateHash,
+				*pendingStatements,
+			)
+
+			g.extendPendingStatements(validatorIndex, originatorStatementPairs)
+		}
 	}
+
+	g.removePendingManifest(validatorIndex, candidateHash)
 }
 
 // pendingManifestsFor returns a vector of all candidates pending manifests for
 // the specific validator, and the type of manifest we should send.
 func (g *gridTracker) pendingManifestsFor(
 	validatorIndex parachaintypes.ValidatorIndex,
-) map[parachaintypes.CandidateHash]manifestKind {
-	panic("not implemented")
+) manifestKindByCandidateHash {
+	return maps.Clone(g.pendingManifests[validatorIndex])
 }
 
 // pendingStatementsFor returns a statement filter indicating statements that a given peer is
@@ -278,73 +290,170 @@ func (g *gridTracker) pendingStatementsFor(
 	validatorIndex parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
 ) *statementFilter {
-	panic("not implemented")
+	known, ok := g.confirmedBacked[candidateHash]
+	if !ok {
+		return nil
+	}
+
+	return known.pendingStatements(validatorIndex)
 }
 
 // allPendingStatementsFor returns a slice of all pending statements to the validator,
 // sorted with `Seconded` statements at the front.
 // Statements are in the form `(Originator, Statement Kind)`.
-//func (g *gridTracker) allPendingStatementsFor(
-//	validatorIndex parachaintypes.ValidatorIndex,
-//) []validatorIndexWithCompactStatement[FIXME] {
-//	panic("not implemented")
-//}
+func (g *gridTracker) allPendingStatementsFor(
+	validatorIndex parachaintypes.ValidatorIndex,
+) []originatorStatementPair {
+	var seconded, valid []originatorStatementPair
+
+	for pair, _ := range g.pendingStatements[validatorIndex] {
+		if _, ok := pair.statement.(parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]); ok {
+			seconded = append(seconded, pair)
+		} else {
+			valid = append(valid, pair)
+		}
+	}
+
+	return append(seconded, valid...)
+}
 
 // canRequest indicates whether a validator can request a manifest from us.
 func (g *gridTracker) canRequest(
 	validatorIndex parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
 ) bool {
-	panic("not implemented")
+	known, ok := g.confirmedBacked[candidateHash]
+	if !ok {
+		return false
+	}
+
+	return known.hasSentManifestTo(validatorIndex) && !known.hasReceivedManifestFrom(validatorIndex)
 }
 
 // directStatementProviders determines the validators which can send a statement to us by direct broadcast.
 //
-// Returns a list of tuples representing each potential sender(ValidatorIndex) and if
-// the sender should already know about the statement, because we just sent it to it.
-func (g *gridTracker) directStatementProviders() map[parachaintypes.ValidatorIndex]bool {
-	panic("not implemented")
+// Returns a map representing each potential sender(ValidatorIndex) and if the sender
+// should already know about the statement, because we just sent it to it.
+func (g *gridTracker) directStatementProviders(
+	groups groups,
+	originator parachaintypes.ValidatorIndex,
+	statement any, /* CompactStatement[FIXME] */
+) map[parachaintypes.ValidatorIndex]bool {
+	groupIndex, candidateHash, stmtKind, idxInGroup := extractStatementAndGroupInfo(groups, originator, statement)
+	if groupIndex == nil {
+		return nil
+	}
+
+	known, ok := g.confirmedBacked[candidateHash]
+	if !ok {
+		return nil
+	}
+
+	return known.directStatementSenders(*groupIndex, idxInGroup, stmtKind)
 }
 
 // directStatementTargets determines the validators which can receive a statement from us by direct broadcast.
-//func (g *gridTracker) directStatementTargets(
-//	groups groups,
-//	originator parachaintypes.ValidatorIndex,
-//	statement parachaintypes.CompactStatement[FIXME],
-//) []parachaintypes.ValidatorIndex {
-//	panic("not implemented")
-//}
+func (g *gridTracker) directStatementTargets(
+	groups groups,
+	originator parachaintypes.ValidatorIndex,
+	statement any, /* parachaintypes.CompactStatement[FIXME] */
+) []parachaintypes.ValidatorIndex {
+	groupIndex, candidateHash, stmtKind, idxInGroup := extractStatementAndGroupInfo(groups, originator, statement)
+	if groupIndex == nil {
+		return nil
+	}
+
+	known, ok := g.confirmedBacked[candidateHash]
+	if !ok {
+		return nil
+	}
+
+	return known.directStatementRecipients(*groupIndex, idxInGroup, stmtKind)
+}
 
 // learnedFreshStatement notes that we have learned about a statement.
 // This will update [pendingStatementsFor] for any relevant validators
 // if actually fresh.
-//func (g *gridTracker) learnedFreshStatement(
-//	groups groups,
-//	sessionTopology *sessionTopologyView,
-//	originator parachaintypes.ValidatorIndex,
-//	statement parachaintypes.CompactStatement[FIXME],
-//) {
-//	panic("not implemented")
-//}
+func (g *gridTracker) learnedFreshStatement(
+	groups groups,
+	sessionTopology *sessionTopologyView,
+	originator parachaintypes.ValidatorIndex,
+	statement any, /* parachaintypes.CompactStatement[FIXME] */
+) {
+	groupIndex, candidateHash, stmtKind, idxInGroup := extractStatementAndGroupInfo(groups, originator, statement)
+	if groupIndex == nil {
+		return
+	}
+
+	known, ok := g.confirmedBacked[candidateHash]
+	if !ok {
+		return
+	}
+
+	if !known.noteFreshStatement(idxInGroup, stmtKind) {
+		return
+	}
+
+	// Add to `pendingStatements` for all validators we communicate with
+	// who have exchanged manifests.
+	subView, ok := sessionTopology.groupViews[*groupIndex]
+	if !ok {
+		return
+	}
+
+	var allGroupValidators []parachaintypes.ValidatorIndex
+
+	for validatorIndex, _ := range subView.sending {
+		allGroupValidators = append(allGroupValidators, validatorIndex)
+	}
+
+	for validatorIndex, _ := range subView.receiving {
+		allGroupValidators = append(allGroupValidators, validatorIndex)
+	}
+
+	for _, validatorIndex := range allGroupValidators {
+		if known.isPendingStatement(validatorIndex, idxInGroup, stmtKind) {
+			g.insertPendingStatement(validatorIndex, originatorStatementPair{originator, statement})
+		}
+	}
+}
 
 // / sentOrReceivedDirectStatement notes that a direct statement about a
 // given candidate was sent to or received from the given validator.
-//func (g *gridTracker) sentOrReceivedDirectStatement(
-//	groups groups,
-//	originator parachaintypes.ValidatorIndex,
-//	counterparty parachaintypes.ValidatorIndex,
-//	statement parachaintypes.CompactStatement[FIXME],
-//	received bool,
-//) {
-//	panic("not implemented")
-//}
+func (g *gridTracker) sentOrReceivedDirectStatement(
+	groups groups,
+	originator parachaintypes.ValidatorIndex,
+	counterparty parachaintypes.ValidatorIndex,
+	statement any, /* parachaintypes.CompactStatement[FIXME] */
+	received bool,
+) {
+	groupIndex, candidateHash, stmtKind, idxInGroup := extractStatementAndGroupInfo(groups, originator, statement)
+	if groupIndex == nil {
+		return
+	}
+
+	known, ok := g.confirmedBacked[candidateHash]
+	if !ok {
+		return
+	}
+
+	known.sentOrReceivedDirectStatement(counterparty, idxInGroup, stmtKind, received)
+	g.confirmedBacked[candidateHash] = known
+
+	delete(g.pendingStatements, counterparty)
+}
 
 // advertisedStatements returns the advertised statement filter of a validator for a candidate.
 func (g *gridTracker) advertisedStatements(
 	validator parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
 ) *statementFilter {
-	panic("not implemented")
+	manifests, ok := g.received[validator]
+	if !ok {
+		return nil
+	}
+
+	return manifests.candidateStatementFilter(candidateHash)
 }
 
 func (g *gridTracker) insertPendingManifest(
@@ -352,18 +461,40 @@ func (g *gridTracker) insertPendingManifest(
 	candidateHash parachaintypes.CandidateHash,
 	kind manifestKind,
 ) {
-	pendingManifests := g.pendingManifests[validatorIndex]
-	pendingManifests[candidateHash] = kind
-	g.pendingManifests[validatorIndex] = pendingManifests
+	pm := g.pendingManifests[validatorIndex]
+	if pm == nil {
+		pm = make(manifestKindByCandidateHash)
+	}
+
+	pm[candidateHash] = kind
+	g.pendingManifests[validatorIndex] = pm
+}
+
+func (g *gridTracker) removePendingManifest(
+	validatorIndex parachaintypes.ValidatorIndex,
+	candidateHash parachaintypes.CandidateHash,
+) {
+	delete(g.pendingManifests[validatorIndex], candidateHash)
+}
+
+func (g *gridTracker) insertPendingStatement(
+	validatorIndex parachaintypes.ValidatorIndex,
+	pair originatorStatementPair,
+) {
+	ps := g.pendingStatements[validatorIndex]
+	if ps == nil {
+		ps = make(originatorStatementPairSet)
+	}
+
+	ps[pair] = struct{}{}
+	g.pendingStatements[validatorIndex] = ps
 }
 
 func (g *gridTracker) extendPendingStatements(
 	validatorIndex parachaintypes.ValidatorIndex,
 	originatorStatementPairs originatorStatementPairSet,
 ) {
-	pendingStatements := g.pendingStatements[validatorIndex]
-	maps.Copy(pendingStatements, originatorStatementPairs)
-	g.pendingStatements[validatorIndex] = pendingStatements
+	maps.Copy(g.pendingStatements[validatorIndex], originatorStatementPairs)
 }
 
 func (g *gridTracker) addUnconfirmed(
@@ -421,4 +552,36 @@ func decomposeStatementFilter(
 	}
 
 	return result
+}
+
+// If the first return value is nil, the others are invalid as well (i.e. nil-equivalent).
+func extractStatementAndGroupInfo(
+	groups groups,
+	originator parachaintypes.ValidatorIndex,
+	statement any, /* CompactStatement[FIXME] */
+) (gi *parachaintypes.GroupIndex, ch parachaintypes.CandidateHash, sk statementKind, i uint) {
+	switch s := statement.(type) {
+	case parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]:
+		ch = parachaintypes.CandidateHash(s.Value)
+		sk = seconded
+	case parachaintypes.CompactStatement[parachaintypes.Valid]:
+		ch = parachaintypes.CandidateHash(s.Value)
+		sk = valid
+	default:
+		panic("unreachable")
+	}
+
+	// gi is the index of the *group* that the originator is in
+	gi = groups.byValidatorIndex(originator)
+	if gi == nil {
+		return
+	}
+
+	// i is the index of the *originator* in its group
+	for indexInGroup, validator := range groups.get(*gi) {
+		if validator == originator {
+			i = uint(indexInGroup)
+		}
+	}
+	return
 }
