@@ -428,12 +428,7 @@ func (r *Round[ID, H, N, S]) update() {
 
 		// equivocations we could still get are out of those who
 		// have already voted, but not on this block.
-		var possibleEquivocations VoteWeight
-		if currentPrecommits-precommitedFor <= additionalEquiv {
-			possibleEquivocations = currentPrecommits - precommitedFor
-		} else {
-			possibleEquivocations = additionalEquiv
-		}
+		possibleEquivocations := min(currentPrecommits-precommitedFor, additionalEquiv)
 
 		// all the votes already applied on this block,
 		// assuming all remaining actors commit to this block,
