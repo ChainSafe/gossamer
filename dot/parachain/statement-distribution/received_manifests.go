@@ -35,6 +35,14 @@ type manifestSummary struct {
 	statementKnowledge statementFilter
 }
 
+func (s *manifestSummary) clone() manifestSummary {
+	return manifestSummary{
+		claimedParentHash:  s.claimedParentHash,
+		claimedGroupIndex:  s.claimedGroupIndex,
+		statementKnowledge: s.statementKnowledge.clone(),
+	}
+}
+
 // receivedManifests contains the knowledge we are aware of counterparties having of manifests.
 type receivedManifests struct {
 	received map[parachaintypes.CandidateHash]manifestSummary
@@ -42,6 +50,13 @@ type receivedManifests struct {
 	// secondedCounts is a limit of how many seconded statement
 	// a given candidate can have, defined per session
 	secondedCounts map[parachaintypes.GroupIndex][]uint
+}
+
+func newReceivedManifests() *receivedManifests {
+	return &receivedManifests{
+		received:       make(map[parachaintypes.CandidateHash]manifestSummary),
+		secondedCounts: make(map[parachaintypes.GroupIndex][]uint),
+	}
 }
 
 func (rm *receivedManifests) candidateStatementFilter(candidateHash parachaintypes.CandidateHash) *statementFilter {
@@ -96,6 +111,10 @@ func (rm *receivedManifests) importReceived(
 	}
 
 	if previousSummary.claimedGroupIndex != manifestSummary.claimedGroupIndex {
+		return errManifestImportConflicting
+	}
+
+	if previousSummary.claimedParentHash != manifestSummary.claimedParentHash {
 		return errManifestImportConflicting
 	}
 
