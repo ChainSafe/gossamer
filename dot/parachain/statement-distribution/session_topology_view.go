@@ -44,8 +44,8 @@ func newSessionTopology() *sessionTopologyView {
 // For groups that we are not part of: we receive from any validator in the group we share a slice
 // with and send to the corresponding X/Y slice in the other dimension.
 //
-//	For any validators we don't share a slice with, we receive from the nodes
-//	which share a slice with them.
+// For any validators we don't share a slice with, we receive from the nodes
+// which share a slice with them.
 func buildSessionTopologyView(
 	groups [][]parachaintypes.ValidatorIndex,
 	topology *grid.SessionGridTopology,
