@@ -785,6 +785,14 @@ type Collation struct {
 	PoV              PoV              `scale:"2"`
 }
 
+type CollationWithParentHeadData struct {
+	CandidateReceipt CandidateReceipt `scale:"1"`
+	PoV              PoV              `scale:"2"`
+	// The head data of the candidate's parent.
+	// This is needed for elastic scaling to work.
+	ParentHeadData HeadData `scale:"3"`
+}
+
 // ValidatorSignature represents the signature with which parachain validators sign blocks.
 type ValidatorSignature Signature
 
