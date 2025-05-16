@@ -111,12 +111,9 @@ func (rm *receivedManifests) importReceived(
 		return errManifestImportConflicting
 	}
 
-	freshSeconded, err := manifestSummary.statementKnowledge.secondedInGroup.Or(
+	freshSeconded := manifestSummary.statementKnowledge.secondedInGroup.Or(
 		previousSummary.statementKnowledge.secondedInGroup,
 	)
-	if err != nil {
-		return err
-	}
 
 	withinLimits := updatingEnsureWithinSecondingLimit(
 		rm.secondedCounts,
@@ -147,7 +144,7 @@ func updatingEnsureWithinSecondingLimit(
 	groupIndex parachaintypes.GroupIndex,
 	groupSize uint,
 	secondingLimit uint,
-	newSeconded parachaintypes.BitVec, // polkadot-sdk uses a &BitSlice<u8, Lsb0>
+	newSeconded parachaintypes.BitVec,
 ) bool {
 	if secondingLimit == 0 {
 		return false
@@ -165,7 +162,7 @@ func updatingEnsureWithinSecondingLimit(
 			continue
 		}
 
-		if i < len(counts)-1 && counts[i] == secondingLimit {
+		if i < len(counts) && counts[i] == secondingLimit {
 			return false
 		}
 	}
@@ -175,12 +172,16 @@ func updatingEnsureWithinSecondingLimit(
 			continue
 		}
 
-		if i < len(counts)-1 {
+		if i < len(counts) {
 			counts[i] += 1
 		} else {
 			// polkadot-sdk does not contain this case and assumes groupSize == len(newSeconded)
 			// https://github.com/paritytech/polkadot-sdk/blob/3b4c48e7e3bba96091024643407994938607e3b9/polkadot/node/network/statement-distribution/src/v2/grid.rs#L865
-			counts = append(counts, 1)
+			logger.Warnf(
+				"unexpectedly got more new seconded statements (%d) than members in group (%d)",
+				len(nsBits),
+				groupSize,
+			)
 		}
 	}
 	secondedCounts[groupIndex] = counts
