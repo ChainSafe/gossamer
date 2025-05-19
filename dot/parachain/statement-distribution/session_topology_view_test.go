@@ -12,13 +12,13 @@ import (
 )
 
 func TestNewSessionTopology(t *testing.T) {
-	topology := newSessionTopology()
+	topology := newSessionTopologyView()
 	assert.NotNil(t, topology)
 	assert.NotNil(t, topology.groupViews)
 	assert.Empty(t, topology.groupViews)
 }
 
-func TestBuildSessionTopologyView(t *testing.T) {
+func TestBuildSessionTopology(t *testing.T) {
 	t.Parallel()
 
 	t.Run("our_index_nil", func(t *testing.T) {
@@ -49,7 +49,7 @@ func TestBuildSessionTopologyView(t *testing.T) {
 			{0, 1, 2},
 		}
 
-		view, err := buildSessionTopologyView(groups, baseTopology, nil)
+		view, err := buildSessionTopology(groups, baseTopology, nil)
 
 		require.NoError(t, err)
 		assert.NotNil(t, view)
@@ -80,7 +80,7 @@ func TestBuildSessionTopologyView(t *testing.T) {
 
 		ourIndex := parachaintypes.ValidatorIndex(0)
 
-		view, err := buildSessionTopologyView(groups, baseTopology, &ourIndex)
+		view, err := buildSessionTopology(groups, baseTopology, &ourIndex)
 
 		require.NoError(t, err)
 		assert.NotNil(t, view)

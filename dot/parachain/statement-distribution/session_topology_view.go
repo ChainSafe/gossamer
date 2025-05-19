@@ -33,25 +33,25 @@ type sessionTopologyView struct {
 	groupViews map[parachaintypes.GroupIndex]groupSubView
 }
 
-func newSessionTopology() *sessionTopologyView {
+func newSessionTopologyView() *sessionTopologyView {
 	return &sessionTopologyView{
 		groupViews: make(map[parachaintypes.GroupIndex]groupSubView),
 	}
 }
 
-// buildSessionTopologyView builds a view of the topology for the session.
+// buildSessionTopology builds a view of the topology for the session.
 // For groups that we are part of: we receive from nobody and send to our X/Y peers.
 // For groups that we are not part of: we receive from any validator in the group we share a slice
 // with and send to the corresponding X/Y slice in the other dimension.
 //
 // For any validators we don't share a slice with, we receive from the nodes
 // which share a slice with them.
-func buildSessionTopologyView(
+func buildSessionTopology(
 	groups [][]parachaintypes.ValidatorIndex,
 	topology *grid.SessionGridTopology,
 	ourIndex *parachaintypes.ValidatorIndex,
 ) (*sessionTopologyView, error) {
-	view := newSessionTopology()
+	view := newSessionTopologyView()
 
 	if ourIndex == nil {
 		return view, nil
