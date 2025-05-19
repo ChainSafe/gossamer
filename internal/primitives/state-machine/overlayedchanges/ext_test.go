@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	"github.com/ChainSafe/gossamer/internal/primitives/externalities"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
@@ -15,6 +16,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/btree"
 )
+
+func TestExtImplementsExternalities(t *testing.T) {
+	var _ externalities.Externalities = &Ext[
+		hash.H256,
+		runtime.BlakeTwo256,
+		statemachine.MemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256],
+	]{}
+}
 
 func TestNextStorageKeyWorks(t *testing.T) {
 	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()

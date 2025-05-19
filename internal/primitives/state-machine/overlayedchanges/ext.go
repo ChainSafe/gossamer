@@ -662,6 +662,22 @@ func (e Ext[H, Hasher, B]) ChildStorageRoot(
 func (e Ext[H, Hasher, B]) StorageIndexTransaction(index uint32, hash []byte, size uint32) {
 	logger.Tracef(
 		`target = state 
+		method = IndexTransaction
+		ext_id = %s
+		index = %d
+		tx_hash = 0x%x`,
+		leID(e.ID),
+		index,
+		hash,
+	)
+
+	e.overlay.AddTransactionIndex(IndexOperationRenew{Extrinsic: index, Hash: hash})
+}
+
+// Renew existing piece of data storage.
+func (e Ext[H, Hasher, B]) StorageRenewTransactionIndex(index uint32, hash []byte) {
+	logger.Tracef(
+		`target = state 
 		method = RenewTransactionIndex
 		ext_id = %s
 		index = %d
