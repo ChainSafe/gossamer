@@ -33,10 +33,10 @@ func createTestTrieState(t *testing.T) (trie.Trie, common.Hash) {
 	err = tr.SetChildStorage([]byte(":child_storage_key"), []byte(":another_child"), []byte("value"))
 	require.NoError(t, err)
 
-	stateRoot, err := tr.Trie().Hash()
+	stateRoot, err := tr.Root()
 	require.NoError(t, err)
 
-	return tr.Trie(), stateRoot
+	return genesisTrie, stateRoot
 }
 
 func TestChildStateModule_GetKeys(t *testing.T) {

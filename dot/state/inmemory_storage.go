@@ -60,8 +60,16 @@ func NewStorageState(db database.Database, blockState BlockState,
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *InmemoryStorageState) StoreTrie(ts storage.TrieState, header *types.Header) error {
-	root := ts.Trie().MustHash()
-	s.tries.softSet(root, ts.Trie())
+	root, err := ts.Root()
+	if err != nil {
+		return err
+	}
+
+	// Hack to call Trie() only when the TrieState we are using is an in-memory one
+	// We can remove this once the migration to db.Backend is complete
+	if inMemoryStateTrie, ok := ts.(*storage.InMemoryTrieState); ok {
+		s.tries.softSet(root, inMemoryStateTrie.Trie())
+	}
 
 	if header != nil {
 		insertedNodeHashes, deletedNodeHashes, err := ts.GetChangedNodeHashes()
@@ -79,10 +87,12 @@ func (s *InmemoryStorageState) StoreTrie(ts storage.TrieState, header *types.Hea
 	logger.Tracef("cached trie in storage state: %s", root)
 
 	// TODO: all trie related db operations should be done in pkg/trie
-	if inmemoryTrie, ok := ts.Trie().(*inmemory_trie.InMemoryTrie); ok {
-		if err := inmemoryTrie.WriteDirty(s.db); err != nil {
-			logger.Warnf("failed to write trie with root %s to database: %s", root, err)
-			return err
+	if inMemoryStateTrie, ok := ts.(*storage.InMemoryTrieState); ok {
+		if inmemoryTrie, ok := inMemoryStateTrie.Trie().(*inmemory_trie.InMemoryTrie); ok {
+			if err := inmemoryTrie.WriteDirty(s.db); err != nil {
+				logger.Warnf("failed to write trie with root %s to database: %s", root, err)
+				return err
+			}
 		}
 	}
 

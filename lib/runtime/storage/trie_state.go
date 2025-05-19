@@ -16,7 +16,6 @@ type TrieState interface {
 	Put(key, value []byte) error
 	Get(key []byte) []byte
 	Root() (common.Hash, error)
-	Trie() trie.Trie // TODO: remove this method from the interface
 	Has(key []byte) bool
 	Delete(key []byte) error
 	NextKey(key []byte) []byte

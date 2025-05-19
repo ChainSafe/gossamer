@@ -145,9 +145,11 @@ func (t *InMemoryTrieState) Get(key []byte) []byte {
 // we commit the changeset we started in the beginning
 // WARN: this function should be called only by ext_storage_root_version_1
 func (t *InMemoryTrieState) Root() (common.Hash, error) {
-	err := t.CommitTransaction()
-	if err != nil {
-		return common.Hash{}, err
+	if t.transactions.Len() > 0 {
+		err := t.CommitTransaction()
+		if err != nil {
+			return common.Hash{}, err
+		}
 	}
 
 	// Since the Root function is called without running transactions we can do:

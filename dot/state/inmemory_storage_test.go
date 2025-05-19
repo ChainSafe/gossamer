@@ -34,7 +34,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
-	root, err := ts.Trie().Hash()
+	root, err := ts.Root()
 	require.NoError(t, err)
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
@@ -43,9 +43,10 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 	trie, err := storage.LoadFromDB(root)
 	require.NoError(t, err)
-	ts2 := runtime.NewInMemoryTrieState(trie).Trie()
+	ts2Root, err := runtime.NewInMemoryTrieState(trie).Root()
+	require.NoError(t, err)
 
-	require.Equal(t, trie.MustHash(), ts2.MustHash())
+	require.Equal(t, trie.MustHash(), ts2Root)
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
@@ -57,7 +58,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	value := []byte("testvalue")
 	ts.Put(key, value)
 
-	root, err := ts.Trie().Hash()
+	root, err := ts.Root()
 	require.NoError(t, err)
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
@@ -89,7 +90,7 @@ func TestStorage_TrieState(t *testing.T) {
 	require.NoError(t, err)
 	ts.Put([]byte("noot"), []byte("washere"))
 
-	root, err := ts.Trie().Hash()
+	root, err := ts.Root()
 	require.NoError(t, err)
 	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
@@ -100,7 +101,14 @@ func TestStorage_TrieState(t *testing.T) {
 	storage.blockState.GetTries().delete(root)
 	ts3, err := storage.TrieState(&root)
 	require.NoError(t, err)
-	require.Equal(t, ts.Trie().MustHash(), ts3.Trie().MustHash())
+
+	tsRoot, err := ts.Root()
+	require.NoError(t, err)
+
+	ts3Root, err := ts3.Root()
+	require.NoError(t, err)
+
+	require.Equal(t, tsRoot, ts3Root)
 }
 
 func TestStorage_LoadFromDB(t *testing.T) {
@@ -123,7 +131,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 		ts.Put(kv.key, kv.value)
 	}
 
-	root, err := ts.Trie().Hash()
+	root, err := ts.Root()
 	require.NoError(t, err)
 
 	// Write trie to disk.

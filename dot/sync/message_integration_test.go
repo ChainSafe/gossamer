@@ -123,8 +123,12 @@ func newFullSyncService(t *testing.T) *SyncService {
 			require.NoError(t, err)
 
 			stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
+
+			tsRoot, err := ts.Root()
+			require.NoError(t, err)
+
 			logger.Debugf("imported block %s and stored state trie with root %s",
-				block.Header.Hash(), ts.Trie().MustHash())
+				block.Header.Hash(), tsRoot)
 			return nil
 		}).AnyTimes()
 

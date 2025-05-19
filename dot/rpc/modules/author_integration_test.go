@@ -83,7 +83,7 @@ func useInstanceFromRuntimeV0929(t *testing.T, rtStorage storage.TrieState) (ins
 		},
 	}
 
-	runtimeInstance, err := wazero_runtime.NewInstanceFromTrie(rtStorage.Trie(), cfg)
+	runtimeInstance, err := wazero_runtime.NewInstanceFromTrie(rtStorage.(*storage.InMemoryTrieState).Trie(), cfg)
 	require.NoError(t, err)
 
 	return runtimeInstance

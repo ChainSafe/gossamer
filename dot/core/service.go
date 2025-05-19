@@ -148,7 +148,8 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	return stateTrieVersion.Hash(ts.Trie())
+	ts.SetVersion(stateTrieVersion)
+	return ts.Root()
 }
 
 func (s *Service) HandleDigests(header *types.Header) error {
@@ -284,8 +285,13 @@ func (s *Service) handleBlock(block *types.Block, state rtstorage.TrieState) err
 		return fmt.Errorf("applying forced changes: %w", err)
 	}
 
+	trieHash, err := state.Root()
+	if err != nil {
+		return err
+	}
+
 	logger.Debugf("imported block %s and stored state trie with root %s",
-		block.Header.Hash(), state.Trie().MustHash())
+		block.Header.Hash(), trieHash)
 
 	parentRuntimeInstance, err := s.blockState.GetRuntime(block.Header.ParentHash)
 	if err != nil {
