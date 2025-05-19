@@ -354,15 +354,15 @@ func (e Ext[H, Hasher, B]) NextStorageKey(key []byte) []byte {
 		for overlayKey, overlayValue := range overlayedChangesIter {
 			cmp := bytes.Compare(nextBackendKey, overlayKey)
 
-			// If `backend_key` is less than the `overlay_key`, we found out next key.
+			// If nextBackendKey is less than the overlayKey, we found out next key.
 			if cmp == -1 {
 				return nextBackendKey
 			} else if overlayValue.Value() != nil {
-				// If there exists a value for the `overlay_key` in the overlay
+				// If there exists a value for the overlayKey in the overlay
 				// (aka the key is still valid), it means we have found our next key.
 				return overlayKey
 			} else if cmp == 0 {
-				// If the `backend_key` and `overlay_key` are equal, it means that we need
+				// If the nextBackendKey and overlayKey are equal, it means that we need
 				// to search for the next backend key, because the overlay has overwritten
 				// this key.
 				nextBackendKey, err = e.backend.NextStorageKey(overlayKey)
@@ -409,15 +409,15 @@ func (e Ext[H, Hasher, B]) NextChildStorageKey(childInfo storage.ChildInfo, key 
 				cmp = bytes.Compare(nextBackendKey, overlayKey)
 			}
 
-			// If `backend_key` is less than the `overlay_key`, we found out next key.
+			// If nextBackendKey is less than the overlayKey, we found out next key.
 			if cmp == -1 {
 				return nextBackendKey
 			} else if overlayValue.Value() != nil {
-				// If there exists a value for the `overlay_key` in the overlay
+				// If there exists a value for the overlayKey in the overlay
 				// (aka the key is still valid), it means we have found our next key.
 				return overlayKey
 			} else if cmp == 0 {
-				// If the `backend_key` and `overlay_key` are equal, it means that we need
+				// If the nextBackendKey and overlayKey are equal, it means that we need
 				// to search for the next backend key, because the overlay has overwritten
 				// this key.
 				nextBackendKey, err = e.backend.NextChildStorageKey(childInfo, overlayKey)
