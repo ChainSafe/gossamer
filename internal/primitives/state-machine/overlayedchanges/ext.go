@@ -13,6 +13,7 @@ import (
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
+	"github.com/ChainSafe/gossamer/internal/saturating"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -779,9 +780,9 @@ func (e Ext[H, Hasher, B]) limitRemoveFromBackend(
 				e.overlay.SetStorage(key, nil)
 			}
 
-			deleteCount += 1
+			deleteCount = saturating.Add(deleteCount, 1)
 		}
-		loopCount += 1
+		loopCount = saturating.Add(loopCount, 1)
 	}
 
 	return maybeNextKey, deleteCount, loopCount
