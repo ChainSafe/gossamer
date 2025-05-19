@@ -261,9 +261,7 @@ func (be *BasicExternalities) ChildStorageRoot(
 		}
 
 		backend := statemachine.NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
-		backend.ChildStorageRoot(childInfo, delta, stateVersion)
-
-		panic("not implemented")
+		rootHash, _, _ = backend.ChildStorageRoot(childInfo, delta, stateVersion)
 	} else {
 		rootHash = trie.EmptyChildTrieRoot[hash.H256, runtime.BlakeTwo256]()
 	}
