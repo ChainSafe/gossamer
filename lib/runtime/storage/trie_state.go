@@ -25,7 +25,7 @@ type TrieState interface {
 	GetChildRoot(keyToChild []byte) (common.Hash, error)
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	DeleteChild(keyToChild []byte) error
-	// TODO: use limit as *uint32
+	// TODO: use limit as uint32 similar to ClearPrefixLimit or ClearPrefixInChildWithLimit
 	DeleteChildLimit(key []byte, limit *[]byte) (deleted uint32, allDeleted bool, err error)
 	ClearChildStorage(keyToChild, key []byte) error
 	ClearPrefixInChild(keyToChild, prefix []byte) error
