@@ -132,12 +132,12 @@ func (e *Ext[H, Hasher, B]) Storage(key []byte) []byte {
 	logger.Tracef(
 		`target = state 
 		method = Get
-		ext_id = %s
-		key = %s
-		result = %s`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHex(key),
-		common.BytesToHex(result),
+		ext_id = 0x%x
+		key = 0x%x
+		result = 0x%x`,
+		leID(e.ID),
+		key,
+		result,
 	)
 
 	return result
@@ -167,11 +167,11 @@ func (e *Ext[H, Hasher, B]) StorageHash(key []byte) []byte {
 	logger.Tracef(
 		`target = state 
 		method = Hash
-		ext_id = %s
-		key = %s
+		ext_id = 0x%x
+		key = 0x%x
 		result = %s`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHex(key),
+		leID(e.ID),
+		key,
 		hash.String(),
 	)
 
@@ -202,14 +202,14 @@ func (e *Ext[H, Hasher, B]) ChildStorage(childInfo storage.ChildInfo, key []byte
 	logger.Tracef(
 		`target = state 
 		method = ChildGet
-		ext_id = %s
-		child_info = %s
-		key = %s
-		result = %s`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHash(childInfo.StorageKey()),
-		common.BytesToHex(key),
-		common.BytesToHex(result),
+		ext_id = 0x%x
+		child_info = 0x%x
+		key = 0x%x
+		result = 0x%x`,
+		leID(e.ID),
+		childInfo.StorageKey(),
+		key,
+		result,
 	)
 
 	return result
@@ -243,13 +243,13 @@ func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []
 	logger.Tracef(
 		`target = state 
 		method = ChildHash
-		ext_id = %s
-		child_info = %s
-		key = %s
+		ext_id = 0x%x
+		child_info = 0x%x
+		key = 0x%x
 		result = %s`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHash(childInfo.StorageKey()),
-		common.BytesToHex(key),
+		leID(e.ID),
+		childInfo.StorageKey(),
+		key,
 		hash.String(),
 	)
 
@@ -278,11 +278,11 @@ func (e *Ext[H, Hasher, B]) ExistsStorage(key []byte) bool {
 	logger.Tracef(
 		`target = state 
 		method = Exists
-		ext_id = %s
-		key = %s
+		ext_id = 0x%x
+		key = 0x%x
 		result = %s`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHex(key),
+		leID(e.ID),
+		key,
 		exists,
 	)
 
@@ -307,13 +307,13 @@ func (e *Ext[H, Hasher, B]) ExistsChildStorage(childInfo storage.ChildInfo, key 
 	logger.Tracef(
 		`target = state 
 		method = ChildExists
-		ext_id = %s
-		child_info = %s
-		key = %s
+		ext_id = 0x%x
+		child_info = 0x%x
+		key = 0x%x
 		result = %s`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHash(childInfo.StorageKey()),
-		common.BytesToHex(key),
+		leID(e.ID),
+		childInfo.StorageKey(),
+		key,
 		exists,
 	)
 
@@ -455,12 +455,12 @@ func (e Ext[H, Hasher, B]) PlaceStorage(key []byte, value []byte) {
 	logger.Tracef(
 		`target = state 
 		method = Put
-		ext_id = %s
-		key = %s
-		value = %s`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHex(key),
-		common.BytesToHex(value),
+		ext_id = 0x%x
+		key = 0x%x
+		value = 0x%x`,
+		leID(e.ID),
+		key,
+		value,
 	)
 
 	e.overlay.SetStorage(key, value)
@@ -475,14 +475,14 @@ func (e Ext[H, Hasher, B]) PlaceChildStorage(
 	logger.Tracef(
 		`target = state 
 		method = ChildPut
-		ext_id = %s
-		child_info = %s
-		key = %s
-		value = %s`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHex(childInfo.StorageKey()),
-		common.BytesToHex(key),
-		common.BytesToHex(value),
+		ext_id = 0x%x
+		child_info = 0x%x
+		key = 0x%x
+		value = 0x%x`,
+		leID(e.ID),
+		childInfo.StorageKey(),
+		key,
+		value,
 	)
 
 	e.overlay.SetChildStorage(childInfo, key, value)
@@ -507,10 +507,10 @@ func (e Ext[H, Hasher, B]) KillChildStorage(
 	logger.Tracef(
 		`target = state 
 		method = ChildKill
-		ext_id = %s
-		child_info = %s`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHex(childInfo.StorageKey()),
+		ext_id = 0x%x
+		child_info = 0x%x`,
+		leID(e.ID),
+		childInfo.StorageKey(),
 	)
 
 	overlay := e.overlay.ClearChildStorage(childInfo)
@@ -533,10 +533,10 @@ func (e Ext[H, Hasher, B]) ClearPrefix(
 	logger.Tracef(
 		`target = state 
 		method = ClearPrefix
-		ext_id = %s
-		prefix = %s`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHex(prefix),
+		ext_id = 0x%x
+		prefix = 0x%x`,
+		leID(e.ID),
+		prefix,
 	)
 
 	if keys.StartsWithChildStorageKey(prefix) {
@@ -566,12 +566,12 @@ func (e Ext[H, Hasher, B]) ClearChildPrefix(
 	logger.Tracef(
 		`target = state 
 		method = ChildClearPrefix
-		ext_id = %s
-		child_info = %s
-		prefix = %s`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHex(childInfo.StorageKey()),
-		common.BytesToHex(prefix),
+		ext_id = 0x%x
+		child_info = 0x%x
+		prefix = 0x%x`,
+		leID(e.ID),
+		childInfo.StorageKey(),
+		prefix,
 	)
 
 	overlay := e.overlay.ClearChildPrefix(childInfo, prefix)
@@ -591,12 +591,12 @@ func (e Ext[H, Hasher, B]) StorageAppend(key []byte, value []byte) {
 	logger.Tracef(
 		`target = state 
 		method = Append
-		ext_id = %s
-		key = %s
-		value = %s`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHex(key),
-		common.BytesToHex(value),
+		ext_id = 0x%x
+		key = 0x%x
+		value = 0x%x`,
+		leID(e.ID),
+		key,
+		value,
 	)
 
 	e.overlay.AppendStorage(key, value, func() StorageValue {
@@ -618,10 +618,10 @@ func (e Ext[H, Hasher, B]) StorageRoot(stateVersion storage.StateVersion) []byte
 	logger.Tracef(
 		`target = state 
 		method = StorageRoot
-		ext_id = %s
+		ext_id = 0x%x
 		storage_root = %s
 		cached = %v`,
-		common.BytesToHex(leID(e.ID)),
+		leID(e.ID),
 		root.String(),
 		cached,
 	)
@@ -645,12 +645,12 @@ func (e Ext[H, Hasher, B]) ChildStorageRoot(
 	logger.Tracef(
 		`target = state 
 		method = ChildStorageRoot
-		ext_id = %s
-		child_info = %s
+		ext_id = 0x%x
+		child_info = 0x%x
 		storage_root = %s
 		cached = %v`,
-		common.BytesToHex(leID(e.ID)),
-		common.BytesToHex(childInfo.StorageKey()),
+		leID(e.ID),
+		childInfo.StorageKey(),
 		root.String(),
 		cached,
 	)
@@ -665,10 +665,10 @@ func (e Ext[H, Hasher, B]) StorageIndexTransaction(index uint32, hash []byte, si
 		method = RenewTransactionIndex
 		ext_id = %s
 		index = %d
-		tx_hash = %s`,
-		common.BytesToHex(leID(e.ID)),
+		tx_hash = 0x%x`,
+		leID(e.ID),
 		index,
-		common.BytesToHex(hash),
+		hash,
 	)
 
 	e.overlay.AddTransactionIndex(IndexOperationRenew{Extrinsic: index, Hash: hash})
