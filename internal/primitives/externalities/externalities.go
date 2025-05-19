@@ -70,22 +70,8 @@ type MultiRemovalResults struct {
 	Loops uint32
 }
 
-// Something that provides access to the [Extensions] store.
-// This is a super trait of the [Externalities].
-type ExtensionStore interface {
-	// Tries to find a registered extension by the given `typeId` and returns it
-	ExtensionById(typeId TypeId) any
-
-	// Register extension `extension` with specified `typeId`.
-	RegisterExtensionWithTypeId(typeId TypeId, extension Extension) error
-
-	// Deregister extension with specified 'typeId' and drop it.
-	DeregisterExtensionByTypeId(typeId TypeId) error
-}
-
 // Externalities provides access to the storage and to other registered extensions.
 type Externalities interface {
-	ExtensionStore
 	// SetOffchainStorage writes a key value pair to the offchain storage database.
 	SetOffchainStorage(key []byte, value []byte)
 	// Storage reads runtime storage.
