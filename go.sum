@@ -126,6 +126,8 @@ github.com/dolthub/maphash v0.1.0/go.mod h1:gkg4Ch4CdCDu5h6PMriVLawB7koZ+5ijb9pu
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
+github.com/elastic/go-freelru v0.16.0 h1:gG2HJ1WXN2tNl5/p40JS/l59HjvjRhjyAa+oFTRArYs=
+github.com/elastic/go-freelru v0.16.0/go.mod h1:bSdWT4M0lW79K8QbX6XY2heQYSCqD7THoYf82pT/H3I=
 github.com/elastic/gosigar v0.12.0/go.mod h1:iXRIGg2tLnu7LBdpqzyQfGDEidKCfWcCMS0WKyPWoMs=
 github.com/elastic/gosigar v0.14.3 h1:xwkKwPia+hSfg9GqrCUKYdId102m9qTJIIr7egmK/uo=
 github.com/elastic/gosigar v0.14.3/go.mod h1:iXRIGg2tLnu7LBdpqzyQfGDEidKCfWcCMS0WKyPWoMs=
@@ -582,8 +584,6 @@ github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7/go.mod h1:q4W45
 github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07/go.mod h1:kDXzergiv9cbyO7IOYJZWg1U88JhDg3PB6klq9Hg2pA=
 github.com/tidwall/btree v1.7.0 h1:L1fkJH/AuEh5zBnnBbmTwQ5Lt+bRJ5A8EWecslvo9iI=
 github.com/tidwall/btree v1.7.0/go.mod h1:twD9XRA5jj9VUQGELzDO4HPQTNJsoWWfYEL+EUQ2cKY=
-github.com/timwu20/go-freelru v0.0.0-20241023201517-deb64adeae4c h1:WKEqrNAA0DIVpTHGV70TonOX7pN0tB8CSkT8Z8Jbxjw=
-github.com/timwu20/go-freelru v0.0.0-20241023201517-deb64adeae4c/go.mod h1:bSdWT4M0lW79K8QbX6XY2heQYSCqD7THoYf82pT/H3I=
 github.com/timwu20/go-substrate-rpc-client/v4 v4.0.0-20231110032757-3d8e441b7303 h1:FX7wMjDD0sWGWsC9k+stJaYwThbaq6BDT7ArlInU0KI=
 github.com/timwu20/go-substrate-rpc-client/v4 v4.0.0-20231110032757-3d8e441b7303/go.mod h1:1p5145LS4BacYYKFstnHScydK9MLjZ15l72v8mbngPQ=
 github.com/timwu20/gods-generic v0.0.0-20241206024616-791a209639f8 h1:woES76T+jY3c6JCKAsJGi4X7DdNoBzhnK3xVm3kqvSM=
