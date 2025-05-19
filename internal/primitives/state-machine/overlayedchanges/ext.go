@@ -97,7 +97,7 @@ type Ext[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Has
 	// The storage backend to read from.
 	backend B
 	// Pseudo-unique id used for tracing.
-	Id uint16
+	ID uint16
 }
 
 // NewExt creates a new Ext instance.
@@ -108,7 +108,7 @@ func NewExt[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, 
 	return &Ext[H, Hasher, B]{
 		overlay: overlay,
 		backend: backend,
-		Id:      uint16(rand.Intn(65536)), //nolint:gosec
+		ID:      uint16(rand.Intn(65536)), //nolint:gosec
 	}
 }
 
@@ -135,7 +135,7 @@ func (e *Ext[H, Hasher, B]) Storage(key []byte) []byte {
 		ext_id = %s
 		key = %s
 		result = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHex(key),
 		common.BytesToHex(result),
 	)
@@ -170,7 +170,7 @@ func (e *Ext[H, Hasher, B]) StorageHash(key []byte) []byte {
 		ext_id = %s
 		key = %s
 		result = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHex(key),
 		hash.String(),
 	)
@@ -206,7 +206,7 @@ func (e *Ext[H, Hasher, B]) ChildStorage(childInfo storage.ChildInfo, key []byte
 		child_info = %s
 		key = %s
 		result = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHash(childInfo.StorageKey()),
 		common.BytesToHex(key),
 		common.BytesToHex(result),
@@ -247,7 +247,7 @@ func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []
 		child_info = %s
 		key = %s
 		result = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHash(childInfo.StorageKey()),
 		common.BytesToHex(key),
 		hash.String(),
@@ -281,7 +281,7 @@ func (e *Ext[H, Hasher, B]) ExistsStorage(key []byte) bool {
 		ext_id = %s
 		key = %s
 		result = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHex(key),
 		exists,
 	)
@@ -311,7 +311,7 @@ func (e *Ext[H, Hasher, B]) ExistsChildStorage(childInfo storage.ChildInfo, key 
 		child_info = %s
 		key = %s
 		result = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHash(childInfo.StorageKey()),
 		common.BytesToHex(key),
 		exists,
@@ -458,7 +458,7 @@ func (e Ext[H, Hasher, B]) PlaceStorage(key []byte, value []byte) {
 		ext_id = %s
 		key = %s
 		value = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHex(key),
 		common.BytesToHex(value),
 	)
@@ -479,7 +479,7 @@ func (e Ext[H, Hasher, B]) PlaceChildStorage(
 		child_info = %s
 		key = %s
 		value = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHex(childInfo.StorageKey()),
 		common.BytesToHex(key),
 		common.BytesToHex(value),
@@ -509,7 +509,7 @@ func (e Ext[H, Hasher, B]) KillChildStorage(
 		method = ChildKill
 		ext_id = %s
 		child_info = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHex(childInfo.StorageKey()),
 	)
 
@@ -535,7 +535,7 @@ func (e Ext[H, Hasher, B]) ClearPrefix(
 		method = ClearPrefix
 		ext_id = %s
 		prefix = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHex(prefix),
 	)
 
@@ -569,7 +569,7 @@ func (e Ext[H, Hasher, B]) ClearChildPrefix(
 		ext_id = %s
 		child_info = %s
 		prefix = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHex(childInfo.StorageKey()),
 		common.BytesToHex(prefix),
 	)
@@ -594,7 +594,7 @@ func (e Ext[H, Hasher, B]) StorageAppend(key []byte, value []byte) {
 		ext_id = %s
 		key = %s
 		value = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHex(key),
 		common.BytesToHex(value),
 	)
@@ -621,7 +621,7 @@ func (e Ext[H, Hasher, B]) StorageRoot(stateVersion storage.StateVersion) []byte
 		ext_id = %s
 		storage_root = %s
 		cached = %v`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		root.String(),
 		cached,
 	)
@@ -649,7 +649,7 @@ func (e Ext[H, Hasher, B]) ChildStorageRoot(
 		child_info = %s
 		storage_root = %s
 		cached = %v`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		common.BytesToHex(childInfo.StorageKey()),
 		root.String(),
 		cached,
@@ -666,7 +666,7 @@ func (e Ext[H, Hasher, B]) StorageIndexTransaction(index uint32, hash []byte, si
 		ext_id = %s
 		index = %d
 		tx_hash = %s`,
-		common.BytesToHex(leID(e.Id)),
+		common.BytesToHex(leID(e.ID)),
 		index,
 		common.BytesToHex(hash),
 	)
@@ -759,8 +759,8 @@ func (e Ext[H, Hasher, B]) limitRemoveFromBackend(
 	return maybeNextKey, deleteCount, loopCount
 }
 
-func leID(id uint16) []byte {
+func leID(ID uint16) []byte {
 	IDLe := make([]byte, 2)
-	binary.LittleEndian.PutUint16(IDLe, id)
+	binary.LittleEndian.PutUint16(IDLe, ID)
 	return IDLe
 }
