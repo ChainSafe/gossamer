@@ -50,7 +50,8 @@ func (be *BasicExternalities) Insert(k overlayedchanges.StorageKey, v overlayedc
 	be.overlay.SetStorage(k, v)
 }
 
-func (be *BasicExternalities) IntoStorages() storage.Storage {
+// intoStorages converts the overlayed changes into a storage.Storage object (for testing purposes)
+func (be *BasicExternalities) intoStorages() storage.Storage {
 	top := btree.Map[string, []byte]{}
 	for k, v := range be.overlay.Changes() {
 		if v.Value() != nil {
