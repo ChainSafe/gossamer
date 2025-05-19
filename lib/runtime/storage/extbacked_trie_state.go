@@ -14,68 +14,74 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
-type ExtTrieState[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]] struct {
+type ExtBackedTrieState[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]] struct {
 	ext         overlayedchanges.Ext[H, Hasher, B]
 	trieVersion storage.StateVersion
 }
 
-func NewExtTrieState[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]](
+func NewExtBackedTrieState[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]](
 	ext overlayedchanges.Ext[H, Hasher, B],
-) *ExtTrieState[H, Hasher, B] {
-	return &ExtTrieState[H, Hasher, B]{ext: ext}
+) *ExtBackedTrieState[H, Hasher, B] {
+	return &ExtBackedTrieState[H, Hasher, B]{ext: ext}
 }
 
-func (t *ExtTrieState[H, Hasher, B]) SetVersion(v trie.TrieLayout) {
+func (t *ExtBackedTrieState[H, Hasher, B]) SetVersion(v trie.TrieLayout) {
 	// TODO: when the migration is done,modify the interface to not set the version
 	// instead receive it as parameter in the required methods
 	t.trieVersion = storage.StateVersion(v)
 }
 
-func (t *ExtTrieState[H, Hasher, B]) StartTransaction() {
+func (t *ExtBackedTrieState[H, Hasher, B]) StartTransaction() {
 	t.ext.StorageStartTransaction()
 }
 
-func (t *ExtTrieState[H, Hasher, B]) RollbackTransaction() error {
-	return t.ext.StorageRollbackTransaction()
+func (t *ExtBackedTrieState[H, Hasher, B]) RollbackTransaction() error {
+	if err := t.ext.StorageRollbackTransaction(); err != nil {
+		return ErrNoTransactionsToRollback
+	}
+	return nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) CommitTransaction() error {
-	return t.ext.StorageCommitTransaction()
+func (t *ExtBackedTrieState[H, Hasher, B]) CommitTransaction() error {
+	if err := t.ext.StorageCommitTransaction(); err != nil {
+		return ErrNoTransactionsToCommit
+	}
+	return nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) Put(key, value []byte) error {
+func (t *ExtBackedTrieState[H, Hasher, B]) Put(key, value []byte) error {
 	t.ext.SetStorage(key, value)
 	return nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) Get(key []byte) []byte {
+func (t *ExtBackedTrieState[H, Hasher, B]) Get(key []byte) []byte {
 	return t.ext.Storage(key)
 }
 
-func (t *ExtTrieState[H, Hasher, B]) Root() (common.Hash, error) {
+func (t *ExtBackedTrieState[H, Hasher, B]) Root() (common.Hash, error) {
 	root := t.ext.StorageRoot(t.trieVersion)
 	return common.NewHash(root), nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) Has(key []byte) bool {
+func (t *ExtBackedTrieState[H, Hasher, B]) Has(key []byte) bool {
 	return t.ext.ExistsStorage(key)
 }
 
-func (t *ExtTrieState[H, Hasher, B]) Delete(key []byte) error {
+func (t *ExtBackedTrieState[H, Hasher, B]) Delete(key []byte) error {
 	t.ext.ClearStorage(key)
 	return nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) NextKey(key []byte) []byte {
+func (t *ExtBackedTrieState[H, Hasher, B]) NextKey(key []byte) []byte {
 	return t.ext.NextStorageKey(key)
 }
 
-func (t *ExtTrieState[H, Hasher, B]) ClearPrefix(prefix []byte) error {
+func (t *ExtBackedTrieState[H, Hasher, B]) ClearPrefix(prefix []byte) error {
 	_ = t.ext.ClearPrefix(prefix, nil, nil)
 	return nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) ClearPrefixLimit(
+func (t *ExtBackedTrieState[H, Hasher, B]) ClearPrefixLimit(
 	prefix []byte,
 	limit uint32,
 ) (loops uint32, deleted uint32, allDeleted bool, err error) {
@@ -83,31 +89,31 @@ func (t *ExtTrieState[H, Hasher, B]) ClearPrefixLimit(
 	return results.Loops, results.Unique, results.Cursor == nil, nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) SetChildStorage(keyToChild, key, value []byte) error {
+func (t *ExtBackedTrieState[H, Hasher, B]) SetChildStorage(keyToChild, key, value []byte) error {
 	childInfo := storage.NewDefaultChildInfo(keyToChild)
 	t.ext.SetChildStorage(childInfo, key, value)
 	return nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) GetChildRoot(keyToChild []byte) (common.Hash, error) {
+func (t *ExtBackedTrieState[H, Hasher, B]) GetChildRoot(keyToChild []byte) (common.Hash, error) {
 	childInfo := storage.NewDefaultChildInfo(keyToChild)
 	root := t.ext.ChildStorageRoot(childInfo, t.trieVersion)
 	return common.NewHash(root), nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
+func (t *ExtBackedTrieState[H, Hasher, B]) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	childInfo := storage.NewDefaultChildInfo(keyToChild)
 	value := t.ext.ChildStorage(childInfo, key)
 	return value, nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) DeleteChild(keyToChild []byte) error {
+func (t *ExtBackedTrieState[H, Hasher, B]) DeleteChild(keyToChild []byte) error {
 	childInfo := storage.NewDefaultChildInfo(keyToChild)
 	t.ext.KillChildStorage(childInfo, nil, nil)
 	return nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) DeleteChildLimit(
+func (t *ExtBackedTrieState[H, Hasher, B]) DeleteChildLimit(
 	keyToChild []byte,
 	limit *[]byte,
 ) (deleted uint32, allDeleted bool, err error) {
@@ -121,19 +127,19 @@ func (t *ExtTrieState[H, Hasher, B]) DeleteChildLimit(
 	return results.Loops, results.Cursor == nil, nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) ClearChildStorage(keyToChild, key []byte) error {
+func (t *ExtBackedTrieState[H, Hasher, B]) ClearChildStorage(keyToChild, key []byte) error {
 	childInfo := storage.NewDefaultChildInfo(keyToChild)
 	t.ext.ClearChildStorage(childInfo, key)
 	return nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) ClearPrefixInChild(keyToChild, prefix []byte) error {
+func (t *ExtBackedTrieState[H, Hasher, B]) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	childInfo := storage.NewDefaultChildInfo(keyToChild)
 	t.ext.ClearChildPrefix(childInfo, prefix, nil, nil)
 	return nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) ClearPrefixInChildWithLimit(
+func (t *ExtBackedTrieState[H, Hasher, B]) ClearPrefixInChildWithLimit(
 	keyToChild,
 	prefix []byte,
 	limit uint32,
@@ -143,31 +149,35 @@ func (t *ExtTrieState[H, Hasher, B]) ClearPrefixInChildWithLimit(
 	return results.Loops, results.Unique, results.Cursor == nil, nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
+func (t *ExtBackedTrieState[H, Hasher, B]) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 	childInfo := storage.NewDefaultChildInfo(keyToChild)
 	next := t.ext.NextChildStorageKey(childInfo, key)
 	return next, nil
 }
 
-func (t *ExtTrieState[H, Hasher, B]) LoadCode() []byte {
+func (t *ExtBackedTrieState[H, Hasher, B]) LoadCode() []byte {
 	return t.ext.Storage(common.CodeKey)
 }
 
-func (t *ExtTrieState[H, Hasher, B]) LoadCodeHash() (common.Hash, error) {
+func (t *ExtBackedTrieState[H, Hasher, B]) LoadCodeHash() (common.Hash, error) {
 	code := t.LoadCode()
 	return common.Blake2bHash(code)
 }
 
-func (t *ExtTrieState[H, Hasher, B]) Trie() trie.Trie {
+func (t *ExtBackedTrieState[H, Hasher, B]) Trie() trie.Trie {
 	// TODO: remove this from the interface
 	panic("not implemented")
 }
 
-func (t *ExtTrieState[H, Hasher, B]) TrieEntries() map[string][]byte {
+func (t *ExtBackedTrieState[H, Hasher, B]) TrieEntries() map[string][]byte {
 	// TODO: remove this from the interface
 	panic("not implemented")
 }
 
-func (t *ExtTrieState[H, Hasher, B]) GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error) {
+func (t *ExtBackedTrieState[H, Hasher, B]) GetChangedNodeHashes() (
+	inserted,
+	deleted map[common.Hash]struct{},
+	err error,
+) {
 	panic("not implemented")
 }

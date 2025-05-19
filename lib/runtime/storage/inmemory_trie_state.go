@@ -71,7 +71,7 @@ func (t *InMemoryTrieState) RollbackTransaction() error {
 	defer t.mtx.Unlock()
 
 	if t.transactions.Len() < 1 {
-		panic("no transactions to rollback")
+		return ErrNoTransactionsToRollback
 	}
 
 	t.transactions.Remove(t.transactions.Back())
@@ -84,7 +84,7 @@ func (t *InMemoryTrieState) CommitTransaction() error {
 	defer t.mtx.Unlock()
 
 	if t.transactions.Len() == 0 {
-		panic("no transactions to commit")
+		return ErrNoTransactionsToCommit
 	}
 
 	if t.transactions.Len() > 1 {

@@ -691,7 +691,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 				return NewInMemoryTrieState(inmemory_trie.NewEmptyTrie())
 			},
 			assert: func(t *testing.T, ts *InMemoryTrieState) {
-				require.PanicsWithValue(t, "no transactions to rollback", func() { ts.RollbackTransaction() })
+				require.ErrorIs(t, ts.RollbackTransaction(), ErrNoTransactionsToRollback)
 			},
 		},
 		"commit_without_transaction_should_panic": {
@@ -699,7 +699,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 				return NewInMemoryTrieState(inmemory_trie.NewEmptyTrie())
 			},
 			assert: func(t *testing.T, ts *InMemoryTrieState) {
-				require.PanicsWithValue(t, "no transactions to commit", func() { ts.CommitTransaction() })
+				require.ErrorIs(t, ts.CommitTransaction(), ErrNoTransactionsToCommit)
 			},
 		},
 	}

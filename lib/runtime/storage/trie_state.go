@@ -4,8 +4,15 @@
 package storage
 
 import (
+	"errors"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+)
+
+var (
+	ErrNoTransactionsToRollback = errors.New("no open transaction that can be rolled back")
+	ErrNoTransactionsToCommit   = errors.New("no open transaction that can be committed")
 )
 
 type TrieState interface {
