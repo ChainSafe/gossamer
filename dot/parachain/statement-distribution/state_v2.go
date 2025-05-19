@@ -1,3 +1,4 @@
+//nolint:unused
 package statementdistribution
 
 import (
@@ -48,7 +49,7 @@ func (p *perRelayParentState) disableBitmask(group []parachaintypes.ValidatorInd
 }
 
 type localValidatorStore struct {
-	gridTracker any // TODO: use GridTracker implementation
+	gridTracker any // TODO: use GridTracker implementation (#4576)
 	active      *activeValidatorState
 }
 
@@ -56,14 +57,14 @@ type activeValidatorState struct {
 	index          parachaintypes.ValidatorIndex
 	groupIndex     parachaintypes.GroupIndex
 	assignments    []parachaintypes.ParaID
-	clusterTracker any // TODO: use cluster tracker implemenetation
+	clusterTracker any // TODO: use cluster tracker implementation (#4713)
 }
 
 type perSessionState struct {
 	sessionInfo parachaintypes.SessionInfo
 	groups      *groups
 	authLookup  map[parachaintypes.AuthorityDiscoveryID]parachaintypes.ValidatorIndex
-	gridView    any // TODO: use SessionTopologyView from statement-distribution grid
+	gridView    any // TODO: use SessionTopologyView from statement-distribution grid (#4576)
 
 	// when localValidator is nil means it is inactive
 	localValidator     *parachaintypes.ValidatorIndex
@@ -97,8 +98,8 @@ func newPerSessionState(sessionInfo parachaintypes.SessionInfo,
 }
 
 // supplyTopology sets the topology for the session and updates the local validator
-// Note: we use the local index rather than the `perSessionState.local_validator` as the
-// former may be `Some` when the latter is `None`, due to the set of nodes in
+// Note: we use the local index rather than the `perSessionState.localValidator` as the
+// former may be not nil when the latter is nil, due to the set of nodes in
 // discovery being a superset of the active validators for consensus.
 func (s *perSessionState) supplyTopology(topology *grid.SessionGridTopology, localIdx *parachaintypes.ValidatorIndex) {
 	// TODO #4373: implement once buildSessionTopology is done
@@ -201,6 +202,6 @@ type v2State struct {
 	peers            map[string]peerState
 	keystore         keystore.Keystore
 	authorities      map[parachaintypes.AuthorityDiscoveryID]string
-	requestManager   any
-	responseManager  any
+	requestManager   any // TODO: #4377
+	responseManager  any // TODO: #4378
 }

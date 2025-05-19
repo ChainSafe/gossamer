@@ -34,6 +34,7 @@ func TestPeerStateUpdateView(t *testing.T) {
 		Return([]common.Hash{{0x05}, {0x06}})
 
 	fresh := ps.updateView(newView, localImplicitView)
+
 	require.Equal(t, []common.Hash{{0x06}}, fresh)
 	require.Equal(t, newView, ps.view)
 	require.Equal(t, map[common.Hash]struct{}{
@@ -56,6 +57,7 @@ func TestPeerStateReconcileActiveLeaf(t *testing.T) {
 	}
 
 	out := ps.reconcileActiveLeaf(common.Hash{0x06}, []common.Hash{{0x05}, {0x06}})
+
 	require.Equal(t, []common.Hash{{0x06}}, out)
 	require.Equal(t, map[common.Hash]struct{}{
 		{0x05}: {},

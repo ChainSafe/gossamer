@@ -3,7 +3,7 @@ package network
 type ValidationVersion byte
 
 const (
-	ValitionVersionV1 ValidationVersion = 1
-	ValitionVersionV2 ValidationVersion = 2
-	ValitionVersionV3 ValidationVersion = 3
+	ValidationVersionV1 ValidationVersion = iota + 1
+	ValidationVersionV2
+	ValidationVersionV3
 )
