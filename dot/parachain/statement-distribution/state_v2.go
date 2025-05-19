@@ -7,16 +7,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 )
-
-type BlockState interface {
-	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
-	GetHeader(hash common.Hash) (*types.Header, error)
-}
 
 type perRelayParentState struct {
 	localValidator       *localValidatorStore
