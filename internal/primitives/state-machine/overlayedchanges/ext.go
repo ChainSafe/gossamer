@@ -90,8 +90,6 @@ type OverlayedExtension interface {
 	isOverlayedExtension()
 }
 
-var guard = statemachine.NewGuard(statemachine.Abort).Done
-
 // Wraps a read-only backend, call executor, and current overlayed changes.
 type Ext[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]] struct {
 	// The overlayed changes to write to.
@@ -121,8 +119,6 @@ func (e *Ext[H, Hasher, B]) SetOffchainStorage(key []byte, value []byte) {
 
 // Read runtime storage.
 func (e *Ext[H, Hasher, B]) Storage(key []byte) []byte {
-	defer guard()
-
 	result, has := e.overlay.Storage(key)
 
 	if !has || result == nil {
@@ -150,8 +146,6 @@ func (e *Ext[H, Hasher, B]) Storage(key []byte) []byte {
 // Get storage value hash.
 // This may be optimised for large values.
 func (e *Ext[H, Hasher, B]) StorageHash(key []byte) []byte {
-	defer guard()
-
 	var hash H
 
 	result, has := e.overlay.Storage(key)
@@ -191,7 +185,6 @@ func (e *Ext[H, Hasher, B]) StorageHash(key []byte) []byte {
 // Read child runtime storage.
 // Returns an SCALE encoded hash.
 func (e *Ext[H, Hasher, B]) ChildStorage(childInfo storage.ChildInfo, key []byte) []byte {
-	defer guard()
 
 	result, has := e.overlay.ChildStorage(childInfo, key)
 	if has && result == nil {
@@ -226,8 +219,6 @@ func (e *Ext[H, Hasher, B]) ChildStorage(childInfo storage.ChildInfo, key []byte
 // This may be optimised for large values.
 // Returns an SCALE encoded hash.
 func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []byte) []byte {
-	defer guard()
-
 	var hash H
 	result, has := e.overlay.ChildStorage(childInfo, key)
 
@@ -271,8 +262,6 @@ func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []
 
 // Whether a storage entry exists.
 func (e *Ext[H, Hasher, B]) ExistsStorage(key []byte) bool {
-	defer guard()
-
 	var exists bool
 
 	value, has := e.overlay.Storage(key)
@@ -302,8 +291,6 @@ func (e *Ext[H, Hasher, B]) ExistsStorage(key []byte) bool {
 
 // Whether a child storage entry exists.
 func (e *Ext[H, Hasher, B]) ExistsChildStorage(childInfo storage.ChildInfo, key []byte) bool {
-	defer guard()
-
 	var exists bool
 
 	value, has := e.overlay.ChildStorage(childInfo, key)
@@ -460,8 +447,6 @@ func (e Ext[H, Hasher, B]) ClearChildStorage(childInfo storage.ChildInfo, key []
 
 // Set or clear a storage entry key of current contract being called (effective immediately).
 func (e Ext[H, Hasher, B]) PlaceStorage(key []byte, value []byte) {
-	defer guard()
-
 	if keys.IsChildStorageKey(key) {
 		logger.Warnf("refuse to directly set child storage key")
 		return
@@ -500,8 +485,6 @@ func (e Ext[H, Hasher, B]) PlaceChildStorage(
 		common.BytesToHex(value),
 	)
 
-	defer guard()
-
 	e.overlay.SetChildStorage(childInfo, key, value)
 }
 
@@ -530,8 +513,6 @@ func (e Ext[H, Hasher, B]) KillChildStorage(
 		common.BytesToHex(childInfo.StorageKey()),
 	)
 
-	defer guard()
-
 	overlay := e.overlay.ClearChildStorage(childInfo)
 	cursor, backend, loops := e.limitRemoveFromBackend(childInfo, nil, maybeLimit, maybeCursor)
 	return externalities.MultiRemovalResults{
@@ -557,8 +538,6 @@ func (e Ext[H, Hasher, B]) ClearPrefix(
 		common.BytesToHex(leID(e.Id)),
 		common.BytesToHex(prefix),
 	)
-
-	defer guard()
 
 	if keys.StartsWithChildStorageKey(prefix) {
 		logger.Warnf("refuse to directly clear prefix that is part or contains of child storage key")
@@ -595,8 +574,6 @@ func (e Ext[H, Hasher, B]) ClearChildPrefix(
 		common.BytesToHex(prefix),
 	)
 
-	defer guard()
-
 	overlay := e.overlay.ClearChildPrefix(childInfo, prefix)
 	cursor, backend, loops := e.limitRemoveFromBackend(childInfo, prefix, limit, cursor)
 
@@ -622,8 +599,6 @@ func (e Ext[H, Hasher, B]) StorageAppend(key []byte, value []byte) {
 		common.BytesToHex(value),
 	)
 
-	defer guard()
-
 	e.overlay.AppendStorage(key, value, func() StorageValue {
 		def, err := e.backend.Storage(key)
 		if err != nil {
@@ -638,8 +613,6 @@ func (e Ext[H, Hasher, B]) StorageAppend(key []byte, value []byte) {
 // This will also update all child storage keys in the top-level storage map.
 // The returned hash is defined by the `Block` and is SCALE encoded.
 func (e Ext[H, Hasher, B]) StorageRoot(stateVersion storage.StateVersion) []byte {
-	defer guard()
-
 	root, cached := e.overlay.StorageRoot(e.backend, stateVersion)
 
 	logger.Tracef(
@@ -664,8 +637,6 @@ func (e Ext[H, Hasher, B]) ChildStorageRoot(
 	childInfo storage.ChildInfo,
 	stateVersion storage.StateVersion,
 ) []byte {
-	defer guard()
-
 	root, cached, err := e.overlay.ChildStorageRoot(childInfo, e.backend, stateVersion)
 	if err != nil {
 		panic(ExtNotAllowedToFail)
