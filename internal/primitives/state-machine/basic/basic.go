@@ -26,6 +26,7 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "statemachine/basic"))
 
+// Simple Map-based Externalities impl.
 type BasicExternalities struct {
 	overlay    overlayedchanges.OverlayedChanges[hash.H256, runtime.BlakeTwo256]
 	extensions externalities.Extensions
