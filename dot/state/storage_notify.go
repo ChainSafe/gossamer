@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 )
 
 // KeyValue struct to hold key value pairs
@@ -97,17 +98,20 @@ func (s *InmemoryStorageState) notifyObserver(root common.Hash, o Observer) erro
 	}
 	if len(o.GetFilter()) == 0 {
 		// no filter, so send all changes
-		ent := t.TrieEntries()
-		for k, v := range ent {
-			if k != ":code" {
-				// currently we're ignoring :code since this is a lot of data
-				kv := &KeyValue{
-					Key:   common.MustHexToBytes(fmt.Sprintf("0x%x", k)),
-					Value: v,
+		if inMemoryTrie, ok := t.(*storage.InMemoryTrieState); ok {
+			ent := inMemoryTrie.TrieEntries()
+			for k, v := range ent {
+				if k != ":code" {
+					// currently we're ignoring :code since this is a lot of data
+					kv := &KeyValue{
+						Key:   common.MustHexToBytes(fmt.Sprintf("0x%x", k)),
+						Value: v,
+					}
+					subRes.Changes = append(subRes.Changes, *kv)
 				}
-				subRes.Changes = append(subRes.Changes, *kv)
 			}
 		}
+
 	} else {
 		// filter result to include only interested keys
 		for k, cachedValue := range o.GetFilter() {

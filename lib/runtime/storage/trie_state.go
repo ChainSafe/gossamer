@@ -21,7 +21,6 @@ type TrieState interface {
 	NextKey(key []byte) []byte
 	ClearPrefix(prefix []byte) error
 	ClearPrefixLimit(prefix []byte, limit uint32) (loops uint32, deleted uint32, allDeleted bool, err error)
-	TrieEntries() map[string][]byte // TODO: remove this method from the interface
 	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildRoot(keyToChild []byte) (common.Hash, error)
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
