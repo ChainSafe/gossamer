@@ -144,10 +144,7 @@ func leftCommon(a uint8, b uint8) uint {
 
 // Count the biggest common depth between two left aligned packed nibble slice.
 func biggestDepth(v1 []uint8, v2 []uint8) uint {
-	upperBound := len(v1)
-	if len(v2) < upperBound {
-		upperBound = len(v2)
-	}
+	upperBound := min(len(v2), len(v1))
 	for a := 0; a < upperBound; a++ {
 		if v1[a] != v2[a] {
 			return uint(a)*NibblesPerByte + leftCommon(v1[a], v2[a])
@@ -175,10 +172,7 @@ func (n Nibbles) CommonPrefix(them Nibbles) uint {
 		}
 		return biggestDepth(n.data[selfStart:], them.data[themStart:]) + first
 	} else {
-		s := n.Len()
-		if them.Len() < s {
-			s = them.Len()
-		}
+		s := min(them.Len(), n.Len())
 		var i uint
 		for i < s {
 			if n.At(i) != them.At(i) {
@@ -301,10 +295,7 @@ func (nb Nibbles) OriginalDataPrefix() Prefix {
 }
 
 func (nb Nibbles) Compare(other Nibbles) int {
-	s := nb.Len()
-	if other.Len() < s {
-		s = other.Len()
-	}
+	s := min(other.Len(), nb.Len())
 
 	for i := uint(0); i < s; i++ {
 		nbAt := nb.At(i)
