@@ -500,7 +500,6 @@ func TestGridTracker(t *testing.T) {
 
 		sendTo := parachaintypes.ValidatorIndex(0)
 		receiveFrom := parachaintypes.ValidatorIndex(1)
-		tracker := newGridTracker()
 		groupIndex := parachaintypes.GroupIndex(0)
 
 		sessionTopology := &sessionTopologyView{
@@ -522,23 +521,25 @@ func TestGridTracker(t *testing.T) {
 		localKnowledge, err := newStatementFilter(uint(groupSize), false)
 		require.NoError(t, err)
 
-		// Confirm the candidate.
-		receivers := tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
-		require.Len(t, receivers, 1)
-		require.Equal(t, sendTo, receivers[0].validator)
-		require.Equal(t, full, receivers[0].kind)
-
-		// Learn a statement from a different validator.
-		tracker.learnedFreshStatement(
-			groups,
-			sessionTopology,
-			parachaintypes.ValidatorIndex(2),
-			parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-				Value: parachaintypes.SecondedCandidateHash(candidateHash),
-			})
-
 		t.Run("receiving_followed_by_sending_an_ack", func(t *testing.T) {
 			t.Parallel()
+
+			tracker := newGridTracker()
+
+			// Confirm the candidate.
+			receivers := tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
+			require.Len(t, receivers, 1)
+			require.Equal(t, sendTo, receivers[0].validator)
+			require.Equal(t, full, receivers[0].kind)
+
+			// Learn a statement from a different validator.
+			tracker.learnedFreshStatement(
+				groups,
+				sessionTopology,
+				parachaintypes.ValidatorIndex(2),
+				parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
+					Value: parachaintypes.SecondedCandidateHash(candidateHash),
+				})
 
 			// Should start with no pending statements.
 			ensurePendingStatements(t, tracker, receiveFrom, receiveFrom, candidateHash, nil, nil)
@@ -588,6 +589,23 @@ func TestGridTracker(t *testing.T) {
 
 		t.Run("sending_followed_by_receiving_an_ack", func(t *testing.T) {
 			t.Parallel()
+
+			tracker := newGridTracker()
+
+			// Confirm the candidate.
+			receivers := tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
+			require.Len(t, receivers, 1)
+			require.Equal(t, sendTo, receivers[0].validator)
+			require.Equal(t, full, receivers[0].kind)
+
+			// Learn a statement from a different validator.
+			tracker.learnedFreshStatement(
+				groups,
+				sessionTopology,
+				parachaintypes.ValidatorIndex(2),
+				parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
+					Value: parachaintypes.SecondedCandidateHash(candidateHash),
+				})
 
 			// Should start with no pending statements.
 			ensurePendingStatements(t, tracker, sendTo, sendTo, candidateHash, nil, nil)

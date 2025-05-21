@@ -39,6 +39,15 @@ func newSessionTopologyView() *sessionTopologyView {
 	}
 }
 
+func (stv *sessionTopologyView) clone() *sessionTopologyView {
+	groupViews := make(map[parachaintypes.GroupIndex]groupSubView)
+	maps.Copy(groupViews, stv.groupViews)
+
+	return &sessionTopologyView{
+		groupViews: groupViews,
+	}
+}
+
 // buildSessionTopology builds a view of the topology for the session.
 // For groups that we are part of: we receive from nobody and send to our X/Y peers.
 // For groups that we are not part of: we receive from any validator in the group we share a slice
