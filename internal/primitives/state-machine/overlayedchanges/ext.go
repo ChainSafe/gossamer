@@ -132,9 +132,9 @@ func (e *Ext[H, Hasher, B]) Storage(key []byte) []byte {
 	logger.Tracef(
 		`target = state 
 		method = Get
-		ext_id = 0x%x
-		key = 0x%x
-		result = 0x%x`,
+		ext_id = %x
+		key = %x
+		result = %x`,
 		leID(e.ID),
 		key,
 		result,
@@ -167,8 +167,8 @@ func (e *Ext[H, Hasher, B]) StorageHash(key []byte) []byte {
 	logger.Tracef(
 		`target = state 
 		method = Hash
-		ext_id = 0x%x
-		key = 0x%x
+		ext_id = %x
+		key = %x
 		result = %s`,
 		leID(e.ID),
 		key,
@@ -202,10 +202,10 @@ func (e *Ext[H, Hasher, B]) ChildStorage(childInfo storage.ChildInfo, key []byte
 	logger.Tracef(
 		`target = state 
 		method = ChildGet
-		ext_id = 0x%x
-		child_info = 0x%x
-		key = 0x%x
-		result = 0x%x`,
+		ext_id = %x
+		child_info = %x
+		key = %x
+		result = %x`,
 		leID(e.ID),
 		childInfo.StorageKey(),
 		key,
@@ -243,9 +243,9 @@ func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []
 	logger.Tracef(
 		`target = state 
 		method = ChildHash
-		ext_id = 0x%x
-		child_info = 0x%x
-		key = 0x%x
+		ext_id = %x
+		child_info = %x
+		key = %x
 		result = %s`,
 		leID(e.ID),
 		childInfo.StorageKey(),
@@ -278,8 +278,8 @@ func (e *Ext[H, Hasher, B]) ExistsStorage(key []byte) bool {
 	logger.Tracef(
 		`target = state 
 		method = Exists
-		ext_id = 0x%x
-		key = 0x%x
+		ext_id = %x
+		key = %x
 		result = %s`,
 		leID(e.ID),
 		key,
@@ -307,9 +307,9 @@ func (e *Ext[H, Hasher, B]) ExistsChildStorage(childInfo storage.ChildInfo, key 
 	logger.Tracef(
 		`target = state 
 		method = ChildExists
-		ext_id = 0x%x
-		child_info = 0x%x
-		key = 0x%x
+		ext_id = %x
+		child_info = %x
+		key = %x
 		result = %s`,
 		leID(e.ID),
 		childInfo.StorageKey(),
@@ -455,9 +455,9 @@ func (e Ext[H, Hasher, B]) PlaceStorage(key []byte, value []byte) {
 	logger.Tracef(
 		`target = state 
 		method = Put
-		ext_id = 0x%x
-		key = 0x%x
-		value = 0x%x`,
+		ext_id = %x
+		key = %x
+		value = %x`,
 		leID(e.ID),
 		key,
 		value,
@@ -475,10 +475,10 @@ func (e Ext[H, Hasher, B]) PlaceChildStorage(
 	logger.Tracef(
 		`target = state 
 		method = ChildPut
-		ext_id = 0x%x
-		child_info = 0x%x
-		key = 0x%x
-		value = 0x%x`,
+		ext_id = %x
+		child_info = %x
+		key = %x
+		value = %x`,
 		leID(e.ID),
 		childInfo.StorageKey(),
 		key,
@@ -507,8 +507,8 @@ func (e Ext[H, Hasher, B]) KillChildStorage(
 	logger.Tracef(
 		`target = state 
 		method = ChildKill
-		ext_id = 0x%x
-		child_info = 0x%x`,
+		ext_id = %x
+		child_info = %x`,
 		leID(e.ID),
 		childInfo.StorageKey(),
 	)
@@ -533,8 +533,8 @@ func (e Ext[H, Hasher, B]) ClearPrefix(
 	logger.Tracef(
 		`target = state 
 		method = ClearPrefix
-		ext_id = 0x%x
-		prefix = 0x%x`,
+		ext_id = %x
+		prefix = %x`,
 		leID(e.ID),
 		prefix,
 	)
@@ -566,9 +566,9 @@ func (e Ext[H, Hasher, B]) ClearChildPrefix(
 	logger.Tracef(
 		`target = state 
 		method = ChildClearPrefix
-		ext_id = 0x%x
-		child_info = 0x%x
-		prefix = 0x%x`,
+		ext_id = %x
+		child_info = %x
+		prefix = %x`,
 		leID(e.ID),
 		childInfo.StorageKey(),
 		prefix,
@@ -591,9 +591,9 @@ func (e Ext[H, Hasher, B]) StorageAppend(key []byte, value []byte) {
 	logger.Tracef(
 		`target = state 
 		method = Append
-		ext_id = 0x%x
-		key = 0x%x
-		value = 0x%x`,
+		ext_id = %x
+		key = %x
+		value = %x`,
 		leID(e.ID),
 		key,
 		value,
@@ -618,7 +618,7 @@ func (e Ext[H, Hasher, B]) StorageRoot(stateVersion storage.StateVersion) []byte
 	logger.Tracef(
 		`target = state 
 		method = StorageRoot
-		ext_id = 0x%x
+		ext_id = %x
 		storage_root = %s
 		cached = %v`,
 		leID(e.ID),
@@ -645,8 +645,8 @@ func (e Ext[H, Hasher, B]) ChildStorageRoot(
 	logger.Tracef(
 		`target = state 
 		method = ChildStorageRoot
-		ext_id = 0x%x
-		child_info = 0x%x
+		ext_id = %x
+		child_info = %x
 		storage_root = %s
 		cached = %v`,
 		leID(e.ID),
@@ -665,7 +665,7 @@ func (e Ext[H, Hasher, B]) StorageIndexTransaction(index uint32, hash []byte, si
 		method = IndexTransaction
 		ext_id = %s
 		index = %d
-		tx_hash = 0x%x`,
+		tx_hash = %x`,
 		leID(e.ID),
 		index,
 		hash,
@@ -681,7 +681,7 @@ func (e Ext[H, Hasher, B]) StorageRenewTransactionIndex(index uint32, hash []byt
 		method = RenewTransactionIndex
 		ext_id = %s
 		index = %d
-		tx_hash = 0x%x`,
+		tx_hash = %x`,
 		leID(e.ID),
 		index,
 		hash,
