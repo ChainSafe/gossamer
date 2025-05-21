@@ -27,6 +27,18 @@ type groupSubView struct {
 	receiving map[parachaintypes.ValidatorIndex]struct{}
 }
 
+func (gsv *groupSubView) clone() groupSubView {
+	sending := make(map[parachaintypes.ValidatorIndex]struct{})
+	receiving := make(map[parachaintypes.ValidatorIndex]struct{})
+	maps.Copy(sending, gsv.sending)
+	maps.Copy(receiving, gsv.receiving)
+
+	return groupSubView{
+		sending:   sending,
+		receiving: receiving,
+	}
+}
+
 // sessionTopologyView is our local view of the topology for a session, as
 // it pertains to backed candidate distribution.
 type sessionTopologyView struct {
@@ -41,7 +53,10 @@ func newSessionTopologyView() *sessionTopologyView {
 
 func (stv *sessionTopologyView) clone() *sessionTopologyView {
 	groupViews := make(map[parachaintypes.GroupIndex]groupSubView)
-	maps.Copy(groupViews, stv.groupViews)
+
+	for k, v := range stv.groupViews {
+		groupViews[k] = v.clone()
+	}
 
 	return &sessionTopologyView{
 		groupViews: groupViews,

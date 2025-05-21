@@ -14,107 +14,88 @@ import (
 func TestGridTracker(t *testing.T) {
 	t.Parallel()
 
+	groups := dummyGroups(t, 3)
+	groupIndex := parachaintypes.GroupIndex(0)
+	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
+
+	groupSize, threshold := groups.getSizeAndBackingThreshold(groupIndex)
+	require.NotNil(t, groupSize)
+	require.Equal(t, uint32(3), *groupSize)
+	require.NotNil(t, threshold)
+	require.Equal(t, uint32(2), *threshold)
+
+	emptySessionTopology := sessionTopologyView{
+		groupViews: map[parachaintypes.GroupIndex]groupSubView{
+			groupIndex: {
+				sending:   make(map[parachaintypes.ValidatorIndex]struct{}),
+				receiving: map[parachaintypes.ValidatorIndex]struct{}{},
+			},
+		},
+	}
+
 	t.Run("reject_disallowed_manifest", func(t *testing.T) {
 		t.Parallel()
 
 		tracker := newGridTracker()
-		groupIndex := parachaintypes.GroupIndex(0)
 
-		sessionTopology := sessionTopologyView{
-			groupViews: map[parachaintypes.GroupIndex]groupSubView{
-				groupIndex: {
-					sending: make(map[parachaintypes.ValidatorIndex]struct{}),
-					receiving: map[parachaintypes.ValidatorIndex]struct{}{
-						0: {},
-					},
+		sessionTopology := emptySessionTopology.clone()
+		sessionTopology.groupViews[groupIndex].receiving[0] = struct{}{}
+
+		// Known group, disallowed receiving validator.
+
+		ack, err := tracker.importManifest(
+			sessionTopology,
+			*groups,
+			candidateHash,
+			3,
+			manifestSummary{
+				claimedParentHash: common.Hash{0x0},
+				claimedGroupIndex: groupIndex,
+				statementKnowledge: statementFilter{
+					secondedInGroup:  newBitVec(t, false, true, false),
+					validatedInGroup: newBitVec(t, true, false, true),
 				},
 			},
-		}
+			full,
+			parachaintypes.ValidatorIndex(1),
+		)
 
-		groups := dummyGroups(t, 3)
-		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
-		groupSize, threshold := groups.getSizeAndBackingThreshold(groupIndex)
-		require.NotNil(t, groupSize)
-		require.Equal(t, uint32(3), *groupSize)
-		require.NotNil(t, threshold)
-		require.Equal(t, uint32(2), *threshold)
+		require.ErrorIs(t, err, errManifestImportDisallowed)
+		require.False(t, ack)
 
-		t.Run("known_group_disallowed_receiving_validator", func(t *testing.T) {
-			t.Parallel()
+		// Unknown group
 
-			ack, err := tracker.importManifest(
-				&sessionTopology,
-				*groups,
-				candidateHash,
-				3,
-				manifestSummary{
-					claimedParentHash: common.Hash{0x0},
-					claimedGroupIndex: groupIndex,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, false, true, false),
-						validatedInGroup: newBitVec(t, true, false, true),
-					},
+		ack, err = tracker.importManifest(
+			sessionTopology,
+			*groups,
+			candidateHash,
+			3,
+			manifestSummary{
+				claimedParentHash: common.Hash{0x0},
+				claimedGroupIndex: 1,
+				statementKnowledge: statementFilter{
+					secondedInGroup:  newBitVec(t, false, true, false),
+					validatedInGroup: newBitVec(t, true, false, true),
 				},
-				full,
-				parachaintypes.ValidatorIndex(1),
-			)
+			},
+			full,
+			parachaintypes.ValidatorIndex(0),
+		)
 
-			require.ErrorIs(t, err, errManifestImportDisallowed)
-			require.False(t, ack)
-		})
-
-		t.Run("unknown_group", func(t *testing.T) {
-			t.Parallel()
-
-			ack, err := tracker.importManifest(
-				&sessionTopology,
-				*groups,
-				candidateHash,
-				3,
-				manifestSummary{
-					claimedParentHash: common.Hash{0x0},
-					claimedGroupIndex: 1,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, false, true, false),
-						validatedInGroup: newBitVec(t, true, false, true),
-					},
-				},
-				full,
-				parachaintypes.ValidatorIndex(0),
-			)
-
-			require.ErrorIs(t, err, errManifestImportDisallowed)
-			require.False(t, ack)
-		})
+		require.ErrorIs(t, err, errManifestImportDisallowed)
+		require.False(t, ack)
 	})
 
 	t.Run("reject_malformed_wrong_group_size", func(t *testing.T) {
 		t.Parallel()
 
 		tracker := newGridTracker()
-		groupIndex := parachaintypes.GroupIndex(0)
 
-		sessionTopology := sessionTopologyView{
-			groupViews: map[parachaintypes.GroupIndex]groupSubView{
-				groupIndex: {
-					sending: make(map[parachaintypes.ValidatorIndex]struct{}),
-					receiving: map[parachaintypes.ValidatorIndex]struct{}{
-						0: {},
-					},
-				},
-			},
-		}
-
-		groups := dummyGroups(t, 3)
-		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
-		groupSize, threshold := groups.getSizeAndBackingThreshold(groupIndex)
-		require.NotNil(t, groupSize)
-		require.Equal(t, uint32(3), *groupSize)
-		require.NotNil(t, threshold)
-		require.Equal(t, uint32(2), *threshold)
+		sessionTopology := emptySessionTopology.clone()
+		sessionTopology.groupViews[groupIndex].receiving[0] = struct{}{}
 
 		ack, err := tracker.importManifest(
-			&sessionTopology,
+			sessionTopology,
 			*groups,
 			candidateHash,
 			3,
@@ -138,29 +119,12 @@ func TestGridTracker(t *testing.T) {
 		t.Parallel()
 
 		tracker := newGridTracker()
-		groupIndex := parachaintypes.GroupIndex(0)
 
-		sessionTopology := sessionTopologyView{
-			groupViews: map[parachaintypes.GroupIndex]groupSubView{
-				groupIndex: {
-					sending: make(map[parachaintypes.ValidatorIndex]struct{}),
-					receiving: map[parachaintypes.ValidatorIndex]struct{}{
-						0: {},
-					},
-				},
-			},
-		}
-
-		groups := dummyGroups(t, 3)
-		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
-		groupSize, threshold := groups.getSizeAndBackingThreshold(groupIndex)
-		require.NotNil(t, groupSize)
-		require.Equal(t, uint32(3), *groupSize)
-		require.NotNil(t, threshold)
-		require.Equal(t, uint32(2), *threshold)
+		sessionTopology := emptySessionTopology.clone()
+		sessionTopology.groupViews[groupIndex].receiving[0] = struct{}{}
 
 		ack, err := tracker.importManifest(
-			&sessionTopology,
+			sessionTopology,
 			*groups,
 			candidateHash,
 			3,
@@ -184,98 +148,75 @@ func TestGridTracker(t *testing.T) {
 		t.Parallel()
 
 		tracker := newGridTracker()
-		groupIndex := parachaintypes.GroupIndex(0)
 
-		sessionTopology := sessionTopologyView{
-			groupViews: map[parachaintypes.GroupIndex]groupSubView{
-				groupIndex: {
-					sending: make(map[parachaintypes.ValidatorIndex]struct{}),
-					receiving: map[parachaintypes.ValidatorIndex]struct{}{
-						0: {},
-					},
+		sessionTopology := emptySessionTopology.clone()
+		sessionTopology.groupViews[groupIndex].receiving[0] = struct{}{}
+
+		// only one vote
+
+		ack, err := tracker.importManifest(
+			sessionTopology,
+			*groups,
+			candidateHash,
+			3,
+			manifestSummary{
+				claimedParentHash: common.Hash{0x0},
+				claimedGroupIndex: groupIndex,
+				statementKnowledge: statementFilter{
+					secondedInGroup:  newBitVec(t, false, false, true),
+					validatedInGroup: newBitVec(t, false, false, false),
 				},
 			},
-		}
+			full,
+			parachaintypes.ValidatorIndex(0),
+		)
 
-		groups := dummyGroups(t, 3)
-		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
-		groupSize, threshold := groups.getSizeAndBackingThreshold(groupIndex)
-		require.NotNil(t, groupSize)
-		require.Equal(t, uint32(3), *groupSize)
-		require.NotNil(t, threshold)
-		require.Equal(t, uint32(2), *threshold)
+		require.ErrorIs(t, err, errManifestImportInsufficient)
+		require.False(t, ack)
 
-		t.Run("only_one_vote", func(t *testing.T) {
-			t.Parallel()
+		// seconding + validating still not enough to reach '2' threshold
 
-			ack, err := tracker.importManifest(
-				&sessionTopology,
-				*groups,
-				candidateHash,
-				3,
-				manifestSummary{
-					claimedParentHash: common.Hash{0x0},
-					claimedGroupIndex: groupIndex,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, false, false, true),
-						validatedInGroup: newBitVec(t, false, false, false),
-					},
+		ack, err = tracker.importManifest(
+			sessionTopology,
+			*groups,
+			candidateHash,
+			3,
+			manifestSummary{
+				claimedParentHash: common.Hash{0x0},
+				claimedGroupIndex: groupIndex,
+				statementKnowledge: statementFilter{
+					secondedInGroup:  newBitVec(t, false, false, true),
+					validatedInGroup: newBitVec(t, false, false, true),
 				},
-				full,
-				parachaintypes.ValidatorIndex(0),
-			)
+			},
+			full,
+			parachaintypes.ValidatorIndex(0),
+		)
 
-			require.ErrorIs(t, err, errManifestImportInsufficient)
-			require.False(t, ack)
-		})
+		require.ErrorIs(t, err, errManifestImportInsufficient)
+		require.False(t, ack)
 
-		t.Run("seconding_and_validating_still_not_enough_to_reach_threshold_of_2", func(t *testing.T) {
-			t.Parallel()
+		// finally good.
 
-			ack, err := tracker.importManifest(
-				&sessionTopology,
-				*groups,
-				candidateHash,
-				3,
-				manifestSummary{
-					claimedParentHash: common.Hash{0x0},
-					claimedGroupIndex: groupIndex,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, false, false, true),
-						validatedInGroup: newBitVec(t, false, false, true),
-					},
+		ack, err = tracker.importManifest(
+			sessionTopology,
+			*groups,
+			candidateHash,
+			3,
+			manifestSummary{
+				claimedParentHash: common.Hash{0x0},
+				claimedGroupIndex: groupIndex,
+				statementKnowledge: statementFilter{
+					secondedInGroup:  newBitVec(t, false, false, true),
+					validatedInGroup: newBitVec(t, false, true, false),
 				},
-				full,
-				parachaintypes.ValidatorIndex(0),
-			)
+			},
+			full,
+			parachaintypes.ValidatorIndex(0),
+		)
 
-			require.ErrorIs(t, err, errManifestImportInsufficient)
-			require.False(t, ack)
-		})
-
-		t.Run("finally_good", func(t *testing.T) {
-			t.Parallel()
-
-			ack, err := tracker.importManifest(
-				&sessionTopology,
-				*groups,
-				candidateHash,
-				3,
-				manifestSummary{
-					claimedParentHash: common.Hash{0x0},
-					claimedGroupIndex: groupIndex,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, false, false, true),
-						validatedInGroup: newBitVec(t, false, true, false),
-					},
-				},
-				full,
-				parachaintypes.ValidatorIndex(0),
-			)
-
-			require.NoError(t, err)
-			require.False(t, ack)
-		})
+		require.NoError(t, err)
+		require.False(t, ack)
 	})
 
 	// Test that when we add a candidate as backed and advertise it to the sending group, they can
@@ -284,26 +225,13 @@ func TestGridTracker(t *testing.T) {
 		t.Parallel()
 
 		tracker := newGridTracker()
-		groupIndex := parachaintypes.GroupIndex(0)
 		validatorIndex := parachaintypes.ValidatorIndex(0)
 
-		sessionTopology := &sessionTopologyView{
-			groupViews: map[parachaintypes.GroupIndex]groupSubView{
-				groupIndex: {
-					sending: map[parachaintypes.ValidatorIndex]struct{}{
-						validatorIndex: {},
-					},
-					receiving: map[parachaintypes.ValidatorIndex]struct{}{
-						1: {},
-					},
-				},
-			},
-		}
+		sessionTopology := emptySessionTopology.clone()
+		sessionTopology.groupViews[groupIndex].sending[validatorIndex] = struct{}{}
+		sessionTopology.groupViews[groupIndex].receiving[1] = struct{}{}
 
-		groupSize := 3
-		groups := dummyGroups(t, groupSize)
-		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
-		localKnowledge, err := newStatementFilter(uint(groupSize), false)
+		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Add the candidate as backed.
@@ -350,26 +278,13 @@ func TestGridTracker(t *testing.T) {
 		t.Parallel()
 
 		tracker := newGridTracker()
-		groupIndex := parachaintypes.GroupIndex(0)
 		validatorIndex := parachaintypes.ValidatorIndex(0)
 
-		sessionTopology := &sessionTopologyView{
-			groupViews: map[parachaintypes.GroupIndex]groupSubView{
-				groupIndex: {
-					sending: map[parachaintypes.ValidatorIndex]struct{}{
-						validatorIndex: {},
-					},
-					receiving: map[parachaintypes.ValidatorIndex]struct{}{
-						1: {},
-					},
-				},
-			},
-		}
+		sessionTopology := emptySessionTopology.clone()
+		sessionTopology.groupViews[groupIndex].sending[validatorIndex] = struct{}{}
+		sessionTopology.groupViews[groupIndex].receiving[1] = struct{}{}
 
-		groupSize := 3
-		groups := dummyGroups(t, groupSize)
-		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
-		localKnowledge, err := newStatementFilter(uint(groupSize), false)
+		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Manifest should not be pending yet.
@@ -421,24 +336,12 @@ func TestGridTracker(t *testing.T) {
 		t.Parallel()
 
 		tracker := newGridTracker()
-		groupIndex := parachaintypes.GroupIndex(0)
 		validatorIndex := parachaintypes.ValidatorIndex(0)
 
-		sessionTopology := &sessionTopologyView{
-			groupViews: map[parachaintypes.GroupIndex]groupSubView{
-				groupIndex: {
-					sending: make(map[parachaintypes.ValidatorIndex]struct{}),
-					receiving: map[parachaintypes.ValidatorIndex]struct{}{
-						validatorIndex: {},
-					},
-				},
-			},
-		}
+		sessionTopology := emptySessionTopology.clone()
+		sessionTopology.groupViews[groupIndex].receiving[validatorIndex] = struct{}{}
 
-		groupSize := 3
-		groups := *dummyGroups(t, groupSize)
-		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
-		localKnowledge, err := newStatementFilter(uint(groupSize), false)
+		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Add the candidate as backed.
@@ -452,7 +355,7 @@ func TestGridTracker(t *testing.T) {
 		// validator 0, so send it an acknowledgement.
 		ack, err := tracker.importManifest(
 			sessionTopology,
-			groups,
+			*groups,
 			candidateHash,
 			3,
 			manifestSummary{
@@ -466,7 +369,7 @@ func TestGridTracker(t *testing.T) {
 			full,
 			validatorIndex,
 		)
-		_ = ack
+
 		require.NoError(t, err)
 		require.True(t, ack)
 
@@ -476,7 +379,7 @@ func TestGridTracker(t *testing.T) {
 		require.Equal(t, acknowledgement, *pendingManifest)
 
 		// Note the candidate as advertised.
-		tracker.manifestSentTo(groups, validatorIndex, candidateHash, *localKnowledge)
+		tracker.manifestSentTo(*groups, validatorIndex, candidateHash, *localKnowledge)
 
 		// Pending manifest should be cleared.
 		pendingManifest = tracker.isManifestPendingFor(validatorIndex, candidateHash)
@@ -500,25 +403,12 @@ func TestGridTracker(t *testing.T) {
 
 		sendTo := parachaintypes.ValidatorIndex(0)
 		receiveFrom := parachaintypes.ValidatorIndex(1)
-		groupIndex := parachaintypes.GroupIndex(0)
 
-		sessionTopology := &sessionTopologyView{
-			groupViews: map[parachaintypes.GroupIndex]groupSubView{
-				groupIndex: {
-					sending: map[parachaintypes.ValidatorIndex]struct{}{
-						sendTo: {},
-					},
-					receiving: map[parachaintypes.ValidatorIndex]struct{}{
-						receiveFrom: {},
-					},
-				},
-			},
-		}
+		sessionTopology := emptySessionTopology.clone()
+		sessionTopology.groupViews[groupIndex].sending[sendTo] = struct{}{}
+		sessionTopology.groupViews[groupIndex].receiving[receiveFrom] = struct{}{}
 
-		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
-		groupSize := 3
-		groups := *dummyGroups(t, groupSize)
-		localKnowledge, err := newStatementFilter(uint(groupSize), false)
+		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		t.Run("receiving_followed_by_sending_an_ack", func(t *testing.T) {
@@ -534,7 +424,7 @@ func TestGridTracker(t *testing.T) {
 
 			// Learn a statement from a different validator.
 			tracker.learnedFreshStatement(
-				groups,
+				*groups,
 				sessionTopology,
 				parachaintypes.ValidatorIndex(2),
 				parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
@@ -546,7 +436,7 @@ func TestGridTracker(t *testing.T) {
 
 			ack, err := tracker.importManifest(
 				sessionTopology,
-				groups,
+				*groups,
 				candidateHash,
 				3,
 				manifestSummary{
@@ -560,11 +450,12 @@ func TestGridTracker(t *testing.T) {
 				full,
 				receiveFrom,
 			)
+
 			require.NoError(t, err)
 			require.True(t, ack)
 
 			// Send ack now.
-			tracker.manifestSentTo(groups, receiveFrom, candidateHash, *localKnowledge)
+			tracker.manifestSentTo(*groups, receiveFrom, candidateHash, *localKnowledge)
 
 			// There should be pending statements now.
 			expectedFilter := &statementFilter{
@@ -600,7 +491,7 @@ func TestGridTracker(t *testing.T) {
 
 			// Learn a statement from a different validator.
 			tracker.learnedFreshStatement(
-				groups,
+				*groups,
 				sessionTopology,
 				parachaintypes.ValidatorIndex(2),
 				parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
@@ -610,11 +501,11 @@ func TestGridTracker(t *testing.T) {
 			// Should start with no pending statements.
 			ensurePendingStatements(t, tracker, sendTo, sendTo, candidateHash, nil, nil)
 
-			tracker.manifestSentTo(groups, sendTo, candidateHash, localKnowledge.clone())
+			tracker.manifestSentTo(*groups, sendTo, candidateHash, localKnowledge.clone())
 
 			ack, err := tracker.importManifest(
 				sessionTopology,
-				groups,
+				*groups,
 				candidateHash,
 				3,
 				manifestSummary{
@@ -628,6 +519,7 @@ func TestGridTracker(t *testing.T) {
 				acknowledgement,
 				sendTo,
 			)
+
 			require.NoError(t, err)
 			require.False(t, ack)
 
@@ -657,24 +549,12 @@ func TestGridTracker(t *testing.T) {
 		t.Parallel()
 
 		tracker := newGridTracker()
-		groupIndex := parachaintypes.GroupIndex(0)
 		validatorIndex := parachaintypes.ValidatorIndex(0)
 
-		sessionTopology := &sessionTopologyView{
-			groupViews: map[parachaintypes.GroupIndex]groupSubView{
-				groupIndex: {
-					sending: map[parachaintypes.ValidatorIndex]struct{}{},
-					receiving: map[parachaintypes.ValidatorIndex]struct{}{
-						validatorIndex: {},
-					},
-				},
-			},
-		}
+		sessionTopology := emptySessionTopology.clone()
+		sessionTopology.groupViews[groupIndex].receiving[validatorIndex] = struct{}{}
 
-		groupSize := 3
-		groups := *dummyGroups(t, groupSize)
-		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
-		localKnowledge, err := newStatementFilter(uint(groupSize), false)
+		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Should start with no pending statements.
@@ -684,7 +564,7 @@ func TestGridTracker(t *testing.T) {
 		statement := parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
 			Value: parachaintypes.SecondedCandidateHash(candidateHash),
 		}
-		tracker.learnedFreshStatement(groups, sessionTopology, validatorIndex, statement)
+		tracker.learnedFreshStatement(*groups, sessionTopology, validatorIndex, statement)
 
 		ensurePendingStatements(t, tracker, validatorIndex, validatorIndex, candidateHash, nil, nil)
 
@@ -692,7 +572,7 @@ func TestGridTracker(t *testing.T) {
 		tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
 
 		// Try to import fresh statement. Unknown group for validator index.
-		tracker.learnedFreshStatement(groups, sessionTopology, parachaintypes.ValidatorIndex(1), statement)
+		tracker.learnedFreshStatement(*groups, sessionTopology, parachaintypes.ValidatorIndex(1), statement)
 
 		ensurePendingStatements(t, tracker, validatorIndex, validatorIndex, candidateHash, nil, nil)
 	})
@@ -701,24 +581,12 @@ func TestGridTracker(t *testing.T) {
 		t.Parallel()
 
 		tracker := newGridTracker()
-		groupIndex := parachaintypes.GroupIndex(0)
 		validatorIndex := parachaintypes.ValidatorIndex(0)
 
-		sessionTopology := &sessionTopologyView{
-			groupViews: map[parachaintypes.GroupIndex]groupSubView{
-				groupIndex: {
-					sending: map[parachaintypes.ValidatorIndex]struct{}{},
-					receiving: map[parachaintypes.ValidatorIndex]struct{}{
-						validatorIndex: {},
-					},
-				},
-			},
-		}
+		sessionTopology := emptySessionTopology.clone()
+		sessionTopology.groupViews[groupIndex].receiving[validatorIndex] = struct{}{}
 
-		groupSize := 3
-		groups := *dummyGroups(t, groupSize)
-		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
-		localKnowledge, err := newStatementFilter(uint(groupSize), false)
+		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Should start with no pending statements.
@@ -731,7 +599,7 @@ func TestGridTracker(t *testing.T) {
 
 		ack, err := tracker.importManifest(
 			sessionTopology,
-			groups,
+			*groups,
 			candidateHash,
 			3,
 			manifestSummary{
@@ -748,12 +616,12 @@ func TestGridTracker(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, ack)
 
-		tracker.manifestSentTo(groups, validatorIndex, candidateHash, *localKnowledge)
+		tracker.manifestSentTo(*groups, validatorIndex, candidateHash, *localKnowledge)
 
 		statement := parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
 			Value: parachaintypes.SecondedCandidateHash(candidateHash),
 		}
-		tracker.learnedFreshStatement(groups, sessionTopology, validatorIndex, statement)
+		tracker.learnedFreshStatement(*groups, sessionTopology, validatorIndex, statement)
 
 		// There should be pending statements now.
 		expectedFilter := &statementFilter{
@@ -776,7 +644,7 @@ func TestGridTracker(t *testing.T) {
 		)
 
 		// After successful import, try importing again. Nothing should change.
-		tracker.learnedFreshStatement(groups, sessionTopology, validatorIndex, statement)
+		tracker.learnedFreshStatement(*groups, sessionTopology, validatorIndex, statement)
 		ensurePendingStatements(
 			t,
 			tracker,
@@ -794,24 +662,12 @@ func TestGridTracker(t *testing.T) {
 		t.Parallel()
 
 		tracker := newGridTracker()
-		groupIndex := parachaintypes.GroupIndex(0)
 		validatorIndex := parachaintypes.ValidatorIndex(0)
 
-		sessionTopology := &sessionTopologyView{
-			groupViews: map[parachaintypes.GroupIndex]groupSubView{
-				groupIndex: {
-					sending: map[parachaintypes.ValidatorIndex]struct{}{},
-					receiving: map[parachaintypes.ValidatorIndex]struct{}{
-						validatorIndex: {},
-					},
-				},
-			},
-		}
+		sessionTopology := emptySessionTopology.clone()
+		sessionTopology.groupViews[groupIndex].receiving[validatorIndex] = struct{}{}
 
-		groupSize := 3
-		groups := *dummyGroups(t, groupSize)
-		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
-		localKnowledge, err := newStatementFilter(uint(groupSize), false)
+		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Should start with no pending statements.
@@ -823,7 +679,7 @@ func TestGridTracker(t *testing.T) {
 		// Import fresh statement.
 		ack, err := tracker.importManifest(
 			sessionTopology,
-			groups,
+			*groups,
 			candidateHash,
 			3,
 			manifestSummary{
@@ -837,13 +693,14 @@ func TestGridTracker(t *testing.T) {
 			full,
 			validatorIndex,
 		)
+
 		require.NoError(t, err)
 		require.True(t, ack)
 
-		tracker.manifestSentTo(groups, validatorIndex, candidateHash, *localKnowledge)
+		tracker.manifestSentTo(*groups, validatorIndex, candidateHash, *localKnowledge)
 
 		tracker.learnedFreshStatement(
-			groups,
+			*groups,
 			sessionTopology,
 			validatorIndex,
 			parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
@@ -851,7 +708,7 @@ func TestGridTracker(t *testing.T) {
 			},
 		)
 		tracker.learnedFreshStatement(
-			groups,
+			*groups,
 			sessionTopology,
 			validatorIndex,
 			parachaintypes.CompactStatement[parachaintypes.Valid]{
@@ -885,26 +742,14 @@ func TestGridTracker(t *testing.T) {
 		t.Parallel()
 
 		tracker := newGridTracker()
-		groupIndex := parachaintypes.GroupIndex(0)
 		validatorIndex := parachaintypes.ValidatorIndex(0)
 		counterparty := parachaintypes.ValidatorIndex(1)
 
-		sessionTopology := &sessionTopologyView{
-			groupViews: map[parachaintypes.GroupIndex]groupSubView{
-				groupIndex: {
-					sending: map[parachaintypes.ValidatorIndex]struct{}{},
-					receiving: map[parachaintypes.ValidatorIndex]struct{}{
-						validatorIndex: {},
-						counterparty:   {},
-					},
-				},
-			},
-		}
+		sessionTopology := emptySessionTopology.clone()
+		sessionTopology.groupViews[groupIndex].receiving[validatorIndex] = struct{}{}
+		sessionTopology.groupViews[groupIndex].receiving[counterparty] = struct{}{}
 
-		groupSize := 3
-		groups := *dummyGroups(t, groupSize)
-		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x42}}
-		localKnowledge, err := newStatementFilter(uint(groupSize), false)
+		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Should start with no pending statements.
@@ -917,7 +762,7 @@ func TestGridTracker(t *testing.T) {
 		// Import statement for originator.
 		ack, err := tracker.importManifest(
 			sessionTopology,
-			groups,
+			*groups,
 			candidateHash,
 			3,
 			manifestSummary{
@@ -934,10 +779,10 @@ func TestGridTracker(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, ack)
 
-		tracker.manifestSentTo(groups, validatorIndex, candidateHash, localKnowledge.clone())
+		tracker.manifestSentTo(*groups, validatorIndex, candidateHash, localKnowledge.clone())
 
 		tracker.learnedFreshStatement(
-			groups,
+			*groups,
 			sessionTopology,
 			validatorIndex,
 			parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
@@ -948,7 +793,7 @@ func TestGridTracker(t *testing.T) {
 		// Import statement for counterparty.
 		ack, err = tracker.importManifest(
 			sessionTopology,
-			groups,
+			*groups,
 			candidateHash,
 			3,
 			manifestSummary{
@@ -965,10 +810,10 @@ func TestGridTracker(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, ack)
 
-		tracker.manifestSentTo(groups, counterparty, candidateHash, localKnowledge.clone())
+		tracker.manifestSentTo(*groups, counterparty, candidateHash, localKnowledge.clone())
 
 		tracker.learnedFreshStatement(
-			groups,
+			*groups,
 			sessionTopology,
 			counterparty,
 			parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
@@ -1015,7 +860,7 @@ func ensurePendingStatements(
 	originator parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
 	expectedFilter *statementFilter,
-	expectedStatement any, /* CompactStatement[FIXME] */
+	expectedStatement any, /* FIXME should be parachaintypes.CompactStatement */
 ) {
 	t.Helper()
 
