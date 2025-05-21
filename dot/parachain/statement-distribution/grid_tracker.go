@@ -75,7 +75,7 @@ func (g *gridTracker) importManifest(
 	sessionTopology *sessionTopologyView,
 	groups groups,
 	candidateHash parachaintypes.CandidateHash,
-	secondingLimit uint,
+	secondingLimit uint, //nolint:unparam
 	manifest manifestSummary,
 	kind manifestKind,
 	sender parachaintypes.ValidatorIndex,
@@ -213,7 +213,7 @@ func (g *gridTracker) addBackedCandidate(
 	for _, pair := range unconfirmed {
 		claimedGroupIndex := pair.group
 		if claimedGroupIndex != groupIndex {
-			// This is misbehavior, but is handled more comprehensively elsewhere
+			// This is misbehaviour, but is handled more comprehensively elsewhere
 			continue
 		}
 
@@ -240,13 +240,13 @@ func (g *gridTracker) addBackedCandidate(
 
 	var targets []validatorManifestKindPair
 
-	for validator, _ := range groupTopology.sending {
+	for validator := range groupTopology.sending {
 		logger.Tracef("Preparing to send full manifest to validator at index %d", validator)
 		g.insertPendingManifest(validator, candidateHash, full)
 		targets = append(targets, validatorManifestKindPair{validator, full})
 	}
 
-	for validator, _ := range groupTopology.receiving {
+	for validator := range groupTopology.receiving {
 		if known.hasReceivedManifestFrom(validator) {
 			logger.Tracef("Preparing to send manifest acknowledgement to validator at index %d", validator)
 			g.insertPendingManifest(validator, candidateHash, acknowledgement)
@@ -284,7 +284,7 @@ func (g *gridTracker) manifestSentTo(
 
 // pendingManifestsFor returns a vector of all candidates pending manifests for
 // the specific validator, and the type of manifest we should send.
-func (g *gridTracker) pendingManifestsFor(
+func (g *gridTracker) pendingManifestsFor( //nolint:unused
 	validatorIndex parachaintypes.ValidatorIndex,
 ) manifestKindByCandidateHash {
 	return maps.Clone(g.pendingManifests[validatorIndex])
@@ -312,7 +312,7 @@ func (g *gridTracker) allPendingStatementsFor(
 ) []originatorStatementPair {
 	var seconded, valid []originatorStatementPair
 
-	for pair, _ := range g.pendingStatements[validatorIndex] {
+	for pair := range g.pendingStatements[validatorIndex] {
 		if _, ok := pair.statement.(parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]); ok {
 			seconded = append(seconded, pair)
 		} else {
@@ -324,7 +324,7 @@ func (g *gridTracker) allPendingStatementsFor(
 }
 
 // canRequest indicates whether a validator can request a manifest from us.
-func (g *gridTracker) canRequest(
+func (g *gridTracker) canRequest( //nolint:unused
 	validatorIndex parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
 ) bool {
@@ -340,7 +340,7 @@ func (g *gridTracker) canRequest(
 //
 // Returns a map representing each potential sender(ValidatorIndex) and if the sender
 // should already know about the statement, because we just sent it to it.
-func (g *gridTracker) directStatementProviders(
+func (g *gridTracker) directStatementProviders( //nolint:unused
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
 	statement any, /* FIXME should be parachaintypes.CompactStatement */
@@ -359,7 +359,7 @@ func (g *gridTracker) directStatementProviders(
 }
 
 // directStatementTargets determines the validators which can receive a statement from us by direct broadcast.
-func (g *gridTracker) directStatementTargets(
+func (g *gridTracker) directStatementTargets( //nolint:unused
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
 	statement any, /* FIXME should be parachaintypes.CompactStatement */
@@ -409,11 +409,11 @@ func (g *gridTracker) learnedFreshStatement(
 
 	var allGroupValidators []parachaintypes.ValidatorIndex
 
-	for validatorIndex, _ := range subView.sending {
+	for validatorIndex := range subView.sending {
 		allGroupValidators = append(allGroupValidators, validatorIndex)
 	}
 
-	for validatorIndex, _ := range subView.receiving {
+	for validatorIndex := range subView.receiving {
 		allGroupValidators = append(allGroupValidators, validatorIndex)
 	}
 
@@ -426,7 +426,7 @@ func (g *gridTracker) learnedFreshStatement(
 
 // / sentOrReceivedDirectStatement notes that a direct statement about a
 // given candidate was sent to or received from the given validator.
-func (g *gridTracker) sentOrReceivedDirectStatement(
+func (g *gridTracker) sentOrReceivedDirectStatement( //nolint:unused
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
 	counterparty parachaintypes.ValidatorIndex,
@@ -450,7 +450,7 @@ func (g *gridTracker) sentOrReceivedDirectStatement(
 }
 
 // advertisedStatements returns the advertised statement filter of a validator for a candidate.
-func (g *gridTracker) advertisedStatements(
+func (g *gridTracker) advertisedStatements( //nolint:unused
 	validator parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
 ) *statementFilter {
@@ -532,7 +532,7 @@ func decomposeStatementFilter(
 	}
 
 	for i, bit := range statementFilter.secondedInGroup.Bits() {
-		if bit == true {
+		if bit {
 			validatorIndex := group[i]
 			value := parachaintypes.SecondedCandidateHash(candidateHash)
 
@@ -548,7 +548,7 @@ func decomposeStatementFilter(
 	}
 
 	for i, bit := range statementFilter.validatedInGroup.Bits() {
-		if bit == true {
+		if bit {
 			validatorIndex := group[i]
 			value := parachaintypes.Valid(candidateHash)
 

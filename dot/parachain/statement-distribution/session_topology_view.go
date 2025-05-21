@@ -11,7 +11,7 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
-// groupSubView is our local view of a subset of the grid topology organized
+// groupSubView is our local view of a subset of the grid topology organised
 // around a specific validator group.
 //
 // This tracks which authorities we expect to communicate with concerning
@@ -87,7 +87,7 @@ func buildSessionTopology(
 	}
 
 	if ourNeighbours == nil {
-		logger.Warnf("our index %d unrecognized in topology?", ourIndex)
+		logger.Warnf("our index %d unrecognised in topology?", ourIndex)
 		return view, nil
 	}
 
@@ -103,20 +103,20 @@ func buildSessionTopology(
 
 			// remove all other same-group validators from this set, they are
 			// in the cluster.
-			// TODO [now]: test this behavior. (from polkadot-sdk)
+			// TODO [now]: test this behaviour. (from polkadot-sdk)
 			for _, validatorIndex := range group {
 				delete(subView.sending, validatorIndex)
 			}
 		} else {
 			rowNeighboursWithoutGroup := make(map[parachaintypes.ValidatorIndex]struct{})
-			for validatorIndex, _ := range ourNeighbours.ValidatorIndicesRow {
+			for validatorIndex := range ourNeighbours.ValidatorIndicesRow {
 				if !slices.Contains(group, validatorIndex) {
 					rowNeighboursWithoutGroup[validatorIndex] = struct{}{}
 				}
 			}
 
 			colNeighboursWithoutGroup := make(map[parachaintypes.ValidatorIndex]struct{})
-			for validatorIndex, _ := range ourNeighbours.ValidatorIndicesCol {
+			for validatorIndex := range ourNeighbours.ValidatorIndicesCol {
 				if !slices.Contains(group, validatorIndex) {
 					colNeighboursWithoutGroup[validatorIndex] = struct{}{}
 				}
@@ -124,7 +124,7 @@ func buildSessionTopology(
 
 			for _, validatorIndex := range group {
 				// If the validator shares a slice with us, we expect to
-				// receive from them and send to our neighbors in the other
+				// receive from them and send to our neighbours in the other
 				// dimension.
 
 				if _, ok := ourNeighbours.ValidatorIndicesRow[validatorIndex]; ok {
@@ -147,12 +147,12 @@ func buildSessionTopology(
 				}
 
 				if theirNeighbours == nil {
-					logger.Warnf("validator index %d unrecognized in topology?", validatorIndex)
+					logger.Warnf("validator index %d unrecognised in topology?", validatorIndex)
 					continue
 				}
 
 				// their X, our Y
-				for potentialLink, _ := range theirNeighbours.ValidatorIndicesRow {
+				for potentialLink := range theirNeighbours.ValidatorIndicesRow {
 					if _, ok := ourNeighbours.ValidatorIndicesCol[potentialLink]; ok {
 						subView.receiving[potentialLink] = struct{}{}
 						break // one max
@@ -160,7 +160,7 @@ func buildSessionTopology(
 				}
 
 				// their Y, our X
-				for potentialLink, _ := range theirNeighbours.ValidatorIndicesCol {
+				for potentialLink := range theirNeighbours.ValidatorIndicesCol {
 					if _, ok := ourNeighbours.ValidatorIndicesRow[potentialLink]; ok {
 						subView.receiving[potentialLink] = struct{}{}
 						break // one max

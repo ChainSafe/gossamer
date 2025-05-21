@@ -899,7 +899,7 @@ func dummyGroups(t *testing.T, size int) *groups {
 }
 
 func (g *gridTracker) isManifestPendingFor(
-	validatorIndex parachaintypes.ValidatorIndex,
+	validatorIndex parachaintypes.ValidatorIndex, //nolint:unparam
 	candidateHash parachaintypes.CandidateHash,
 ) *manifestKind {
 	pm, ok := g.pendingManifests[validatorIndex]

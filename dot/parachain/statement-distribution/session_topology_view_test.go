@@ -90,7 +90,7 @@ func TestBuildSessionTopology(t *testing.T) {
 		// 3 4 5
 		// 6 7 8
 
-		// our group: we send to all row/column neighbors which are not in our
+		// our group: we send to all row/column neighbours which are not in our
 		// group and receive nothing.
 		require.Equal(
 			t,
