@@ -13,7 +13,7 @@ require (
 	github.com/dgraph-io/ristretto/v2 v2.2.0
 	github.com/disiqueira/gotree v1.0.0
 	github.com/dolthub/maphash v0.1.0
-	github.com/elastic/go-freelru v0.15.0
+	github.com/elastic/go-freelru v0.16.0
 	github.com/ethereum/go-ethereum v1.15.11
 	github.com/fatih/color v1.18.0
 	github.com/gammazero/deque v1.0.0
@@ -217,7 +217,5 @@ go 1.24.0
 replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20240319130522-78b21a59bd5f
 
 replace github.com/centrifuge/go-substrate-rpc-client/v4 => github.com/timwu20/go-substrate-rpc-client/v4 v4.0.0-20231110032757-3d8e441b7303
-
-replace github.com/elastic/go-freelru => github.com/timwu20/go-freelru v0.0.0-20241023201517-deb64adeae4c
 
 replace github.com/ugurcsen/gods-generic => github.com/timwu20/gods-generic v0.0.0-20241206024616-791a209639f8
