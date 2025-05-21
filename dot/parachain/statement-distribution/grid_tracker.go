@@ -30,9 +30,9 @@ type validatorGroupPair struct {
 
 type manifestKindByCandidateHash map[parachaintypes.CandidateHash]manifestKind
 
-type originatorStatementPair /* [T parachaintypes.CompactStatementValues] */ struct {
+type originatorStatementPair struct {
 	validatorIndex parachaintypes.ValidatorIndex
-	statement      any /* FIXME parachaintypes.CompactStatement[T] */
+	statement      any /* FIXME should be parachaintypes.CompactStatement */
 }
 
 type originatorStatementPairSet map[originatorStatementPair]struct{}
@@ -51,10 +51,11 @@ type gridTracker struct {
 // newGridTracker returns a new [gridTracker]
 func newGridTracker() *gridTracker {
 	return &gridTracker{
-		received:         make(map[parachaintypes.ValidatorIndex]receivedManifests),
-		confirmedBacked:  make(map[parachaintypes.CandidateHash]knownBackedCandidate),
-		unconfirmed:      make(map[parachaintypes.CandidateHash][]validatorGroupPair),
-		pendingManifests: make(map[parachaintypes.ValidatorIndex]manifestKindByCandidateHash),
+		received:          make(map[parachaintypes.ValidatorIndex]receivedManifests),
+		confirmedBacked:   make(map[parachaintypes.CandidateHash]knownBackedCandidate),
+		unconfirmed:       make(map[parachaintypes.CandidateHash][]validatorGroupPair),
+		pendingManifests:  make(map[parachaintypes.ValidatorIndex]manifestKindByCandidateHash),
+		pendingStatements: make(map[parachaintypes.ValidatorIndex]originatorStatementPairSet),
 	}
 }
 
@@ -130,8 +131,12 @@ func (g *gridTracker) importManifest(
 		return false, errManifestImportInsufficient
 	}
 
-	receivedManifest := g.received[sender]
-	err := receivedManifest.importReceived(
+	receivedManifests, ok := g.received[sender]
+	if !ok {
+		receivedManifests = *newReceivedManifests()
+	}
+
+	err := receivedManifests.importReceived(
 		uint(*groupSize),
 		secondingLimit,
 		candidateHash,
@@ -140,31 +145,32 @@ func (g *gridTracker) importManifest(
 	if err != nil {
 		return false, err
 	}
-	g.received[sender] = receivedManifest
+	g.received[sender] = receivedManifests
 
 	ack := false
 	known, ok := g.confirmedBacked[candidateHash]
-	if ok && receivingFrom && known.hasSentManifestTo(sender) {
-		// due to checks above, the manifest `kind` is guaranteed to be `full`
-		g.insertPendingManifest(sender, candidateHash, acknowledgement)
+	if ok {
+		if receivingFrom && !known.hasSentManifestTo(sender) {
+			// due to checks above, the manifest `kind` is guaranteed to be `full`
+			g.insertPendingManifest(sender, candidateHash, acknowledgement)
 
-		ack = true
-	}
+			ack = true
+		}
 
-	// add all statements in local_knowledge & !remote_knowledge
-	// to `pendingStatements` for this validator.
-	known.manifestReceivedFrom(sender, remoteKnowledge)
-	pendingStatements := known.pendingStatements(sender)
+		// add all statements in local_knowledge & !remote_knowledge
+		// to `pendingStatements` for this validator.
+		known.manifestReceivedFrom(sender, remoteKnowledge)
+		pendingStatements := known.pendingStatements(sender)
+		if pendingStatements != nil {
+			originatorStatementPairs := decomposeStatementFilter(
+				groups,
+				manifest.claimedGroupIndex,
+				candidateHash,
+				*pendingStatements,
+			)
 
-	if pendingStatements != nil {
-		originatorStatementPairs := decomposeStatementFilter(
-			groups,
-			manifest.claimedGroupIndex,
-			candidateHash,
-			*pendingStatements,
-		)
-
-		g.extendPendingStatements(sender, originatorStatementPairs)
+			g.extendPendingStatements(sender, originatorStatementPairs)
+		}
 	} else {
 		// `received` prevents conflicting manifests so this is max 1 per validator.
 		g.addUnconfirmed(candidateHash, sender, manifest.claimedGroupIndex)
@@ -198,6 +204,8 @@ func (g *gridTracker) addBackedCandidate(
 		mutualKnowledge: make(map[parachaintypes.ValidatorIndex]mutualKnowledge),
 	}
 
+	g.confirmedBacked[candidateHash] = known
+
 	// Populate the entry with previously unconfirmed manifests.
 	unconfirmed := g.unconfirmed[candidateHash]
 	delete(g.unconfirmed, candidateHash)
@@ -217,8 +225,6 @@ func (g *gridTracker) addBackedCandidate(
 
 		// No need to send direct statements, because our local knowledge is nil
 		known.manifestReceivedFrom(pair.validator, *statementFilter)
-
-		g.confirmedBacked[candidateHash] = known
 	}
 
 	groupTopology, ok := sessionTopology.groupViews[groupIndex]
@@ -337,7 +343,7 @@ func (g *gridTracker) canRequest(
 func (g *gridTracker) directStatementProviders(
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
-	statement any, /* CompactStatement[FIXME] */
+	statement any, /* FIXME should be parachaintypes.CompactStatement */
 ) map[parachaintypes.ValidatorIndex]bool {
 	groupIndex, candidateHash, stmtKind, idxInGroup := extractStatementAndGroupInfo(groups, originator, statement)
 	if groupIndex == nil {
@@ -356,7 +362,7 @@ func (g *gridTracker) directStatementProviders(
 func (g *gridTracker) directStatementTargets(
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
-	statement any, /* parachaintypes.CompactStatement[FIXME] */
+	statement any, /* FIXME should be parachaintypes.CompactStatement */
 ) []parachaintypes.ValidatorIndex {
 	groupIndex, candidateHash, stmtKind, idxInGroup := extractStatementAndGroupInfo(groups, originator, statement)
 	if groupIndex == nil {
@@ -378,7 +384,7 @@ func (g *gridTracker) learnedFreshStatement(
 	groups groups,
 	sessionTopology *sessionTopologyView,
 	originator parachaintypes.ValidatorIndex,
-	statement any, /* parachaintypes.CompactStatement[FIXME] */
+	statement any, /* FIXME should be parachaintypes.CompactStatement */
 ) {
 	groupIndex, candidateHash, stmtKind, idxInGroup := extractStatementAndGroupInfo(groups, originator, statement)
 	if groupIndex == nil {
@@ -424,7 +430,7 @@ func (g *gridTracker) sentOrReceivedDirectStatement(
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
 	counterparty parachaintypes.ValidatorIndex,
-	statement any, /* parachaintypes.CompactStatement[FIXME] */
+	statement any, /* FIXME should be parachaintypes.CompactStatement */
 	received bool,
 ) {
 	groupIndex, candidateHash, stmtKind, idxInGroup := extractStatementAndGroupInfo(groups, originator, statement)
@@ -494,7 +500,13 @@ func (g *gridTracker) extendPendingStatements(
 	validatorIndex parachaintypes.ValidatorIndex,
 	originatorStatementPairs originatorStatementPairSet,
 ) {
-	maps.Copy(g.pendingStatements[validatorIndex], originatorStatementPairs)
+	ps := g.pendingStatements[validatorIndex]
+	if ps == nil {
+		ps = make(originatorStatementPairSet)
+	}
+
+	maps.Copy(ps, originatorStatementPairs)
+	g.pendingStatements[validatorIndex] = ps
 }
 
 func (g *gridTracker) addUnconfirmed(
@@ -558,7 +570,7 @@ func decomposeStatementFilter(
 func extractStatementAndGroupInfo(
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
-	statement any, /* CompactStatement[FIXME] */
+	statement any, /* FIXME should be parachaintypes.CompactStatement */
 ) (gi *parachaintypes.GroupIndex, ch parachaintypes.CandidateHash, sk statementKind, i uint) {
 	switch s := statement.(type) {
 	case parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]:
