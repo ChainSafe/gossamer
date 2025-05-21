@@ -46,6 +46,22 @@ func (p *Peekable2[K, V]) Next() (K, V, bool) {
 	return p.next()
 }
 
+// Iter returns an iter.Seq2[K, V] that yields the same items as the Peekable2[K, V]
+func (p *Peekable2[K, V]) Iter() iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		defer p.Close()
+		for {
+			k, v, ok := p.Next()
+			if !ok {
+				break
+			}
+			if !yield(k, v) {
+				break
+			}
+		}
+	}
+}
+
 // Close must be called (usually using defer) if you exit before the iterator is done
 func (p *Peekable2[K, V]) Close() {
 	p.stop()

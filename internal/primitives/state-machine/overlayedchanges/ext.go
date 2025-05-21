@@ -328,9 +328,7 @@ func (e Ext[H, Hasher, B]) NextStorageKey(key []byte) []byte {
 		panic(ExtNotAllowedToFail)
 	}
 
-	overlayedChangesIter := e.overlay.IterAfter(key)
-	overlayChanges := common.NewPeekable2(overlayedChangesIter)
-
+	overlayChanges := common.NewPeekable2(e.overlay.IterAfter(key))
 	_, _, has := overlayChanges.Peek()
 
 	if !has {
@@ -338,7 +336,7 @@ func (e Ext[H, Hasher, B]) NextStorageKey(key []byte) []byte {
 	}
 
 	if nextBackendKey != nil && has {
-		for overlayKey, overlayValue := range overlayedChangesIter {
+		for overlayKey, overlayValue := range overlayChanges.Iter() {
 			cmp := bytes.Compare(nextBackendKey, overlayKey)
 
 			// If nextBackendKey is less than the overlayKey, we found out next key.
@@ -362,7 +360,7 @@ func (e Ext[H, Hasher, B]) NextStorageKey(key []byte) []byte {
 		return nextBackendKey
 	}
 
-	for k, v := range overlayedChangesIter {
+	for k, v := range overlayChanges.Iter() {
 		if v.Value() != nil {
 			return k
 		}
