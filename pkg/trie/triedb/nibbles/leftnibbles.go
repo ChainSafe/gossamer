@@ -73,10 +73,7 @@ func (ln LeftNibbles) Contains(partial Nibbles, offset uint) bool {
 }
 
 func (ln LeftNibbles) compare(other LeftNibbles) int {
-	commonLen := ln.Len()
-	if other.Len() < commonLen {
-		commonLen = other.Len()
-	}
+	commonLen := min(other.Len(), ln.Len())
 	commonByteLen := commonLen / NibblesPerByte
 
 	// Quickly compare the common prefix of the byte slices.
