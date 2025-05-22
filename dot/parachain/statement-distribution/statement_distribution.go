@@ -8,35 +8,25 @@ import (
 	"fmt"
 	"time"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-statement-distribution"))
 
 type StatementDistribution struct {
 	SubSystemToOverseer chan<- any
+	state               *v2State
 }
 
-type MuxedMessage interface {
-	isMuxedMessage()
+func New(overseerChan chan<- any, ks keystore.Keystore, blockState parachainutil.BlockState) *StatementDistribution {
+	return &StatementDistribution{
+		SubSystemToOverseer: overseerChan,
+		state:               newV2State(ks, parachainutil.NewBackingImplicitView(blockState, nil)),
+	}
 }
-
-type overseerMessage struct {
-	inner any
-}
-
-func (*overseerMessage) isMuxedMessage() {}
-
-type responderMessage struct {
-	inner any // should be replaced with AttestedCandidateRequest type
-}
-
-func (*responderMessage) isMuxedMessage() {}
-
-type reputationChangeMessage struct{}
-
-func (*reputationChangeMessage) isMuxedMessage() {}
 
 // Run just receives the ctx and a channel from the overseer to subsystem
 func (s *StatementDistribution) Run(ctx context.Context, overseerToSubSystem <-chan any) {
@@ -55,26 +45,38 @@ func (s *StatementDistribution) Run(ctx context.Context, overseerToSubSystem <-c
 		switch innerMessage := message.(type) {
 		case *reputationChangeMessage:
 			logger.Info("Reputation change triggered.")
+		case *overseerMessage:
+			shouldStop, err := s.handleSubsystemMessage(innerMessage.inner)
+			if err != nil {
+				logger.Errorf("handling subsystem message: %s", err.Error())
+			}
+
+			if shouldStop {
+				logger.Warn("handling subsystem message: should stop statement distribution")
+				break
+			}
 		default:
 			logger.Warn("Unhandled message type: " + fmt.Sprintf("%v", innerMessage))
 		}
 	}
 }
 
-func taskResponder(responderCh chan any) {}
+func (s *StatementDistribution) handleSubsystemMessage(overseerMessage any) (bool, error) {
+	switch message := overseerMessage.(type) {
+	case parachaintypes.ActiveLeavesUpdateSignal:
+		if message.Activated != nil {
+			if err := s.handleActiveLeavesUpdate(message.Activated); err != nil {
+				return false, fmt.Errorf("handling active leaves update: %w", err)
+			}
+		}
+		s.handleDeactivatedLeaves(message.Deactivated)
 
-// awaitMessageFrom waits for messages from either the overseerToSubSystem, responderCh, or reputationDelay
-func (s *StatementDistribution) awaitMessageFrom(
-	overseerToSubSystem <-chan any,
-	responderCh chan any,
-	reputationDelay <-chan time.Time,
-) MuxedMessage {
-	select {
-	case msg := <-overseerToSubSystem:
-		return &overseerMessage{inner: msg}
-	case msg := <-responderCh:
-		return &responderMessage{inner: msg}
-	case <-reputationDelay:
-		return &reputationChangeMessage{}
+	case parachaintypes.Conclude:
+		return true, nil
 	}
+
+	return false, nil
 }
+
+// TODO: https://github.com/ChainSafe/gossamer/issues/4285
+func taskResponder(responderCh chan any) {}

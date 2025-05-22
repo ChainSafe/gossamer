@@ -11,6 +11,24 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 )
 
+// groupTracker interface exports methods
+// enabling the statement distribution
+// to track validator peers that belong
+// to the same validation group
+type groupTracker interface {
+	warningIfTooManyPendingStatements(rp common.Hash)
+}
+
+// requestManager defines the interface that manages
+// outgoing requests
+type requestManager interface {
+	removeByRelayParent(rp common.Hash)
+}
+
+type candidatesTracker interface {
+	onDeactivateLeaves(leaves []common.Hash, rpLiveFn func(common.Hash) bool)
+}
+
 type perRelayParentState struct {
 	localValidator       *localValidatorStore
 	statementStore       any // TODO #4719: Create statement store
@@ -19,6 +37,14 @@ type perRelayParentState struct {
 	transposedClaimQueue parachaintypes.TransposedClaimQueue
 	groupsPerPara        map[parachaintypes.ParaID][]parachaintypes.GroupIndex
 	disabledValidators   map[parachaintypes.ValidatorIndex]struct{}
+}
+
+func (p *perRelayParentState) activeValidatorState() *activeValidatorState {
+	if p.localValidator != nil {
+		return p.localValidator.active
+	}
+
+	return nil
 }
 
 // isDisabled returns `true` if the given validator is disabled in the context of the relay parent.
@@ -50,7 +76,7 @@ type activeValidatorState struct {
 	index          parachaintypes.ValidatorIndex
 	groupIndex     parachaintypes.GroupIndex
 	assignments    []parachaintypes.ParaID
-	clusterTracker any // TODO: use cluster tracker implementation (#4713)
+	clusterTracker groupTracker // TODO: use cluster tracker implementation (#4713)
 }
 
 type perSessionState struct {
@@ -188,13 +214,28 @@ func (p *peerState) iterKnownDiscoveryIDs() []parachaintypes.AuthorityDiscoveryI
 
 type v2State struct {
 	implicitView     parachainutil.ImplicitView
-	candidates       any // TODO #4718: Create Candidates Tracker
+	candidates       candidatesTracker // TODO #4718: Create Candidates Tracker
 	perRelayParent   map[common.Hash]perRelayParentState
 	perSession       map[parachaintypes.SessionIndex]perSessionState
 	unusedTopologies map[parachaintypes.SessionIndex]events.NewGossipTopology
 	peers            map[string]peerState
 	keystore         keystore.Keystore
 	authorities      map[parachaintypes.AuthorityDiscoveryID]string
-	requestManager   any // TODO: #4377
-	responseManager  any // TODO: #4378
+	requestManager   requestManager // TODO: #4377
+	responseManager  any            // TODO: #4378
+}
+
+func newV2State(ks keystore.Keystore, iv parachainutil.ImplicitView) *v2State {
+	return &v2State{
+		implicitView:     iv,
+		candidates:       nil,
+		perRelayParent:   map[common.Hash]perRelayParentState{},
+		perSession:       map[parachaintypes.SessionIndex]perSessionState{},
+		unusedTopologies: map[parachaintypes.SessionIndex]events.NewGossipTopology{},
+		peers:            map[string]peerState{},
+		keystore:         ks,
+		authorities:      map[parachaintypes.AuthorityDiscoveryID]string{},
+		requestManager:   nil,
+		responseManager:  nil,
+	}
 }
