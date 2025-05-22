@@ -70,7 +70,7 @@ func (stv *sessionTopologyView) clone() *sessionTopologyView {
 //
 // For any validators we don't share a slice with, we receive from the nodes
 // which share a slice with them.
-func buildSessionTopology(
+func buildSessionTopology( //skipcq: GO-R1005
 	groups [][]parachaintypes.ValidatorIndex,
 	topology *grid.SessionGridTopology,
 	ourIndex *parachaintypes.ValidatorIndex,

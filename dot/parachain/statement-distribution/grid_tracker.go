@@ -71,7 +71,7 @@ func newGridTracker() *gridTracker {
 // This returns a `bool` on success, which if true indicates that an acknowledgement
 // is to be sent in response to the received manifest. This only occurs when the
 // candidate is already known to be confirmed and backed.
-func (g *gridTracker) importManifest(
+func (g *gridTracker) importManifest( //skipcq: GO-R1005
 	sessionTopology *sessionTopologyView,
 	groups groups,
 	candidateHash parachaintypes.CandidateHash,
@@ -284,7 +284,7 @@ func (g *gridTracker) manifestSentTo(
 
 // pendingManifestsFor returns a vector of all candidates pending manifests for
 // the specific validator, and the type of manifest we should send.
-func (g *gridTracker) pendingManifestsFor( //nolint:unused
+func (g *gridTracker) pendingManifestsFor( //nolint:unused // skipcq:SCC-U1000
 	validatorIndex parachaintypes.ValidatorIndex,
 ) manifestKindByCandidateHash {
 	return maps.Clone(g.pendingManifests[validatorIndex])
@@ -324,7 +324,7 @@ func (g *gridTracker) allPendingStatementsFor(
 }
 
 // canRequest indicates whether a validator can request a manifest from us.
-func (g *gridTracker) canRequest( //nolint:unused
+func (g *gridTracker) canRequest( //nolint:unused // skipcq:SCC-U1000
 	validatorIndex parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
 ) bool {
@@ -340,7 +340,7 @@ func (g *gridTracker) canRequest( //nolint:unused
 //
 // Returns a map representing each potential sender(ValidatorIndex) and if the sender
 // should already know about the statement, because we just sent it to it.
-func (g *gridTracker) directStatementProviders( //nolint:unused
+func (g *gridTracker) directStatementProviders( //nolint:unused // skipcq:SCC-U1000
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
 	statement any, /* FIXME should be parachaintypes.CompactStatement */
@@ -359,7 +359,7 @@ func (g *gridTracker) directStatementProviders( //nolint:unused
 }
 
 // directStatementTargets determines the validators which can receive a statement from us by direct broadcast.
-func (g *gridTracker) directStatementTargets( //nolint:unused
+func (g *gridTracker) directStatementTargets( //nolint:unused // skipcq:SCC-U1000
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
 	statement any, /* FIXME should be parachaintypes.CompactStatement */
@@ -426,7 +426,7 @@ func (g *gridTracker) learnedFreshStatement(
 
 // / sentOrReceivedDirectStatement notes that a direct statement about a
 // given candidate was sent to or received from the given validator.
-func (g *gridTracker) sentOrReceivedDirectStatement( //nolint:unused
+func (g *gridTracker) sentOrReceivedDirectStatement( //nolint:unused // skipcq:SCC-U1000
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
 	counterparty parachaintypes.ValidatorIndex,
@@ -450,7 +450,7 @@ func (g *gridTracker) sentOrReceivedDirectStatement( //nolint:unused
 }
 
 // advertisedStatements returns the advertised statement filter of a validator for a candidate.
-func (g *gridTracker) advertisedStatements( //nolint:unused
+func (g *gridTracker) advertisedStatements( //nolint:unused // skipcq:SCC-U1000
 	validator parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
 ) *statementFilter {
