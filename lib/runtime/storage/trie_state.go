@@ -40,5 +40,4 @@ type TrieState interface {
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
 	LoadCode() []byte
 	LoadCodeHash() (common.Hash, error)
-	GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error)
 }

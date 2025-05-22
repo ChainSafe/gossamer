@@ -72,15 +72,17 @@ func (s *InmemoryStorageState) StoreTrie(ts storage.TrieState, header *types.Hea
 	}
 
 	if header != nil {
-		insertedNodeHashes, deletedNodeHashes, err := ts.GetChangedNodeHashes()
-		if err != nil {
-			return fmt.Errorf("getting trie changed node hashes for block hash %s: %w", header.Hash(), err)
-		}
+		if inMemoryStateTrie, ok := ts.(*storage.InMemoryTrieState); ok {
+			insertedNodeHashes, deletedNodeHashes, err := inMemoryStateTrie.GetChangedNodeHashes()
+			if err != nil {
+				return fmt.Errorf("getting trie changed node hashes for block hash %s: %w", header.Hash(), err)
+			}
 
-		err = s.pruner.StoreJournalRecord(
-			deletedNodeHashes, insertedNodeHashes, header.Hash(), int64(header.Number))
-		if err != nil {
-			return fmt.Errorf("storing journal record: %w", err)
+			err = s.pruner.StoreJournalRecord(
+				deletedNodeHashes, insertedNodeHashes, header.Hash(), int64(header.Number))
+			if err != nil {
+				return fmt.Errorf("storing journal record: %w", err)
+			}
 		}
 	}
 

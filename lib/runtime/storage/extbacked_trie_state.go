@@ -166,21 +166,3 @@ func (t *ExtBackedTrieState[H, Hasher, B]) LoadCodeHash() (common.Hash, error) {
 	code := t.LoadCode()
 	return common.Blake2bHash(code)
 }
-
-func (t *ExtBackedTrieState[H, Hasher, B]) Trie() trie.Trie {
-	// TODO: remove this from the interface
-	panic("not implemented")
-}
-
-func (t *ExtBackedTrieState[H, Hasher, B]) TrieEntries() map[string][]byte {
-	// TODO: remove this from the interface
-	panic("not implemented")
-}
-
-func (t *ExtBackedTrieState[H, Hasher, B]) GetChangedNodeHashes() (
-	inserted,
-	deleted map[common.Hash]struct{},
-	err error,
-) {
-	panic("not implemented")
-}
