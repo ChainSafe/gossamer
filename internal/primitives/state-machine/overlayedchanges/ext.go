@@ -13,6 +13,7 @@ import (
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
+	"github.com/ChainSafe/gossamer/internal/saturating"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -89,8 +90,6 @@ type OverlayedExtension interface {
 	isOverlayedExtension()
 }
 
-var guard = statemachine.NewGuard(statemachine.Abort).Done
-
 // Wraps a read-only backend, call executor, and current overlayed changes.
 type Ext[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]] struct {
 	// The overlayed changes to write to.
@@ -98,7 +97,7 @@ type Ext[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Has
 	// The storage backend to read from.
 	backend B
 	// Pseudo-unique id used for tracing.
-	Id uint16
+	ID uint16
 }
 
 // NewExt creates a new Ext instance.
@@ -109,7 +108,7 @@ func NewExt[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, 
 	return &Ext[H, Hasher, B]{
 		overlay: overlay,
 		backend: backend,
-		Id:      uint16(rand.Intn(65536)), //nolint:gosec
+		ID:      uint16(rand.Intn(65536)), //nolint:gosec
 	}
 }
 
@@ -120,8 +119,6 @@ func (e *Ext[H, Hasher, B]) SetOffchainStorage(key []byte, value []byte) {
 
 // Read runtime storage.
 func (e *Ext[H, Hasher, B]) Storage(key []byte) []byte {
-	defer guard()
-
 	result, has := e.overlay.Storage(key)
 
 	if !has || result == nil {
@@ -135,12 +132,12 @@ func (e *Ext[H, Hasher, B]) Storage(key []byte) []byte {
 	logger.Tracef(
 		`target = state 
 		method = Get
-		ext_id = %s
-		key = %s
-		result = %s`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHex(key),
-		common.BytesToHex(result),
+		ext_id = %x
+		key = %x
+		result = %x`,
+		leID(e.ID),
+		key,
+		result,
 	)
 
 	return result
@@ -149,8 +146,6 @@ func (e *Ext[H, Hasher, B]) Storage(key []byte) []byte {
 // Get storage value hash.
 // This may be optimised for large values.
 func (e *Ext[H, Hasher, B]) StorageHash(key []byte) []byte {
-	defer guard()
-
 	var hash H
 
 	result, has := e.overlay.Storage(key)
@@ -172,11 +167,11 @@ func (e *Ext[H, Hasher, B]) StorageHash(key []byte) []byte {
 	logger.Tracef(
 		`target = state 
 		method = Hash
-		ext_id = %s
-		key = %s
+		ext_id = %x
+		key = %x
 		result = %s`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHex(key),
+		leID(e.ID),
+		key,
 		hash.String(),
 	)
 
@@ -190,7 +185,6 @@ func (e *Ext[H, Hasher, B]) StorageHash(key []byte) []byte {
 // Read child runtime storage.
 // Returns an SCALE encoded hash.
 func (e *Ext[H, Hasher, B]) ChildStorage(childInfo storage.ChildInfo, key []byte) []byte {
-	defer guard()
 
 	result, has := e.overlay.ChildStorage(childInfo, key)
 	if has && result == nil {
@@ -208,14 +202,14 @@ func (e *Ext[H, Hasher, B]) ChildStorage(childInfo storage.ChildInfo, key []byte
 	logger.Tracef(
 		`target = state 
 		method = ChildGet
-		ext_id = %s
-		child_info = %s
-		key = %s
-		result = %s`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHash(childInfo.StorageKey()),
-		common.BytesToHex(key),
-		common.BytesToHex(result),
+		ext_id = %x
+		child_info = %x
+		key = %x
+		result = %x`,
+		leID(e.ID),
+		childInfo.StorageKey(),
+		key,
+		result,
 	)
 
 	return result
@@ -225,8 +219,6 @@ func (e *Ext[H, Hasher, B]) ChildStorage(childInfo storage.ChildInfo, key []byte
 // This may be optimised for large values.
 // Returns an SCALE encoded hash.
 func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []byte) []byte {
-	defer guard()
-
 	var hash H
 	result, has := e.overlay.ChildStorage(childInfo, key)
 
@@ -251,13 +243,13 @@ func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []
 	logger.Tracef(
 		`target = state 
 		method = ChildHash
-		ext_id = %s
-		child_info = %s
-		key = %s
+		ext_id = %x
+		child_info = %x
+		key = %x
 		result = %s`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHash(childInfo.StorageKey()),
-		common.BytesToHex(key),
+		leID(e.ID),
+		childInfo.StorageKey(),
+		key,
 		hash.String(),
 	)
 
@@ -270,8 +262,6 @@ func (e *Ext[H, Hasher, B]) ChildStorageHash(childInfo storage.ChildInfo, key []
 
 // Whether a storage entry exists.
 func (e *Ext[H, Hasher, B]) ExistsStorage(key []byte) bool {
-	defer guard()
-
 	var exists bool
 
 	value, has := e.overlay.Storage(key)
@@ -288,11 +278,11 @@ func (e *Ext[H, Hasher, B]) ExistsStorage(key []byte) bool {
 	logger.Tracef(
 		`target = state 
 		method = Exists
-		ext_id = %s
-		key = %s
+		ext_id = %x
+		key = %x
 		result = %s`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHex(key),
+		leID(e.ID),
+		key,
 		exists,
 	)
 
@@ -301,8 +291,6 @@ func (e *Ext[H, Hasher, B]) ExistsStorage(key []byte) bool {
 
 // Whether a child storage entry exists.
 func (e *Ext[H, Hasher, B]) ExistsChildStorage(childInfo storage.ChildInfo, key []byte) bool {
-	defer guard()
-
 	var exists bool
 
 	value, has := e.overlay.ChildStorage(childInfo, key)
@@ -319,13 +307,13 @@ func (e *Ext[H, Hasher, B]) ExistsChildStorage(childInfo storage.ChildInfo, key 
 	logger.Tracef(
 		`target = state 
 		method = ChildExists
-		ext_id = %s
-		child_info = %s
-		key = %s
+		ext_id = %x
+		child_info = %x
+		key = %x
 		result = %s`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHash(childInfo.StorageKey()),
-		common.BytesToHex(key),
+		leID(e.ID),
+		childInfo.StorageKey(),
+		key,
 		exists,
 	)
 
@@ -340,9 +328,7 @@ func (e Ext[H, Hasher, B]) NextStorageKey(key []byte) []byte {
 		panic(ExtNotAllowedToFail)
 	}
 
-	overlayedChangesIter := e.overlay.IterAfter(key)
-	overlayChanges := common.NewPeekable2(overlayedChangesIter)
-
+	overlayChanges := common.NewPeekable2(e.overlay.IterAfter(key))
 	_, _, has := overlayChanges.Peek()
 
 	if !has {
@@ -350,18 +336,18 @@ func (e Ext[H, Hasher, B]) NextStorageKey(key []byte) []byte {
 	}
 
 	if nextBackendKey != nil && has {
-		for overlayKey, overlayValue := range overlayedChangesIter {
+		for overlayKey, overlayValue := range overlayChanges.Iter() {
 			cmp := bytes.Compare(nextBackendKey, overlayKey)
 
-			// If `backend_key` is less than the `overlay_key`, we found out next key.
+			// If nextBackendKey is less than the overlayKey, we found out next key.
 			if cmp == -1 {
 				return nextBackendKey
 			} else if overlayValue.Value() != nil {
-				// If there exists a value for the `overlay_key` in the overlay
+				// If there exists a value for the overlayKey in the overlay
 				// (aka the key is still valid), it means we have found our next key.
 				return overlayKey
 			} else if cmp == 0 {
-				// If the `backend_key` and `overlay_key` are equal, it means that we need
+				// If the nextBackendKey and overlayKey are equal, it means that we need
 				// to search for the next backend key, because the overlay has overwritten
 				// this key.
 				nextBackendKey, err = e.backend.NextStorageKey(overlayKey)
@@ -374,7 +360,7 @@ func (e Ext[H, Hasher, B]) NextStorageKey(key []byte) []byte {
 		return nextBackendKey
 	}
 
-	for k, v := range overlayedChangesIter {
+	for k, v := range overlayChanges.Iter() {
 		if v.Value() != nil {
 			return k
 		}
@@ -408,15 +394,15 @@ func (e Ext[H, Hasher, B]) NextChildStorageKey(childInfo storage.ChildInfo, key 
 				cmp = bytes.Compare(nextBackendKey, overlayKey)
 			}
 
-			// If `backend_key` is less than the `overlay_key`, we found out next key.
+			// If nextBackendKey is less than the overlayKey, we found out next key.
 			if cmp == -1 {
 				return nextBackendKey
 			} else if overlayValue.Value() != nil {
-				// If there exists a value for the `overlay_key` in the overlay
+				// If there exists a value for the overlayKey in the overlay
 				// (aka the key is still valid), it means we have found our next key.
 				return overlayKey
 			} else if cmp == 0 {
-				// If the `backend_key` and `overlay_key` are equal, it means that we need
+				// If the nextBackendKey and overlayKey are equal, it means that we need
 				// to search for the next backend key, because the overlay has overwritten
 				// this key.
 				nextBackendKey, err = e.backend.NextChildStorageKey(childInfo, overlayKey)
@@ -459,8 +445,6 @@ func (e Ext[H, Hasher, B]) ClearChildStorage(childInfo storage.ChildInfo, key []
 
 // Set or clear a storage entry key of current contract being called (effective immediately).
 func (e Ext[H, Hasher, B]) PlaceStorage(key []byte, value []byte) {
-	defer guard()
-
 	if keys.IsChildStorageKey(key) {
 		logger.Warnf("refuse to directly set child storage key")
 		return
@@ -469,12 +453,12 @@ func (e Ext[H, Hasher, B]) PlaceStorage(key []byte, value []byte) {
 	logger.Tracef(
 		`target = state 
 		method = Put
-		ext_id = %s
-		key = %s
-		value = %s`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHex(key),
-		common.BytesToHex(value),
+		ext_id = %x
+		key = %x
+		value = %x`,
+		leID(e.ID),
+		key,
+		value,
 	)
 
 	e.overlay.SetStorage(key, value)
@@ -489,17 +473,15 @@ func (e Ext[H, Hasher, B]) PlaceChildStorage(
 	logger.Tracef(
 		`target = state 
 		method = ChildPut
-		ext_id = %s
-		child_info = %s
-		key = %s
-		value = %s`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHex(childInfo.StorageKey()),
-		common.BytesToHex(key),
-		common.BytesToHex(value),
+		ext_id = %x
+		child_info = %x
+		key = %x
+		value = %x`,
+		leID(e.ID),
+		childInfo.StorageKey(),
+		key,
+		value,
 	)
-
-	defer guard()
 
 	e.overlay.SetChildStorage(childInfo, key, value)
 }
@@ -523,13 +505,11 @@ func (e Ext[H, Hasher, B]) KillChildStorage(
 	logger.Tracef(
 		`target = state 
 		method = ChildKill
-		ext_id = %s
-		child_info = %s`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHex(childInfo.StorageKey()),
+		ext_id = %x
+		child_info = %x`,
+		leID(e.ID),
+		childInfo.StorageKey(),
 	)
-
-	defer guard()
 
 	overlay := e.overlay.ClearChildStorage(childInfo)
 	cursor, backend, loops := e.limitRemoveFromBackend(childInfo, nil, maybeLimit, maybeCursor)
@@ -551,13 +531,11 @@ func (e Ext[H, Hasher, B]) ClearPrefix(
 	logger.Tracef(
 		`target = state 
 		method = ClearPrefix
-		ext_id = %s
-		prefix = %s`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHex(prefix),
+		ext_id = %x
+		prefix = %x`,
+		leID(e.ID),
+		prefix,
 	)
-
-	defer guard()
 
 	if keys.StartsWithChildStorageKey(prefix) {
 		logger.Warnf("refuse to directly clear prefix that is part or contains of child storage key")
@@ -586,15 +564,13 @@ func (e Ext[H, Hasher, B]) ClearChildPrefix(
 	logger.Tracef(
 		`target = state 
 		method = ChildClearPrefix
-		ext_id = %s
-		child_info = %s
-		prefix = %s`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHex(childInfo.StorageKey()),
-		common.BytesToHex(prefix),
+		ext_id = %x
+		child_info = %x
+		prefix = %x`,
+		leID(e.ID),
+		childInfo.StorageKey(),
+		prefix,
 	)
-
-	defer guard()
 
 	overlay := e.overlay.ClearChildPrefix(childInfo, prefix)
 	cursor, backend, loops := e.limitRemoveFromBackend(childInfo, prefix, limit, cursor)
@@ -613,15 +589,13 @@ func (e Ext[H, Hasher, B]) StorageAppend(key []byte, value []byte) {
 	logger.Tracef(
 		`target = state 
 		method = Append
-		ext_id = %s
-		key = %s
-		value = %s`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHex(key),
-		common.BytesToHex(value),
+		ext_id = %x
+		key = %x
+		value = %x`,
+		leID(e.ID),
+		key,
+		value,
 	)
-
-	defer guard()
 
 	e.overlay.AppendStorage(key, value, func() StorageValue {
 		def, err := e.backend.Storage(key)
@@ -637,17 +611,15 @@ func (e Ext[H, Hasher, B]) StorageAppend(key []byte, value []byte) {
 // This will also update all child storage keys in the top-level storage map.
 // The returned hash is defined by the `Block` and is SCALE encoded.
 func (e Ext[H, Hasher, B]) StorageRoot(stateVersion storage.StateVersion) []byte {
-	defer guard()
-
 	root, cached := e.overlay.StorageRoot(e.backend, stateVersion)
 
 	logger.Tracef(
 		`target = state 
 		method = StorageRoot
-		ext_id = %s
+		ext_id = %x
 		storage_root = %s
 		cached = %v`,
-		common.BytesToHex(leID(e.Id)),
+		leID(e.ID),
 		root.String(),
 		cached,
 	)
@@ -663,8 +635,6 @@ func (e Ext[H, Hasher, B]) ChildStorageRoot(
 	childInfo storage.ChildInfo,
 	stateVersion storage.StateVersion,
 ) []byte {
-	defer guard()
-
 	root, cached, err := e.overlay.ChildStorageRoot(childInfo, e.backend, stateVersion)
 	if err != nil {
 		panic(ExtNotAllowedToFail)
@@ -673,12 +643,12 @@ func (e Ext[H, Hasher, B]) ChildStorageRoot(
 	logger.Tracef(
 		`target = state 
 		method = ChildStorageRoot
-		ext_id = %s
-		child_info = %s
+		ext_id = %x
+		child_info = %x
 		storage_root = %s
 		cached = %v`,
-		common.BytesToHex(leID(e.Id)),
-		common.BytesToHex(childInfo.StorageKey()),
+		leID(e.ID),
+		childInfo.StorageKey(),
 		root.String(),
 		cached,
 	)
@@ -690,13 +660,29 @@ func (e Ext[H, Hasher, B]) ChildStorageRoot(
 func (e Ext[H, Hasher, B]) StorageIndexTransaction(index uint32, hash []byte, size uint32) {
 	logger.Tracef(
 		`target = state 
+		method = IndexTransaction
+		ext_id = %s
+		index = %d
+		tx_hash = %x`,
+		leID(e.ID),
+		index,
+		hash,
+	)
+
+	e.overlay.AddTransactionIndex(IndexOperationRenew{Extrinsic: index, Hash: hash})
+}
+
+// Renew existing piece of data storage.
+func (e Ext[H, Hasher, B]) StorageRenewTransactionIndex(index uint32, hash []byte) {
+	logger.Tracef(
+		`target = state 
 		method = RenewTransactionIndex
 		ext_id = %s
 		index = %d
-		tx_hash = %s`,
-		common.BytesToHex(leID(e.Id)),
+		tx_hash = %x`,
+		leID(e.ID),
 		index,
-		common.BytesToHex(hash),
+		hash,
 	)
 
 	e.overlay.AddTransactionIndex(IndexOperationRenew{Extrinsic: index, Hash: hash})
@@ -777,16 +763,16 @@ func (e Ext[H, Hasher, B]) limitRemoveFromBackend(
 				e.overlay.SetStorage(key, nil)
 			}
 
-			deleteCount += 1
+			deleteCount = saturating.Add(deleteCount, 1)
 		}
-		loopCount += 1
+		loopCount = saturating.Add(loopCount, 1)
 	}
 
 	return maybeNextKey, deleteCount, loopCount
 }
 
-func leID(id uint16) []byte {
+func leID(ID uint16) []byte {
 	IDLe := make([]byte, 2)
-	binary.LittleEndian.PutUint16(IDLe, id)
+	binary.LittleEndian.PutUint16(IDLe, ID)
 	return IDLe
 }

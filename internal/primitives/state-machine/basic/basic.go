@@ -5,8 +5,6 @@ package basic
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"iter"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -26,6 +24,7 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "statemachine/basic"))
 
+// Simple Map-based Externalities impl.
 type BasicExternalities struct {
 	overlay    overlayedchanges.OverlayedChanges[hash.H256, runtime.BlakeTwo256]
 	extensions externalities.Extensions
@@ -49,7 +48,8 @@ func (be *BasicExternalities) Insert(k overlayedchanges.StorageKey, v overlayedc
 	be.overlay.SetStorage(k, v)
 }
 
-func (be *BasicExternalities) IntoStorages() storage.Storage {
+// intoStorages converts the overlayed changes into a storage.Storage object (for testing purposes)
+func (be *BasicExternalities) intoStorages() storage.Storage {
 	top := btree.Map[string, []byte]{}
 	for k, v := range be.overlay.Changes() {
 		if v.Value() != nil {
@@ -260,9 +260,7 @@ func (be *BasicExternalities) ChildStorageRoot(
 		}
 
 		backend := statemachine.NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
-		backend.ChildStorageRoot(childInfo, delta, stateVersion)
-
-		panic("not implemented")
+		rootHash, _, _ = backend.ChildStorageRoot(childInfo, delta, stateVersion)
 	} else {
 		rootHash = trie.EmptyChildTrieRoot[hash.H256, runtime.BlakeTwo256]()
 	}
@@ -288,23 +286,4 @@ func (be *BasicExternalities) StorageIndexTransaction(index uint32, hash []byte,
 
 func (be *BasicExternalities) StorageRenewTransactionIndex(index uint32, hash []byte) {
 	panic("not implemented StorageRenewTransactionIndex")
-}
-
-func (be *BasicExternalities) ExtensionById(typeId externalities.TypeId) any {
-	return be.extensions.Get(typeId)
-}
-
-func (be *BasicExternalities) RegisterExtensionWithTypeId(
-	typeId externalities.TypeId,
-	extension externalities.Extension,
-) error {
-	return be.extensions.RegisterWithTypeId(typeId, extension)
-}
-
-func (be *BasicExternalities) DeregisterExtensionByTypeId(typeId externalities.TypeId) error {
-	if be.extensions.Deregister(typeId) {
-		return nil
-	}
-
-	return errors.Join(externalities.ErrExtensionNotFound, fmt.Errorf("typeId: %s", typeId))
 }

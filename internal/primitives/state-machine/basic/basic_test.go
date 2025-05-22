@@ -91,7 +91,7 @@ func TestKillChildStorageReturnsNumElementsRemoved(t *testing.T) {
 }
 
 func TestBasicExternalitiesIsEmpty(t *testing.T) {
-	storage := NewEmptyBasicExternalities().IntoStorages()
+	storage := NewEmptyBasicExternalities().intoStorages()
 
 	require.Empty(t, storage.Top)
 	require.Empty(t, storage.ChildrenDefault)
