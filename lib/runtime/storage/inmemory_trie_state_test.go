@@ -24,7 +24,7 @@ var testCases = []string{
 	"bnm",
 }
 
-func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
+func TestInMemoryTrieState_WithAndWithoutTransactions(t *testing.T) {
 	t.Parallel()
 
 	prefixedKeys := [][]byte{
@@ -397,7 +397,7 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 	}
 }
 
-func TestNextKeys(t *testing.T) {
+func TestInMemoryTrieState_NextKeys(t *testing.T) {
 	cases := map[string]struct {
 		keysOnState        [][]byte
 		underTransactionFn func(t *testing.T, ts *InMemoryTrieState)
@@ -512,7 +512,7 @@ func TestNextKeys(t *testing.T) {
 	}
 }
 
-func TestClearPrefixSortedKeys(t *testing.T) {
+func TestInMemoryTrieState_ClearPrefixLimit(t *testing.T) {
 	t.Run("with_limit", func(t *testing.T) {
 		ts := NewInMemoryTrieState(inmemory_trie.NewEmptyTrie())
 		ts.SetVersion(trie.V1)
@@ -585,7 +585,7 @@ func TestClearPrefixSortedKeys(t *testing.T) {
 	})
 }
 
-func TestTrieState_Root(t *testing.T) {
+func TestInMemoryTrieState_Root(t *testing.T) {
 	ts := NewInMemoryTrieState(inmemory_trie.NewEmptyTrie())
 
 	for _, tc := range testCases {
@@ -596,7 +596,7 @@ func TestTrieState_Root(t *testing.T) {
 	require.Equal(t, expected, ts.Trie().MustHash())
 }
 
-func TestTrieState_ChildRoot(t *testing.T) {
+func TestInMemoryTrieState_ChildRoot(t *testing.T) {
 	ts := NewInMemoryTrieState(inmemory_trie.NewEmptyTrie())
 
 	keyToChild := []byte("child")
@@ -610,7 +610,7 @@ func TestTrieState_ChildRoot(t *testing.T) {
 	require.NotNil(t, root)
 }
 
-func TestTrieState_NestedTransactions(t *testing.T) {
+func TestInMemoryTrieState_NestedTransactions(t *testing.T) {
 	cases := map[string]struct {
 		createTrieState func() *InMemoryTrieState
 		assert          func(*testing.T, *InMemoryTrieState)
@@ -713,7 +713,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 	}
 }
 
-func BenchmarkNextKey(b *testing.B) {
+func BenchmarkInMemoryTrieState_NextKey(b *testing.B) {
 	ts := NewInMemoryTrieState(inmemory_trie.NewEmptyTrie())
 
 	// Keys / values already present in state

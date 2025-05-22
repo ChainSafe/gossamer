@@ -14,13 +14,16 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
+// ExtBackedTrieState is a wrapper around the Ext struct that provides a TrieState interface
+// Note: Since the Ext struct is using a read-only backend, all actions are done on the overlayed changes
+// and no changes are reflected on the backend
 type ExtBackedTrieState[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]] struct {
-	ext         overlayedchanges.Ext[H, Hasher, B]
+	ext         *overlayedchanges.Ext[H, Hasher, B]
 	trieVersion storage.StateVersion
 }
 
 func NewExtBackedTrieState[H runtime.Hash, Hasher runtime.Hasher[H], B statemachine.Backend[H, Hasher]](
-	ext overlayedchanges.Ext[H, Hasher, B],
+	ext *overlayedchanges.Ext[H, Hasher, B],
 ) *ExtBackedTrieState[H, Hasher, B] {
 	return &ExtBackedTrieState[H, Hasher, B]{ext: ext}
 }

@@ -769,9 +769,9 @@ func (e Ext[H, Hasher, B]) limitRemoveFromBackend(
 			overlay, has = e.overlay.Storage(key)
 		}
 
-		if has {
+		if !has || overlay == nil {
 			// not pending deletion from the backend - delete it.
-			if overlay != nil {
+			if childInfo != nil {
 				e.overlay.SetChildStorage(childInfo, key, nil)
 			} else {
 				e.overlay.SetStorage(key, nil)
