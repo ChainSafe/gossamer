@@ -27,7 +27,7 @@ func ResolveStateVersionFromWasm[Hasher runtime.Hasher[H], H runtime.Hash](
 		return primitives_storage.DefaultStateVersion, blockchain.ErrVersionInvalid
 	}
 
-	ext := basic.NewBasicExternalities() // Just to read runtime version
+	ext := basic.NewEmptyBasicExternalities() // Just to read runtime version
 	codeFetcher := core.NewWrappedRuntimeCode(wasm)
 
 	hasher := *new(Hasher)

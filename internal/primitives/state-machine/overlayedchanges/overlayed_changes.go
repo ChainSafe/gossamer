@@ -87,10 +87,30 @@ type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// True if extrinsics stats must be collected.
 	collectExtrinsics bool
 	// Collect statistic on this execution.
-	stats *StateMachineStats
+	stats StateMachineStats
 	// Caches the "storage transaction" that is created while calling `storage_root`.
 	// This transaction can be applied to the backend to persist the state changes.
 	storageTransactionCache *storageTransactionCache[H, Hasher]
+}
+
+func NewOverlayedChangesFromStorage[
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+](storage storage.Storage) *OverlayedChanges[H, Hasher] {
+	children := make(map[string]childStorageValue)
+	for k, v := range storage.ChildrenDefault {
+		children[k] = childStorageValue{
+			overlayedChangeSet: newOverlayedChangeSetFromBtreeMap(v.Data),
+			ChildInfo:          v.ChildInfo,
+		}
+	}
+
+	return &OverlayedChanges[H, Hasher]{
+		top:      newOverlayedChangeSetFromBtreeMap(storage.Top),
+		children: children,
+		offchain: NewOffchainOverlayedChanges(),
+		stats:    NewStateMachineStats(),
+	}
 }
 
 func NewOverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]]() *OverlayedChanges[H, Hasher] {
@@ -130,8 +150,8 @@ func (oc *OverlayedChanges[H, Hasher]) SetCollectExtrinsic(collectExtrinsic bool
 // Returns (nil, false) if the key is unknown (i.e. and the query should be referred
 // to the backend); (nil, true) if the key has been deleted. or a (value, true) for a key whose
 // value has been set.
-func (oc *OverlayedChanges[H, Hasher]) Storage(key string) ([]byte, bool) {
-	entry, has := oc.top.Get(key)
+func (oc *OverlayedChanges[H, Hasher]) Storage(key []byte) ([]byte, bool) {
+	entry, has := oc.top.Get(string(key))
 	if !has {
 		return nil, false
 	}
@@ -154,17 +174,17 @@ func (oc *OverlayedChanges[H, Hasher]) markDirty() {
 // Returns (nil, false) if the key is unknown (i.e. and the query should be referred
 // to the backend); (nil, true) if the key has been deleted. or a (value, true) for a key whose
 // value has been set.
-func (oc *OverlayedChanges[H, Hasher]) ChildStorage(childInfo storage.ChildInfo, key *string) ([]byte, bool) {
+func (oc *OverlayedChanges[H, Hasher]) ChildStorage(childInfo storage.ChildInfo, key []byte) ([]byte, bool) {
 	childEntry, has := oc.children[string(childInfo.StorageKey())]
 
 	if !has {
 		return nil, false
 	}
 
-	entry, has := childEntry.overlayedChangeSet.Get(*key)
+	entry, has := childEntry.overlayedChangeSet.Get(string(key))
 	if !has {
 		oc.stats.TallyReadModified(0)
-		return nil, true
+		return nil, false
 	}
 
 	value := entry.Value()
@@ -243,7 +263,7 @@ func (oc *OverlayedChanges[H, Hasher]) SetChildStorage(
 
 // Clear child storage of given storage key.
 // Can be rolled back or committed when called inside a transaction.
-func (oc *OverlayedChanges[H, Hasher]) ClearChildStorage(childInfo storage.ChildInfo) {
+func (oc *OverlayedChanges[H, Hasher]) ClearChildStorage(childInfo storage.ChildInfo) uint32 {
 	oc.markDirty()
 
 	extrinsicIndex := oc.extrinsicIndex()
@@ -265,25 +285,25 @@ func (oc *OverlayedChanges[H, Hasher]) ClearChildStorage(childInfo storage.Child
 		panic("ChildInfo mismatch, not updatable")
 	}
 
-	changeset.clearWhere(func(key []byte, value *overlayedValue) bool {
+	return changeset.clearWhere(func(key []byte, value *overlayedValue) bool {
 		return true
 	}, extrinsicIndex)
 }
 
 // Removes all key-value pairs which keys share the given prefix.
 // Can be rolled back or committed when called inside a transaction.
-func (oc *OverlayedChanges[H, Hasher]) ClearPrefix(prefix []byte) {
+func (oc *OverlayedChanges[H, Hasher]) ClearPrefix(prefix []byte) uint32 {
 	oc.markDirty()
 
 	extrinsicIndex := oc.extrinsicIndex()
-	oc.top.clearWhere(func(key []byte, value *overlayedValue) bool {
+	return oc.top.clearWhere(func(key []byte, value *overlayedValue) bool {
 		return bytes.HasPrefix(key, prefix)
 	}, extrinsicIndex)
 }
 
 // Removes all key-value pairs which keys share the given prefix.
 // Can be rolled back or committed when called inside a transaction
-func (oc *OverlayedChanges[H, Hasher]) ClearChildPrefix(childInfo storage.ChildInfo, prefix []byte) {
+func (oc *OverlayedChanges[H, Hasher]) ClearChildPrefix(childInfo storage.ChildInfo, prefix []byte) uint32 {
 	oc.markDirty()
 
 	extrinsicIndex := oc.extrinsicIndex()
@@ -305,7 +325,7 @@ func (oc *OverlayedChanges[H, Hasher]) ClearChildPrefix(childInfo storage.ChildI
 		panic("ChildInfo mismatch, not updatable")
 	}
 
-	changeset.clearWhere(func(key []byte, value *overlayedValue) bool {
+	return changeset.clearWhere(func(key []byte, value *overlayedValue) bool {
 		return bytes.HasPrefix(key, prefix)
 	}, extrinsicIndex)
 }
@@ -431,7 +451,8 @@ func (oc *OverlayedChanges[H, Hasher]) offchainDrainCommited() iter.Seq2[Storage
 }
 
 // / Get an iterator over all child changes as seen by the current transaction.
-func (oc *OverlayedChanges[H, Hasher]) Children() iter.Seq2[iter.Seq2[StorageKey, *OverlayedStorageEntry],
+func (oc *OverlayedChanges[H, Hasher]) Children() iter.Seq2[
+	iter.Seq2[StorageKey, *OverlayedStorageEntry],
 	storage.ChildInfo,
 ] {
 	return func(yield func(iter.Seq2[StorageKey, *OverlayedStorageEntry], storage.ChildInfo) bool) {
@@ -477,7 +498,7 @@ func (oc *OverlayedChanges[H, Hasher]) extrinsicIndex() *uint32 {
 		return nil
 	}
 
-	val, has := oc.Storage(string(keys.ExtrinsicIndexKey))
+	val, has := oc.Storage(keys.ExtrinsicIndexKey)
 	if !has {
 		return &NoExtrinsicIndex
 	}
@@ -541,7 +562,7 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorageRoot(
 	var root H
 
 	if oc.storageTransactionCache != nil {
-		value, has := oc.Storage(string(prefixedStorageKey))
+		value, has := oc.Storage(prefixedStorageKey)
 		if !has {
 			backendValue, err := b.Storage(prefixedStorageKey)
 			if err != nil {
@@ -603,7 +624,7 @@ func (oc *OverlayedChanges[H, Hasher]) IterAfter(key StorageKey) iter.Seq2[Stora
 }
 
 func (oc *OverlayedChanges[H, Hasher]) ChildIterAfter(
-	storageKey StorageKey,
+	storageKey storage.StorageKey,
 	key StorageKey,
 ) iter.Seq2[StorageKey, *overlayedValue] {
 	entry, has := oc.children[string(storageKey)]

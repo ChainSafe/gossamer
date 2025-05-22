@@ -4,6 +4,8 @@
 package statemachine
 
 import (
+	"maps"
+
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
@@ -45,6 +47,50 @@ func NewMemoryDBTrieBackendFromMap[H runtime.Hash, Hasher runtime.Hasher[H]](
 		},
 	}, stateVersion)
 
+	return backend
+}
+
+func NewMemoryDBTrieBackendFromStorage[H runtime.Hash, Hasher runtime.Hasher[H]](
+	inners storage.Storage,
+	stateVersion storage.StateVersion,
+) MemoryDBTrieBackend[H, Hasher] {
+	backend := NewMemoryDBTrieBackend[H, Hasher]()
+
+	changes := make([]change, 0)
+
+	for v := range maps.Values(inners.ChildrenDefault) {
+		storageCollection := make(StorageCollection, 0)
+
+		v.Data.Scan(func(key string, value []byte) bool {
+			storageCollection = append(storageCollection, StorageKeyValue{
+				StorageKey:   StorageKey(key),
+				StorageValue: StorageValue(value),
+			})
+			return true
+		})
+
+		changes = append(changes, change{
+			ChildInfo:         v.ChildInfo,
+			StorageCollection: storageCollection,
+		})
+	}
+
+	storageCollection := make(StorageCollection, 0)
+
+	inners.Top.Scan(func(key string, value []byte) bool {
+		storageCollection = append(storageCollection, StorageKeyValue{
+			StorageKey:   StorageKey(key),
+			StorageValue: StorageValue(value),
+		})
+		return true
+	})
+
+	changes = append(changes, change{
+		ChildInfo:         nil,
+		StorageCollection: storageCollection,
+	})
+
+	backend.insert(changes, stateVersion)
 	return backend
 }
 

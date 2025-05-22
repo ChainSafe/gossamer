@@ -19,12 +19,12 @@ type StateMachineStats struct {
 	BytesWritesOverlay uint64
 }
 
-func NewStateMachineStats() *StateMachineStats {
-	return &StateMachineStats{}
+func NewStateMachineStats() StateMachineStats {
+	return StateMachineStats{}
 }
 
-func (sms *StateMachineStats) Clone() *StateMachineStats {
-	return &StateMachineStats{
+func (sms *StateMachineStats) Clone() StateMachineStats {
+	return StateMachineStats{
 		ReadsModified:      sms.ReadsModified,
 		BytesReadModified:  sms.BytesReadModified,
 		WritesOverlay:      sms.WritesOverlay,
