@@ -10,13 +10,22 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-statement-distribution"))
 
+type BlockState interface {
+	GetHeader(hash common.Hash) (header *types.Header, err error)
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+}
+
 type StatementDistribution struct {
+	blockState          BlockState
 	SubSystemToOverseer chan<- any
 	state               *v2State
 }
@@ -24,6 +33,7 @@ type StatementDistribution struct {
 func New(overseerChan chan<- any, ks keystore.Keystore, blockState parachainutil.BlockState) *StatementDistribution {
 	return &StatementDistribution{
 		SubSystemToOverseer: overseerChan,
+		blockState:          blockState,
 		state:               newV2State(ks, parachainutil.NewBackingImplicitView(blockState, nil)),
 	}
 }
@@ -76,6 +86,14 @@ func (s *StatementDistribution) handleSubsystemMessage(overseerMessage any) (boo
 	}
 
 	return false, nil
+}
+
+func (s *StatementDistribution) sendPeerMessageForRelayParent(pid string, rp common.Hash) {
+	panic("unimplemented")
+}
+
+func (s *StatementDistribution) newLeafFragmentChainUpdates(rp common.Hash) {
+	panic("unimplemented")
 }
 
 // TODO: https://github.com/ChainSafe/gossamer/issues/4285

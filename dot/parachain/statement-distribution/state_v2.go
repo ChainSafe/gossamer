@@ -2,7 +2,6 @@
 package statementdistribution
 
 import (
-	"github.com/ChainSafe/gossamer/dot/parachain/grid"
 	parachainnetwork "github.com/ChainSafe/gossamer/dot/parachain/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -37,6 +36,7 @@ type perRelayParentState struct {
 	transposedClaimQueue parachaintypes.TransposedClaimQueue
 	groupsPerPara        map[parachaintypes.ParaID][]parachaintypes.GroupIndex
 	disabledValidators   map[parachaintypes.ValidatorIndex]struct{}
+	assignmentsPerGroup  map[parachaintypes.GroupIndex][]parachaintypes.ParaID
 }
 
 func (p *perRelayParentState) activeValidatorState() *activeValidatorState {
@@ -80,7 +80,7 @@ type activeValidatorState struct {
 }
 
 type perSessionState struct {
-	sessionInfo parachaintypes.SessionInfo
+	sessionInfo *parachaintypes.SessionInfo
 	groups      *groups
 	authLookup  map[parachaintypes.AuthorityDiscoveryID]parachaintypes.ValidatorIndex
 	gridView    any // TODO: use SessionTopologyView from statement-distribution grid (#4576)
@@ -90,7 +90,7 @@ type perSessionState struct {
 	allowV2Descriptors bool
 }
 
-func newPerSessionState(sessionInfo parachaintypes.SessionInfo,
+func newPerSessionState(sessionInfo *parachaintypes.SessionInfo,
 	keystore keystore.Keystore,
 	backingThreshold uint32,
 	allowV2Descriptor bool,
@@ -120,7 +120,7 @@ func newPerSessionState(sessionInfo parachaintypes.SessionInfo,
 // Note: we use the local index rather than the `perSessionState.localValidator` as the
 // former may be not nil when the latter is nil, due to the set of nodes in
 // discovery being a superset of the active validators for consensus.
-func (s *perSessionState) supplyTopology(topology *grid.SessionGridTopology, localIdx *parachaintypes.ValidatorIndex) {
+func (s *perSessionState) supplyTopology(topology events.SessionGridTopology, localIdx *parachaintypes.ValidatorIndex) {
 	// TODO #4373: implement once buildSessionTopology is done
 	// gridView := buildSessionTopology(
 	// 	s.sessionInfo.ValidatorGroups,
@@ -215,8 +215,8 @@ func (p *peerState) iterKnownDiscoveryIDs() []parachaintypes.AuthorityDiscoveryI
 type v2State struct {
 	implicitView     parachainutil.ImplicitView
 	candidates       candidatesTracker // TODO #4718: Create Candidates Tracker
-	perRelayParent   map[common.Hash]perRelayParentState
-	perSession       map[parachaintypes.SessionIndex]perSessionState
+	perRelayParent   map[common.Hash]*perRelayParentState
+	perSession       map[parachaintypes.SessionIndex]*perSessionState
 	unusedTopologies map[parachaintypes.SessionIndex]events.NewGossipTopology
 	peers            map[string]peerState
 	keystore         keystore.Keystore
@@ -229,8 +229,8 @@ func newV2State(ks keystore.Keystore, iv parachainutil.ImplicitView) *v2State {
 	return &v2State{
 		implicitView:     iv,
 		candidates:       nil,
-		perRelayParent:   map[common.Hash]perRelayParentState{},
-		perSession:       map[parachaintypes.SessionIndex]perSessionState{},
+		perRelayParent:   map[common.Hash]*perRelayParentState{},
+		perSession:       map[parachaintypes.SessionIndex]*perSessionState{},
 		unusedTopologies: map[parachaintypes.SessionIndex]events.NewGossipTopology{},
 		peers:            map[string]peerState{},
 		keystore:         ks,
