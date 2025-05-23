@@ -732,7 +732,7 @@ func (e *environment[H, N, Hasher, Header, E]) reportEquivocation(
 		currentSetLatestHash = bestBlockHash
 	}
 
-	runtimeAPI := e.Client.RuntimeAPI()
+	runtimeAPI := e.Client.RuntimeApi()
 
 	// generate key ownership proof at that block
 	keyOwnerProof := runtimeAPI.GenerateKeyOwnershipProof(
@@ -1486,7 +1486,7 @@ func finalizeBlock[
 	oldAuthoritySet := authoritySet.inner
 
 	var vc voterCommand // closure specific variable checked after LockImportRun
-	err := client.LockImportRun(func(importOp *api.ClientImportOperation[H, Hasher, N, Header, E]) error {
+	_, err := client.LockImportRun(func(importOp *api.ClientImportOperation[H, Hasher, N, Header, E]) (any, error) {
 		status, err := authoritySet.applyStandardChanges(
 			hash,
 			number,
@@ -1494,7 +1494,7 @@ func finalizeBlock[
 			initialSync,
 		)
 		if err != nil {
-			return fmt.Errorf("%w: %s", ErrSafety, err)
+			return nil, fmt.Errorf("%w: %s", ErrSafety, err)
 		}
 
 		// send a justification notification if a sender exists and in case of error log it.
@@ -1535,7 +1535,7 @@ func finalizeBlock[
 			var err error
 			justification, err = NewGrandpaJustificationFromCommit[H, N, Header](client, uint64(roundNumber), commit)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -1556,7 +1556,7 @@ func finalizeBlock[
 		err = client.ApplyFinality(importOp, hash, persistedJustificationEngineID, true)
 		if err != nil {
 			logger.Warnf("Error applying finality to block {%s, %s}: %s", hash, number, err)
-			return err
+			return nil, err
 		}
 
 		logger.Debugf("Finalizing blocks up to (%s, %d)", hash, number)
@@ -1567,7 +1567,7 @@ func finalizeBlock[
 			return api.ApplyAux(importOp, insert, nil)
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		var newAuthorities *newAuthoritySet[H, N]
@@ -1604,16 +1604,16 @@ func finalizeBlock[
 			if err != nil {
 				logger.Warnf("Failed to write updated authority set to disk. Bailing.")
 				logger.Warnf("Node is in a potentially inconsistent state.")
-				return err
+				return nil, err
 			}
 		}
 
 		if newAuthorities != nil {
 			vc = voterCommandChangeAuthorities[H, N](*newAuthorities)
-			return nil
+			return nil, err
 		}
 		vc = nil
-		return nil
+		return nil, err
 	})
 
 	if vc != nil {

@@ -86,7 +86,7 @@ type Header[N Number, H Hash] interface {
 	// Returns a reference to the digest.
 	Digest() Digest
 	// Get a mutable reference to the digest.
-	// DigestMut() *Digest
+	DigestMut() *Digest
 
 	// Returns the hash of the header.
 	Hash() H
