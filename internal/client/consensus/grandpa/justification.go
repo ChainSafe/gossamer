@@ -82,7 +82,7 @@ func NewGrandpaJustificationFromCommit[
 			}
 			if currentHeader != nil {
 				// NOTE: this should never happen as we pick the lowest block as base and only traverse backwards
-				// from the other blocks in the commit. but better be safe to avoid an unbound loop.			}
+				// from the other blocks in the commit. but better be safe to avoid an unbound loop.
 				if (*currentHeader).Number() <= base.Number {
 					return GrandpaJustification[H, N, Header]{},
 						fmt.Errorf("%w: %s: invalid precommits for target commit",
@@ -127,12 +127,12 @@ func DecodeJustification[
 	Hasher runtime.Hasher[Hash],
 	Header runtime.Header[N, Hash],
 ](encodedJustification []byte) (*GrandpaJustification[Hash, N, Header], error) {
-	newJustificaiton := decodeGrandpaJustification[Hash, N, Hasher, Header]{}
-	err := scale.Unmarshal(encodedJustification, &newJustificaiton)
+	newJustification := decodeGrandpaJustification[Hash, N, Hasher, Header]{}
+	err := scale.Unmarshal(encodedJustification, &newJustification)
 	if err != nil {
 		return nil, err
 	}
-	return newJustificaiton.GrandpaJustification(), nil
+	return newJustification.GrandpaJustification(), nil
 }
 
 func (dgj *decodeGrandpaJustification[H, N, Hasher, Header]) UnmarshalSCALE(reader io.Reader) (err error) {

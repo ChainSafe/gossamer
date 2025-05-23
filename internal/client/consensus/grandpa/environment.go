@@ -732,8 +732,10 @@ func (e *environment[H, N, Hasher, Header, E]) reportEquivocation(
 		currentSetLatestHash = bestBlockHash
 	}
 
+	runtimeAPI := e.Client.RuntimeAPI()
+
 	// generate key ownership proof at that block
-	keyOwnerProof := e.Client.RuntimeAPI().GenerateKeyOwnershipProof(
+	keyOwnerProof := runtimeAPI.GenerateKeyOwnershipProof(
 		currentSetLatestHash,
 		primitives.SetID(authoritySet.SetID),
 		equivocation.Offender(),
@@ -745,8 +747,6 @@ func (e *environment[H, N, Hasher, Header, E]) reportEquivocation(
 
 	// submit equivocation report at **best** block
 	equivocationProof := primitives.NewEquivocationProof[H, N](primitives.SetID(authoritySet.SetID), equivocation)
-
-	runtimeAPI := e.Client.RuntimeAPI()
 
 	// NOTE: in substrate, this registers the current transaction pool associated with best_block_hash.
 	// Given we don't support offchain workers at the moment, I'm keeping this comment here to remember
@@ -970,7 +970,7 @@ func (e *environment[H, N, Hasher, Header, E]) Prevoted(round uint64, prevote gr
 
 	// TODO: telemetry and metrics
 
-	err := e.updateVoterSetState(func(vss voterSetState[H, N]) (voterSetState[H, N], error) {
+	return e.updateVoterSetState(func(vss voterSetState[H, N]) (voterSetState[H, N], error) {
 		completedRounds, currentRounds, err := vss.withCurrentRound(primitives.RoundNumber(round))
 		if err != nil {
 			return nil, err
@@ -1008,11 +1008,6 @@ func (e *environment[H, N, Hasher, Header, E]) Prevoted(round uint64, prevote gr
 
 		return setState, nil
 	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (e *environment[H, N, Hasher, Header, E]) Precommitted(round uint64, precommit grandpa.Precommit[H, N]) error {
@@ -1023,7 +1018,7 @@ func (e *environment[H, N, Hasher, Header, E]) Precommitted(round uint64, precom
 
 	// TODO: telemetry and metrics
 
-	err := e.updateVoterSetState(func(vss voterSetState[H, N]) (voterSetState[H, N], error) {
+	return e.updateVoterSetState(func(vss voterSetState[H, N]) (voterSetState[H, N], error) {
 		completedRounds, currentRounds, err := vss.withCurrentRound(primitives.RoundNumber(round))
 		if err != nil {
 			return nil, err
@@ -1075,11 +1070,6 @@ func (e *environment[H, N, Hasher, Header, E]) Precommitted(round uint64, precom
 
 		return setState, nil
 	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (e *environment[H, N, Hasher, Header, E]) Completed(
@@ -1167,7 +1157,7 @@ func (e *environment[H, N, Hasher, Header, E]) Concluded(
 		state.Finalized.Number,
 	)
 
-	err := e.updateVoterSetState(func(vss voterSetState[H, N]) (voterSetState[H, N], error) {
+	return e.updateVoterSetState(func(vss voterSetState[H, N]) (voterSetState[H, N], error) {
 		// NOTE: we don't use withCurrentRound() here, because a concluded round is completed and cannot be current.
 		live, ok := vss.(voterSetStateLive[H, N])
 		if !ok {
@@ -1211,11 +1201,6 @@ func (e *environment[H, N, Hasher, Header, E]) Concluded(
 
 		return setState, nil
 	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (e *environment[H, N, Hasher, Header, E]) FinalizeBlock(
@@ -1513,7 +1498,7 @@ func finalizeBlock[
 		}
 
 		// send a justification notification if a sender exists and in case of error log it.
-		var notifiyJustificaiton = func(
+		var notifyJustification = func(
 			justificationSender *GrandpaJustificationSender[H, N, Header],
 			justification func() (GrandpaJustification[H, N, Header], error),
 		) {
@@ -1554,7 +1539,7 @@ func finalizeBlock[
 			}
 		}
 
-		notifiyJustificaiton(justificationSender, func() (GrandpaJustification[H, N, Header], error) {
+		notifyJustification(justificationSender, func() (GrandpaJustification[H, N, Header], error) {
 			return justification, nil
 		})
 

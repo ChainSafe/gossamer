@@ -96,10 +96,10 @@ type GrandpaJustification[H runtime.Hash, N runtime.Number, Header runtime.Heade
 	VoteAncestries []Header
 }
 
-// EquiovcationProof is proof of voter misbehavior on a given set id. Misbehavior/equivocation in GRANDPA happens when
+// EquivocationProof is proof of voter misbehavior on a given set id. Misbehavior/equivocation in GRANDPA happens when
 // a voter votes on the same round (either at prevote or precommit stage) for different blocks. Proving is achieved by
 // collecting the signed messages of conflicting votes.
-type EquiovcationProof[H runtime.Hash, N runtime.Number] struct {
+type EquivocationProof[H runtime.Hash, N runtime.Number] struct {
 	SetID        SetID
 	Equivocation Equivocation
 }
@@ -109,8 +109,8 @@ type EquiovcationProof[H runtime.Hash, N runtime.Number] struct {
 func NewEquivocationProof[H runtime.Hash, N runtime.Number](
 	setID SetID,
 	equivocation Equivocation,
-) EquiovcationProof[H, N] {
-	return EquiovcationProof[H, N]{
+) EquivocationProof[H, N] {
+	return EquivocationProof[H, N]{
 		SetID:        setID,
 		Equivocation: equivocation,
 	}
@@ -225,7 +225,7 @@ type GrandpaAPI[H runtime.Hash, N runtime.Number] interface {
 	// (i.e. this method is hardcoded to return nil). Only useful in an offchain context.
 	SubmitReportEquivocationUnsignedExtrinsic(
 		hash H,
-		equivocationProof EquiovcationProof[H, N],
+		equivocationProof EquivocationProof[H, N],
 		keyOwnerProof OpaqueKeyOwnershipProof,
 	) error
 
