@@ -260,6 +260,7 @@ func TestApplyChange(t *testing.T) {
 				panic("unreachable")
 			}
 		}),
+		true,
 	)
 
 	require.NoError(t, err)
@@ -283,6 +284,7 @@ func TestApplyChange(t *testing.T) {
 				panic("unreachable")
 			}
 		}),
+		true,
 	)
 	require.NoError(t, err)
 
@@ -371,6 +373,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		hashD,
 		40,
 		isDescOf,
+		true,
 	)
 
 	require.ErrorIs(t, err, errUnfinalisedAncestor)
@@ -380,6 +383,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		hashB,
 		15,
 		isDescOf,
+		true,
 	)
 	require.NoError(t, err)
 	require.True(t, status.Changed)
@@ -400,7 +404,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	status, err = authorities.applyStandardChanges(
 		hashD,
 		40,
-		isDescOf,
+		isDescOf, true,
 	)
 	require.NoError(t, err)
 	require.True(t, status.Changed)
@@ -745,6 +749,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		"hash_a15",
 		15,
 		staticIsDescendentOf[string](true),
+		true,
 	)
 	require.NoError(t, err)
 	require.Equal(t, expChanges, authorities.AuthoritySetChanges)
@@ -767,6 +772,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		hashB,
 		20,
 		staticIsDescendentOf[string](true),
+		true,
 	)
 	require.NoError(t, err)
 	require.Equal(t, expChanges, authorities.AuthoritySetChanges)
@@ -886,7 +892,7 @@ func TestNextChangeWorks(t *testing.T) {
 	require.Equal(t, expChange, c)
 
 	// we apply the HashNumber at A0 which should prune it and the fork at B
-	_, err = authorities.applyStandardChanges("hash_a0", 5, isDescOf)
+	_, err = authorities.applyStandardChanges("hash_a0", 5, isDescOf, true)
 	require.NoError(t, err)
 
 	// the next HashNumber is now at A1 (#10)
@@ -1094,17 +1100,17 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 
 	// applying the standard HashNumber at A should not prune anything
 	// other then the HashNumber that was applied
-	_, err := authorities.applyStandardChanges("A", 5, isDescOf)
+	_, err := authorities.applyStandardChanges("A", 5, isDescOf, true)
 	require.NoError(t, err)
 	require.Equal(t, 6, len(authorities.pendingChanges()))
 
 	// same for B
-	_, err = authorities.applyStandardChanges("B", 10, isDescOf)
+	_, err = authorities.applyStandardChanges("B", 10, isDescOf, true)
 	require.NoError(t, err)
 	require.Equal(t, 5, len(authorities.pendingChanges()))
 
 	// finalising C2 should clear all forced changes
-	_, err = authorities.applyStandardChanges("C2", 15, isDescOf)
+	_, err = authorities.applyStandardChanges("C2", 15, isDescOf, true)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(authorities.PendingForcedChanges))
 }
@@ -1200,17 +1206,17 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *tes
 
 	// applying the standard HashNumber at A should not prune anything
 	// other then the HashNumber that was applied
-	_, err := authorities.applyStandardChanges("A", 5, isDescOf)
+	_, err := authorities.applyStandardChanges("A", 5, isDescOf, true)
 	require.NoError(t, err)
 	require.Equal(t, 6, len(authorities.pendingChanges()))
 
 	// same for B
-	_, err = authorities.applyStandardChanges("B", 10, isDescOf)
+	_, err = authorities.applyStandardChanges("B", 10, isDescOf, true)
 	require.NoError(t, err)
 	require.Equal(t, 5, len(authorities.pendingChanges()))
 
 	// finalising C0 should clear all forced changes but D
-	_, err = authorities.applyStandardChanges("C0", 15, isDescOf)
+	_, err = authorities.applyStandardChanges("C0", 15, isDescOf, true)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(authorities.PendingForcedChanges))
 	require.Equal(t, "D", authorities.PendingForcedChanges[0].CanonHash)

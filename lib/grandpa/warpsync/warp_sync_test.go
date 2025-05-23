@@ -232,7 +232,9 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 				Precommits:   precommits,
 			}
 
-			justification := newGrandpaJustificationFromCommit[hash.H256, runtime.BlakeTwo256](
+			justification := newGrandpaJustificationFromCommit[
+				hash.H256, runtime.BlakeTwo256, uint32, generic.Header[uint32, hash.H256, runtime.BlakeTwo256],
+			](
 				t,
 				blockStateMock,
 				1,
@@ -332,16 +334,18 @@ func createGRANDPAConsensusDigest(t *testing.T, digestData any) types.ConsensusD
 	}
 }
 
-func newGrandpaJustificationFromCommit[Hash runtime.Hash, Hasher runtime.Hasher[Hash], N runtime.Number](
+func newGrandpaJustificationFromCommit[
+	Hash runtime.Hash, Hasher runtime.Hasher[Hash], N runtime.Number, Header runtime.Header[N, Hash],
+](
 	t *testing.T,
 	blockState state.BlockState,
 	round uint64,
 	commit primitives.Commit[Hash, N],
-) primitives.GrandpaJustification[Hash, N] {
+) primitives.GrandpaJustification[Hash, N, Header] {
 	hasher := *new(Hasher)
 
 	votesAncestriesHashes := map[common.Hash]struct{}{}
-	votesAncestries := make([]runtime.Header[N, Hash], 0)
+	votesAncestries := make([]Header, 0)
 
 	require.Greater(t, len(commit.Precommits), 0)
 
@@ -373,14 +377,14 @@ func newGrandpaJustificationFromCommit[Hash runtime.Hash, Hasher runtime.Hasher[
 
 				header := genericHeader[N, Hash, Hasher](t, currentHeader)
 
-				votesAncestries = append(votesAncestries, header)
+				votesAncestries = append(votesAncestries, header.(Header))
 			}
 
 			currentHash = hasher.NewHash(parentHash[:])
 		}
 	}
 
-	return primitives.GrandpaJustification[Hash, N]{
+	return primitives.GrandpaJustification[Hash, N, Header]{
 		Round:          round,
 		Commit:         commit,
 		VoteAncestries: votesAncestries,

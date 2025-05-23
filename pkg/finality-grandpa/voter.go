@@ -50,8 +50,8 @@ func (wc *wakerChan[Item]) channel() chan Item {
 	return wc.out
 }
 
-// Timer is the associated timer type for the environment
-type Timer interface {
+// timerI is the associated timer type for the environment
+type timerI interface {
 	SetWaker(waker *waker)
 	Elapsed() (bool, error)
 	Close()
@@ -121,13 +121,12 @@ type Environment[Hash comparable, Number constraints.Unsigned, Signature compara
 	// signatures is flexible and can be maintained outside this crate.
 	RoundData(
 		round uint64,
-		outgoing Output[Hash, Number],
-	) RoundData[Hash, Number, Signature, ID]
+	) RoundData[Hash, Number, Signature, ID, Message[Hash, Number]]
 
 	// Return a timer that will be used to delay the broadcast of a commit
 	// message. This delay should not be static to minimise the amount of
 	// commit messages that are sent (e.g. random value in [0, 1] seconds).
-	RoundCommitTimer() Timer
+	RoundCommitTimer() time.Timer
 
 	// Note that we've done a primary proposal in the given round.
 	Proposed(round uint64, propose PrimaryPropose[Hash, Number]) error
@@ -191,37 +190,59 @@ type finalizedNotification[Hash, Number, Signature, ID any] struct {
 }
 
 // RoundData is the data necessary to participate in a round.
-type RoundData[Hash comparable,
+type RoundData[
+	Hash comparable,
 	Number constraints.Unsigned,
 	Signature comparable,
-	ID constraints.Ordered] struct {
+	ID constraints.Ordered,
+	I any,
+] struct {
 	// Local voter id (if any.)
 	VoterID *ID
 	// Timer before prevotes can be cast. This should be Start + 2T
 	// where T is the gossip time estimate.
-	PrevoteTimer Timer
+	PrevoteTimer time.Timer
 	// Timer before precommits can be cast. This should be Start + 4T
-	PrecommitTimer Timer
+	PrecommitTimer time.Timer
 	// Incoming messages.
-	// Incoming chan SignedMessageError
 	Incoming Input[Hash, Number, Signature, ID]
+	// Outgoing messages.
+	Outgoing func(I) error
 }
 
-type presend[I any] struct {
-	inner chan I
-	pre   func(I) error // expected to be called before sending on inner
+func NewRoundData[
+	Hash comparable,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+	I any,
+](
+	voterID *ID,
+	prevoterTimer time.Timer,
+	precommitTimer time.Timer,
+	incoming Input[Hash, Number, Signature, ID],
+	outgoing func(I) error,
+) RoundData[Hash, Number, Signature, ID, I] {
+	return RoundData[Hash, Number, Signature, ID, I]{
+		VoterID:        voterID,
+		PrevoteTimer:   prevoterTimer,
+		PrecommitTimer: precommitTimer,
+		Incoming:       incoming,
+		Outgoing:       outgoing,
+	}
 }
 
 type buffered[I any] struct {
-	presend presend[I]
+	send    func(I) error
 	buffer  []I
 	mtx     sync.Mutex
 	readyCh chan struct{}
 }
 
-func newBuffered[I any](inner chan I, preSend func(I) error) *buffered[I] {
+func newBuffered[I any](send func(I) error) *buffered[I] {
 	b := &buffered[I]{
-		presend: presend[I]{inner, preSend},
+		send:    send,
+		buffer:  make([]I, 0),
 		readyCh: make(chan struct{}, 1),
 	}
 	// prime the channel
@@ -240,10 +261,6 @@ func (b *buffered[I]) Poll(waker *waker) (bool, error) {
 }
 
 func (b *buffered[I]) flush(waker *waker) (bool, error) {
-	if b.presend.inner == nil {
-		return false, fmt.Errorf("inner channel has been closed")
-	}
-
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	if len(b.buffer) == 0 {
@@ -257,15 +274,15 @@ func (b *buffered[I]) flush(waker *waker) (bool, error) {
 		}()
 
 		for len(b.buffer) > 0 {
-			err := b.presend.pre(b.buffer[0])
-			if err != nil {
-				return false, err
+			if b.send != nil {
+				err := b.send(b.buffer[0])
+				if err != nil {
+					return false, err
+				}
 			}
-			b.presend.inner <- b.buffer[0]
 			b.buffer = b.buffer[1:]
 			waker.wake()
 		}
-
 	default:
 	}
 	return false, nil
@@ -274,8 +291,6 @@ func (b *buffered[I]) flush(waker *waker) (bool, error) {
 func (b *buffered[I]) Close() {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
-	close(b.presend.inner)
-	b.presend.inner = nil
 }
 
 // Instantiates the given last round, to be backgrounded until its estimate is finalized.
@@ -566,7 +581,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 	lastRoundVotes []SignedMessage[Hash, Number, Signature, ID],
 	lastRoundBase HashNumber[Hash, Number],
 	lastFinalized HashNumber[Hash, Number],
-) (*Voter[Hash, Number, Signature, ID], chan CommunicationOut[Hash, Number, Signature, ID]) {
+) *Voter[Hash, Number, Signature, ID] {
 	finalizedSender := make(chan finalizedNotification[Hash, Number, Signature, ID], 1)
 	finalizedNotifications := finalizedSender
 	lastFinalizedNumber := lastFinalized.Number
@@ -603,7 +618,6 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		bestRound:  bestRound,
 		pastRounds: *pastRounds,
 	}
-	globalOut := make(chan CommunicationOut[Hash, Number, Signature, ID])
 	return &Voter[Hash, Number, Signature, ID]{
 		env:                    env,
 		voters:                 voters,
@@ -612,10 +626,10 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		lastFinalizedNumber:    lastFinalizedNumber,
 		lastFinalizedInRounds:  lastFinalized,
 		globalIn:               newWakerChan(globalIn),
-		globalOut:              newBuffered(globalOut, globalOutPresend),
+		globalOut:              newBuffered(globalOutPresend),
 		stopChan:               make(chan struct{}),
 		stopTimeout:            30 * time.Second,
-	}, globalOut
+	}
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) pruneBackgroundRounds(waker *waker) error {
@@ -932,34 +946,31 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 	}
 
 	close(v.finalizedNotifications.in)
-	close(v.inner.bestRound.outgoing.presend.inner)
 	switch state := v.inner.bestRound.state.(type) {
 	case statePrecommitted:
-	case statePrevoted[Timer]:
+	case statePrevoted[timerI]:
 		state[0].Close()
-	case statePrevoting[Timer, hashBestChain[Hash, Number]]:
+	case statePrevoting[timerI, hashBestChain[Hash, Number]]:
 		state.T.Close()
-	case stateProposed[Timer]:
+	case stateProposed[timerI]:
 		state[0].Close()
 		state[1].Close()
-	case stateStart[Timer]:
+	case stateStart[timerI]:
 		state[0].Close()
 		state[1].Close()
 	}
 
 	for _, round := range v.inner.pastRounds.pastRounds {
-		close(round.inner.outgoing.presend.inner)
-
 		switch state := round.inner.state.(type) {
 		case statePrecommitted:
-		case statePrevoted[Timer]:
+		case statePrevoted[timerI]:
 			state[0].Close()
-		case statePrevoting[Timer, hashBestChain[Hash, Number]]:
+		case statePrevoting[timerI, hashBestChain[Hash, Number]]:
 			state.T.Close()
-		case stateProposed[Timer]:
+		case stateProposed[timerI]:
 			state[0].Close()
 			state[1].Close()
-		case stateStart[Timer]:
+		case stateStart[timerI]:
 			state[0].Close()
 			state[1].Close()
 		}

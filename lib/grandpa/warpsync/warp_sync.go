@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa/app"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -39,8 +40,12 @@ type WarpSyncVerificationResult struct {
 	SetId         grandpa.SetID
 	AuthorityList grandpa.AuthorityList
 	Header        types.Header
-	Justification consensus_grandpa.GrandpaJustification[hash.H256, uint32]
-	Completed     bool
+	Justification consensus_grandpa.GrandpaJustification[
+		hash.H256,
+		uint32,
+		generic.Header[uint32, hash.H256, runtime.BlakeTwo256],
+	]
+	Completed bool
 }
 
 type WarpSyncFragment struct {
@@ -49,7 +54,11 @@ type WarpSyncFragment struct {
 	Header types.Header
 	// A justification for the header above which proves its finality. In order to validate it the
 	// verifier must be aware of the authorities and set id for which the justification refers to.
-	Justification consensus_grandpa.GrandpaJustification[hash.H256, uint32]
+	Justification consensus_grandpa.GrandpaJustification[
+		hash.H256,
+		uint32,
+		generic.Header[uint32, hash.H256, runtime.BlakeTwo256],
+	]
 }
 
 type WarpSyncProof struct {
@@ -124,7 +133,8 @@ func (w *WarpSyncProof) verify(
 			SetID:         setId,
 			AuthorityList: authorities,
 		},
-		consensus_grandpa.GrandpaJustification[hash.H256, uint32]{},
+		consensus_grandpa.GrandpaJustification[
+			hash.H256, uint32, generic.Header[uint32, hash.H256, runtime.BlakeTwo256]]{},
 	}
 
 	for fragmentNumber, proof := range w.Proofs {
@@ -190,7 +200,11 @@ type SetIdAuthorityList struct {
 
 type VerifyResult struct {
 	SetIdAuthorityList
-	Justification consensus_grandpa.GrandpaJustification[hash.H256, uint32]
+	Justification consensus_grandpa.GrandpaJustification[
+		hash.H256,
+		uint32,
+		generic.Header[uint32, hash.H256, runtime.BlakeTwo256],
+	]
 }
 
 func (p *WarpSyncProofProvider) CurrentAuthorities() (grandpa.AuthorityList, error) {
@@ -269,7 +283,12 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := consensus_grandpa.DecodeJustification[hash.H256, uint32, runtime.BlakeTwo256](encJustification)
+		justification, err := consensus_grandpa.DecodeJustification[
+			hash.H256,
+			uint32,
+			runtime.BlakeTwo256,
+			generic.Header[uint32, hash.H256, runtime.BlakeTwo256],
+		](encJustification)
 		if err != nil {
 			return nil, err
 		}
@@ -304,9 +323,9 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := consensus_grandpa.DecodeJustification[hash.H256, uint32, runtime.BlakeTwo256](
-			latestJustification,
-		)
+		justification, err := consensus_grandpa.DecodeJustification[
+			hash.H256, uint32, runtime.BlakeTwo256, generic.Header[uint32, hash.H256, runtime.BlakeTwo256],
+		](latestJustification)
 		if err != nil {
 			return nil, err
 		}

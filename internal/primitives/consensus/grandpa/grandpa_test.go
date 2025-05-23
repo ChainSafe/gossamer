@@ -62,3 +62,8 @@ func TestCheckMessageSignature(t *testing.T) {
 		precommit, ed25519.Alice.Pair().Public().(ced25519.Public), signedPrecommit.Signature, 3, 3)
 	require.False(t, valid)
 }
+
+var (
+	_ Equivocation = EquivocationPrecommit[hash.H256, uint64]{}
+	_ Equivocation = EquivocationPrevote[hash.H256, uint64]{}
+)

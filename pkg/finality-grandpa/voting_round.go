@@ -97,8 +97,7 @@ func newVotingRound[
 	lastRoundState latterView[Hash, Number],
 	finalizedSender chan finalizedNotification[Hash, Number, Signature, ID], env E,
 ) votingRound[Hash, Number, Signature, ID, E] {
-	outgoing := make(chan Message[Hash, Number])
-	roundData := env.RoundData(roundNumber, outgoing)
+	roundData := env.RoundData(roundNumber)
 	roundParams := RoundParams[ID, Hash, Number]{
 		RoundNumber: roundNumber,
 		Voters:      voters,
@@ -121,9 +120,9 @@ func newVotingRound[
 		votes:    votes,
 		voting:   voting,
 		incoming: newWakerChan(roundData.Incoming),
-		outgoing: newBuffered(outgoing, func(Message[Hash, Number]) error { return nil }),
-		state: newState[Timer, hashBestChain[Hash, Number]](
-			stateStart[Timer]{roundData.PrevoteTimer, roundData.PrecommitTimer}),
+		outgoing: newBuffered(roundData.Outgoing),
+		state: newState[timerI, hashBestChain[Hash, Number]](
+			stateStart[timerI]{newTimer(roundData.PrevoteTimer.C), newTimer(roundData.PrecommitTimer.C)}),
 		bridgedRoundState: nil,
 		primaryBlock:      nil,
 		bestFinalized:     nil,
@@ -144,13 +143,12 @@ func newVotingRoundCompleted[
 	lastRoundState latterView[Hash, Number],
 	env E,
 ) votingRound[Hash, Number, Signature, ID, E] {
-	outgoing := make(chan Message[Hash, Number])
-	roundData := env.RoundData(votes.Number(), outgoing)
+	roundData := env.RoundData(votes.Number())
 	return votingRound[Hash, Number, Signature, ID, E]{
 		votes:             votes,
 		voting:            votingNo,
 		incoming:          newWakerChan(roundData.Incoming),
-		outgoing:          newBuffered(outgoing, func(Message[Hash, Number]) error { return nil }),
+		outgoing:          newBuffered(roundData.Outgoing),
 		state:             nil,
 		bridgedRoundState: nil,
 		primaryBlock:      nil,
@@ -499,7 +497,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 		return nil
 	}
 	switch state := state.(type) {
-	case stateStart[Timer]:
+	case stateStart[timerI]:
 		prevoteTimer := state[0]
 		precommitTimer := state[1]
 
@@ -524,7 +522,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 					return err
 				}
 				vr.outgoing.Push(primary)
-				setState[Timer, hashBestChain[Hash, Number]](&vr.state, stateProposed[Timer]{prevoteTimer, precommitTimer})
+				setState[timerI, hashBestChain[Hash, Number]](&vr.state, stateProposed[timerI]{prevoteTimer, precommitTimer})
 
 				return nil
 			}
@@ -537,7 +535,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 			log.Debugf("Last round estimate does not exist, not sending primary block hint for round %d", vr.votes.Number())
 		default:
 		}
-		setState[Timer, hashBestChain[Hash, Number]](&vr.state, stateStart[Timer]{prevoteTimer, precommitTimer})
+		setState[timerI, hashBestChain[Hash, Number]](&vr.state, stateStart[timerI]{prevoteTimer, precommitTimer})
 	default:
 		vr.state = state
 	}
@@ -548,7 +546,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 	state := vr.state
 	vr.state = nil
 
-	var startPrevoting = func(prevoteTimer Timer, precommitTimer Timer, proposed bool, waker *waker) error {
+	var startPrevoting = func(prevoteTimer timerI, precommitTimer timerI, proposed bool, waker *waker) error {
 		prevoteTimer.SetWaker(waker)
 		var shouldPrevote bool
 		elapsed, err := prevoteTimer.Elapsed()
@@ -573,22 +571,22 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 				// state to `Prevoting`.
 				waker.wake()
 
-				setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoting[Timer, hashBestChain[Hash, Number]]{
+				setState[timerI, hashBestChain[Hash, Number]](&vr.state, statePrevoting[timerI, hashBestChain[Hash, Number]]{
 					precommitTimer, hashBestChain[Hash, Number]{base, bestChain},
 				})
 			} else {
-				setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoted[Timer]{precommitTimer})
+				setState[timerI, hashBestChain[Hash, Number]](&vr.state, statePrevoted[timerI]{precommitTimer})
 			}
 		} else if proposed {
-			setState[Timer, hashBestChain[Hash, Number]](&vr.state, stateProposed[Timer]{prevoteTimer, precommitTimer})
+			setState[timerI, hashBestChain[Hash, Number]](&vr.state, stateProposed[timerI]{prevoteTimer, precommitTimer})
 		} else {
-			setState[Timer, hashBestChain[Hash, Number]](&vr.state, stateStart[Timer]{prevoteTimer, precommitTimer})
+			setState[timerI, hashBestChain[Hash, Number]](&vr.state, stateStart[timerI]{prevoteTimer, precommitTimer})
 		}
 
 		return nil
 	}
 
-	var finishPrevoting = func(precommitTimer Timer, base Hash, bestChain BestChain[Hash, Number], waker *waker) error {
+	var finishPrevoting = func(precommitTimer timerI, base Hash, bestChain BestChain[Hash, Number], waker *waker) error {
 		wakerChan := newWakerChan(bestChain)
 		wakerChan.setWaker(waker)
 		var best *HashNumber[Hash, Number]
@@ -599,7 +597,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 		case res.Value != nil:
 			best = res.Value
 		default:
-			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoting[Timer, hashBestChain[Hash, Number]]{
+			setState[timerI, hashBestChain[Hash, Number]](&vr.state, statePrevoting[timerI, hashBestChain[Hash, Number]]{
 				precommitTimer, hashBestChain[Hash, Number]{base, bestChain},
 			})
 			return nil
@@ -615,7 +613,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 			}
 			vr.votes.SetPrevotedIdx()
 			vr.outgoing.Push(prevote)
-			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoted[Timer]{precommitTimer})
+			setState[timerI, hashBestChain[Hash, Number]](&vr.state, statePrevoted[timerI]{precommitTimer})
 		} else {
 			log.Warnf("Could not cast prevote: previously known block %v has disappeared", base)
 
@@ -631,11 +629,11 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 		return nil
 	}
 	switch state := state.(type) {
-	case stateStart[Timer]:
+	case stateStart[timerI]:
 		return startPrevoting(state[0], state[1], false, w)
-	case stateProposed[Timer]:
+	case stateProposed[timerI]:
 		return startPrevoting(state[0], state[1], true, w)
-	case statePrevoting[Timer, hashBestChain[Hash, Number]]:
+	case statePrevoting[timerI, hashBestChain[Hash, Number]]:
 		return finishPrevoting(state.T, state.U.Hash, state.U.BestChain, w)
 	default:
 		vr.state = state
@@ -651,7 +649,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) precommit(waker *waker, l
 		return nil
 	}
 	switch state := state.(type) {
-	case statePrevoted[Timer]:
+	case statePrevoted[timerI]:
 		precommitTimer := state[0]
 		precommitTimer.SetWaker(waker)
 		lastRoundEstimate := lastRoundState.Estimate
@@ -690,9 +688,9 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) precommit(waker *waker, l
 				vr.votes.SetPrecommittedIdx()
 				vr.outgoing.Push(precommit)
 			}
-			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrecommitted{})
+			setState[timerI, hashBestChain[Hash, Number]](&vr.state, statePrecommitted{})
 		} else {
-			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoted[Timer]{precommitTimer})
+			setState[timerI, hashBestChain[Hash, Number]](&vr.state, statePrevoted[timerI]{precommitTimer})
 		}
 	default:
 		vr.state = state
