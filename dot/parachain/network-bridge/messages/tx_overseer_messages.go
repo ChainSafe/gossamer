@@ -7,6 +7,7 @@ import (
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
+	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -62,6 +63,25 @@ type ConnectToValidators struct {
 	// Sends back the number of `AuthorityDiscoveryId`s which
 	// authority discovery has Failed to resolve.
 	Failed chan<- uint
+}
+
+// ConnectTOResolvedValidators is alternative to `ConnectToValidators` in case you already know the `Multiaddrs` you want to
+// be connected to.
+type ConnectTOResolvedValidators struct {
+	// Each entry corresponds to the addresses of an already resolved validator.
+	ValidatorAddrs map[multiaddr.Multiaddr]struct{}
+	// The peer set we want the connection on.
+	PeerSet PeerSetType
+}
+
+// AddToResolvedValidators extends the known validators set with new peers we already know the `Multiaddrs`, this is
+// usually needed for validators that change their address mid-session. It is usually called
+// after a ConnectToResolvedValidators at the beginning of the session.
+type AddToResolvedValidators struct {
+	// Each entry corresponds to the addresses of an already resolved validator.
+	ValidatorAddrs map[multiaddr.Multiaddr]struct{}
+	// The peer set we want the connection on.
+	PeerSet PeerSetType
 }
 
 type IfDisconnectedBehavior int

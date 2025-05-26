@@ -8,10 +8,14 @@ import (
 	"fmt"
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/pkg/errors"
 	"math"
+	"reflect"
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -150,7 +154,30 @@ func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.A
 			gs.lastSessionIndex = &sessionIndex
 		}
 
-		// TODO: Connect to authorities from the past/present/future.
+		// Connect to authorities from the past/present/future.
+		connections, err := authoritiesPastPresentFuture(rt, leaf)
+		if err != nil {
+			return err
+		}
+
+		now := time.Now()
+		gs.lastConnectionRequest = &now
+
+		// Remove all of our locally controlled validator indices so we don't connect to ourselves
+		filteredConnections, removedCounter := removeAllControlled(gs.keystore, connections)
+		if removedCounter != 0 {
+			connections = filteredConnections
+		} else {
+			// If we control none of them, issue an empty connection request
+			// to clean up all connections.
+			connections = make([]parachaintypes.AuthorityDiscoveryID, 0)
+		}
+
+		if forceRequest || isNewSession {
+			gs.issueConnectionRequest(connections)
+		} else {
+			gs.issueConnectionRequestToChanged(connections)
+		}
 
 		if isNewSession {
 			err := gs.buildTopologyForLastFinalizedIfNeeded(sessionIndex, rt)
@@ -165,7 +192,7 @@ func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.A
 				logger.Warnf("failed to get our index for session %d, %s", sessionIndex, err.Error())
 				return err
 			}
-			gs.updateGossipTopology(ourIndex)
+			gs.updateGossipTopology(ourIndex, relayParent)
 		}
 
 		// authority discovery is just a cache so let's try every time we try to re-connect
@@ -303,7 +330,7 @@ func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(currentSessionInd
 				return err
 			}
 
-			gs.updateGossipTopology(ourIndex)
+			gs.updateGossipTopology(ourIndex, finalizedBlock.Hash())
 		}
 		gs.finalizedNeededSession = &finalizedSessionIndex
 	}
@@ -311,15 +338,255 @@ func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(currentSessionInd
 	return nil
 }
 
+// getKeyIndexAndUpdateMetrics checks if the node is an authority and also updates `polkadot_node_is_authority` and
+// `polkadot_node_is_parachain_validator` metrics accordingly.
+// On success, returns the index of our keys in `session_info.discovery_keys`.
 func (gs *GossipSupport) getKeyIndexAndUpdateMetrics(SessionInfo *parachaintypes.SessionInfo) (uint, error) {
-	// TODO:
-	return 0, nil
+	authCheckResult, err := ensureIamAnAuthority(gs.keystore, SessionInfo.DiscoveryKeys)
+	if err != nil {
+		logger.Tracef("we are no longer an authority")
+		return authCheckResult, err
+	}
+
+	logger.Tracef("we are now an authority")
+
+	// The subset of authorities participating in parachain consensus.
+	parachainValidatorsThisSession := len(SessionInfo.Validators)
+
+	if authCheckResult < uint(parachainValidatorsThisSession) {
+		logger.Tracef("we are now a parachain validator")
+	} else {
+		logger.Tracef("we are no longer a parachain validator")
+	}
+
+	return authCheckResult, err
 }
 
-func (gs *GossipSupport) updateGossipTopology(_ourIndex uint) {
+func (gs *GossipSupport) updateGossipTopology(_ourIndex uint, _relayParent common.Hash) {
 	// TODO: implement in #4510
 }
 
-func (gs *GossipSupport) updateAuthorityIDs([]parachaintypes.AuthorityDiscoveryID) {
-	// TODO:
+func (gs *GossipSupport) updateAuthorityIDs(authorities []parachaintypes.AuthorityDiscoveryID) {
+	authorityIDs := make(map[peer.ID]map[parachaintypes.AuthorityDiscoveryID]struct{})
+
+	for _, authority := range authorities {
+		peerIDs := make(map[peer.ID]struct{})
+		addrs := gs.authorityDiscovery.GetAddressesByAuthorityID(authority)
+		for addr := range *addrs {
+			_, peerID := peer.SplitAddr(addr)
+			peerIDs[peerID] = struct{}{}
+		}
+
+		logger.Tracef("resolved to peer ids")
+
+		for peerID := range peerIDs {
+			authorityIDs[peerID] = map[parachaintypes.AuthorityDiscoveryID]struct{}{
+				authority: {},
+			}
+		}
+	}
+
+	// peer was authority and now isn't
+	for peerID, current := range gs.connectedPeers {
+		// empty -> nonempty is handled in the next loop
+		_, ok := authorityIDs[peer.ID(peerID)]
+		if len(current) != 0 && !ok {
+			gs.subSystemToOverseer <- networkbridgemessages.UpdateAuthorityIDs{
+				PeerID:                peer.ID(peerID),
+				AuthorityDiscoveryIDs: nil,
+			}
+
+			for c := range current {
+				delete(gs.connectedAuthorities, c)
+			}
+		}
+	}
+
+	// peer has new authority set.
+	for peerID, newOne := range authorityIDs {
+		if p, ok := gs.connectedPeers[parachaintypes.PeerID(peerID)]; ok {
+			if reflect.DeepEqual(newOne, p) {
+				delete(gs.connectedPeers, parachaintypes.PeerID(peerID))
+			}
+
+			updatedAuthDiscovery := make([]parachaintypes.AuthorityDiscoveryID, 0)
+			for c := range newOne {
+				updatedAuthDiscovery = append(updatedAuthDiscovery, c)
+			}
+			gs.subSystemToOverseer <- networkbridgemessages.UpdateAuthorityIDs{
+				PeerID:                peerID,
+				AuthorityDiscoveryIDs: updatedAuthDiscovery,
+			}
+
+			for _, AuthorityDiscoveryIDs := range gs.connectedPeers {
+				for p := range AuthorityDiscoveryIDs {
+					delete(gs.connectedAuthorities, p)
+				}
+			}
+
+			for a := range newOne {
+				gs.connectedAuthorities[a] = parachaintypes.PeerID(peerID)
+			}
+
+			gs.connectedPeers[parachaintypes.PeerID(peerID)] = newOne
+		}
+	}
+}
+
+// authoritiesPastPresentFuture gets the authorities of the past, present, and future.
+func authoritiesPastPresentFuture(rt runtime.Instance, relayParent common.Hash) ([]parachaintypes.AuthorityDiscoveryID, error) {
+	authorities, err := rt.GrandpaAuthorities()
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Debugf("Determined past/present/future authorities with size: %d", len(authorities))
+
+	authoritiesIDs := make([]parachaintypes.AuthorityDiscoveryID, 0, len(authorities))
+	for i, authority := range authorities {
+		authoritiesIDs[i] = parachaintypes.AuthorityDiscoveryID(authority.Key.Encode())
+	}
+
+	return authoritiesIDs, nil
+}
+
+// removeAllControlled filters out all controlled keys in the given set. Returns the number of keys removed along with
+// the result of filtered authorities
+func removeAllControlled(
+	ks keystore.Keystore,
+	authorities []parachaintypes.AuthorityDiscoveryID,
+) ([]parachaintypes.AuthorityDiscoveryID, uint) {
+	var toRemoveCounter uint
+	resultAuthorities := make([]parachaintypes.AuthorityDiscoveryID, 0)
+	for _, key := range authorities {
+		publicKey, err := sr25519.NewPublicKey(key[:])
+		if err != nil {
+			continue
+		}
+		authKey := ks.GetKeypair(publicKey)
+		if authKey != nil {
+			toRemoveCounter++
+		} else {
+			resultAuthorities = append(resultAuthorities, key)
+		}
+	}
+
+	return resultAuthorities, toRemoveCounter
+}
+
+func (gs *GossipSupport) issueConnectionRequest(authorities []parachaintypes.AuthorityDiscoveryID) {
+	num := len(authorities)
+	validatorAddrs, resolved, failures := gs.resolveAuthorities(authorities)
+	gs.resolvedAuthorities = resolved
+
+	logger.Debugf("Issuing a connection request: %d", num)
+
+	gs.subSystemToOverseer <- networkbridgemessages.ConnectTOResolvedValidators{
+		ValidatorAddrs: validatorAddrs,
+		PeerSet:        networkbridgemessages.ValidationProtocol,
+	}
+
+	if num != 0 && 3*failures >= uint(num) {
+		timestamp := time.Now()
+		if gs.failureStart == nil {
+			gs.failureStart = &timestamp
+		} else {
+			first := *gs.failureStart
+			if time.Now().Sub(first) >= LowConnectivityWarnDelay {
+				logger.Warnf("Low connectivity - authority lookup failed for too many validators.")
+			}
+			logger.Debugf("Low connectivity (due to authority lookup failures) - expected on startup.")
+		}
+	} else {
+		gs.lastFailure = nil
+		gs.failureStart = nil
+	}
+}
+
+func (gs *GossipSupport) issueConnectionRequestToChanged(authorities []parachaintypes.AuthorityDiscoveryID) {
+	_, resolved, _ := gs.resolveAuthorities(authorities)
+
+	changed := make(map[multiaddr.Multiaddr]struct{})
+
+	for authority, newAddresses := range resolved {
+		newPeerIDs := make(map[peer.ID]struct{})
+		for addr := range newAddresses {
+			_, peerID := peer.SplitAddr(addr)
+			newPeerIDs[peerID] = struct{}{}
+		}
+
+		oldAddresses := gs.resolvedAuthorities[authority]
+		if oldAddresses != nil {
+			oldPeerIDs := make(map[peer.ID]struct{})
+			for addr := range oldAddresses {
+				_, peerID := peer.SplitAddr(addr)
+				oldPeerIDs[peerID] = struct{}{}
+			}
+			if !isSuperSet(oldPeerIDs, newPeerIDs) {
+				changed = newAddresses
+			}
+		} else {
+			changed = newAddresses
+		}
+	}
+
+	logger.Debugf("Issuing a connection request to changed validators")
+
+	if len(changed) == 0 {
+		gs.resolvedAuthorities = resolved
+
+		gs.subSystemToOverseer <- networkbridgemessages.AddToResolvedValidators{
+			ValidatorAddrs: changed,
+			PeerSet:        networkbridgemessages.ValidationProtocol,
+		}
+	}
+}
+
+func (gs *GossipSupport) resolveAuthorities(
+	authorities []parachaintypes.AuthorityDiscoveryID,
+) (map[multiaddr.Multiaddr]struct{}, map[parachaintypes.AuthorityDiscoveryID]map[multiaddr.Multiaddr]struct{}, uint) {
+	validatorAddrs := make(map[multiaddr.Multiaddr]struct{}, len(authorities))
+	resolved := make(map[parachaintypes.AuthorityDiscoveryID]map[multiaddr.Multiaddr]struct{}, len(authorities))
+	var failures uint
+
+	for _, authority := range authorities {
+		addrs := gs.authorityDiscovery.GetAddressesByAuthorityID(authority)
+		if addrs != nil {
+			validatorAddrs = *addrs
+			resolved[authority] = *addrs
+		} else {
+			failures++
+
+			logger.Debugf("Couldn't resolve addresses of authority: %v", authority)
+		}
+	}
+
+	return validatorAddrs, resolved, failures
+}
+
+// isSuperSet returns true if the superset is a superset of subset
+func isSuperSet[K, V comparable](superset, subset map[K]V) bool {
+	for k, v := range subset {
+		if val, ok := superset[k]; !ok || val != v {
+			return false
+		}
+	}
+	return true
+}
+
+// ensureIamAnAuthority return an error if we're not a validator in the given set (do not have keys). Otherwise,
+// returns the index of our keys in authorities.
+func ensureIamAnAuthority(ks keystore.Keystore, authorities []parachaintypes.AuthorityDiscoveryID) (uint, error) {
+	for i, authority := range authorities {
+		publicKey, err := sr25519.NewPublicKey(authority[:])
+		if err != nil {
+			continue
+		}
+		authKey := ks.GetKeypair(publicKey)
+		if authKey == nil {
+			return uint(i), nil
+		}
+	}
+
+	return 0, fmt.Errorf("node is not a validator")
 }
