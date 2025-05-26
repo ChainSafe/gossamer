@@ -50,7 +50,7 @@ type Dispatch[M, Item any] interface {
 	//
 	// Note that this does not have to be of the same type with the item that will be sent through
 	// to the subscribers. The subscribers will receive a message of type Item.
-	Dispatch(message M, dispatch func(seqID uint64, item Item))
+	Dispatch(message M, dispatch func(seqID uint64, item Item)) error
 }
 
 type Registry[K any, M, Item any] interface {
@@ -105,11 +105,11 @@ func (h *Hub[K, M, Item, R]) Subscribe(subsKey K) *Receiver[Item, R] {
 	}
 }
 
-func (h *Hub[K, M, Item, R]) Send(trigger M) {
+func (h *Hub[K, M, Item, R]) Send(trigger M) error {
 	h.shared.Lock()
 	defer h.shared.Unlock()
 
-	h.shared.registry.Dispatch(trigger, func(subsID uint64, item Item) {
+	return h.shared.registry.Dispatch(trigger, func(subsID uint64, item Item) {
 		_, ok := h.shared.channels[subsID]
 		if !ok {
 			logger.Warnf("No Sink for SubsID = %d", subsID)

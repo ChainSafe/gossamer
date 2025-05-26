@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -53,6 +54,9 @@ func (p PrimaryPropose[Hash, Number]) Target() HashNumber[Hash, Number] {
 		p.TargetNumber,
 	}
 }
+
+// ErrNotDescendent represents the block is not a descendent of the given base block.
+var ErrNotDescendent = errors.New("Block not descendent of base")
 
 // Chain context necessary for implementation of the finality gadget.
 type Chain[Hash, Number comparable] interface {
@@ -199,6 +203,11 @@ func (sm *SignedMessage[H, N, Signature, ID]) UnmarshalSCALE(reader io.Reader) e
 	sm.ID = helper.ID
 
 	return nil
+}
+
+// Target will retrieve the target block of the vote.
+func (sm SignedMessage[H, N, Signature, ID]) Target() HashNumber[H, N] {
+	return sm.Message.Target()
 }
 
 // Commit is a commit message which is an aggregate of precommits.
@@ -490,4 +499,9 @@ func (hv *HistoricalVotes[Hash, Number, Signature, ID]) SetPrevotedIdx() {
 func (hv *HistoricalVotes[Hash, Number, Signature, ID]) SetPrecommittedIdx() {
 	pi := uint64(len(hv.seen))
 	hv.precommitIdx = &pi
+}
+
+// Seen returns the messages seen so far.
+func (hv *HistoricalVotes[Hash, Number, Signature, ID]) Seen() []SignedMessage[Hash, Number, Signature, ID] {
+	return hv.seen
 }
