@@ -45,11 +45,11 @@ func (s *StatementDistribution) handleActiveLeavesUpdate(leaf *parachaintypes.Ac
 
 	for pid, fresh := range updatePeers {
 		for _, freshRp := range fresh {
-			s.sendPeerMessageForRelayParent(pid, freshRp)
+			s.sendPeerMessagesForRelayParent(pid, freshRp)
 		}
 	}
 
-	s.newLeafFragmentChainUpdates(leaf.Hash)
+	s.fragmentChainUpdateInner(&leaf.Hash, nil, nil, nil)
 
 	return nil
 }

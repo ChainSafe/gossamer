@@ -10,12 +10,32 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 )
 
+type compactType uint8
+
+const (
+	compactValid compactType = iota
+	compactSeconded
+)
+
+type pendingStmt struct {
+	validadorIdx parachaintypes.ValidatorIndex
+	compact      parachaintypes.CompactStatement
+}
+
+type statementStore interface {
+	// Get the full statement of this kind issued by this validator, if it is known.
+	// TODO: need to support a signed compact statement
+	validatorStatement(stmt pendingStmt) *parachaintypes.SignedStatement
+}
+
 // groupTracker interface exports methods
 // enabling the statement distribution
 // to track validator peers that belong
 // to the same validation group
 type groupTracker interface {
 	warningIfTooManyPendingStatements(rp common.Hash)
+	pendingStatementsFor(target parachaintypes.ValidatorIndex) []pendingStmt
+	noteSend(target, originator parachaintypes.ValidatorIndex, stmt parachaintypes.CompactStatement)
 }
 
 // requestManager defines the interface that manages
@@ -25,12 +45,16 @@ type requestManager interface {
 }
 
 type candidatesTracker interface {
+	frontierHypotheticals(*common.Hash, *parachaintypes.ParaID) []parachaintypes.HypotheticalCandidate
 	onDeactivateLeaves(leaves []common.Hash, rpLiveFn func(common.Hash) bool)
+	noteImportableUnder(hypo parachaintypes.HypotheticalCandidate, leaf common.Hash)
+	getConfirmed(candidateHash parachaintypes.CandidateHash) *confirmedCandidate
+	isConfirmed(candidateHash parachaintypes.CandidateHash) bool
 }
 
 type perRelayParentState struct {
 	localValidator       *localValidatorStore
-	statementStore       any // TODO #4719: Create statement store
+	statementStore       statementStore // TODO #4719: Create statement store
 	secondingLimit       uint
 	session              parachaintypes.SessionIndex
 	transposedClaimQueue parachaintypes.TransposedClaimQueue

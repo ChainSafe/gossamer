@@ -87,13 +87,13 @@ type Valid CandidateHash
 func (s StatementVDT) CompactStatement() (any, error) {
 	switch s := s.inner.(type) {
 	case Valid:
-		return CompactStatement[Valid]{Value: s}, nil
+		return &CompactValid{inner: s}, nil
 	case Seconded:
 		hash, err := GetCandidateHash(CommittedCandidateReceiptV2(s))
 		if err != nil {
 			return nil, fmt.Errorf("getting candidate hash: %w", err)
 		}
-		return CompactStatement[SecondedCandidateHash]{Value: SecondedCandidateHash(hash)}, nil
+		return &CompactSeconded{inner: SecondedCandidateHash(hash)}, nil
 	}
 	return nil, fmt.Errorf("unsupported type")
 }
@@ -179,6 +179,21 @@ type SignedFullStatementWithPVD struct {
 	PersistedValidationData *PersistedValidationData
 }
 
+type UncheckedSignedCompactStatement struct {
+	// The payload is part of the signed data. The rest is the signing context,
+	// which is known both at signing and at validation.
+	Payload CompactStatement `scale:"1"`
+
+	// The index of the validator signing this statement.
+	ValidatorIndex ValidatorIndex `scale:"2"`
+
+	// The signature by the validator of the signed payload.
+	Signature ValidatorSignature `scale:"3"`
+}
+
+// SignedStatement represents a signed compact statement, suitable to be sent to the chain.
+type SignedStatement UncheckedSignedCompactStatement
+
 type SecondedCandidateHash CandidateHash
 
 type CompactStatementValues interface {
@@ -234,13 +249,65 @@ func (mvdt compactStatementInner) ValueAt(index uint) (value any, err error) {
 
 // CompactStatement is a compact representation of a statement that can be made about parachain candidates.
 // this is the actual value that is signed.
-type CompactStatement[T CompactStatementValues] struct {
-	Value T
+type CompactStatement interface {
+	CandidateHash() CandidateHash
+	MarshalSCALE() ([]byte, error)
+	UnmarshalSCALE(reader io.Reader) error
 }
 
-func (c CompactStatement[CompactStatementValues]) MarshalSCALE() ([]byte, error) {
+var (
+	_ CompactStatement = (*CompactValid)(nil)
+	_ CompactStatement = (*CompactSeconded)(nil)
+)
+
+type CompactValid struct {
+	inner Valid
+}
+
+func (v *CompactValid) CandidateHash() CandidateHash {
+	return CandidateHash(v.inner)
+}
+
+func (v *CompactValid) MarshalSCALE() ([]byte, error) {
+	return compactMarshalSCALE(v.inner)
+}
+
+func (v *CompactValid) UnmarshalSCALE(reader io.Reader) error {
+	decoded, err := compactUnmarshalSCALE[Valid](reader)
+	if err != nil {
+		return err
+	}
+
+	v.inner = decoded
+	return nil
+}
+
+type CompactSeconded struct {
+	inner SecondedCandidateHash
+}
+
+func (sch *CompactSeconded) CandidateHash() CandidateHash {
+	return CandidateHash(sch.inner)
+}
+
+func (sch *CompactSeconded) MarshalSCALE() ([]byte, error) {
+	return compactMarshalSCALE(sch.inner)
+}
+
+func (sch *CompactSeconded) UnmarshalSCALE(reader io.Reader) error {
+	fmt.Printf("seconded unmarshal\n")
+	decoded, err := compactUnmarshalSCALE[SecondedCandidateHash](reader)
+	if err != nil {
+		return err
+	}
+
+	sch.inner = decoded
+	return nil
+}
+
+func compactMarshalSCALE[T CompactStatementValues](v T) ([]byte, error) {
 	inner := compactStatementInner{}
-	err := inner.SetValue(c.Value)
+	err := inner.SetValue(v)
 	if err != nil {
 		return nil, fmt.Errorf("setting value: %w", err)
 	}
@@ -256,30 +323,31 @@ func (c CompactStatement[CompactStatementValues]) MarshalSCALE() ([]byte, error)
 	return buffer.Bytes(), nil
 }
 
-func (c *CompactStatement[CompactStatementValues]) UnmarshalSCALE(reader io.Reader) error {
+func compactUnmarshalSCALE[T CompactStatementValues](reader io.Reader) (T, error) {
 	decoder := scale.NewDecoder(reader)
 
 	var magicBytes [4]byte
 	err := decoder.Decode(&magicBytes)
 	if err != nil {
-		return err
+		return *new(T), err
 	}
 
+	fmt.Println("magic bytes:", magicBytes)
+
 	if !bytes.Equal(magicBytes[:], backingStatementMagic[:]) {
-		return fmt.Errorf("invalid magic bytes")
+		return *new(T), fmt.Errorf("invalid magic bytes")
 	}
 
 	var inner compactStatementInner
 	err = decoder.Decode(&inner)
 	if err != nil {
-		return fmt.Errorf("decoding compactStatementInner: %w", err)
+		return *new(T), fmt.Errorf("decoding compactStatementInner: %w", err)
 	}
 
 	value, err := inner.Value()
 	if err != nil {
-		return fmt.Errorf("getting value: %w", err)
+		return *new(T), fmt.Errorf("getting value: %w", err)
 	}
 
-	c.Value = value.(CompactStatementValues)
-	return nil
+	return value.(T), nil
 }

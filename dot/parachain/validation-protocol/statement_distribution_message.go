@@ -102,3 +102,60 @@ type StatementMetadata struct {
 	// Signature of seconding validator.
 	Signature parachaintypes.ValidatorSignature `scale:"4"`
 }
+
+// StatementV3 represents a signed compact statement under a given relay-parent.
+// present in protocol V3
+type StatementV3 struct {
+	Hash                     common.Hash                                    `scale:"1"`
+	UncheckedSignedStatement parachaintypes.UncheckedSignedCompactStatement `scale:"2"`
+}
+
+// StatementDistributionMessageV3 defines the network messages used by
+// the statement distribution subsystem.
+type StatementDistributionMessageV3Values interface {
+	Statement
+}
+
+type StatementDistributionMessageV3 struct {
+	inner any
+}
+
+func NewStatementDistributionMessageV3() StatementDistributionMessageV3 {
+	return StatementDistributionMessageV3{}
+}
+
+func setStatementDistributionMessageV3[Value StatementDistributionMessageV3Values](
+	mvdt *StatementDistributionMessageV3, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *StatementDistributionMessageV3) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case Statement:
+		setStatementDistributionMessageV3(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt StatementDistributionMessageV3) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case Statement:
+		return 0, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt StatementDistributionMessageV3) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt StatementDistributionMessageV3) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return Statement{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
