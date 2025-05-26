@@ -87,15 +87,13 @@ type Valid CandidateHash
 func (s StatementVDT) CompactStatement() (any, error) {
 	switch s := s.inner.(type) {
 	case Valid:
-		v := Valid(s)
-		return &v, nil
+		return &CompactValid{inner: s}, nil
 	case Seconded:
 		hash, err := GetCandidateHash(CommittedCandidateReceiptV2(s))
 		if err != nil {
 			return nil, fmt.Errorf("getting candidate hash: %w", err)
 		}
-		sch := SecondedCandidateHash(hash)
-		return &sch, nil
+		return &CompactSeconded{inner: SecondedCandidateHash(hash)}, nil
 	}
 	return nil, fmt.Errorf("unsupported type")
 }
@@ -242,35 +240,44 @@ type CompactStatement interface {
 }
 
 var (
-	_ CompactStatement = (*Valid)(nil)
-	_ CompactStatement = (*SecondedCandidateHash)(nil)
+	_ CompactStatement = (*CompactValid)(nil)
+	_ CompactStatement = (*CompactSeconded)(nil)
 )
 
-func (v *Valid) MarshalSCALE() ([]byte, error) {
-	return compactMarshalSCALE[Valid](*v)
+type CompactValid struct {
+	inner Valid
 }
 
-func (v *Valid) UnmarshalSCALE(reader io.Reader) error {
+type CompactSeconded struct {
+	inner SecondedCandidateHash
+}
+
+func (v *CompactValid) MarshalSCALE() ([]byte, error) {
+	return compactMarshalSCALE(v.inner)
+}
+
+func (v *CompactValid) UnmarshalSCALE(reader io.Reader) error {
 	decoded, err := compactUnmarshalSCALE[Valid](reader)
 	if err != nil {
 		return err
 	}
 
-	*v = decoded
+	v.inner = decoded
 	return nil
 }
 
-func (v *SecondedCandidateHash) MarshalSCALE() ([]byte, error) {
-	return compactMarshalSCALE[SecondedCandidateHash](*v)
+func (sch *CompactSeconded) MarshalSCALE() ([]byte, error) {
+	return compactMarshalSCALE(sch.inner)
 }
 
-func (v *SecondedCandidateHash) UnmarshalSCALE(reader io.Reader) error {
+func (sch *CompactSeconded) UnmarshalSCALE(reader io.Reader) error {
+	fmt.Printf("seconded unmarshal\n")
 	decoded, err := compactUnmarshalSCALE[SecondedCandidateHash](reader)
 	if err != nil {
 		return err
 	}
 
-	*v = decoded
+	sch.inner = decoded
 	return nil
 }
 
@@ -293,18 +300,22 @@ func compactMarshalSCALE[T CompactStatementValues](v T) ([]byte, error) {
 }
 
 func compactUnmarshalSCALE[T CompactStatementValues](reader io.Reader) (T, error) {
+	decoder := scale.NewDecoder(reader)
+
 	var magicBytes [4]byte
-	_, err := io.ReadFull(reader, magicBytes[:])
+	err := decoder.Decode(&magicBytes)
 	if err != nil {
-		return *new(T), fmt.Errorf("reading magic bytes: %w", err)
+		return *new(T), err
 	}
+
+	fmt.Println("magic bytes:", magicBytes)
 
 	if !bytes.Equal(magicBytes[:], backingStatementMagic[:]) {
 		return *new(T), fmt.Errorf("invalid magic bytes")
 	}
 
 	var inner compactStatementInner
-	err = scale.NewDecoder(reader).Decode(&inner)
+	err = decoder.Decode(&inner)
 	if err != nil {
 		return *new(T), fmt.Errorf("decoding compactStatementInner: %w", err)
 	}
