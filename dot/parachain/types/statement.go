@@ -271,7 +271,6 @@ func (sch *CompactSeconded) MarshalSCALE() ([]byte, error) {
 }
 
 func (sch *CompactSeconded) UnmarshalSCALE(reader io.Reader) error {
-	fmt.Printf("seconded unmarshal\n")
 	decoded, err := compactUnmarshalSCALE[SecondedCandidateHash](reader)
 	if err != nil {
 		return err
@@ -307,8 +306,6 @@ func compactUnmarshalSCALE[T CompactStatementValues](reader io.Reader) (T, error
 	if err != nil {
 		return *new(T), err
 	}
-
-	fmt.Println("magic bytes:", magicBytes)
 
 	if !bytes.Equal(magicBytes[:], backingStatementMagic[:]) {
 		return *new(T), fmt.Errorf("invalid magic bytes")
