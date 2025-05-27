@@ -55,3 +55,6 @@ func (j Justifications) EncodedJustification(engineID ConsensusEngineID) *Encode
 
 // Consensus engine unique ID.
 type ConsensusEngineID [4]byte
+
+// OpaqueValue is a simple blob that hold a value in an encoded form without committing to its type.
+type OpaqueValue []byte

@@ -138,9 +138,9 @@ type NetworkBlock[BlockHash any, BlockNumber any] interface {
 type ValidationResult uint
 
 const (
-	/// Accept inbound substream.
+	// Accept inbound substream.
 	ValidationResultAccept = iota + 1
-	/// Reject inbound substream.
+	// Reject inbound substream.
 	ValidationResultReject
 )
 

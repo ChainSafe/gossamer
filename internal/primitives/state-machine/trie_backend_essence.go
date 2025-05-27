@@ -50,7 +50,7 @@ func prepare[H runtime.Hash, Hasher runtime.Hasher[H], R any](
 
 	var result *R
 	var err error
-	withTrieDB[H, Hasher](backend, ri.root, ri.childInfo, func(db *triedb.TrieDB[H, Hasher]) {
+	withTrieDB(backend, ri.root, ri.childInfo, func(db *triedb.TrieDB[H, Hasher]) {
 		result, err = callback(db, &ri.trieIter)
 	})
 	if err != nil {
@@ -71,7 +71,7 @@ func (ri *rawIter[H, Hasher]) NextKey(backend *TrieBackend[H, Hasher]) (StorageK
 	skipIfFirst := ri.skipIfFirst
 	ri.skipIfFirst = nil
 
-	key, err := prepare[H, Hasher, []byte](
+	key, err := prepare(
 		ri,
 		&backend.essence,
 		func(trie *triedb.TrieDB[H, Hasher], trieIter *triedb.TrieDBRawIterator[H, Hasher]) (*[]byte, error) {
@@ -482,7 +482,7 @@ func (tbe *trieBackendEssence[H, Hasher]) RawIter(args IterArgs) (*rawIter[H, Ha
 
 	var trieIter *triedb.TrieDBRawIterator[H, Hasher]
 	var err error
-	withTrieDB[H, Hasher](tbe, root, args.ChildInfo, func(db *triedb.TrieDB[H, Hasher]) {
+	withTrieDB(tbe, root, args.ChildInfo, func(db *triedb.TrieDB[H, Hasher]) {
 		var prefix []byte
 		if args.Prefix != nil {
 			prefix = args.Prefix

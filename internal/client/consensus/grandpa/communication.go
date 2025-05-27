@@ -56,13 +56,13 @@ var (
 )
 
 // A type that ties together our local authority id and a keystore where it is available for signing.
-type localIDKeystore struct { //nolint: unused
+type localIDKeystore struct {
 	primitives.AuthorityID
 	keystore.KeyStore
 }
 
 // Returns a reference to our local authority id.
-func (lk *localIDKeystore) localID() primitives.AuthorityID { //nolint: unused
+func (lk *localIDKeystore) localID() primitives.AuthorityID {
 	return lk.AuthorityID
 }
 
@@ -187,7 +187,7 @@ func newNetworkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 }
 
 // Note the beginning of a new round to the gossipValidator.
-func (nb *networkBridge[H, N, Hasher]) noteRound( //nolint: unused
+func (nb *networkBridge[H, N, Hasher]) noteRound(
 	round Round, setID SetID, voters *grandpa.VoterSet[primitives.AuthorityID],
 ) {
 	authorities := make([]primitives.AuthorityID, voters.Len())
@@ -220,7 +220,7 @@ func (nb *networkBridge[H, N, Hasher]) noteRound( //nolint: unused
 
 // Get a stream of signature-checked round messages from the network as well as a sink for round messages to the
 // network all within the current set.
-func (nb *networkBridge[H, N, Hasher]) roundCommunication( //nolint: unused
+func (nb *networkBridge[H, N, Hasher]) roundCommunication(
 	keystore *localIDKeystore,
 	round Round,
 	setID SetID,
@@ -523,7 +523,7 @@ type SetID uint64
 // NOTE: The votes are stored unsigned, which means that the signatures need to be "stable", i.e. we should end up with
 // the exact same signed message if we use the same raw message and key to sign. This is currently true for ed25519 and
 // BLS signatures (which we might use in the future), care must be taken when switching to different key types.
-type outgoingMessages[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct { //nolint: unused
+type outgoingMessages[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
 	round    Round
 	setID    SetID
 	keystore *localIDKeystore
@@ -533,9 +533,7 @@ type outgoingMessages[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 	// TODO: telemetry
 }
 
-func (om *outgoingMessages[H, N, Hasher]) preSend( //nolint: unused
-	msg primitives.Message[H, N],
-) (primitives.Message[H, N], error) {
+func (om *outgoingMessages[H, N, Hasher]) preSend(msg grandpa.Message[H, N]) error {
 	// if we've voted on this round previously under the same key, send that vote instead
 	switch msg.(type) {
 	case grandpa.PrimaryPropose[H, N]:
@@ -565,11 +563,11 @@ func (om *outgoingMessages[H, N, Hasher]) preSend( //nolint: unused
 			primitives.SetID(om.setID),
 		)
 		if signed == nil {
-			return nil, fmt.Errorf("Failed to sign GRANDPA vote for round %d targeting %v", om.round, targetHash)
+			return fmt.Errorf("Failed to sign GRANDPA vote for round %d targeting %v", om.round, targetHash)
 		}
 
 		message := gossipMessageVote[H, N]{
-			Message: primitives.SignedMessage[H, N](*signed),
+			Message: primitives.SignedMessage[H, N]{SignedMessage: *signed},
 			Round:   om.round,
 			SetID:   om.setID,
 		}
@@ -587,14 +585,10 @@ func (om *outgoingMessages[H, N, Hasher]) preSend( //nolint: unused
 		gossipMessage.inner = message
 		om.network.GossipMessage(topic, scale.MustMarshal(gossipMessage), false)
 
-		// TODO: ensure that presend is called on sender.  Will need to accept special channel type.
-		// forward the message to the inner sender.
-		// return self.sender.start_send(signed).map_err(|e| {
-		// 	Error::Network(format!("Failed to start_send on channel sender: {:?}", e))
-		// })
+		om.sender <- primitives.SignedMessage[H, N]{SignedMessage: *signed}
 	}
 
-	return msg, nil
+	return nil
 }
 
 // checks a compact commit. returns the cost associated with processing it if the commit was bad.

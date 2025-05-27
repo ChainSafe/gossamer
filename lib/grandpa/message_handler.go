@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -393,7 +394,9 @@ func (s *Service) VerifyBlockJustification(finalizedHash common.Hash, finalizedN
 		Number: uint32(finalizedNumber),
 	}
 
-	justification, err := client_grandpa.DecodeGrandpaJustificationVerifyFinalizes[hash.H256, uint32, runtime.BlakeTwo256](
+	justification, err := client_grandpa.DecodeGrandpaJustificationVerifyFinalizes[
+		hash.H256, uint32, runtime.BlakeTwo256, generic.Header[uint32, hash.H256, runtime.BlakeTwo256],
+	](
 		encoded, target, setID, *voters)
 	if err != nil {
 		return 0, 0, fmt.Errorf("decoding and verifying justification: %w", err)

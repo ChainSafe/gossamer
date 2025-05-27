@@ -246,13 +246,14 @@ func Test_gossipValidator(t *testing.T) {
 				Round: Round(1),
 				SetID: setID,
 				Message: primitives.SignedMessage[hash.H256, uint64]{
-					Message: grandpa.Prevote[hash.H256, uint64]{
-						TargetHash:   hash.H256(""),
-						TargetNumber: 10,
-					},
-					Signature: primitives.AuthoritySignature(bytes.Repeat([]byte{1}, 64)),
-					ID:        primitives.AuthorityID(bytes.Repeat([]byte{2}, 32)),
-				},
+					SignedMessage: grandpa.SignedMessage[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]{
+						Message: grandpa.Prevote[hash.H256, uint64]{
+							TargetHash:   hash.H256(""),
+							TargetNumber: 10,
+						},
+						Signature: primitives.AuthoritySignature(bytes.Repeat([]byte{1}, 64)),
+						ID:        primitives.AuthorityID(bytes.Repeat([]byte{2}, 32)),
+					}},
 			},
 		)
 
@@ -262,12 +263,14 @@ func Test_gossipValidator(t *testing.T) {
 				Round: Round(1),
 				SetID: setID,
 				Message: primitives.SignedMessage[hash.H256, uint64]{
-					Message: grandpa.Prevote[hash.H256, uint64]{
-						TargetHash:   hash.H256(""),
-						TargetNumber: 10,
+					SignedMessage: grandpa.SignedMessage[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]{
+						Message: grandpa.Prevote[hash.H256, uint64]{
+							TargetHash:   hash.H256(""),
+							TargetNumber: 10,
+						},
+						Signature: primitives.AuthoritySignature(bytes.Repeat([]byte{1}, 64)),
+						ID:        auth,
 					},
-					Signature: primitives.AuthoritySignature(bytes.Repeat([]byte{1}, 64)),
-					ID:        auth,
 				},
 			},
 		)

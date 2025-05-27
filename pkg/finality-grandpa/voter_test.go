@@ -29,12 +29,13 @@ func TestVoter_TalkingToMyself(t *testing.T) {
 		lastFinalized.Hash, lastFinalized.Number = chain.LastFinalized()
 	})
 
+	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
 	finalized := env.FinalizedStream()
-	voter, globalOut := NewVoter[string, uint32, Signature, ID](
+	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voters,
 		nil,
-		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		0,
 		nil,
 		lastFinalized,
@@ -82,11 +83,12 @@ func TestVoter_FinalizingAtFaultThreshold(t *testing.T) {
 
 		// run voter in background. scheduling it to shut down at the end.
 		finalized := env.FinalizedStream()
-		voter, globalOut := NewVoter[string, uint32, Signature, ID](
+		globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+		voter := NewVoter[string, uint32, Signature, ID](
 			&env,
 			*voters,
 			make(chan globalInItem[string, uint32, Signature, ID]),
-			func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
+			func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 			0,
 			nil,
 			lastFinalized,
@@ -137,11 +139,12 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 
 		// run voter in background. scheduling it to shut down at the end.
 		finalized := env.FinalizedStream()
-		voter, globalOut := NewVoter[string, uint32, Signature, ID](
+		globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+		voter := NewVoter[string, uint32, Signature, ID](
 			&env,
 			*voterSet,
 			make(chan globalInItem[string, uint32, Signature, ID]),
-			func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
+			func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 			0,
 			nil,
 			lastFinalized,
@@ -222,11 +225,12 @@ func TestVoter_BroadcastCommit(t *testing.T) {
 	})
 
 	// run voter in background. scheduling it to shut down at the end.
-	voter, globalOut := NewVoter[string, uint32, Signature, ID](
+	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
 		make(chan globalInItem[string, uint32, Signature, ID]),
-		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		0,
 		nil,
 		lastFinalized,
@@ -286,11 +290,12 @@ func TestVoter_BroadcastCommitOnlyIfNewer(t *testing.T) {
 	})
 
 	// run voter in background. scheduling it to shut down at the end.
-	voter, globalOut := NewVoter[string, uint32, Signature, ID](
+	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
 		nil,
-		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		0,
 		nil,
 		lastFinalized,
@@ -382,11 +387,12 @@ func TestVoter_ImportCommitForAnyRound(t *testing.T) {
 	})
 
 	// run voter in background. scheduling it to shut down at the end.
-	voter, globalOut := NewVoter[string, uint32, Signature, ID](
+	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
 		nil,
-		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		0,
 		nil,
 		lastFinalized,
@@ -439,11 +445,12 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 		lastFinalized.Hash, lastFinalized.Number = chain.LastFinalized()
 	})
 
-	unsyncedVoter, globalOut := NewVoter[string, uint32, Signature, ID](
+	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	unsyncedVoter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
 		nil,
-		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		0,
 		nil,
 		lastFinalized,
@@ -555,11 +562,12 @@ func TestVoter_PickUpFromPriorWithoutGrandparentState(t *testing.T) {
 	})
 
 	// run voter in background. scheduling it to shut down at the end.
-	voter, globalOut := NewVoter[string, uint32, Signature, ID](
+	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
 		nil,
-		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		10,
 		nil,
 		lastFinalized,
@@ -645,11 +653,12 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 	roundOut <- lastPrecommit
 
 	// run voter in background. scheduling it to shut down at the end.
-	voter, globalOut := NewVoter[string, uint32, Signature, ID](
+	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
 		nil,
-		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		1,
 		lastRoundVotes,
 		lastFinalized,
@@ -684,9 +693,12 @@ waitForPrevote:
 	assert.NoError(t, err)
 }
 
-func TestBuffered(_ *testing.T) {
-	in := make(chan int32)
-	buffered := newBuffered(in, func(int32) error { return nil })
+func TestBuffered(t *testing.T) {
+	count := 0
+	buffered := newBuffered(func(int32) error {
+		count++
+		return nil
+	})
 
 	run := true
 	wg := sync.WaitGroup{}
@@ -705,13 +717,6 @@ func TestBuffered(_ *testing.T) {
 		for run {
 			buffered.flush(newWaker())
 			time.Sleep(1 * time.Millisecond)
-		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for range in {
 		}
 	}()
 

@@ -8,12 +8,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	consensus_common "github.com/ChainSafe/gossamer/internal/client/consensus/common"
+	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/db"
-	"github.com/ChainSafe/gossamer/internal/client/db/offchain"
 	"github.com/ChainSafe/gossamer/internal/client/mocks"
 	statedb "github.com/ChainSafe/gossamer/internal/client/state-db"
 	memorykvdb "github.com/ChainSafe/gossamer/internal/kvdb/memory-kvdb"
@@ -30,7 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/version"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,7 +57,7 @@ var (
 		hash.H256, uint64, runtime.BlakeTwo256, *generic.Header[
 			uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic,
 	] = &TestClient{}
-	_ consensus_common.BlockImport[
+	_ common.BlockImport[
 		hash.H256,
 		uint64,
 		runtime.OpaqueExtrinsic,
@@ -618,95 +614,13 @@ func TestBlockBackendImplementation(t *testing.T) {
 	require.True(t, requiresFullSync)
 }
 
-func TestCompareAndSetBlockData(t *testing.T) {
-	r := []byte("test_receipt")
-	m := []byte("test_message_queue")
-
-	t.Run("no_receipt_and_message_queue", func(t *testing.T) {
-		kvdb := memorykvdb.New(13)
-		dbase := database.NewDBAdapter[hash.H256](kvdb)
-		ocStorage := offchain.NewLocalStorage(dbase)
-		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
-			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
-			runtime.OpaqueExtrinsic](t)
-
-		backendMock.EXPECT().OffchainStorage().Return(ocStorage)
-
-		client := New(
-			backendMock,
-			ClientConfig[uint64]{EnableImportProofRecording: true},
-			NewTestExecutor(t),
-			NewRuntimeConstructor(t),
-		)
-
-		blockHash := common.NewHash([]byte{0})
-
-		bd := &types.BlockData{
-			Hash:          blockHash,
-			Header:        nil,
-			Body:          nil,
-			Receipt:       &r,
-			MessageQueue:  &m,
-			Justification: nil,
-		}
-
-		require.Nil(t, ocStorage.Get(state.ReceiptPrefix, blockHash[:]))
-		require.Nil(t, ocStorage.Get(state.MessageQueuePrefix, blockHash[:]))
-
-		err := client.CompareAndSetBlockData(bd)
-		require.NoError(t, err)
-
-		require.Equal(t, r, ocStorage.Get(state.ReceiptPrefix, blockHash[:]))
-		require.Equal(t, m, ocStorage.Get(state.MessageQueuePrefix, blockHash[:]))
-	})
-
-	t.Run("no_receipt_or_message_queue", func(t *testing.T) {
-		kvdb := memorykvdb.New(13)
-		dbase := database.NewDBAdapter[hash.H256](kvdb)
-		ocStorage := offchain.NewLocalStorage(dbase)
-		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
-			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
-			runtime.OpaqueExtrinsic](t)
-
-		backendMock.EXPECT().OffchainStorage().Return(ocStorage)
-
-		client := New(
-			backendMock,
-			ClientConfig[uint64]{EnableImportProofRecording: true},
-			NewTestExecutor(t),
-			NewRuntimeConstructor(t),
-		)
-
-		blockHash := common.NewHash([]byte{0})
-
-		bd := &types.BlockData{
-			Hash:          blockHash,
-			Header:        nil,
-			Body:          nil,
-			Receipt:       nil,
-			MessageQueue:  nil,
-			Justification: nil,
-		}
-
-		// to check that existing values are not overwritten with nil
-		ocStorage.Set(state.ReceiptPrefix, blockHash[:], r)
-		ocStorage.Set(state.MessageQueuePrefix, blockHash[:], m)
-
-		err := client.CompareAndSetBlockData(bd)
-		require.NoError(t, err)
-
-		require.Equal(t, r, ocStorage.Get(state.ReceiptPrefix, blockHash[:]))
-		require.Equal(t, m, ocStorage.Get(state.MessageQueuePrefix, blockHash[:]))
-	})
-}
-
 func TestCheckBlock(t *testing.T) {
-	badBlock := consensus_common.BlockCheckParams[hash.H256, uint64]{
+	badBlock := common.BlockCheckParams[hash.H256, uint64]{
 		Number: 1,
 		Hash:   hash.H256("bad_block"),
 	}
 
-	invalidForkBlock := consensus_common.BlockCheckParams[hash.H256, uint64]{
+	invalidForkBlock := common.BlockCheckParams[hash.H256, uint64]{
 		Number: 2,
 		Hash:   hash.H256("block_2_hash"),
 	}
@@ -725,17 +639,17 @@ func TestCheckBlock(t *testing.T) {
 	t.Run("reject_known_bad_block", func(t *testing.T) {
 		result, err := c.CheckBlock(badBlock)
 		require.NoError(t, err)
-		require.Equal(t, consensus_common.ImportResultKnownBad{}, result)
+		require.Equal(t, common.ImportResultKnownBad{}, result)
 	})
 
 	t.Run("reject_block_from_invalid_fork", func(t *testing.T) {
 		result, err := c.CheckBlock(invalidForkBlock)
 		require.NoError(t, err)
-		require.Equal(t, consensus_common.ImportResultKnownBad{}, result)
+		require.Equal(t, common.ImportResultKnownBad{}, result)
 	})
 
 	t.Run("queued_block_already_in_chain", func(t *testing.T) {
-		queuedBlock := consensus_common.BlockCheckParams[hash.H256, uint64]{
+		queuedBlock := common.BlockCheckParams[hash.H256, uint64]{
 			Number: 3,
 			Hash:   hash.H256("queued_block"),
 		}
@@ -745,11 +659,11 @@ func TestCheckBlock(t *testing.T) {
 
 		result, err := c.CheckBlock(queuedBlock)
 		require.NoError(t, err)
-		require.Equal(t, consensus_common.ImportResultAlreadyInChain{}, result)
+		require.Equal(t, common.ImportResultAlreadyInChain{}, result)
 	})
 
 	t.Run("in_chain_with_state", func(t *testing.T) {
-		importedBlockWithStatus := consensus_common.BlockCheckParams[hash.H256, uint64]{
+		importedBlockWithStatus := common.BlockCheckParams[hash.H256, uint64]{
 			Number: 4,
 			Hash:   hash.H256("status_imported"),
 		}
@@ -769,11 +683,11 @@ func TestCheckBlock(t *testing.T) {
 		c := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t))
 		result, err := c.CheckBlock(importedBlockWithStatus)
 		require.NoError(t, err)
-		require.Equal(t, consensus_common.ImportResultAlreadyInChain{}, result)
+		require.Equal(t, common.ImportResultAlreadyInChain{}, result)
 	})
 
 	t.Run("pruned_block_not_import_existing", func(t *testing.T) {
-		prunedBlock := consensus_common.BlockCheckParams[hash.H256, uint64]{
+		prunedBlock := common.BlockCheckParams[hash.H256, uint64]{
 			Number:         5,
 			Hash:           hash.H256("pruned_block"),
 			ImportExisting: false,
@@ -795,11 +709,11 @@ func TestCheckBlock(t *testing.T) {
 
 		result, err := c.CheckBlock(prunedBlock)
 		require.NoError(t, err)
-		require.Equal(t, consensus_common.ImportResultAlreadyInChain{}, result)
+		require.Equal(t, common.ImportResultAlreadyInChain{}, result)
 	})
 
 	t.Run("unknown_parent", func(t *testing.T) {
-		blockUnknownParent := consensus_common.BlockCheckParams[hash.H256, uint64]{
+		blockUnknownParent := common.BlockCheckParams[hash.H256, uint64]{
 			Number:     6,
 			Hash:       hash.H256("ok_block"),
 			ParentHash: hash.H256("unknown_block"),
@@ -821,11 +735,11 @@ func TestCheckBlock(t *testing.T) {
 
 		result, err := c.CheckBlock(blockUnknownParent)
 		require.NoError(t, err)
-		require.Equal(t, consensus_common.ImportResultUnknownParent{}, result)
+		require.Equal(t, common.ImportResultUnknownParent{}, result)
 	})
 
 	t.Run("parent_pruned", func(t *testing.T) {
-		blockUnknownParent := consensus_common.BlockCheckParams[hash.H256, uint64]{
+		blockUnknownParent := common.BlockCheckParams[hash.H256, uint64]{
 			Number:     6,
 			Hash:       hash.H256("ok_block"),
 			ParentHash: hash.H256("pruned_block"),
@@ -853,11 +767,11 @@ func TestCheckBlock(t *testing.T) {
 
 		result, err := c.CheckBlock(blockUnknownParent)
 		require.NoError(t, err)
-		require.Equal(t, consensus_common.ImportResultMissingState{}, result)
+		require.Equal(t, common.ImportResultMissingState{}, result)
 	})
 
 	t.Run("block_ok", func(t *testing.T) {
-		blockUnknownParent := consensus_common.BlockCheckParams[hash.H256, uint64]{
+		blockUnknownParent := common.BlockCheckParams[hash.H256, uint64]{
 			Number:     6,
 			Hash:       hash.H256("ok_block"),
 			ParentHash: hash.H256("pruned_block"),
@@ -883,13 +797,13 @@ func TestCheckBlock(t *testing.T) {
 
 		result, err := c.CheckBlock(blockUnknownParent)
 		require.NoError(t, err)
-		require.Equal(t, consensus_common.ImportResultImported{IsNewBest: false}, result)
+		require.Equal(t, common.ImportResultImported{IsNewBest: false}, result)
 	})
 }
 
 func TestPrepareBlockStorageChanges(t *testing.T) {
 	t.Run("block_status_error", func(t *testing.T) {
-		block := consensus_common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
+		block := common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
 			Header: generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 				1,
@@ -918,11 +832,11 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		require.Error(t, err)
 		require.Equal(t, expectedError, err)
 
-		require.Equal(t, consensus_common.StateActionSkip{}, block.StateAction)
+		require.Equal(t, common.StateActionSkip{}, block.StateAction)
 	})
 
 	t.Run("parent_pruned_discard_missing_state", func(t *testing.T) {
-		block := consensus_common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
+		block := common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
 			Header: generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 				2,
@@ -931,8 +845,8 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 				hash.H256("parent"),
 				runtime.Digest{},
 			),
-			StateAction: consensus_common.StateActionApplyChanges{
-				StorageChanges: consensus_common.Changes[hash.H256, runtime.BlakeTwo256]{},
+			StateAction: common.StateActionApplyChanges{
+				StorageChanges: common.Changes[hash.H256, runtime.BlakeTwo256]{},
 			},
 		}
 
@@ -954,11 +868,11 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, prepareStorageChangesResultDiscard{consensus_common.ImportResultMissingState{}}, result)
+		require.Equal(t, prepareStorageChangesResultDiscard{common.ImportResultMissingState{}}, result)
 	})
 
 	t.Run("unknown_parent_discard", func(t *testing.T) {
-		block := consensus_common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
+		block := common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
 			Header: generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 				2,
@@ -967,7 +881,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 				hash.H256("parent"),
 				runtime.Digest{},
 			),
-			StateAction: consensus_common.StateActionExecute{},
+			StateAction: common.StateActionExecute{},
 		}
 
 		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
@@ -985,11 +899,11 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, prepareStorageChangesResultDiscard{consensus_common.ImportResultUnknownParent{}}, result)
+		require.Equal(t, prepareStorageChangesResultDiscard{common.ImportResultUnknownParent{}}, result)
 	})
 
 	t.Run("execute_with_parent_pruned", func(t *testing.T) {
-		block := consensus_common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
+		block := common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
 			Header: generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 				2,
@@ -998,7 +912,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 				hash.H256("parent"),
 				runtime.Digest{},
 			),
-			StateAction: consensus_common.StateActionExecute{},
+			StateAction: common.StateActionExecute{},
 		}
 
 		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
@@ -1018,11 +932,11 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		result, err := c.prepareBlockStorageChanges(&block)
 		require.NoError(t, err)
 
-		require.Equal(t, prepareStorageChangesResultDiscard{consensus_common.ImportResultMissingState{}}, result)
+		require.Equal(t, prepareStorageChangesResultDiscard{common.ImportResultMissingState{}}, result)
 	})
 
 	t.Run("parent_pruned_execute_if_possible", func(t *testing.T) {
-		block := consensus_common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
+		block := common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
 			Header: generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 				2,
@@ -1031,7 +945,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 				hash.H256("parent"),
 				runtime.Digest{},
 			),
-			StateAction: consensus_common.StateActionExecuteIfPossible{},
+			StateAction: common.StateActionExecuteIfPossible{},
 		}
 
 		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
@@ -1055,9 +969,9 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 	})
 
 	t.Run("apply_changes", func(t *testing.T) {
-		storageChanges := consensus_common.Changes[hash.H256, runtime.BlakeTwo256]{}
+		storageChanges := common.Changes[hash.H256, runtime.BlakeTwo256]{}
 
-		block := consensus_common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
+		block := common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
 			Header: generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 				2,
@@ -1066,7 +980,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 				hash.H256("parent"),
 				runtime.Digest{},
 			),
-			StateAction: consensus_common.StateActionApplyChanges{
+			StateAction: common.StateActionApplyChanges{
 				StorageChanges: storageChanges,
 			},
 		}
@@ -1092,7 +1006,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 	})
 
 	t.Run("action_skip", func(t *testing.T) {
-		block := consensus_common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
+		block := common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
 			Header: generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 				2,
@@ -1101,7 +1015,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 				hash.H256("parent"),
 				runtime.Digest{},
 			),
-			StateAction: consensus_common.StateActionSkip{},
+			StateAction: common.StateActionSkip{},
 		}
 
 		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
@@ -1125,7 +1039,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 	})
 
 	t.Run("action_execute_withouth_body", func(t *testing.T) {
-		block := consensus_common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
+		block := common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
 			Header: generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 				2,
@@ -1134,7 +1048,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 				hash.H256("parent"),
 				runtime.Digest{},
 			),
-			StateAction: consensus_common.StateActionExecute{},
+			StateAction: common.StateActionExecute{},
 		}
 
 		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
@@ -1157,8 +1071,8 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		require.Equal(t, prepareStorageChangesResultImport{StorageChanges: nil}, result)
 	})
 
-	t.Run("action_execute_if_possible_withouth_body", func(t *testing.T) {
-		block := consensus_common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
+	t.Run("action_execute_if_possible_without_body", func(t *testing.T) {
+		block := common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
 			Header: generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 				2,
@@ -1167,7 +1081,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 				hash.H256("parent"),
 				runtime.Digest{},
 			),
-			StateAction: consensus_common.StateActionExecuteIfPossible{},
+			StateAction: common.StateActionExecuteIfPossible{},
 		}
 
 		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
@@ -1191,7 +1105,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 	})
 
 	t.Run("action_execute_with_body", func(t *testing.T) {
-		block := consensus_common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
+		block := common.BlockImportParams[hash.H256, uint64, runtime.OpaqueExtrinsic,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
 			Header: generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 				2,
@@ -1200,7 +1114,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 				hash.H256("parent"),
 				runtime.Digest{},
 			),
-			StateAction: consensus_common.StateActionExecute{},
+			StateAction: common.StateActionExecute{},
 			Body: []runtime.OpaqueExtrinsic{
 				{
 					Data: []byte{1, 2, 3},
@@ -1265,7 +1179,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		require.Equal(
 			t,
 			prepareStorageChangesResultImport{
-				StorageChanges: consensus_common.Changes[hash.H256, runtime.BlakeTwo256](storageChanges),
+				StorageChanges: common.Changes[hash.H256, runtime.BlakeTwo256](storageChanges),
 			},
 			result,
 		)

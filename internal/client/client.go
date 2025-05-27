@@ -731,8 +731,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) ImportBlock(
 	importResult, err := c.LockImportRun(func(
 		clientImportOp *api.ClientImportOperation[H, Hasher, N, Header, E],
 	) (any, error) {
-		result, err := c.applyBlock(clientImportOp, *block, storageChanges)
-		return result, err
+		return c.applyBlock(clientImportOp, *block, storageChanges)
 	})
 
 	if err != nil {
@@ -855,11 +854,11 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyBlock(
 	if len(importBlock.PostDigests) == 0 {
 		importHeaders = PrePostHeadersSame[N, H, Header]{importBlock.Header}
 	} else {
-		postHeader := importBlock.Header.Clone()
+		postHeader := importBlock.Header.Clone().(Header)
 		for _, item := range importBlock.PostDigests {
 			postHeader.DigestMut().Push(item)
 		}
-		importHeaders = PrePostHeadersDifferent[N, H, Header]{importBlock.Header, importBlock.Header}
+		importHeaders = PrePostHeadersDifferent[N, H, Header]{importBlock.Header, postHeader}
 	}
 
 	hash := importHeaders.Post().Hash()
@@ -1211,7 +1210,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyFinalityWithBlockHa
 	// not always checking this condition.
 	blockNumber, err := c.backend.Blockchain().Number(hash)
 	if err != nil {
-		return fmt.Errorf("failed to get header for hash %v", hash)
+		return fmt.Errorf("failed to get block number for hash %v", hash)
 	}
 
 	leaves, err := c.backend.Blockchain().Leaves()

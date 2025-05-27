@@ -55,7 +55,9 @@ type AuthorityList []AuthorityIDWeight
 type Message[H, N any] grandpa.Message[H, N]
 
 // SignedMessage is a signed message.
-type SignedMessage[H, N any] grandpa.SignedMessage[H, N, AuthoritySignature, AuthorityID]
+type SignedMessage[H, N any] struct {
+	grandpa.SignedMessage[H, N, AuthoritySignature, AuthorityID]
+}
 
 // A primary propose message for this chain's block type.
 type PrimaryPropose[H, N any] grandpa.PrimaryPropose[H, N]
@@ -88,10 +90,59 @@ type ScheduledChange[N runtime.Number] struct {
 //
 // This is meant to be stored in the db and passed around the network to other nodes, and are used by syncing nodes to
 // prove authority set handoffs.
-type GrandpaJustification[Ordered runtime.Hash, N runtime.Number] struct {
+type GrandpaJustification[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] struct {
 	Round          uint64
-	Commit         Commit[Ordered, N]
-	VoteAncestries []runtime.Header[N, Ordered]
+	Commit         Commit[H, N]
+	VoteAncestries []Header
+}
+
+// EquivocationProof is proof of voter misbehavior on a given set id. Misbehavior/equivocation in GRANDPA happens when
+// a voter votes on the same round (either at prevote or precommit stage) for different blocks. Proving is achieved by
+// collecting the signed messages of conflicting votes.
+type EquivocationProof[H runtime.Hash, N runtime.Number] struct {
+	SetID        SetID
+	Equivocation Equivocation
+}
+
+// NewEquivocationProof will create a new [EquivocationProof] for the given set id and using the given equivocation as
+// proof.
+func NewEquivocationProof[H runtime.Hash, N runtime.Number](
+	setID SetID,
+	equivocation Equivocation,
+) EquivocationProof[H, N] {
+	return EquivocationProof[H, N]{
+		SetID:        setID,
+		Equivocation: equivocation,
+	}
+}
+
+// Equivocation is interface for GRANDPA equivocation proofs, useful for unifying prevote and precommit equivocations
+// under a common type.
+type Equivocation interface {
+	Round() RoundNumber
+	Offender() AuthorityID
+}
+
+// EquivocationPrevote is proof of equivocation at prevote stage.
+type EquivocationPrevote[H runtime.Hash, N runtime.Number] grandpa.Equivocation[
+	AuthorityID, grandpa.Prevote[H, N], AuthoritySignature]
+
+func (ep EquivocationPrevote[H, N]) Round() RoundNumber {
+	return RoundNumber(ep.RoundNumber)
+}
+func (ep EquivocationPrevote[H, N]) Offender() AuthorityID {
+	return ep.Identity
+}
+
+// EquivocationPrecommit is proof of equivocation at precommit stage.
+type EquivocationPrecommit[H runtime.Hash, N runtime.Number] grandpa.Equivocation[
+	AuthorityID, grandpa.Precommit[H, N], AuthoritySignature]
+
+func (ep EquivocationPrecommit[H, N]) Round() RoundNumber {
+	return RoundNumber(ep.RoundNumber)
+}
+func (ep EquivocationPrecommit[H, N]) Offender() AuthorityID {
+	return ep.Identity
 }
 
 // CheckMessageSignature will check a message signature by encoding the message as a localised payload and verifying
@@ -112,7 +163,7 @@ func CheckMessageSignature[H comparable, N constraints.Unsigned](
 	return valid
 }
 
-// LocalizedPayload will encode round message localised to a given round and set id.
+// NewLocalizedPayload will encode round message localised to a given round and set id.
 func NewLocalizedPayload[H comparable, N constraints.Unsigned](
 	round RoundNumber,
 	setID SetID,
@@ -125,7 +176,7 @@ func NewLocalizedPayload[H comparable, N constraints.Unsigned](
 	}{grandpa.NewMessageVDT(message), round, setID})
 }
 
-// Localizes the message to the given set and round and signs the payload.
+// SignMessage localizes the message to the given set and round and signs the payload.
 func SignMessage[H comparable, N constraints.Unsigned](
 	keystore keystore.KeyStore,
 	message grandpa.Message[H, N],
@@ -143,4 +194,52 @@ func SignMessage[H comparable, N constraints.Unsigned](
 		Signature: *signature,
 		ID:        public,
 	}
+}
+
+// OpaqueKeyOwnershipProof is an opaque type used to represent the key ownership proof at the runtime API boundary.
+// The inner value is an encoded representation of the actual key ownership proof which will be parameterized when
+// defining the runtime. At the runtime API boundary this type is unknown and as such we keep this opaque
+// representation, implementors of the runtime API will have to make sure that all usages of OpaqueKeyOwnershipProof
+// refer to the same type.
+type OpaqueKeyOwnershipProof = runtime.OpaqueValue
+
+// APIs for integrating the GRANDPA finality gadget into runtimes. This should be implemented on the runtime side.
+//
+// This is primarily used for negotiating authority-set changes for the gadget. GRANDPA uses a signalling model of
+// changing authority sets: changes should be signalled with a delay of N blocks, and then automatically applied in the
+// runtime after those N blocks have passed.
+//
+// The consensus protocol will coordinate the handoff externally.
+type GrandpaAPI[H runtime.Hash, N runtime.Number] interface {
+	// Get the current GRANDPA authorities and weights. This should not change except for when changes are scheduled
+	// and the corresponding delay has passed.
+	//
+	// When called at block B, it will return the set of authorities that should be used to finalize descendants of
+	// this block (B+1, B+2, ...). The block B itself is finalized by the authorities from block B-1.
+	GrandpaAuthorities() AuthorityList
+
+	// Submits an unsigned extrinsic to report an equivocation. The caller must provide the equivocation proof and a
+	// key ownership proof (should be obtained using GenerateKeyOwnershipProof). The extrinsic will be unsigned
+	// and should only be accepted for local authorship (not to be broadcast to the network). This method returns
+	// nil when creation of the extrinsic fails, e.g. if equivocation reporting is disabled for the given runtime
+	// (i.e. this method is hardcoded to return nil). Only useful in an offchain context.
+	SubmitReportEquivocationUnsignedExtrinsic(
+		hash H,
+		equivocationProof EquivocationProof[H, N],
+		keyOwnerProof OpaqueKeyOwnershipProof,
+	) error
+
+	// Generates a proof of key ownership for the given authority in the given set. An example usage of this module
+	// is coupled with the session historical module to prove that a given authority key is tied to a given staking
+	// identity during a specific session. Proofs of key ownership are necessary for submitting equivocation reports.
+	//
+	// NOTE: even though the API takes a setID as parameter the current implementations ignore this parameter and
+	// instead rely on this method being called at the correct block height, i.e. any point at which the given set id
+	// is live on-chain. Future implementations will instead use indexed data through an offchain worker, not requiring
+	// older states to be available.
+	GenerateKeyOwnershipProof(
+		hash H,
+		setID SetID,
+		authorityID AuthorityID,
+	) *OpaqueKeyOwnershipProof
 }

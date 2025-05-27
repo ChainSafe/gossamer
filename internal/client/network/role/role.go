@@ -10,7 +10,7 @@ package role
 // is a [Role] merged with the information known locally about that node.
 type ObservedRole uint
 
-// / Returns true if role is [ObservedRoleLight].
+// Returns true if role is [ObservedRoleLight].
 func (or ObservedRole) IsLight() bool {
 	return or == ObservedRoleLight
 }
