@@ -427,9 +427,8 @@ func TestGridTracker(t *testing.T) {
 				*groups,
 				sessionTopology,
 				parachaintypes.ValidatorIndex(2),
-				parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-					Value: parachaintypes.SecondedCandidateHash(candidateHash),
-				})
+				parachaintypes.NewCompactSeconded(candidateHash),
+			)
 
 			// Should start with no pending statements.
 			ensurePendingStatements(t, tracker, receiveFrom, receiveFrom, candidateHash, nil, nil)
@@ -463,10 +462,6 @@ func TestGridTracker(t *testing.T) {
 				validatedInGroup: newBitVec(t, false, false, false),
 			}
 
-			expectedStatement := parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-				Value: parachaintypes.SecondedCandidateHash(candidateHash),
-			}
-
 			ensurePendingStatements(
 				t,
 				tracker,
@@ -474,7 +469,7 @@ func TestGridTracker(t *testing.T) {
 				parachaintypes.ValidatorIndex(2),
 				candidateHash,
 				expectedFilter,
-				expectedStatement,
+				parachaintypes.NewCompactSeconded(candidateHash),
 			)
 		})
 
@@ -494,9 +489,8 @@ func TestGridTracker(t *testing.T) {
 				*groups,
 				sessionTopology,
 				parachaintypes.ValidatorIndex(2),
-				parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-					Value: parachaintypes.SecondedCandidateHash(candidateHash),
-				})
+				parachaintypes.NewCompactSeconded(candidateHash),
+			)
 
 			// Should start with no pending statements.
 			ensurePendingStatements(t, tracker, sendTo, sendTo, candidateHash, nil, nil)
@@ -529,10 +523,6 @@ func TestGridTracker(t *testing.T) {
 				validatedInGroup: newBitVec(t, false, false, false),
 			}
 
-			expectedStatement := parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-				Value: parachaintypes.SecondedCandidateHash(candidateHash),
-			}
-
 			ensurePendingStatements(
 				t,
 				tracker,
@@ -540,7 +530,7 @@ func TestGridTracker(t *testing.T) {
 				parachaintypes.ValidatorIndex(2),
 				candidateHash,
 				expectedFilter,
-				expectedStatement,
+				parachaintypes.NewCompactSeconded(candidateHash),
 			)
 		})
 	})
@@ -561,10 +551,12 @@ func TestGridTracker(t *testing.T) {
 		ensurePendingStatements(t, tracker, validatorIndex, validatorIndex, candidateHash, nil, nil)
 
 		// Try to import fresh statement. Candidate not backed.
-		statement := parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-			Value: parachaintypes.SecondedCandidateHash(candidateHash),
-		}
-		tracker.learnedFreshStatement(*groups, sessionTopology, validatorIndex, statement)
+		tracker.learnedFreshStatement(
+			*groups,
+			sessionTopology,
+			validatorIndex,
+			parachaintypes.NewCompactSeconded(candidateHash),
+		)
 
 		ensurePendingStatements(t, tracker, validatorIndex, validatorIndex, candidateHash, nil, nil)
 
@@ -572,7 +564,12 @@ func TestGridTracker(t *testing.T) {
 		tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
 
 		// Try to import fresh statement. Unknown group for validator index.
-		tracker.learnedFreshStatement(*groups, sessionTopology, parachaintypes.ValidatorIndex(1), statement)
+		tracker.learnedFreshStatement(
+			*groups,
+			sessionTopology,
+			parachaintypes.ValidatorIndex(1),
+			parachaintypes.NewCompactSeconded(candidateHash),
+		)
 
 		ensurePendingStatements(t, tracker, validatorIndex, validatorIndex, candidateHash, nil, nil)
 	})
@@ -618,10 +615,12 @@ func TestGridTracker(t *testing.T) {
 
 		tracker.manifestSentTo(*groups, validatorIndex, candidateHash, *localKnowledge)
 
-		statement := parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-			Value: parachaintypes.SecondedCandidateHash(candidateHash),
-		}
-		tracker.learnedFreshStatement(*groups, sessionTopology, validatorIndex, statement)
+		tracker.learnedFreshStatement(
+			*groups,
+			sessionTopology,
+			validatorIndex,
+			parachaintypes.NewCompactSeconded(candidateHash),
+		)
 
 		// There should be pending statements now.
 		expectedFilter := &statementFilter{
@@ -629,10 +628,6 @@ func TestGridTracker(t *testing.T) {
 			validatedInGroup: newBitVec(t, false, false, false),
 		}
 
-		expectedStatement := parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-			Value: parachaintypes.SecondedCandidateHash(candidateHash),
-		}
-
 		ensurePendingStatements(
 			t,
 			tracker,
@@ -640,11 +635,17 @@ func TestGridTracker(t *testing.T) {
 			validatorIndex,
 			candidateHash,
 			expectedFilter,
-			expectedStatement,
+			parachaintypes.NewCompactSeconded(candidateHash),
 		)
 
 		// After successful import, try importing again. Nothing should change.
-		tracker.learnedFreshStatement(*groups, sessionTopology, validatorIndex, statement)
+		tracker.learnedFreshStatement(
+			*groups,
+			sessionTopology,
+			validatorIndex,
+			parachaintypes.NewCompactSeconded(candidateHash),
+		)
+
 		ensurePendingStatements(
 			t,
 			tracker,
@@ -652,7 +653,7 @@ func TestGridTracker(t *testing.T) {
 			validatorIndex,
 			candidateHash,
 			expectedFilter,
-			expectedStatement,
+			parachaintypes.NewCompactSeconded(candidateHash),
 		)
 	})
 
@@ -703,17 +704,13 @@ func TestGridTracker(t *testing.T) {
 			*groups,
 			sessionTopology,
 			validatorIndex,
-			parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-				Value: parachaintypes.SecondedCandidateHash(candidateHash),
-			},
+			parachaintypes.NewCompactSeconded(candidateHash),
 		)
 		tracker.learnedFreshStatement(
 			*groups,
 			sessionTopology,
 			validatorIndex,
-			parachaintypes.CompactStatement[parachaintypes.Valid]{
-				Value: parachaintypes.Valid(candidateHash),
-			},
+			parachaintypes.NewCompactValid(candidateHash),
 		)
 
 		// The pending statements should respect the remote knowledge (meaning the Seconded
@@ -723,10 +720,6 @@ func TestGridTracker(t *testing.T) {
 			validatedInGroup: newBitVec(t, true, false, false),
 		}
 
-		expectedStatement := parachaintypes.CompactStatement[parachaintypes.Valid]{
-			Value: parachaintypes.Valid(candidateHash),
-		}
-
 		ensurePendingStatements(
 			t,
 			tracker,
@@ -734,7 +727,7 @@ func TestGridTracker(t *testing.T) {
 			validatorIndex,
 			candidateHash,
 			expectedFilter,
-			expectedStatement,
+			parachaintypes.NewCompactValid(candidateHash),
 		)
 	})
 
@@ -785,9 +778,7 @@ func TestGridTracker(t *testing.T) {
 			*groups,
 			sessionTopology,
 			validatorIndex,
-			parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-				Value: parachaintypes.SecondedCandidateHash(candidateHash),
-			},
+			parachaintypes.NewCompactSeconded(candidateHash),
 		)
 
 		// Import statement for counterparty.
@@ -816,19 +807,13 @@ func TestGridTracker(t *testing.T) {
 			*groups,
 			sessionTopology,
 			counterparty,
-			parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-				Value: parachaintypes.SecondedCandidateHash(candidateHash),
-			},
+			parachaintypes.NewCompactSeconded(candidateHash),
 		)
 
 		// There should be pending statements now.
 		expectedFilter := &statementFilter{
 			secondedInGroup:  newBitVec(t, true, false, false),
 			validatedInGroup: newBitVec(t, false, false, false),
-		}
-
-		expectedStatement := parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-			Value: parachaintypes.SecondedCandidateHash(candidateHash),
 		}
 
 		ensurePendingStatements(
@@ -838,7 +823,7 @@ func TestGridTracker(t *testing.T) {
 			validatorIndex,
 			candidateHash,
 			expectedFilter,
-			expectedStatement,
+			parachaintypes.NewCompactSeconded(candidateHash),
 		)
 
 		ensurePendingStatements(
@@ -848,7 +833,7 @@ func TestGridTracker(t *testing.T) {
 			validatorIndex,
 			candidateHash,
 			expectedFilter,
-			expectedStatement,
+			parachaintypes.NewCompactSeconded(candidateHash),
 		)
 	})
 }
@@ -860,7 +845,7 @@ func ensurePendingStatements(
 	originator parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
 	expectedFilter *statementFilter,
-	expectedStatement any, /* FIXME should be parachaintypes.CompactStatement */
+	expectedStatement parachaintypes.CompactStatement,
 ) {
 	t.Helper()
 

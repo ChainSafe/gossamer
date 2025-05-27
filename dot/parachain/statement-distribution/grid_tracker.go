@@ -32,7 +32,7 @@ type manifestKindByCandidateHash map[parachaintypes.CandidateHash]manifestKind
 
 type originatorStatementPair struct {
 	validatorIndex parachaintypes.ValidatorIndex
-	statement      any /* FIXME should be parachaintypes.CompactStatement */
+	statement      parachaintypes.CompactStatement
 }
 
 type originatorStatementPairSet map[originatorStatementPair]struct{}
@@ -313,7 +313,7 @@ func (g *gridTracker) allPendingStatementsFor(
 	var seconded, valid []originatorStatementPair
 
 	for pair := range g.pendingStatements[validatorIndex] {
-		if _, ok := pair.statement.(parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]); ok {
+		if _, ok := pair.statement.(*parachaintypes.CompactSeconded); ok {
 			seconded = append(seconded, pair)
 		} else {
 			valid = append(valid, pair)
@@ -343,7 +343,7 @@ func (g *gridTracker) canRequest( //nolint:unused // skipcq:SCC-U1000
 func (g *gridTracker) directStatementProviders( //nolint:unused // skipcq:SCC-U1000
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
-	statement any, /* FIXME should be parachaintypes.CompactStatement */
+	statement parachaintypes.CompactStatement,
 ) map[parachaintypes.ValidatorIndex]bool {
 	groupIndex, candidateHash, stmtKind, idxInGroup := extractStatementAndGroupInfo(groups, originator, statement)
 	if groupIndex == nil {
@@ -362,7 +362,7 @@ func (g *gridTracker) directStatementProviders( //nolint:unused // skipcq:SCC-U1
 func (g *gridTracker) directStatementTargets( //nolint:unused // skipcq:SCC-U1000
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
-	statement any, /* FIXME should be parachaintypes.CompactStatement */
+	statement parachaintypes.CompactStatement,
 ) []parachaintypes.ValidatorIndex {
 	groupIndex, candidateHash, stmtKind, idxInGroup := extractStatementAndGroupInfo(groups, originator, statement)
 	if groupIndex == nil {
@@ -384,7 +384,7 @@ func (g *gridTracker) learnedFreshStatement(
 	groups groups,
 	sessionTopology *sessionTopologyView,
 	originator parachaintypes.ValidatorIndex,
-	statement any, /* FIXME should be parachaintypes.CompactStatement */
+	statement parachaintypes.CompactStatement,
 ) {
 	groupIndex, candidateHash, stmtKind, idxInGroup := extractStatementAndGroupInfo(groups, originator, statement)
 	if groupIndex == nil {
@@ -430,7 +430,7 @@ func (g *gridTracker) sentOrReceivedDirectStatement( //nolint:unused // skipcq:S
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
 	counterparty parachaintypes.ValidatorIndex,
-	statement any, /* FIXME should be parachaintypes.CompactStatement */
+	statement parachaintypes.CompactStatement,
 	received bool,
 ) {
 	groupIndex, candidateHash, stmtKind, idxInGroup := extractStatementAndGroupInfo(groups, originator, statement)
@@ -534,13 +534,10 @@ func decomposeStatementFilter(
 	for i, bit := range statementFilter.secondedInGroup.Bits() {
 		if bit {
 			validatorIndex := group[i]
-			value := parachaintypes.SecondedCandidateHash(candidateHash)
 
 			pair := originatorStatementPair{
 				validatorIndex: validatorIndex,
-				statement: parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]{
-					Value: value,
-				},
+				statement:      parachaintypes.NewCompactSeconded(candidateHash),
 			}
 
 			result[pair] = struct{}{}
@@ -550,13 +547,10 @@ func decomposeStatementFilter(
 	for i, bit := range statementFilter.validatedInGroup.Bits() {
 		if bit {
 			validatorIndex := group[i]
-			value := parachaintypes.Valid(candidateHash)
 
 			pair := originatorStatementPair{
 				validatorIndex: validatorIndex,
-				statement: parachaintypes.CompactStatement[parachaintypes.Valid]{
-					Value: value,
-				},
+				statement:      parachaintypes.NewCompactValid(candidateHash),
 			}
 
 			result[pair] = struct{}{}
@@ -570,14 +564,14 @@ func decomposeStatementFilter(
 func extractStatementAndGroupInfo(
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
-	statement any, /* FIXME should be parachaintypes.CompactStatement */
+	statement parachaintypes.CompactStatement,
 ) (gi *parachaintypes.GroupIndex, ch parachaintypes.CandidateHash, sk statementKind, i uint) {
-	switch s := statement.(type) {
-	case parachaintypes.CompactStatement[parachaintypes.SecondedCandidateHash]:
-		ch = parachaintypes.CandidateHash(s.Value)
+	ch = statement.CandidateHash()
+
+	switch statement.(type) {
+	case *parachaintypes.CompactSeconded:
 		sk = seconded
-	case parachaintypes.CompactStatement[parachaintypes.Valid]:
-		ch = parachaintypes.CandidateHash(s.Value)
+	case *parachaintypes.CompactValid:
 		sk = valid
 	default:
 		panic("unreachable")
