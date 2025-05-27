@@ -79,6 +79,7 @@ nav:
     - Grid Topology: ./design/grid-topology.md
     - Gossip Support: ./design/gossip-support.md
     - Provisioner: ./design/provisioner.md
+    - Collator Protocol - Validator Side: ./design/collator-protocol-validator-side.md
   - Contributing: 
     - Overview: ./contributing.md
 extra_css:
