@@ -363,7 +363,7 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs state.BlockState, rt runtim
 		Body:   sampleBodyBytes,
 	}
 
-	err = bs.AddBlock(block1)
+	err = bs.AddBlock(block1, nil)
 	require.NoError(t, err)
 	bs.StoreRuntime(header1.Hash(), rt)
 
@@ -379,7 +379,7 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs state.BlockState, rt runtim
 		Body:   sampleBodyBytes,
 	}
 
-	err = bs.AddBlock(block2)
+	err = bs.AddBlock(block2, nil)
 	require.NoError(t, err)
 	bs.StoreRuntime(header2.Hash(), rt)
 }

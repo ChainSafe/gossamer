@@ -119,7 +119,7 @@ func newFullSyncService(t *testing.T) *SyncService {
 			}
 
 			// store block in database
-			err = stateSrvc.Block.AddBlock(block)
+			err = stateSrvc.Block.AddBlock(block, nil)
 			require.NoError(t, err)
 
 			stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
@@ -190,7 +190,7 @@ func addTestBlocksToState(t *testing.T, depth uint, blockState state.BlockState)
 
 		previousHash = block.Header.Hash()
 
-		err := blockState.AddBlock(block)
+		err := blockState.AddBlock(block, nil)
 		require.NoError(t, err)
 	}
 }

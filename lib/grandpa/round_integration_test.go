@@ -133,7 +133,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 							Header: *header,
 							Body:   types.Body{},
 						}
-						neighbourService.blockState.AddBlock(block)
+						neighbourService.blockState.AddBlock(block, nil)
 					}
 				}
 			},

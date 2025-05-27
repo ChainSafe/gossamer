@@ -758,7 +758,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 		b := runtime.InitializeRuntimeToTest(t, rt, &genesisHeader)
 
-		err = state2test.Block.AddBlock(b)
+		err = state2test.Block.AddBlock(b, nil)
 		require.NoError(t, err)
 
 		err = state2test.Storage.StoreTrie(rtStorage, &b.Header)

@@ -11,7 +11,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rt "github.com/ChainSafe/gossamer/lib/runtime"
@@ -59,7 +61,10 @@ func NewClientAdapter[
 	return &ClientAdapter[H, Hasher, N, E, Header]{client: client, db: db}
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(*types.Block) error {
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(
+	block *types.Block,
+	changes *overlayedchanges.OverlayedChanges[hash.H256, runtime.BlakeTwo256],
+) error {
 	panic("unimplemented")
 }
 

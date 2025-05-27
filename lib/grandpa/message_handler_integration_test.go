@@ -245,7 +245,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 		Body: *body,
 	}
 
-	err = st.Block.AddBlock(block)
+	err = st.Block.AddBlock(block, nil)
 	require.NoError(t, err)
 
 	out, err := h.handleMessage("", NeighbourPacketV1)
@@ -321,7 +321,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 		Body: types.Body{},
 	}
 
-	err = st.Block.AddBlock(block)
+	err = st.Block.AddBlock(block, nil)
 	require.NoError(t, err)
 
 	out, err := gs.messageHandler.handleMessage("", fm)
@@ -460,7 +460,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 		Body: types.Body{},
 	}
 
-	err = st.Block.AddBlock(block)
+	err = st.Block.AddBlock(block, nil)
 	require.NoError(t, err)
 
 	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID, true)
@@ -619,7 +619,7 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 		Body:   *body,
 	}
 
-	err = st.Block.AddBlock(block)
+	err = st.Block.AddBlock(block, nil)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)
@@ -654,7 +654,7 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 		Body:   *body,
 	}
 
-	err = st.Block.AddBlock(block)
+	err = st.Block.AddBlock(block, nil)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block, telemetryMock)

@@ -94,7 +94,7 @@ func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 	err = s.blockState.AddBlock(&types.Block{
 		Header: header1,
 		Body:   types.Body{},
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	start, err := s.GetStartSlotForEpoch(0, header1.Hash())
@@ -146,7 +146,7 @@ func createAndImportBlockOne(t *testing.T, slotNumber uint64, blockState BlockSt
 	err = blockState.AddBlock(&types.Block{
 		Header: *blockOneHeader,
 		Body:   *types.NewBody([]types.Extrinsic{}),
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	return blockOneHeader
@@ -176,7 +176,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	err = s.blockState.AddBlock(&types.Block{
 		Header: *header2,
 		Body:   *types.NewBody([]types.Extrinsic{}),
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	epoch, err := s.GetEpochForBlock(header2)
@@ -201,7 +201,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	err = s.blockState.AddBlock(&types.Block{
 		Header: *header3,
 		Body:   *types.NewBody([]types.Extrinsic{}),
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	epoch, err = s.GetEpochForBlock(header3)
@@ -659,7 +659,7 @@ func TestRetrieveChainFirstSlot(t *testing.T) {
 		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: slotX})
 
 	err = singleEpochState.blockState.AddBlock(
-		&types.Block{Header: *block01OnSlotX, Body: *types.NewBody([]types.Extrinsic{})})
+		&types.Block{Header: *block01OnSlotX, Body: *types.NewBody([]types.Extrinsic{})}, nil)
 	require.NoError(t, err)
 
 	slotY := slotX + 1000
@@ -671,7 +671,7 @@ func TestRetrieveChainFirstSlot(t *testing.T) {
 		types.BabePrimaryPreDigest{AuthorityIndex: 1, SlotNumber: slotY})
 
 	singleEpochState.blockState.AddBlock(
-		&types.Block{Header: *block01OnSlotY, Body: *types.NewBody([]types.Extrinsic{})})
+		&types.Block{Header: *block01OnSlotY, Body: *types.NewBody([]types.Extrinsic{})}, nil)
 	require.NoError(t, err)
 
 	// creating another block on top of each fork
@@ -682,7 +682,7 @@ func TestRetrieveChainFirstSlot(t *testing.T) {
 		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: slotX + 1})
 
 	err = singleEpochState.blockState.AddBlock(
-		&types.Block{Header: *block02OnSlotX, Body: *types.NewBody([]types.Extrinsic{})})
+		&types.Block{Header: *block02OnSlotX, Body: *types.NewBody([]types.Extrinsic{})}, nil)
 	require.NoError(t, err)
 
 	block02OnSlotY := types.NewEmptyHeader()
@@ -692,7 +692,7 @@ func TestRetrieveChainFirstSlot(t *testing.T) {
 		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: slotY + 1})
 
 	err = singleEpochState.blockState.AddBlock(
-		&types.Block{Header: *block02OnSlotY, Body: *types.NewBody([]types.Extrinsic{})})
+		&types.Block{Header: *block02OnSlotY, Body: *types.NewBody([]types.Extrinsic{})}, nil)
 	require.NoError(t, err)
 
 	testcases := map[string]struct {
@@ -841,7 +841,7 @@ func TestFirstSlotNumberFromDb(t *testing.T) {
 		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: slotNumber})
 
 	err = epochState.blockState.AddBlock(
-		&types.Block{Header: *firstNonOrirginBlock, Body: *types.NewBody([]types.Extrinsic{})})
+		&types.Block{Header: *firstNonOrirginBlock, Body: *types.NewBody([]types.Extrinsic{})}, nil)
 	require.NoError(t, err)
 
 	h := firstNonOrirginBlock.Hash()
@@ -875,7 +875,7 @@ func TestNextEpochDataAndConfigInDisk(t *testing.T) {
 		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: slotNumber})
 
 	err = epochState.blockState.AddBlock(
-		&types.Block{Header: *firstNonOrirginBlock, Body: *types.NewBody([]types.Extrinsic{})})
+		&types.Block{Header: *firstNonOrirginBlock, Body: *types.NewBody([]types.Extrinsic{})}, nil)
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
@@ -1021,7 +1021,7 @@ func TestDeleteNextEpochDataAndConfig(t *testing.T) {
 		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: uint64(slotNumber)})
 
 	err = epochState.blockState.AddBlock(
-		&types.Block{Header: *firstNonOrirginBlock, Body: *types.NewBody([]types.Extrinsic{})})
+		&types.Block{Header: *firstNonOrirginBlock, Body: *types.NewBody([]types.Extrinsic{})}, nil)
 	require.NoError(t, err)
 
 	babeHeader := types.NewBabeDigest()

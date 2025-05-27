@@ -338,7 +338,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 			Digest:     digest,
 		},
 		Body: types.Body{},
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	core := newCoreService(t, chain)
