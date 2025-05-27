@@ -31,7 +31,7 @@ require (
 	github.com/karlseguin/ccache/v3 v3.0.6
 	github.com/klauspost/compress v1.18.0
 	github.com/libp2p/go-libp2p v0.41.1
-	github.com/libp2p/go-libp2p-kad-dht v0.33.0
+	github.com/libp2p/go-libp2p-kad-dht v0.33.1
 	github.com/minio/sha256-simd v1.0.1
 	github.com/multiformats/go-multiaddr v0.15.0
 	github.com/multiformats/go-multihash v0.2.3
