@@ -199,8 +199,6 @@ func TestCompactStatement(t *testing.T) {
 
 	for _, c := range testCases {
 		c := c
-		fmt.Println("spawning test for", c.name)
-
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -222,7 +220,6 @@ func TestCompactStatement(t *testing.T) {
 					require.NoError(t, err)
 					require.EqualValues(t, *expectedSatetement, actualStatement)
 				case *CompactSeconded:
-					fmt.Println("testing sch...")
 					var actualStatement CompactSeconded
 					err := scale.Unmarshal(c.encodingValue, &actualStatement)
 					require.NoError(t, err)
