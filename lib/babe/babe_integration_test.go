@@ -187,7 +187,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 
 	fmt.Println(epochDescriptor.startSlot)
 
-	err = babeService.blockState.AddBlock(block, nil)
+	err = babeService.blockState.AddBlock(block, nil, nil)
 	require.NoError(t, err)
 
 	time.Sleep(babeService.constants.slotDuration)
@@ -266,7 +266,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	babeServiceBob := createTestService(t, cfgBob, genBob, genTrieBob, genHeaderBob, AuthorOnEverySlotBABEConfig)
 
 	// Add block created by alice to bob
-	err = babeServiceBob.blockState.AddBlock(block, nil)
+	err = babeServiceBob.blockState.AddBlock(block, nil, nil)
 	require.NoError(t, err)
 
 	// If the slot we are claiming is the same as the slot of the best block header, test that we can

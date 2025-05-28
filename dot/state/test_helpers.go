@@ -68,7 +68,7 @@ func AddBlockToState(t *testing.T, blockState BlockState,
 		Body: types.Body{},
 	}
 
-	err := blockState.AddBlock(block, nil)
+	err := blockState.AddBlock(block, nil, nil)
 	require.NoError(t, err)
 	return &block.Header
 }

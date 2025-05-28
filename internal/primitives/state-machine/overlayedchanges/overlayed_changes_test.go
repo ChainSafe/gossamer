@@ -4,7 +4,6 @@
 package overlayedchanges
 
 import (
-	"bytes"
 	"iter"
 	"testing"
 
@@ -341,7 +340,7 @@ func checkOffchainContent(
 
 	var offchainData []offchainKeyValue
 	for k, v := range cloned.offchainDrainCommited() {
-		offchainData = append(offchainData, offchainKeyValue{key: k, value: v})
+		offchainData = append(offchainData, offchainKeyValue{key: StorageKey(prefixKey(k.Prefix, k.Key)), value: v})
 	}
 
 	var toCheck []offchainKeyValue
@@ -352,7 +351,7 @@ func checkOffchainContent(
 		} else {
 			change = offchain.OffchainOverlayedChangeRemove{}
 		}
-		key := bytes.Join([][]byte{offchain.StoragePrefix, []byte(kv.key)}, []byte{})
+		key := StorageKey(prefixKey(offchain.StoragePrefix, []byte(kv.key)))
 		toCheck = append(toCheck, offchainKeyValue{key: key, value: change})
 	}
 

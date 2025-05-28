@@ -265,7 +265,7 @@ func (s *Service) handleBlock(block *types.Block, state rtstorage.TrieState) err
 	}
 
 	// store block in database
-	if err = s.blockState.AddBlock(block, nil); err != nil {
+	if err = s.blockState.AddBlock(block, nil, nil); err != nil {
 		if errors.Is(err, blocktree.ErrParentNotFound) && block.Header.Number != 0 {
 			return err
 		} else if errors.Is(err, blocktree.ErrBlockExists) || block.Header.Number == 0 {

@@ -10,14 +10,18 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	client_consensus_common "github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
-	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	primitives_consensus_common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rt "github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
@@ -36,6 +40,7 @@ type Client[
 	blockchain.HeaderBackend[H, N, Header]
 	blockchain.BlockBackend[H, N, Header, Hasher, E]
 	blockchain.Backend[H, N, Header, E]
+	client_consensus_common.BlockImport[H, N, E, Header]
 
 	CompareAndSetBlockData(bd *types.BlockData) error
 }
@@ -47,8 +52,9 @@ type ClientAdapter[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 ] struct {
-	client Client[H, Hasher, N, E, Header]
-	db     ClientAdapterDB
+	backend statemachine.Backend[H, Hasher]
+	client  Client[H, Hasher, N, E, Header]
+	db      ClientAdapterDB
 }
 
 func NewClientAdapter[
@@ -63,9 +69,59 @@ func NewClientAdapter[
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(
 	block *types.Block,
-	changes *overlayedchanges.OverlayedChanges[hash.H256, runtime.BlakeTwo256],
+	changes *overlayedchanges.OverlayedChanges[H, Hasher],
+	storageVersion *storage.StateVersion,
 ) error {
-	panic("unimplemented")
+	if changes == nil {
+		return fmt.Errorf("changes are required")
+	}
+	if storageVersion == nil {
+		return fmt.Errorf("storage version is required")
+	}
+	// Convert old header into generic one
+	encodedHeader, err := scale.Marshal(block.Header)
+	if err != nil {
+		return err
+	}
+	genericHeader := *new(Header)
+	err = scale.Unmarshal(encodedHeader, &genericHeader)
+	if err != nil {
+		return err
+	}
+
+	// Convert old extrinsics into generic ones
+	encodedExtrinsics, err := scale.Marshal(block.Body)
+	if err != nil {
+		return err
+	}
+	extrinsics := *new([]E)
+	err = scale.Unmarshal(encodedExtrinsics, &extrinsics)
+	if err != nil {
+		return err
+	}
+
+	// TODO: get right state version
+	storageChanges, err := changes.DrainStorageChanges(ca.backend, *storageVersion)
+	if err != nil {
+		return err
+	}
+
+	blockImportParams := &client_consensus_common.BlockImportParams[H, N, E, Header]{
+		Origin: primitives_consensus_common.NetworkInitialSyncBlockOrigin,
+		Header: genericHeader,
+		Body:   extrinsics,
+		StateAction: client_consensus_common.StateActionApplyChanges{
+			StorageChanges: client_consensus_common.Changes[H, Hasher](storageChanges),
+		},
+	}
+
+	// TODO: should we check the result?
+	_, err = ca.client.ImportBlock(blockImportParams)
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlockWithArrivalTime(block *types.Block,

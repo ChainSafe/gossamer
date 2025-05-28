@@ -176,7 +176,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 		Number: 1,
 	}
 
-	err = st.Block.AddBlock(block, nil)
+	err = st.Block.AddBlock(block, nil, nil)
 	require.NoError(t, err)
 
 	err = gs.blockState.SetFinalisedHash(hash, round, setID, true)

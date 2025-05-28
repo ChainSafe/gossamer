@@ -209,7 +209,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	for i := uint(1); i < totalBlock; i++ {
 		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, i)
 
-		err = serv.Storage.blockState.AddBlock(block, nil)
+		err = serv.Storage.blockState.AddBlock(block, nil, nil)
 		require.NoError(t, err)
 
 		err = serv.Storage.StoreTrie(trieState, &block.Header)
@@ -267,7 +267,7 @@ func TestService_PruneStorage(t *testing.T) {
 		require.NoError(t, err)
 		block.Header.Digest = digest
 
-		err = serv.Storage.blockState.AddBlock(block, nil)
+		err = serv.Storage.blockState.AddBlock(block, nil, nil)
 		require.NoError(t, err)
 
 		err = serv.Storage.StoreTrie(trieState, nil)
@@ -285,7 +285,7 @@ func TestService_PruneStorage(t *testing.T) {
 	for i := uint(0); i < 3; i++ {
 		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, i+1)
 
-		err = serv.Storage.blockState.AddBlock(block, nil)
+		err = serv.Storage.blockState.AddBlock(block, nil, nil)
 		require.NoError(t, err)
 
 		err = serv.Storage.StoreTrie(trieState, nil)

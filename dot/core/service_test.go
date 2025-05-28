@@ -405,7 +405,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().AddBlock(&block, nil).Return(errTestDummyError)
+		mockBlockState.EXPECT().AddBlock(&block, nil, nil).Return(errTestDummyError)
 
 		service := &Service{
 			storageState: mockStorageState,
@@ -426,7 +426,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().AddBlock(&block, nil).Return(blocktree.ErrParentNotFound)
+		mockBlockState.EXPECT().AddBlock(&block, nil, nil).Return(blocktree.ErrParentNotFound)
 
 		service := &Service{
 			storageState: mockStorageState,
@@ -447,7 +447,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().AddBlock(&block, nil).Return(blocktree.ErrBlockExists)
+		mockBlockState.EXPECT().AddBlock(&block, nil, nil).Return(blocktree.ErrBlockExists)
 		mockBlockState.EXPECT().GetRuntime(block.Header.ParentHash).Return(nil, errTestDummyError)
 
 		onBlockImportHandlerMock := NewMockBlockImportDigestHandler(ctrl)
@@ -477,7 +477,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().AddBlock(&block, nil).Return(blocktree.ErrBlockExists)
+		mockBlockState.EXPECT().AddBlock(&block, nil, nil).Return(blocktree.ErrBlockExists)
 		mockBlockState.EXPECT().GetRuntime(block.Header.ParentHash).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).
 			Return(errTestDummyError)
@@ -509,7 +509,7 @@ func Test_Service_handleBlock(t *testing.T) {
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().AddBlock(&block, nil).Return(blocktree.ErrBlockExists)
+		mockBlockState.EXPECT().AddBlock(&block, nil, nil).Return(blocktree.ErrBlockExists)
 		mockBlockState.EXPECT().GetRuntime(block.Header.ParentHash).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).Return(nil)
 		mockGrandpaState := NewMockGrandpaState(ctrl)
@@ -573,7 +573,7 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().StoreTrie(trieState, &block.Header).Return(nil)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().AddBlock(&block, nil).Return(blocktree.ErrBlockExists)
+		mockBlockState.EXPECT().AddBlock(&block, nil, nil).Return(blocktree.ErrBlockExists)
 		mockBlockState.EXPECT().GetRuntime(block.Header.ParentHash).Return(runtimeMock, nil)
 		mockBlockState.EXPECT().HandleRuntimeChanges(trieState, runtimeMock, block.Header.Hash()).Return(nil)
 		mockNetwork := NewMockNetwork(ctrl)

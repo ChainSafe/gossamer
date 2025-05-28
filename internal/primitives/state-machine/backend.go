@@ -27,11 +27,13 @@ type StorageKeyValue struct {
 // StorageCollection is a slice of storage values.
 type StorageCollection []StorageKeyValue
 
-// ChildStorageCollection is a slice of storage values for multiple child tries.
-type ChildStorageCollection []struct {
+type ChildStorageCollectionItem struct {
 	StorageKey
 	StorageCollection
 }
+
+// ChildStorageCollection is a slice of storage values for multiple child tries.
+type ChildStorageCollection []ChildStorageCollectionItem
 
 // IterArgs is a struct containing arguments for iterating over the storage.
 type IterArgs struct {

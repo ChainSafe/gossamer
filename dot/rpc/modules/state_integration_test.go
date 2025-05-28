@@ -596,7 +596,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 		Body: *types.NewBody([]types.Extrinsic{[]byte{}}),
 	}
 
-	err = chain.Block.AddBlock(b, nil)
+	err = chain.Block.AddBlock(b, nil, nil)
 	require.NoError(t, err)
 
 	rt, err := chain.Block.GetRuntime(b.Header.ParentHash)

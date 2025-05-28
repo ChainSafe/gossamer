@@ -425,7 +425,7 @@ func issueBlocksWithBABEPrimary(t *testing.T, kp *sr25519.Keypair,
 		Body:   *types.NewBody([]types.Extrinsic{}),
 	}
 
-	err = bs.AddBlock(block, nil)
+	err = bs.AddBlock(block, nil, nil)
 	require.NoError(t, err)
 
 	if size <= 0 {

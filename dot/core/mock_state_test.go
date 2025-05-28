@@ -18,10 +18,11 @@ import (
 	hash "github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	runtime "github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	overlayedchanges "github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
+	storage "github.com/ChainSafe/gossamer/internal/primitives/storage"
 	blocktree "github.com/ChainSafe/gossamer/lib/blocktree"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime0 "github.com/ChainSafe/gossamer/lib/runtime"
-	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	storage0 "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	trie "github.com/ChainSafe/gossamer/pkg/trie"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -51,17 +52,17 @@ func (m *MockBlockState) EXPECT() *MockBlockStateMockRecorder {
 }
 
 // AddBlock mocks base method.
-func (m *MockBlockState) AddBlock(arg0 *types.Block, arg1 *overlayedchanges.OverlayedChanges[hash.H256, runtime.BlakeTwo256]) error {
+func (m *MockBlockState) AddBlock(arg0 *types.Block, arg1 *overlayedchanges.OverlayedChanges[hash.H256, runtime.BlakeTwo256], arg2 *storage.StateVersion) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddBlock", arg0, arg1)
+	ret := m.ctrl.Call(m, "AddBlock", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // AddBlock indicates an expected call of AddBlock.
-func (mr *MockBlockStateMockRecorder) AddBlock(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) AddBlock(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBlock", reflect.TypeOf((*MockBlockState)(nil).AddBlock), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBlock", reflect.TypeOf((*MockBlockState)(nil).AddBlock), arg0, arg1, arg2)
 }
 
 // AddBlockWithArrivalTime mocks base method.
@@ -590,7 +591,7 @@ func (mr *MockBlockStateMockRecorder) GetTries() *gomock.Call {
 }
 
 // HandleRuntimeChanges mocks base method.
-func (m *MockBlockState) HandleRuntimeChanges(newState storage.TrieState, in runtime0.Instance, bHash common.Hash) error {
+func (m *MockBlockState) HandleRuntimeChanges(newState storage0.TrieState, in runtime0.Instance, bHash common.Hash) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleRuntimeChanges", newState, in, bHash)
 	ret0, _ := ret[0].(error)
@@ -1145,7 +1146,7 @@ func (mr *MockStorageStateMockRecorder) StorageRoot() *gomock.Call {
 }
 
 // StoreTrie mocks base method.
-func (m *MockStorageState) StoreTrie(arg0 storage.TrieState, arg1 *types.Header) error {
+func (m *MockStorageState) StoreTrie(arg0 storage0.TrieState, arg1 *types.Header) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StoreTrie", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -1159,10 +1160,10 @@ func (mr *MockStorageStateMockRecorder) StoreTrie(arg0, arg1 any) *gomock.Call {
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(root *common.Hash) (storage.TrieState, error) {
+func (m *MockStorageState) TrieState(root *common.Hash) (storage0.TrieState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TrieState", root)
-	ret0, _ := ret[0].(storage.TrieState)
+	ret0, _ := ret[0].(storage0.TrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -92,7 +92,7 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	err = bs.AddBlock(&types.Block{
 		Header: *header,
 		Body:   types.Body{},
-	}, nil)
+	}, nil, nil)
 	require.NoError(t, err)
 
 	// set tries with some state root
@@ -139,13 +139,13 @@ func TestSetFinalisedHash_retrieveBlockNumber1SlotNumber(t *testing.T) {
 	err = bs.AddBlock(&types.Block{
 		Header: header1,
 		Body:   types.Body{},
-	}, nil)
+	}, nil, nil)
 	require.NoError(t, err)
 
 	err = bs.AddBlock(&types.Block{
 		Header: header2,
 		Body:   types.Body{},
-	}, nil)
+	}, nil, nil)
 	require.NoError(t, err)
 
 	err = bs.SetFinalisedHash(header2.Hash(), 1, 1, true)
