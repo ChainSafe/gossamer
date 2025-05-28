@@ -11,7 +11,7 @@ type statementKind uint8
 
 const (
 	seconded statementKind = iota
-	validated
+	valid
 )
 
 // statementFilter contains bitfields indicating the statements that are known or undesired about a candidate.
@@ -88,6 +88,14 @@ func (s *statementFilter) maskValid(mask parachaintypes.BitVec) {
 	s.validatedInGroup.Mask(mask)
 }
 
+// clone returns a deep copy of the statement filter.
+func (s *statementFilter) clone() statementFilter {
+	return statementFilter{
+		secondedInGroup:  s.secondedInGroup.Clone(),
+		validatedInGroup: s.validatedInGroup.Clone(),
+	}
+}
+
 func (s *statementFilter) contains(index uint, statementKind statementKind) bool {
 	switch statementKind {
 	case seconded:
@@ -97,7 +105,7 @@ func (s *statementFilter) contains(index uint, statementKind statementKind) bool
 			return false
 		}
 		return b
-	case validated:
+	case valid:
 		b, err := s.validatedInGroup.Get(index)
 		if err != nil {
 			logger.Warnf("failed to access index %d in validatedInGroup: %v", index, err)
@@ -116,7 +124,7 @@ func (s *statementFilter) set(index uint, statementKind statementKind) {
 		if err != nil {
 			logger.Warnf("failed to set index %d in secondedInGroup: %v", index, err)
 		}
-	case validated:
+	case valid:
 		err := s.validatedInGroup.Set(index, true)
 		if err != nil {
 			logger.Warnf("failed to set index %d in validatedInGroup: %v", index, err)

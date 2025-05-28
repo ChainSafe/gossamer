@@ -1,0 +1,200 @@
+//nolint:unused
+package statementdistribution
+
+import (
+	"github.com/ChainSafe/gossamer/dot/parachain/grid"
+	parachainnetwork "github.com/ChainSafe/gossamer/dot/parachain/network"
+	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+)
+
+type perRelayParentState struct {
+	localValidator       *localValidatorStore
+	statementStore       any // TODO #4719: Create statement store
+	secondingLimit       uint
+	session              parachaintypes.SessionIndex
+	transposedClaimQueue parachaintypes.TransposedClaimQueue
+	groupsPerPara        map[parachaintypes.ParaID][]parachaintypes.GroupIndex
+	disabledValidators   map[parachaintypes.ValidatorIndex]struct{}
+}
+
+// isDisabled returns `true` if the given validator is disabled in the context of the relay parent.
+func (p *perRelayParentState) isDisabled(vIdx parachaintypes.ValidatorIndex) bool {
+	_, ok := p.disabledValidators[vIdx]
+	return ok
+}
+
+func (p *perRelayParentState) disableBitmask(group []parachaintypes.ValidatorIndex) (parachaintypes.BitVec, error) {
+	disableBm := make([]bool, len(group))
+	for idx, v := range group {
+		disableBm[idx] = p.isDisabled(v)
+	}
+
+	bm, err := parachaintypes.NewBitVec(disableBm)
+	if err != nil {
+		logger.Criticalf("cannot create a bitvec: %s", err.Error())
+	}
+
+	return bm, err
+}
+
+type localValidatorStore struct {
+	gridTracker any // TODO: use GridTracker implementation (#4576)
+	active      *activeValidatorState
+}
+
+type activeValidatorState struct {
+	index          parachaintypes.ValidatorIndex
+	groupIndex     parachaintypes.GroupIndex
+	assignments    []parachaintypes.ParaID
+	clusterTracker any // TODO: use cluster tracker implementation (#4713)
+}
+
+type perSessionState struct {
+	sessionInfo parachaintypes.SessionInfo
+	groups      *groups
+	authLookup  map[parachaintypes.AuthorityDiscoveryID]parachaintypes.ValidatorIndex
+	gridView    any // TODO: use SessionTopologyView from statement-distribution grid (#4576)
+
+	// when localValidator is nil means it is inactive
+	localValidator     *parachaintypes.ValidatorIndex
+	allowV2Descriptors bool
+}
+
+func newPerSessionState(sessionInfo parachaintypes.SessionInfo,
+	keystore keystore.Keystore,
+	backingThreshold uint32,
+	allowV2Descriptor bool,
+) *perSessionState {
+	authlookup := make(map[parachaintypes.AuthorityDiscoveryID]parachaintypes.ValidatorIndex)
+	for idx, ad := range sessionInfo.DiscoveryKeys {
+		authlookup[ad] = parachaintypes.ValidatorIndex(idx)
+	}
+
+	var localValidator *parachaintypes.ValidatorIndex
+	validatorPk, validatorIdx := parachainutil.SigningKeyAndIndex(sessionInfo.Validators, keystore)
+	if validatorPk != nil {
+		localValidator = &validatorIdx
+	}
+
+	return &perSessionState{
+		sessionInfo:        sessionInfo,
+		groups:             newGroups(sessionInfo.ValidatorGroups, backingThreshold),
+		authLookup:         authlookup,
+		localValidator:     localValidator,
+		allowV2Descriptors: allowV2Descriptor,
+		gridView:           nil,
+	}
+}
+
+// supplyTopology sets the topology for the session and updates the local validator
+// Note: we use the local index rather than the `perSessionState.localValidator` as the
+// former may be not nil when the latter is nil, due to the set of nodes in
+// discovery being a superset of the active validators for consensus.
+func (s *perSessionState) supplyTopology(topology *grid.SessionGridTopology, localIdx *parachaintypes.ValidatorIndex) {
+	// TODO #4373: implement once buildSessionTopology is done
+	// gridView := buildSessionTopology(
+	// 	s.sessionInfo.ValidatorGroups,
+	// 	topology,
+	// 	localIdx,
+	// )
+
+	// s.gridView = gridView
+
+	logger.Infof(
+		"Node uses the following topology indices: "+
+			"index_in_gossip_topology: %d, index_in_parachain_auths: %d",
+		localIdx, s.localValidator)
+}
+
+type peerState struct {
+	view            parachaintypes.View
+	protocolVersion parachainnetwork.ValidationVersion
+	implicitView    map[common.Hash]struct{}
+	discoveryIds    *map[parachaintypes.AuthorityDiscoveryID]struct{}
+}
+
+// updateView returns a vector of implicit relay-parents which weren't previously part of the view.
+func (p *peerState) updateView(newView parachaintypes.View,
+	localImplicitView parachainutil.ImplicitView) []common.Hash {
+	nextImplicit := make(map[common.Hash]struct{})
+	for _, h := range newView.Heads {
+		for _, n := range localImplicitView.KnownAllowedRelayParentsUnder(h, nil) {
+			nextImplicit[n] = struct{}{}
+		}
+	}
+
+	freshImplicit := make([]common.Hash, 0, len(nextImplicit))
+	for n := range nextImplicit {
+		_, ok := p.implicitView[n]
+		if !ok {
+			freshImplicit = append(freshImplicit, n)
+		}
+	}
+
+	p.view = newView
+	p.implicitView = nextImplicit
+
+	return freshImplicit
+}
+
+// reconcileActiveLeaf attempts to reconcile the view with new information about the
+// implicit relay parents under an active leaf.
+func (p *peerState) reconcileActiveLeaf(leafHash common.Hash, implicit []common.Hash) []common.Hash {
+	if !p.view.Contains(leafHash) {
+		return nil
+	}
+
+	v := make([]common.Hash, 0, len(implicit))
+	for _, h := range implicit {
+		if _, ok := p.implicitView[h]; !ok {
+			p.implicitView[h] = struct{}{}
+			v = append(v, h)
+		}
+	}
+
+	return v
+}
+
+// knowsRelayParent returns true if the peer knows the relay-parent either implicitly or explicitly.
+func (p *peerState) knowsRelayParent(relayParent common.Hash) bool {
+	_, implicit := p.implicitView[relayParent]
+	return implicit || p.view.Contains(relayParent)
+}
+
+// isAuthority returns true if the peer is an authority with the given AuthorityDiscoveryID.
+func (p *peerState) isAuthority(authorityID parachaintypes.AuthorityDiscoveryID) bool {
+	if p.discoveryIds == nil {
+		return false
+	}
+	_, ok := (*p.discoveryIds)[authorityID]
+	return ok
+}
+
+// iterKnownDiscoveryIDs returns a slice of known AuthorityDiscoveryIDs for the peer.
+func (p *peerState) iterKnownDiscoveryIDs() []parachaintypes.AuthorityDiscoveryID {
+	if p.discoveryIds == nil {
+		return nil
+	}
+	ids := make([]parachaintypes.AuthorityDiscoveryID, 0, len(*p.discoveryIds))
+	for id := range *p.discoveryIds {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
+type v2State struct {
+	implicitView     parachainutil.ImplicitView
+	candidates       any // TODO #4718: Create Candidates Tracker
+	perRelayParent   map[common.Hash]perRelayParentState
+	perSession       map[parachaintypes.SessionIndex]perSessionState
+	unusedTopologies map[parachaintypes.SessionIndex]events.NewGossipTopology
+	peers            map[string]peerState
+	keystore         keystore.Keystore
+	authorities      map[parachaintypes.AuthorityDiscoveryID]string
+	requestManager   any // TODO: #4377
+	responseManager  any // TODO: #4378
+}
