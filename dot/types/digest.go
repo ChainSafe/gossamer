@@ -103,36 +103,31 @@ type Digest []DigestItem
 func NewDigestFromGeneric(gd runtime.Digest) (Digest, error) {
 	newDigest := Digest{}
 	for _, log := range gd.Logs {
-		value, err := log.Value()
-		if err != nil {
-			return nil, err
-		}
-
 		var digest any
 
-		switch v := value.(type) {
-		case runtime.PreRuntime:
+		switch v := log.(type) {
+		case runtime.DigestItemPreRuntime:
 			digest = PreRuntimeDigest{
 				ConsensusEngineID: ConsensusEngineID(v.ConsensusEngineID),
 				Data:              v.Bytes,
 			}
-		case runtime.Consensus:
+		case runtime.DigestItemConsensus:
 			digest = ConsensusDigest{
 				ConsensusEngineID: ConsensusEngineID(v.ConsensusEngineID),
 				Data:              v.Bytes,
 			}
-		case runtime.Seal:
+		case runtime.DigestItemSeal:
 			digest = SealDigest{
 				ConsensusEngineID: ConsensusEngineID(v.ConsensusEngineID),
 				Data:              v.Bytes,
 			}
-		case runtime.RuntimeEnvironmentUpdated:
+		case runtime.DigestItemRuntimeEnvironmentUpdated:
 			digest = RuntimeEnvironmentUpdated{}
 		default:
 			return nil, fmt.Errorf("unsupported type")
 		}
 
-		err = newDigest.Add(digest)
+		err := newDigest.Add(digest)
 		if err != nil {
 			return nil, err
 		}

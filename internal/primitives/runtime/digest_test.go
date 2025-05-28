@@ -13,10 +13,10 @@ import (
 func TestEncodeDecodeDigest(t *testing.T) {
 	digest := Digest{
 		Logs: []DigestItem{
-			NewDigestItem(PreRuntime{
+			DigestItemPreRuntime{
 				ConsensusEngineID: ConsensusEngineID{'F', 'R', 'N', 'K'},
 				Bytes:             []byte("test"),
-			}),
+			},
 		},
 	}
 

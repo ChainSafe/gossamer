@@ -5,47 +5,43 @@ package runtime
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// DigestItemTypes is interface constraint of [DigestItem]
-type DigestItemTypes interface {
-	PreRuntime | Consensus | Seal | Other | RuntimeEnvironmentUpdated
-}
-
-// DigestItem is able to encode/decode "system" digest items and
+// DigestItemVDT is able to encode/decode "system" digest items and
 // provide opaque access to other items.
-type DigestItem struct {
-	inner any
+type DigestItemVDT struct {
+	inner DigestItem
 }
 
-// NewDigestItem is constructor for DigestItem
-func NewDigestItem[T DigestItemTypes](value T) DigestItem {
-	item := DigestItem{}
+// NewDigestItemVDT is constructor for DigestItem
+func NewDigestItemVDT(value DigestItem) DigestItemVDT {
+	item := DigestItemVDT{}
 	setDigestItem(&item, value)
 	return item
 }
 
-func setDigestItem[Value DigestItemTypes](mvdt *DigestItem, value Value) {
+func setDigestItem(mvdt *DigestItemVDT, value DigestItem) {
 	mvdt.inner = value
 }
 
-func (mvdt *DigestItem) SetValue(value any) (err error) {
+func (mvdt *DigestItemVDT) SetValue(value any) (err error) {
 	switch value := value.(type) {
-	case PreRuntime:
+	case DigestItemPreRuntime:
 		setDigestItem(mvdt, value)
 		return
-	case Consensus:
+	case DigestItemConsensus:
 		setDigestItem(mvdt, value)
 		return
-	case Seal:
+	case DigestItemSeal:
 		setDigestItem(mvdt, value)
 		return
-	case RuntimeEnvironmentUpdated:
+	case DigestItemRuntimeEnvironmentUpdated:
 		setDigestItem(mvdt, value)
 		return
-	case Other:
+	case DigestItemOther:
 		setDigestItem(mvdt, value)
 		return
 	default:
@@ -53,48 +49,67 @@ func (mvdt *DigestItem) SetValue(value any) (err error) {
 	}
 }
 
-func (mvdt DigestItem) IndexValue() (index uint, value any, err error) {
+func (mvdt DigestItemVDT) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
-	case Other:
+	case DigestItemOther:
 		return 0, mvdt.inner, nil
-	case Consensus:
+	case DigestItemConsensus:
 		return 4, mvdt.inner, nil
-	case Seal:
+	case DigestItemSeal:
 		return 5, mvdt.inner, nil
-	case PreRuntime:
+	case DigestItemPreRuntime:
 		return 6, mvdt.inner, nil
-	case RuntimeEnvironmentUpdated:
+	case DigestItemRuntimeEnvironmentUpdated:
 		return 8, mvdt.inner, nil
 	}
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt DigestItem) Value() (value any, err error) {
+func (mvdt DigestItemVDT) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
 
-func (mvdt DigestItem) ValueAt(index uint) (value any, err error) {
+func (mvdt DigestItemVDT) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 0:
-		return Other{}, nil
+		return DigestItemOther{}, nil
 	case 4:
-		return Consensus{}, nil
+		return DigestItemConsensus{}, nil
 	case 5:
-		return Seal{}, nil
+		return DigestItemSeal{}, nil
 	case 6:
-		return PreRuntime{}, nil
+		return DigestItemPreRuntime{}, nil
 	case 8:
-		return RuntimeEnvironmentUpdated{}, nil
+		return DigestItemRuntimeEnvironmentUpdated{}, nil
 	}
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-func (mvdt DigestItem) String() string {
+func (mvdt DigestItemVDT) String() string {
 	return fmt.Sprintf("%s", mvdt.inner)
 }
 
-// PreRuntime is a pre-runtime digest.
+// DigestItem is able to encode/decode "system" digest items and
+// provide opaque access to other items.
+type DigestItem interface {
+	TryAsRaw(id OpaqueDigestItemID) []byte
+}
+
+// DigestItemTryTo tries to match this digest item to the given opaque item identifier; if it matches, then
+// try to cast to the given data type; if that works, return it.
+func DigestItemTryTo[T any](item DigestItem, id OpaqueDigestItemID) *T {
+	if raw := item.TryAsRaw(id); raw != nil {
+		var t T
+		if err := scale.Unmarshal(raw, &t); err != nil {
+			return nil
+		}
+		return &t
+	}
+	return nil
+}
+
+// DigestItemPreRuntime is a pre-runtime digest.
 //
 // These are messages from the consensus engine to the runtime, although
 // the consensus engine can (and should) read them itself to avoid
@@ -102,36 +117,74 @@ func (mvdt DigestItem) String() string {
 // these, but this is not (yet) checked.
 //
 // NOTE: the runtime is not allowed to panic or fail in an on_initialize
-// call if an expected PreRuntime digest is not present. It is the
+// call if an expected DigestItemPreRuntime digest is not present. It is the
 // responsibility of a external block verifier to check this. Runtime API calls
 // will initialize the block without pre-runtime digests, so initialization
 // cannot fail when they are missing.
-type PreRuntime struct {
+type DigestItemPreRuntime struct {
 	ConsensusEngineID
 	Bytes []byte
 }
 
-// Consensus is a message from the runtime to the consensus engine. This should *never*
+func (pr DigestItemPreRuntime) TryAsRaw(id OpaqueDigestItemID) []byte {
+	if id, ok := id.(OpaqueDigestItemIDPreRuntime); ok {
+		if pr.ConsensusEngineID == ConsensusEngineID(id) {
+			return pr.Bytes
+		}
+	}
+	return nil
+}
+
+// DigestItemConsensus is a message from the runtime to the consensus engine. This should *never*
 // be generated by the native code of any consensus engine, but this is not
 // checked (yet).
-type Consensus struct {
+type DigestItemConsensus struct {
 	ConsensusEngineID
 	Bytes []byte
 }
 
-// Put a Seal on it. This is only used by native code, and is never seen
+func (pr DigestItemConsensus) TryAsRaw(id OpaqueDigestItemID) []byte {
+	if id, ok := id.(OpaqueDigestItemIDConsensus); ok {
+		if pr.ConsensusEngineID == ConsensusEngineID(id) {
+			return pr.Bytes
+		}
+	}
+	return nil
+}
+
+// Put a DigestItemSeal on it. This is only used by native code, and is never seen
 // by runtimes.
-type Seal struct {
+type DigestItemSeal struct {
 	ConsensusEngineID
 	Bytes []byte
 }
 
-// Some Other thing. Unsupported and experimental.
-type Other []byte
+func (pr DigestItemSeal) TryAsRaw(id OpaqueDigestItemID) []byte {
+	if id, ok := id.(OpaqueDigestItemIDSeal); ok {
+		if pr.ConsensusEngineID == ConsensusEngineID(id) {
+			return pr.Bytes
+		}
+	}
+	return nil
+}
 
-// RuntimeEnvironmentUpdated is an indication for the light clients that the runtime execution
+// Some DigestItemOther thing. Unsupported and experimental.
+type DigestItemOther []byte
+
+func (pr DigestItemOther) TryAsRaw(id OpaqueDigestItemID) []byte {
+	if _, ok := id.(OpaqueDigestItemIDOther); ok {
+		return pr
+	}
+	return nil
+}
+
+// DigestItemRuntimeEnvironmentUpdated is an indication for the light clients that the runtime execution
 // environment is updated.
-type RuntimeEnvironmentUpdated struct{}
+type DigestItemRuntimeEnvironmentUpdated struct{}
+
+func (DigestItemRuntimeEnvironmentUpdated) TryAsRaw(id OpaqueDigestItemID) []byte {
+	return nil
+}
 
 // Digest is a header digest.
 type Digest struct {
@@ -143,3 +196,56 @@ type Digest struct {
 func (d *Digest) Push(item DigestItem) {
 	d.Logs = append(d.Logs, item)
 }
+
+func (d Digest) MarshalSCALE() ([]byte, error) {
+	type helper struct {
+		Logs []DigestItemVDT
+	}
+	h := helper{
+		Logs: make([]DigestItemVDT, len(d.Logs)),
+	}
+	for i, item := range d.Logs {
+		h.Logs[i] = NewDigestItemVDT(item)
+	}
+	return scale.Marshal(h.Logs)
+}
+
+func (d *Digest) UnmarshalSCALE(reader io.Reader) error {
+	type helper struct {
+		Logs []DigestItemVDT
+	}
+	h := helper{}
+	decoder := scale.NewDecoder(reader)
+	err := decoder.Decode(&h)
+	if err != nil {
+		return err
+	}
+	d.Logs = make([]DigestItem, len(h.Logs))
+	for i, item := range h.Logs {
+		d.Logs[i] = item.inner
+	}
+	return nil
+}
+
+// OpaqueDigestItemID is the type of a digest item that contains raw data; this also names the consensus engine ID where
+// applicable. Used to identify one or more digest items of interest.
+type OpaqueDigestItemID interface {
+	isOpaqueDigestItemID()
+}
+
+// OpaqueDigestItemIDPreRuntime is opaque type corresponding to [DigestItemPreRuntime].
+type OpaqueDigestItemIDPreRuntime ConsensusEngineID
+
+// OpaqueDigestItemIDConsensus is opaque type corresponding to [DigestItemConsensus].
+type OpaqueDigestItemIDConsensus ConsensusEngineID
+
+// OpaqueDigestItemIDSeal is opaque type corresponding to [DigestItemSeal].
+type OpaqueDigestItemIDSeal ConsensusEngineID
+
+// OpaqueDigestItemIDOther is some other (non-prescribed) type.
+type OpaqueDigestItemIDOther struct{}
+
+func (OpaqueDigestItemIDPreRuntime) isOpaqueDigestItemID() {}
+func (OpaqueDigestItemIDConsensus) isOpaqueDigestItemID()  {}
+func (OpaqueDigestItemIDSeal) isOpaqueDigestItemID()       {}
+func (OpaqueDigestItemIDOther) isOpaqueDigestItemID()      {}
