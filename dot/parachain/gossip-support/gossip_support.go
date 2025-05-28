@@ -54,17 +54,37 @@ type GossipSupport struct {
 	subSystemToOverseer chan<- any
 	blockState          BlockState
 
-	keystore              keystore.Keystore
-	lastSessionIndex      *parachaintypes.SessionIndex
-	minKnownSession       parachaintypes.SessionIndex
-	lastFailure           *time.Time
+	keystore         keystore.Keystore
+	lastSessionIndex *parachaintypes.SessionIndex
+	// The minimum known session we build the topology for.
+	minKnownSession parachaintypes.SessionIndex
+	// A timestamp if we failed to resolve
+	// at least a third of authorities the last time.
+	// nil otherwise
+	lastFailure *time.Time
+	// Validators can restart during a session, so if they change
+	// their PeerID, we will connect to them in the best case after
+	// a session, so we need to try more often to resolved peers and
+	// reconnect to them. The authority_discovery queries runs every ten
+	// minutes, so we can't detect changes in the address more often
+	// than that.
 	lastConnectionRequest *time.Time
-	failureStart          *time.Time
-	resolvedAuthorities   map[parachaintypes.AuthorityDiscoveryID]map[multiaddr.Multiaddr]struct{}
-	connectedAuthorities  map[parachaintypes.AuthorityDiscoveryID]parachaintypes.PeerID
-	connectedPeers        map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}
-
-	authorityDiscovery     networkbridge.AuthorityDiscoveryService
+	// First time we did not reach our connectivity threshold.
+	// This is the time of the first failed attempt to connect to >2/3 of all validators in a potential sequence of
+	// failed attempts. It will be cleared once we reached >2/3 connectivity.
+	failureStart *time.Time
+	// Successfully resolved connections
+	// waiting for actual connection.
+	resolvedAuthorities map[parachaintypes.AuthorityDiscoveryID]map[multiaddr.Multiaddr]struct{}
+	// Actually connected authorities.
+	connectedAuthorities map[parachaintypes.AuthorityDiscoveryID]parachaintypes.PeerID
+	// By `PeerId`
+	// Needed for efficient handling of disconnect events.
+	connectedPeers map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}
+	// Authority discovery service.
+	authorityDiscovery networkbridge.AuthorityDiscoveryService
+	// The oldest session we need to build a topology for because
+	// the finalized blocks are from a session we haven't built a topology for.
 	finalizedNeededSession *parachaintypes.SessionIndex
 }
 
@@ -148,6 +168,7 @@ func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.A
 			return err
 		}
 
+		// Note: we only update `last_session_index` once we've successfully gotten the `SessionInfo`.
 		isNewSession := maybeNewSession != nil
 		if isNewSession {
 			logger.Debugf("new session detected for session %d", sessionIndex)
@@ -155,7 +176,7 @@ func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.A
 		}
 
 		// Connect to authorities from the past/present/future.
-		connections, err := authoritiesPastPresentFuture(rt, leaf)
+		connections, err := authoritiesPastPresentFuture(rt)
 		if err != nil {
 			return err
 		}
@@ -163,7 +184,7 @@ func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.A
 		now := time.Now()
 		gs.lastConnectionRequest = &now
 
-		// Remove all of our locally controlled validator indices so we don't connect to ourselves
+		// Remove all of our locally controlled validator indices, so we don't connect to ourselves
 		filteredConnections, removedCounter := removeAllControlled(gs.keystore, connections)
 		if removedCounter != 0 {
 			connections = filteredConnections
@@ -192,7 +213,10 @@ func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.A
 				logger.Warnf("failed to get our index for session %d, %s", sessionIndex, err.Error())
 				return err
 			}
-			gs.updateGossipTopology(ourIndex, relayParent)
+			err = gs.updateGossipTopology(ourIndex, relayParent)
+			if err != nil {
+				return err
+			}
 		}
 
 		// authority discovery is just a cache so let's try every time we try to re-connect
@@ -260,11 +284,11 @@ func (gs *GossipSupport) processMessage(msg any) error {
 	return nil
 }
 
-func (gs *GossipSupport) processPeerConnectedEvent(event networkbridgeevents.PeerConnected) {
+func (gs *GossipSupport) processPeerConnectedEvent(_event networkbridgeevents.PeerConnected) {
 	//TODO implement in #4509
 }
 
-func (gs *GossipSupport) processPeerDisconnectedEvent(event networkbridgeevents.PeerDisconnected) {
+func (gs *GossipSupport) processPeerDisconnectedEvent(_event networkbridgeevents.PeerDisconnected) {
 	//TODO implement in #4509
 }
 
@@ -330,7 +354,10 @@ func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(currentSessionInd
 				return err
 			}
 
-			gs.updateGossipTopology(ourIndex, finalizedBlock.Hash())
+			err = gs.updateGossipTopology(ourIndex, finalizedBlock.Hash())
+			if err != nil {
+				return err
+			}
 		}
 		gs.finalizedNeededSession = &finalizedSessionIndex
 	}
@@ -339,7 +366,8 @@ func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(currentSessionInd
 }
 
 // getKeyIndexAndUpdateMetrics checks if the node is an authority and also updates `polkadot_node_is_authority` and
-// `polkadot_node_is_parachain_validator` metrics accordingly.
+// `polkadot_node_is_parachain_validator` metrics accordingly(We currently don't have metrics implemented,
+// corresponding logic will be added later)
 // On success, returns the index of our keys in `session_info.discovery_keys`.
 func (gs *GossipSupport) getKeyIndexAndUpdateMetrics(SessionInfo *parachaintypes.SessionInfo) (uint, error) {
 	authCheckResult, err := ensureIamAnAuthority(gs.keystore, SessionInfo.DiscoveryKeys)
@@ -362,8 +390,9 @@ func (gs *GossipSupport) getKeyIndexAndUpdateMetrics(SessionInfo *parachaintypes
 	return authCheckResult, err
 }
 
-func (gs *GossipSupport) updateGossipTopology(_ourIndex uint, _relayParent common.Hash) {
+func (gs *GossipSupport) updateGossipTopology(_ourIndex uint, _relayParent common.Hash) error {
 	// TODO: implement in #4510
+	return nil
 }
 
 func (gs *GossipSupport) updateAuthorityIDs(authorities []parachaintypes.AuthorityDiscoveryID) {
@@ -372,7 +401,7 @@ func (gs *GossipSupport) updateAuthorityIDs(authorities []parachaintypes.Authori
 	for _, authority := range authorities {
 		peerIDs := make(map[peer.ID]struct{})
 		addrs := gs.authorityDiscovery.GetAddressesByAuthorityID(authority)
-		for addr := range *addrs {
+		for addr := range addrs {
 			_, peerID := peer.SplitAddr(addr)
 			peerIDs[peerID] = struct{}{}
 		}
@@ -434,7 +463,7 @@ func (gs *GossipSupport) updateAuthorityIDs(authorities []parachaintypes.Authori
 }
 
 // authoritiesPastPresentFuture gets the authorities of the past, present, and future.
-func authoritiesPastPresentFuture(rt runtime.Instance, relayParent common.Hash) ([]parachaintypes.AuthorityDiscoveryID, error) {
+func authoritiesPastPresentFuture(rt runtime.Instance) ([]parachaintypes.AuthorityDiscoveryID, error) {
 	authorities, err := rt.GrandpaAuthorities()
 	if err != nil {
 		return nil, err
@@ -442,7 +471,7 @@ func authoritiesPastPresentFuture(rt runtime.Instance, relayParent common.Hash) 
 
 	logger.Debugf("Determined past/present/future authorities with size: %d", len(authorities))
 
-	authoritiesIDs := make([]parachaintypes.AuthorityDiscoveryID, 0, len(authorities))
+	authoritiesIDs := make([]parachaintypes.AuthorityDiscoveryID, len(authorities))
 	for i, authority := range authorities {
 		authoritiesIDs[i] = parachaintypes.AuthorityDiscoveryID(authority.Key.Encode())
 	}
@@ -456,7 +485,7 @@ func removeAllControlled(
 	ks keystore.Keystore,
 	authorities []parachaintypes.AuthorityDiscoveryID,
 ) ([]parachaintypes.AuthorityDiscoveryID, uint) {
-	var toRemoveCounter uint
+	var removeCounter uint
 	resultAuthorities := make([]parachaintypes.AuthorityDiscoveryID, 0)
 	for _, key := range authorities {
 		publicKey, err := sr25519.NewPublicKey(key[:])
@@ -465,13 +494,13 @@ func removeAllControlled(
 		}
 		authKey := ks.GetKeypair(publicKey)
 		if authKey != nil {
-			toRemoveCounter++
+			removeCounter++
 		} else {
 			resultAuthorities = append(resultAuthorities, key)
 		}
 	}
 
-	return resultAuthorities, toRemoveCounter
+	return resultAuthorities, removeCounter
 }
 
 func (gs *GossipSupport) issueConnectionRequest(authorities []parachaintypes.AuthorityDiscoveryID) {
@@ -486,13 +515,15 @@ func (gs *GossipSupport) issueConnectionRequest(authorities []parachaintypes.Aut
 		PeerSet:        networkbridgemessages.ValidationProtocol,
 	}
 
+	// issue another request for the same session
+	// if at least a third of the authorities were not resolved.
 	if num != 0 && 3*failures >= uint(num) {
 		timestamp := time.Now()
 		if gs.failureStart == nil {
 			gs.failureStart = &timestamp
 		} else {
 			first := *gs.failureStart
-			if time.Now().Sub(first) >= LowConnectivityWarnDelay {
+			if first.Sub(time.Now()) >= LowConnectivityWarnDelay {
 				logger.Warnf("Low connectivity - authority lookup failed for too many validators.")
 			}
 			logger.Debugf("Low connectivity (due to authority lookup failures) - expected on startup.")
@@ -542,21 +573,22 @@ func (gs *GossipSupport) issueConnectionRequestToChanged(authorities []parachain
 	}
 }
 
+// resolveAuthorities parses the validator address and resolved authorities along with the failure time of parsing
 func (gs *GossipSupport) resolveAuthorities(
 	authorities []parachaintypes.AuthorityDiscoveryID,
 ) (map[multiaddr.Multiaddr]struct{}, map[parachaintypes.AuthorityDiscoveryID]map[multiaddr.Multiaddr]struct{}, uint) {
-	validatorAddrs := make(map[multiaddr.Multiaddr]struct{}, len(authorities))
+	validatorAddrs := make(map[multiaddr.Multiaddr]struct{})
 	resolved := make(map[parachaintypes.AuthorityDiscoveryID]map[multiaddr.Multiaddr]struct{}, len(authorities))
 	var failures uint
 
 	for _, authority := range authorities {
 		addrs := gs.authorityDiscovery.GetAddressesByAuthorityID(authority)
+
 		if addrs != nil {
-			validatorAddrs = *addrs
-			resolved[authority] = *addrs
+			validatorAddrs = addrs
+			resolved[authority] = addrs
 		} else {
 			failures++
-
 			logger.Debugf("Couldn't resolve addresses of authority: %v", authority)
 		}
 	}
@@ -583,7 +615,7 @@ func ensureIamAnAuthority(ks keystore.Keystore, authorities []parachaintypes.Aut
 			continue
 		}
 		authKey := ks.GetKeypair(publicKey)
-		if authKey == nil {
+		if authKey != nil {
 			return uint(i), nil
 		}
 	}
