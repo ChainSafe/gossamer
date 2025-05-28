@@ -168,7 +168,7 @@ func compareAndConvert(original parachaintypes.SignedStatement,
 ) (*parachaintypes.SignedFullStatementWithPVD, error) {
 	expectedCompactEncoded, err := original.Payload.MarshalSCALE()
 	if err != nil {
-		return nil, fmt.Errorf("marshaling exepected compact payload: %w", err)
+		return nil, fmt.Errorf("marshalling exepected compact payload: %w", err)
 	}
 
 	compactSeconded, err := converted.CompactStatement()
@@ -178,7 +178,7 @@ func compareAndConvert(original parachaintypes.SignedStatement,
 
 	encodedCompact, err := compactSeconded.MarshalSCALE()
 	if err != nil {
-		return nil, fmt.Errorf("marshaling compact seconded: %w", err)
+		return nil, fmt.Errorf("marshalling compact seconded: %w", err)
 	}
 
 	if !bytes.Equal(expectedCompactEncoded, encodedCompact) {
