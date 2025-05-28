@@ -293,7 +293,7 @@ func TestStatementFilter_MaskSeconded(t *testing.T) {
 			mask, err := parachaintypes.NewBitVec(tt.mask)
 			require.NoError(t, err)
 
-			// Capture the initial validated bits to verify they remain unchanged
+			// Capture the initial valid bits to verify they remain unchanged
 			initialValidated := filter.validatedInGroup.Bits()
 
 			filter.maskSeconded(mask)
@@ -309,7 +309,7 @@ func TestStatementFilter_MaskSeconded(t *testing.T) {
 func TestStatementFilter_MaskValid(t *testing.T) {
 	t.Parallel()
 
-	// Helper function to set validated bits
+	// Helper function to set valid bits
 	setValidatedBits := func(filter *statementFilter, validated []bool) {
 		newValidated, err := parachaintypes.NewBitVec(validated)
 		require.NoError(t, err)

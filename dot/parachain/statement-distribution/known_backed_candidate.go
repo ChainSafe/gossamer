@@ -51,19 +51,11 @@ func (kbc *knownBackedCandidate) hasSentManifestTo(validator parachaintypes.Vali
 	return mk.localKnowledge != nil
 }
 
-func (kbc *knownBackedCandidate) sentManifestTo(
+func (kbc *knownBackedCandidate) manifestSentTo(
 	validator parachaintypes.ValidatorIndex,
 	localKnowledge statementFilter,
 ) {
-	mk, ok := kbc.mutualKnowledge[validator]
-	if !ok {
-		mk = mutualKnowledge{
-			remoteKnowledge:   nil,
-			localKnowledge:    nil,
-			receivedKnowledge: nil,
-		}
-	}
-
+	mk := kbc.mutualKnowledge[validator]
 	groupSize := uint(localKnowledge.secondedInGroup.Len())
 	receivedKnowledge, err := newStatementFilter(groupSize, false)
 	if err != nil {

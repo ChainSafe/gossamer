@@ -245,6 +245,7 @@ func (mvdt compactStatementInner) ValueAt(index uint) (value any, err error) {
 // this is the actual value that is signed.
 type CompactStatement interface {
 	CandidateHash() CandidateHash
+	SetCandidateHash(hash CandidateHash)
 	MarshalSCALE() ([]byte, error)
 	UnmarshalSCALE(reader io.Reader) error
 }
@@ -258,8 +259,14 @@ type CompactValid struct {
 	inner Valid
 }
 
-func NewCompactValid(v CandidateHash) *CompactValid {
-	return &CompactValid{inner: Valid(v)}
+func NewCompactValid(hash CandidateHash) *CompactValid {
+	return &CompactValid{
+		inner: Valid(hash),
+	}
+}
+
+func (v *CompactValid) SetCandidateHash(hash CandidateHash) {
+	v.inner = Valid(hash)
 }
 
 func (v *CompactValid) CandidateHash() CandidateHash {
@@ -284,8 +291,14 @@ type CompactSeconded struct {
 	inner SecondedCandidateHash
 }
 
-func NewCompactSeconded(sch CandidateHash) *CompactSeconded {
-	return &CompactSeconded{inner: SecondedCandidateHash(sch)}
+func NewCompactSeconded(hash CandidateHash) *CompactSeconded {
+	return &CompactSeconded{
+		inner: SecondedCandidateHash(hash),
+	}
+}
+
+func (sch *CompactSeconded) SetCandidateHash(hash CandidateHash) {
+	sch.inner = SecondedCandidateHash(hash)
 }
 
 func (sch *CompactSeconded) CandidateHash() CandidateHash {
