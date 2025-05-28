@@ -16,6 +16,13 @@ var (
 	errManifestImportOverflow = errors.New(
 		"the manifest has overflowed beyond the limits of what the counterparty was allowed to send us",
 	)
+
+	errManifestImportInsufficient = errors.New(
+		"the manifest claims insufficient attestations to achieve the backing threshold",
+	)
+
+	errManifestImportMalformed  = errors.New("the manifest is malformed")
+	errManifestImportDisallowed = errors.New("the manifest was not allowed to be sent")
 )
 
 // manifestSummary represents a summary of a manifest being sent by a counterparty.
@@ -28,6 +35,14 @@ type manifestSummary struct {
 	statementKnowledge statementFilter
 }
 
+func (s *manifestSummary) clone() manifestSummary {
+	return manifestSummary{
+		claimedParentHash:  s.claimedParentHash,
+		claimedGroupIndex:  s.claimedGroupIndex,
+		statementKnowledge: s.statementKnowledge.clone(),
+	}
+}
+
 // receivedManifests contains the knowledge we are aware of counterparties having of manifests.
 type receivedManifests struct {
 	received map[parachaintypes.CandidateHash]manifestSummary
@@ -35,6 +50,13 @@ type receivedManifests struct {
 	// secondedCounts is a limit of how many seconded statement
 	// a given candidate can have, defined per session
 	secondedCounts map[parachaintypes.GroupIndex][]uint
+}
+
+func newReceivedManifests() *receivedManifests {
+	return &receivedManifests{
+		received:       make(map[parachaintypes.CandidateHash]manifestSummary),
+		secondedCounts: make(map[parachaintypes.GroupIndex][]uint),
+	}
 }
 
 func (rm *receivedManifests) candidateStatementFilter(candidateHash parachaintypes.CandidateHash) *statementFilter {
@@ -89,6 +111,10 @@ func (rm *receivedManifests) importReceived(
 	}
 
 	if previousSummary.claimedGroupIndex != manifestSummary.claimedGroupIndex {
+		return errManifestImportConflicting
+	}
+
+	if previousSummary.claimedParentHash != manifestSummary.claimedParentHash {
 		return errManifestImportConflicting
 	}
 

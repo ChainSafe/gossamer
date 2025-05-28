@@ -235,6 +235,8 @@ func (mvdt compactStatementInner) ValueAt(index uint) (value any, err error) {
 // CompactStatement is a compact representation of a statement that can be made about parachain candidates.
 // this is the actual value that is signed.
 type CompactStatement interface {
+	CandidateHash() CandidateHash
+	SetCandidateHash(hash CandidateHash)
 	MarshalSCALE() ([]byte, error)
 	UnmarshalSCALE(reader io.Reader) error
 }
@@ -252,6 +254,20 @@ type CompactSeconded struct {
 	inner SecondedCandidateHash
 }
 
+func NewCompactValid(hash CandidateHash) *CompactValid {
+	return &CompactValid{
+		inner: Valid(hash),
+	}
+}
+
+func (v *CompactValid) SetCandidateHash(hash CandidateHash) {
+	v.inner = Valid(hash)
+}
+
+func (v *CompactValid) CandidateHash() CandidateHash {
+	return CandidateHash(v.inner)
+}
+
 func (v *CompactValid) MarshalSCALE() ([]byte, error) {
 	return compactMarshalSCALE(v.inner)
 }
@@ -264,6 +280,20 @@ func (v *CompactValid) UnmarshalSCALE(reader io.Reader) error {
 
 	v.inner = decoded
 	return nil
+}
+
+func NewCompactSeconded(hash CandidateHash) *CompactSeconded {
+	return &CompactSeconded{
+		inner: SecondedCandidateHash(hash),
+	}
+}
+
+func (sch *CompactSeconded) SetCandidateHash(hash CandidateHash) {
+	sch.inner = SecondedCandidateHash(hash)
+}
+
+func (sch *CompactSeconded) CandidateHash() CandidateHash {
+	return CandidateHash(sch.inner)
 }
 
 func (sch *CompactSeconded) MarshalSCALE() ([]byte, error) {

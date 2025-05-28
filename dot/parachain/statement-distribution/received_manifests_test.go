@@ -67,10 +67,10 @@ func TestReceivedManifests_candidateStatementFilter(t *testing.T) {
 			got := rm.candidateStatementFilter(tt.candidateHash)
 
 			if tt.wantFilter == nil {
-				assert.Nil(t, got)
+				require.Nil(t, got)
 			} else {
-				assert.NotNil(t, got)
-				assert.Equal(t, tt.wantFilter, got)
+				require.NotNil(t, got)
+				require.Equal(t, tt.wantFilter, got)
 			}
 		})
 	}
@@ -314,10 +314,7 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			rm := &receivedManifests{
-				received:       make(map[parachaintypes.CandidateHash]manifestSummary),
-				secondedCounts: make(map[parachaintypes.GroupIndex][]uint),
-			}
+			rm := newReceivedManifests()
 
 			for k, v := range tt.setupReceived {
 				rm.received[k] = v
@@ -329,14 +326,147 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 
 			err := rm.importReceived(tt.groupSize, tt.secondingLimit, tt.candidateHash, tt.summary)
 
-			assert.Equal(t, tt.wantErr, err)
-			assert.Equal(t, tt.wantReceived, rm.received)
-			assert.Equal(t, tt.wantSecondedCounts, rm.secondedCounts)
+			require.Equal(t, tt.wantErr, err)
+			require.Equal(t, tt.wantReceived, rm.received)
+			require.Equal(t, tt.wantSecondedCounts, rm.secondedCounts)
 		})
 	}
+
+	// tests from polkadot-sdk
+
+	t.Run("knowledge_rejects_conflicting_manifest", func(t *testing.T) {
+		t.Parallel()
+
+		candidateHash := parachaintypes.CandidateHash{Value: common.Hash{1, 1, 1}}
+
+		expectedManifestSummary := manifestSummary{
+			claimedParentHash: common.Hash{2, 2, 2},
+			claimedGroupIndex: 0,
+			statementKnowledge: statementFilter{
+				secondedInGroup:  newBitVec(t, true, true, false),
+				validatedInGroup: newBitVec(t, false, true, true),
+			},
+		}
+
+		setup := func(t *testing.T) *receivedManifests {
+			knowledge := newReceivedManifests()
+			err := knowledge.importReceived(3, 2, candidateHash, expectedManifestSummary)
+			require.NoError(t, err)
+			return knowledge
+		}
+
+		t.Run("conflicting_group", func(t *testing.T) {
+			knowledge := setup(t)
+			s := expectedManifestSummary.clone()
+			s.claimedGroupIndex = 1
+
+			err := knowledge.importReceived(3, 2, candidateHash, s)
+
+			require.ErrorIs(t, err, errManifestImportConflicting)
+		})
+
+		t.Run("conflicting_parent_hash", func(t *testing.T) {
+			knowledge := setup(t)
+			s := expectedManifestSummary.clone()
+			s.claimedParentHash = common.Hash{3, 3, 3}
+
+			err := knowledge.importReceived(3, 2, candidateHash, s)
+
+			require.ErrorIs(t, err, errManifestImportConflicting)
+		})
+
+		t.Run("conflicting_seconded_statements_bitfield", func(t *testing.T) {
+			knowledge := setup(t)
+			s := expectedManifestSummary.clone()
+			s.statementKnowledge.secondedInGroup = newBitVec(t, false, true, false)
+
+			err := knowledge.importReceived(3, 2, candidateHash, s)
+
+			require.ErrorIs(t, err, errManifestImportConflicting)
+		})
+
+		t.Run("conflicting_valid_statements_bitfield", func(t *testing.T) {
+			knowledge := setup(t)
+			s := expectedManifestSummary.clone()
+			s.statementKnowledge.validatedInGroup = newBitVec(t, false, true, false)
+
+			err := knowledge.importReceived(3, 2, candidateHash, s)
+
+			require.ErrorIs(t, err, errManifestImportConflicting)
+		})
+	})
+
+	t.Run("reject_overflowing_manifests", func(t *testing.T) {
+		t.Parallel()
+
+		knowledge := newReceivedManifests()
+
+		err := knowledge.importReceived(
+			3,
+			2,
+			parachaintypes.CandidateHash{Value: common.Hash{1, 1, 1}},
+			manifestSummary{
+				claimedParentHash: common.Hash{0xA, 0xA, 0xA},
+				claimedGroupIndex: 0,
+				statementKnowledge: statementFilter{
+					secondedInGroup:  newBitVec(t, true, true, false),
+					validatedInGroup: newBitVec(t, false, true, true),
+				},
+			},
+		)
+		require.NoError(t, err)
+
+		err = knowledge.importReceived(
+			3,
+			2,
+			parachaintypes.CandidateHash{Value: common.Hash{2, 2, 2}},
+			manifestSummary{
+				claimedParentHash: common.Hash{0xB, 0xB, 0xB},
+				claimedGroupIndex: 0,
+				statementKnowledge: statementFilter{
+					secondedInGroup:  newBitVec(t, true, false, true),
+					validatedInGroup: newBitVec(t, false, true, true),
+				},
+			},
+		)
+		require.NoError(t, err)
+
+		// Reject a seconding validator that is already at the seconding limit. Seconding counts for
+		// the validators should not be applied.
+		err = knowledge.importReceived(
+			3,
+			2,
+			parachaintypes.CandidateHash{Value: common.Hash{3, 3, 3}},
+			manifestSummary{
+				claimedParentHash: common.Hash{0xC, 0xC, 0xC},
+				claimedGroupIndex: 0,
+				statementKnowledge: statementFilter{
+					secondedInGroup:  newBitVec(t, true, true, true),
+					validatedInGroup: newBitVec(t, false, true, true),
+				},
+			},
+		)
+		require.ErrorIs(t, err, errManifestImportOverflow)
+
+		// Don't reject validators that have seconded less than the limit so far.
+		err = knowledge.importReceived(
+			3,
+			2,
+			parachaintypes.CandidateHash{Value: common.Hash{3, 3, 3}},
+			manifestSummary{
+				claimedParentHash: common.Hash{0xC, 0xC, 0xC},
+				claimedGroupIndex: 0,
+				statementKnowledge: statementFilter{
+					secondedInGroup:  newBitVec(t, false, true, true),
+					validatedInGroup: newBitVec(t, false, true, true),
+				},
+			},
+		)
+		require.NoError(t, err)
+	})
 }
 
-func TestReceivedManifests_updatingEnsureWithinSecondingLimit(t *testing.T) {
+func TestUpdatingEnsureWithinSecondingLimit(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
