@@ -84,7 +84,7 @@ type Seconded CommittedCandidateReceiptV2
 type Valid CandidateHash
 
 // CompactStatement returns a compact representation of the statement.
-func (s StatementVDT) CompactStatement() (any, error) {
+func (s StatementVDT) CompactStatement() (CompactStatement, error) {
 	switch s := s.inner.(type) {
 	case Valid:
 		return &CompactValid{inner: s}, nil
@@ -98,10 +98,7 @@ func (s StatementVDT) CompactStatement() (any, error) {
 	return nil, fmt.Errorf("unsupported type")
 }
 
-func (s *StatementVDT) Sign(
-	validator Validator,
-	keystore keystore.Keystore,
-) (*SignedFullStatement, error) {
+func (s *StatementVDT) Sign(validator Validator, keystore keystore.Keystore) (*SignedFullStatement, error) {
 	compact, err := s.CompactStatement()
 	if err != nil {
 		return nil, fmt.Errorf("getting compact statement: %w", err)
@@ -125,10 +122,7 @@ func (s *StatementVDT) Sign(
 }
 
 // VerifySignature verifies the validator signature for the statement.
-func (s *StatementVDT) VerifySignature(
-	validator Validator,
-	validatorSignature ValidatorSignature,
-) (bool, error) {
+func (s *StatementVDT) VerifySignature(validator Validator, validatorSignature ValidatorSignature) (bool, error) {
 	compact, err := s.CompactStatement()
 	if err != nil {
 		return false, fmt.Errorf("getting compact statement: %w", err)
@@ -178,6 +172,21 @@ type SignedFullStatementWithPVD struct {
 	// otherwise, it should be nil.
 	PersistedValidationData *PersistedValidationData
 }
+
+type UncheckedSignedCompactStatement struct {
+	// The payload is part of the signed data. The rest is the signing context,
+	// which is known both at signing and at validation.
+	Payload CompactStatement `scale:"1"`
+
+	// The index of the validator signing this statement.
+	ValidatorIndex ValidatorIndex `scale:"2"`
+
+	// The signature by the validator of the signed payload.
+	Signature ValidatorSignature `scale:"3"`
+}
+
+// SignedStatement represents a signed compact statement, suitable to be sent to the chain.
+type SignedStatement UncheckedSignedCompactStatement
 
 type SecondedCandidateHash CandidateHash
 
@@ -250,10 +259,6 @@ type CompactValid struct {
 	inner Valid
 }
 
-type CompactSeconded struct {
-	inner SecondedCandidateHash
-}
-
 func NewCompactValid(hash CandidateHash) *CompactValid {
 	return &CompactValid{
 		inner: Valid(hash),
@@ -280,6 +285,10 @@ func (v *CompactValid) UnmarshalSCALE(reader io.Reader) error {
 
 	v.inner = decoded
 	return nil
+}
+
+type CompactSeconded struct {
+	inner SecondedCandidateHash
 }
 
 func NewCompactSeconded(hash CandidateHash) *CompactSeconded {
