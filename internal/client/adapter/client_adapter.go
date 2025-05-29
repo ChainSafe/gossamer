@@ -12,11 +12,14 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rt "github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 )
 
 type ClientAdapterDB interface {
@@ -36,6 +39,7 @@ type Client[
 	blockchain.Backend[H, N, Header, E]
 
 	CompareAndSetBlockData(bd *types.BlockData) error
+	StateAt(hash H) (statemachine.Backend[H, Hasher], error)
 }
 
 type ClientAdapter[
@@ -554,6 +558,138 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) UnregisterStorageObserver(o st
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetBlockTree(blocktree *blocktree.BlockTree) {
 	panic("unimplemented")
+}
+
+// StorageProvider impl
+
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) Storage(
+	hash H,
+	key statemachine.StorageKey,
+) (statemachine.StorageValue, error) {
+	stateAt, err := ca.client.StateAt(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return stateAt.Storage(key)
+}
+
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageHash(
+	hash H,
+	key statemachine.StorageKey,
+) (*H, error) {
+	stateAt, err := ca.client.StateAt(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return stateAt.StorageHash(key)
+}
+
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageKeys(
+	hash H,
+	prefix,
+	startKey statemachine.StorageKey,
+) (statemachine.KeysIter[H, Hasher], error) {
+	stateAt, err := ca.client.StateAt(hash)
+	if err != nil {
+		return statemachine.KeysIter[H, Hasher]{}, err
+	}
+
+	return stateAt.Keys(statemachine.IterArgs{
+		Prefix:           prefix,
+		StartAt:          startKey,
+		StartAtExclusive: false, // TODO: check that this is correct
+	})
+}
+
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoragePairs(
+	hash H,
+	prefix,
+	startKey statemachine.StorageKey,
+) (statemachine.PairsIter[H, Hasher], error) {
+	stateAt, err := ca.client.StateAt(hash)
+	if err != nil {
+		return statemachine.PairsIter[H, Hasher]{}, err
+	}
+
+	return stateAt.Pairs(statemachine.IterArgs{
+		Prefix:           prefix,
+		StartAt:          startKey,
+		StartAtExclusive: false, // TODO: check that this is correct
+	})
+}
+
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorage(
+	hash H,
+	childInfo storage.ChildInfo,
+	key statemachine.StorageKey,
+) (statemachine.StorageValue, error) {
+	stateAt, err := ca.client.StateAt(hash)
+	if err != nil {
+		return statemachine.StorageValue{}, err
+	}
+
+	return stateAt.ChildStorage(childInfo, key)
+}
+
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorageKeys(
+	hash H,
+	childInfo storage.ChildInfo,
+	prefix statemachine.StorageKey,
+	startKey statemachine.StorageKey,
+) (statemachine.KeysIter[H, Hasher], error) {
+	stateAt, err := ca.client.StateAt(hash)
+	if err != nil {
+		return statemachine.KeysIter[H, Hasher]{}, err
+	}
+
+	return stateAt.Keys(statemachine.IterArgs{
+		Prefix:           prefix,
+		StartAt:          startKey,
+		StartAtExclusive: false, // TODO: check that this is correct
+		ChildInfo:        childInfo,
+	})
+}
+
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorageHash(
+	hash H,
+	childInfo storage.ChildInfo,
+	key statemachine.StorageKey,
+) (*H, error) {
+	stateAt, err := ca.client.StateAt(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return stateAt.ChildStorageHash(childInfo, key)
+}
+
+// ClosestMerkleValue returns the closest merkle value, given a blocks hash and a key.
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) ClosestMerkleValue(
+	hash H,
+	key statemachine.StorageKey,
+) (triedb.MerkleValue[H], error) {
+	stateAt, err := ca.client.StateAt(hash)
+	if err != nil {
+		return triedb.NodeMerkleValue{}, err
+	}
+
+	return stateAt.ClosestMerkleValue(key)
+}
+
+// ChildClosestMerkleValue returns the closest merkle value, given a blocks hash, a key and a child storage key.
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildClosestMerkleValue(
+	hash H,
+	childInfo storage.ChildInfo,
+	key statemachine.StorageKey,
+) (triedb.MerkleValue[H], error) {
+	stateAt, err := ca.client.StateAt(hash)
+	if err != nil {
+		return triedb.NodeMerkleValue{}, err
+	}
+
+	return stateAt.ChildClosestMerkleValue(childInfo, key)
 }
 
 func prefixKey(hash common.Hash, prefix []byte) []byte {
