@@ -56,7 +56,7 @@ type GetBackableCandidates struct {
 	ParaId          parachaintypes.ParaID
 	RequestedQty    uint32
 	Ancestors       Ancestors
-	Response        chan []parachaintypes.CandidateHashAndRelayParent
+	Response        chan []*parachaintypes.CandidateHashAndRelayParent
 }
 
 func (GetBackableCandidates) isProspectiveParachainsMessage() {}

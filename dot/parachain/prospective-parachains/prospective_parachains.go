@@ -310,7 +310,7 @@ func (pp *ProspectiveParachains) getBackableCandidates(
 				"RelayParentHash: %v, ParaId: %v",
 			relayParentHash, paraId,
 		)
-		responseChan <- []parachaintypes.CandidateHashAndRelayParent{}
+		responseChan <- []*parachaintypes.CandidateHashAndRelayParent{}
 		return
 	}
 
@@ -322,7 +322,7 @@ func (pp *ProspectiveParachains) getBackableCandidates(
 				"RelayParentHash: %v, ParaId: %v",
 			relayParentHash, paraId,
 		)
-		responseChan <- []parachaintypes.CandidateHashAndRelayParent{}
+		responseChan <- []*parachaintypes.CandidateHashAndRelayParent{}
 		return
 	}
 
@@ -334,7 +334,7 @@ func (pp *ProspectiveParachains) getBackableCandidates(
 				"RelayParentHash: %v, ParaId: %v",
 			relayParentHash, paraId,
 		)
-		responseChan <- []parachaintypes.CandidateHashAndRelayParent{}
+		responseChan <- []*parachaintypes.CandidateHashAndRelayParent{}
 		return
 	}
 
@@ -345,7 +345,7 @@ func (pp *ProspectiveParachains) getBackableCandidates(
 			"No backable candidates found. RelayParentHash: %v, ParaId: %v, Ancestors: %v",
 			relayParentHash, paraId, ancestors,
 		)
-		responseChan <- []parachaintypes.CandidateHashAndRelayParent{}
+		responseChan <- []*parachaintypes.CandidateHashAndRelayParent{}
 		return
 	}
 
@@ -354,17 +354,8 @@ func (pp *ProspectiveParachains) getBackableCandidates(
 		backableCandidates, relayParentHash, paraId, ancestors,
 	)
 
-	// Convert backable candidates to the expected response format
-	candidateHashes := make([]parachaintypes.CandidateHashAndRelayParent, len(backableCandidates))
-	for i, candidate := range backableCandidates {
-		candidateHashes[i] = parachaintypes.CandidateHashAndRelayParent{
-			CandidateHash:        candidate.candidateHash,
-			CandidateRelayParent: candidate.realyParentHash,
-		}
-	}
-
 	// Send the result through the response channel
-	responseChan <- candidateHashes
+	responseChan <- backableCandidates
 }
 
 func (pp *ProspectiveParachains) answerProspectiveValidationDataRequest(
