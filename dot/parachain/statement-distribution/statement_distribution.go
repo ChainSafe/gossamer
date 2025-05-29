@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var errEncodedStatementsDoesNotMatch = errors.New("encoded statements does not match")
+var errEncodedStatementsMismatch = errors.New("encoded statements does not match")
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-statement-distribution"))
 
@@ -87,7 +87,8 @@ func (s *StatementDistribution) awaitMessageFrom(
 }
 
 // Send backing fresh statements. This should only be performed on importable & confirmed candidates
-func (s *StatementDistribution) sendBackingFreshStatements(candidateHash parachaintypes.CandidateHash,
+func (s *StatementDistribution) sendBackingFreshStatements(
+	candidateHash parachaintypes.CandidateHash,
 	groupIndex parachaintypes.GroupIndex,
 	relayParent common.Hash,
 	rpState *perRelayParentState,
@@ -107,42 +108,34 @@ func (s *StatementDistribution) sendBackingFreshStatements(candidateHash paracha
 		v := freshStmt.ValidatorIndex
 		compact := freshStmt.Payload
 
-		var convertedStmt parachaintypes.StatementVDT
+		var (
+			innerStmtKind any
+			withPVD       *parachaintypes.PersistedValidationData
+		)
 
 		switch inner := compact.(type) {
 		case *parachaintypes.CompactValid:
-			convertedStmt = parachaintypes.NewStatementVDT()
-			err := convertedStmt.SetValue(parachaintypes.Valid(inner.CandidateHash()))
-			if err != nil {
-				panic(fmt.Sprintf("unexpected error setting Statement VDT: %s", err.Error()))
-			}
-
-			signed, err := compareAndConvert(freshStmt, convertedStmt, nil)
-			if err != nil {
-				return fmt.Errorf("comparing and converting stmt: %w", err)
-			}
-
-			s.SubSystemToOverseer <- backing.StatementMessage{
-				RelayParent:         relayParent,
-				SignedFullStatement: *signed,
-			}
+			innerStmtKind = parachaintypes.Valid(inner.CandidateHash())
 
 		case *parachaintypes.CompactSeconded:
-			convertedStmt = parachaintypes.NewStatementVDT()
-			err := convertedStmt.SetValue(parachaintypes.Seconded(confirmed.receipt))
-			if err != nil {
-				panic(fmt.Sprintf("unexpected error setting Statement VDT: %s", err.Error()))
-			}
+			innerStmtKind = parachaintypes.Seconded(confirmed.receipt)
+			withPVD = confirmed.pvd
+		}
 
-			signed, err := compareAndConvert(freshStmt, convertedStmt, confirmed.pvd)
-			if err != nil {
-				return fmt.Errorf("comparing and converting stmt: %w", err)
-			}
+		convertedStmt := parachaintypes.NewStatementVDT()
+		err := convertedStmt.SetValue(innerStmtKind)
+		if err != nil {
+			panic(fmt.Sprintf("unexpected error setting Statement VDT: %s", err.Error()))
+		}
 
-			s.SubSystemToOverseer <- backing.StatementMessage{
-				RelayParent:         relayParent,
-				SignedFullStatement: *signed,
-			}
+		signed, err := compareAndConvert(freshStmt, convertedStmt, withPVD)
+		if err != nil {
+			return fmt.Errorf("comparing and converting stmt: %w", err)
+		}
+
+		s.SubSystemToOverseer <- backing.StatementMessage{
+			RelayParent:         relayParent,
+			SignedFullStatement: *signed,
 		}
 
 		imported = append(imported, validatorIndexAndCompact{
@@ -162,7 +155,8 @@ func (s *StatementDistribution) sendBackingFreshStatements(candidateHash paracha
 // the same encoding as the converted statement and transforms the
 // converted statement into a SignedFullStatementWithPVD with the
 // signature of the original compact statement
-func compareAndConvert(original parachaintypes.SignedStatement,
+func compareAndConvert(
+	original parachaintypes.SignedStatement,
 	converted parachaintypes.StatementVDT,
 	pvd *parachaintypes.PersistedValidationData,
 ) (*parachaintypes.SignedFullStatementWithPVD, error) {
@@ -182,7 +176,7 @@ func compareAndConvert(original parachaintypes.SignedStatement,
 	}
 
 	if !bytes.Equal(expectedCompactEncoded, encodedCompact) {
-		return nil, fmt.Errorf("%w: %v !=  %v", errEncodedStatementsDoesNotMatch, expectedCompactEncoded, encodedCompact)
+		return nil, fmt.Errorf("%w: %v !=  %v", errEncodedStatementsMismatch, expectedCompactEncoded, encodedCompact)
 	}
 
 	uncheckedFreshStmt := parachaintypes.UncheckedSignedCompactStatement(original)
