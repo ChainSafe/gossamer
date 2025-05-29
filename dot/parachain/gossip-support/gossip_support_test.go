@@ -1,11 +1,13 @@
 package gossipsupport
 
 import (
+	"context"
 	"errors"
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -17,6 +19,74 @@ import (
 	"time"
 )
 
+// --------  Mocks of the AuthorityDiscoveryService ------------- //
+var _ networkbridge.AuthorityDiscoveryService = (*MockAuthorityDiscoveryServiceEmptyAddress)(nil)
+
+type MockAuthorityDiscoveryServiceEmptyAddress struct{}
+
+func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetPeerIDByAuthorityID(authorityID parachaintypes.AuthorityDiscoveryID) peer.ID {
+	return "0"
+}
+
+func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetAuthorityIDsByPeerID(peerID peer.ID) map[parachaintypes.AuthorityDiscoveryID]struct{} {
+	return nil
+}
+
+func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetAddressesByAuthorityID(
+	_ parachaintypes.AuthorityDiscoveryID,
+) map[multiaddr.Multiaddr]struct{} {
+	return nil
+}
+
+var _ networkbridge.AuthorityDiscoveryService = (*MockAuthorityDiscoveryServiceForIP4Address)(nil)
+
+type MockAuthorityDiscoveryServiceForIP4Address struct{}
+
+func (m *MockAuthorityDiscoveryServiceForIP4Address) GetPeerIDByAuthorityID(_ parachaintypes.AuthorityDiscoveryID) peer.ID {
+	return "0"
+}
+
+func (m *MockAuthorityDiscoveryServiceForIP4Address) GetAuthorityIDsByPeerID(_ peer.ID) map[parachaintypes.AuthorityDiscoveryID]struct{} {
+	return nil
+}
+
+func (m *MockAuthorityDiscoveryServiceForIP4Address) GetAddressesByAuthorityID(
+	_ parachaintypes.AuthorityDiscoveryID,
+) map[multiaddr.Multiaddr]struct{} {
+	addr, err := multiaddr.NewMultiaddrBytes([]byte{4, 1, 2, 3, 4, 6, 0, 80})
+	if err != nil {
+		panic(err)
+	}
+	return map[multiaddr.Multiaddr]struct{}{
+		addr: {},
+	}
+}
+
+var _ networkbridge.AuthorityDiscoveryService = (*MockAuthorityDiscoveryServiceForP2PAddress)(nil)
+
+type MockAuthorityDiscoveryServiceForP2PAddress struct{}
+
+func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetPeerIDByAuthorityID(_ parachaintypes.AuthorityDiscoveryID) peer.ID {
+	return "0"
+}
+
+func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetAuthorityIDsByPeerID(_ peer.ID) map[parachaintypes.AuthorityDiscoveryID]struct{} {
+	return nil
+}
+
+func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetAddressesByAuthorityID(
+	_ parachaintypes.AuthorityDiscoveryID,
+) map[multiaddr.Multiaddr]struct{} {
+	addr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/4001/p2p/QmYwAPJzv5CZsnAzt8auVZRnX2pRhe84p2zjKBdTHZnr5k")
+	if err != nil {
+		panic(err)
+	}
+	return map[multiaddr.Multiaddr]struct{}{
+		addr: {},
+	}
+}
+
+// ------------- Tests start ------------- //
 func TestIsSuperSet(t *testing.T) {
 	superset := map[int]string{
 		1: "a",
@@ -81,7 +151,7 @@ func TestEnsureIamAnAuthority(t *testing.T) {
 }
 
 func TestCheckConnectivity(t *testing.T) {
-	gs := NewGossipSupport(nil, nil)
+	gs := NewGossipSupport(nil, nil, nil)
 	gs.connectedAuthorities = map[parachaintypes.AuthorityDiscoveryID]parachaintypes.PeerID{
 		{0x01}: "01",
 	}
@@ -97,20 +167,6 @@ func TestCheckConnectivity(t *testing.T) {
 	gs.checkConnectivity()
 }
 
-//func TestBuildTopologyForLastFinalizedIfNeeded(t *testing.T) {
-//	gs := NewGossipSupport(nil, nil)
-//	gs.minKnownSession = parachaintypes.SessionIndex(10)
-//
-//	ctrl := gomock.NewController(t)
-//	runtimeMock := NewMockInstance(ctrl)
-//
-//	runtimeMock.EXPECT().FinalizeBlock().Return(&types.Header{Number: 1}).Times(1)
-//
-//	runtimeMock.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil).Times(1)
-//	runtimeMock.EXPECT().ParachainHostSessionInfo(parachaintypes.SessionIndex(1)).Return(parachaintypes.SessionIndex(1), nil).Times(1)
-//
-//}
-
 func TestGetKeyIndexAndUpdateMetricsNoLongerAuthority(t *testing.T) {
 	testKs := keystore.NewBasicKeystore("test", crypto.Sr25519Type)
 	keyring, err := keystore.NewSr25519Keyring()
@@ -120,7 +176,7 @@ func TestGetKeyIndexAndUpdateMetricsNoLongerAuthority(t *testing.T) {
 	err = testKs.Insert(aliceKeypair)
 	assert.Nil(t, err)
 
-	gs := NewGossipSupport(testKs, nil)
+	gs := NewGossipSupport(testKs, nil, nil)
 
 	authorities := []parachaintypes.AuthorityDiscoveryID{
 		{0x01},
@@ -144,7 +200,7 @@ func TestGetKeyIndexAndUpdateMetricsIsAuthorityNow(t *testing.T) {
 	err = testKs.Insert(aliceKeypair)
 	assert.Nil(t, err)
 
-	gs := NewGossipSupport(testKs, nil)
+	gs := NewGossipSupport(testKs, nil, nil)
 
 	authorities := []parachaintypes.AuthorityDiscoveryID{
 		parachaintypes.AuthorityDiscoveryID(bobKeypair.Public().Encode()),
@@ -219,32 +275,8 @@ func TestRemoveAllControlled(t *testing.T) {
 	assert.EqualValues(t, 1, counter)
 }
 
-var _ networkbridge.AuthorityDiscoveryService = (*MockAuthorityDiscoveryServiceForIP4Address)(nil)
-
-type MockAuthorityDiscoveryServiceForIP4Address struct{}
-
-func (m *MockAuthorityDiscoveryServiceForIP4Address) GetPeerIDByAuthorityID(_ parachaintypes.AuthorityDiscoveryID) peer.ID {
-	return "0"
-}
-
-func (m *MockAuthorityDiscoveryServiceForIP4Address) GetAuthorityIDsByPeerID(_ peer.ID) map[parachaintypes.AuthorityDiscoveryID]struct{} {
-	return nil
-}
-
-func (m *MockAuthorityDiscoveryServiceForIP4Address) GetAddressesByAuthorityID(
-	_ parachaintypes.AuthorityDiscoveryID,
-) map[multiaddr.Multiaddr]struct{} {
-	addr, err := multiaddr.NewMultiaddrBytes([]byte{4, 1, 2, 3, 4, 6, 0, 80})
-	if err != nil {
-		panic(err)
-	}
-	return map[multiaddr.Multiaddr]struct{}{
-		addr: {},
-	}
-}
-
 func TestResolveAuthorities(t *testing.T) {
-	gs := NewGossipSupport(nil, nil)
+	gs := NewGossipSupport(nil, nil, nil)
 	gs.authorityDiscovery = &MockAuthorityDiscoveryServiceForIP4Address{}
 
 	validatorAddrs, resolved, failure := gs.resolveAuthorities([]parachaintypes.AuthorityDiscoveryID{
@@ -259,7 +291,7 @@ func TestResolveAuthorities(t *testing.T) {
 func TestIssueConnectionRequestToChangedOldAddressesNotNilIP4Address(t *testing.T) {
 	overseerChan := make(chan any)
 
-	gs := NewGossipSupport(nil, overseerChan)
+	gs := NewGossipSupport(nil, overseerChan, nil)
 	gs.authorityDiscovery = &MockAuthorityDiscoveryServiceForIP4Address{}
 
 	addr, err := multiaddr.NewMultiaddrBytes([]byte{4, 1, 2, 3, 4, 6, 0, 80})
@@ -296,7 +328,7 @@ func TestIssueConnectionRequestToChangedOldAddressesNotNilIP4Address(t *testing.
 func TestIssueConnectionRequestToChangedOldAddressesNotNil(t *testing.T) {
 	overseerChan := make(chan any)
 
-	gs := NewGossipSupport(nil, overseerChan)
+	gs := NewGossipSupport(nil, overseerChan, nil)
 	gs.authorityDiscovery = &MockAuthorityDiscoveryServiceForP2PAddress{}
 
 	addr, err := multiaddr.NewMultiaddrBytes([]byte{4, 1, 2, 3, 4, 6, 0, 80})
@@ -311,34 +343,10 @@ func TestIssueConnectionRequestToChangedOldAddressesNotNil(t *testing.T) {
 	})
 }
 
-var _ networkbridge.AuthorityDiscoveryService = (*MockAuthorityDiscoveryServiceForIP4Address)(nil)
-
-type MockAuthorityDiscoveryServiceForP2PAddress struct{}
-
-func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetPeerIDByAuthorityID(_ parachaintypes.AuthorityDiscoveryID) peer.ID {
-	return "0"
-}
-
-func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetAuthorityIDsByPeerID(_ peer.ID) map[parachaintypes.AuthorityDiscoveryID]struct{} {
-	return nil
-}
-
-func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetAddressesByAuthorityID(
-	_ parachaintypes.AuthorityDiscoveryID,
-) map[multiaddr.Multiaddr]struct{} {
-	addr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/4001/p2p/QmYwAPJzv5CZsnAzt8auVZRnX2pRhe84p2zjKBdTHZnr5k")
-	if err != nil {
-		panic(err)
-	}
-	return map[multiaddr.Multiaddr]struct{}{
-		addr: {},
-	}
-}
-
 func TestIssueConnectionRequestToChangedOldAddressesIsNil(t *testing.T) {
 	overseerChan := make(chan any)
 
-	gs := NewGossipSupport(nil, overseerChan)
+	gs := NewGossipSupport(nil, overseerChan, nil)
 	gs.authorityDiscovery = &MockAuthorityDiscoveryServiceForP2PAddress{}
 
 	gs.issueConnectionRequestToChanged([]parachaintypes.AuthorityDiscoveryID{
@@ -349,7 +357,7 @@ func TestIssueConnectionRequestToChangedOldAddressesIsNil(t *testing.T) {
 func TestIssueConnectionRequest(t *testing.T) {
 	overseerChan := make(chan any)
 
-	gs := NewGossipSupport(nil, overseerChan)
+	gs := NewGossipSupport(nil, overseerChan, nil)
 	gs.authorityDiscovery = &MockAuthorityDiscoveryServiceForP2PAddress{}
 
 	done := make(chan struct{})
@@ -376,28 +384,10 @@ func TestIssueConnectionRequest(t *testing.T) {
 	}
 }
 
-var _ networkbridge.AuthorityDiscoveryService = (*MockAuthorityDiscoveryServiceEmptyAddress)(nil)
-
-type MockAuthorityDiscoveryServiceEmptyAddress struct{}
-
-func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetPeerIDByAuthorityID(authorityID parachaintypes.AuthorityDiscoveryID) peer.ID {
-	return "0"
-}
-
-func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetAuthorityIDsByPeerID(peerID peer.ID) map[parachaintypes.AuthorityDiscoveryID]struct{} {
-	return nil
-}
-
-func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetAddressesByAuthorityID(
-	_ parachaintypes.AuthorityDiscoveryID,
-) map[multiaddr.Multiaddr]struct{} {
-	return nil
-}
-
 func TestIssueConnectionRequestIssueAnotherRequestForTheSameSession(t *testing.T) {
 	overseerChan := make(chan any)
 
-	gs := NewGossipSupport(nil, overseerChan)
+	gs := NewGossipSupport(nil, overseerChan, nil)
 	gs.authorityDiscovery = &MockAuthorityDiscoveryServiceEmptyAddress{}
 
 	done := make(chan struct{})
@@ -427,7 +417,7 @@ func TestIssueConnectionRequestIssueAnotherRequestForTheSameSession(t *testing.T
 func TestIssueConnectionRequestIssueAnotherRequestForTheSameSessionFailureNotNil(t *testing.T) {
 	overseerChan := make(chan any)
 
-	gs := NewGossipSupport(nil, overseerChan)
+	gs := NewGossipSupport(nil, overseerChan, nil)
 	gs.authorityDiscovery = &MockAuthorityDiscoveryServiceEmptyAddress{}
 	ts := time.Now().Add(11 * time.Minute)
 	gs.failureStart = &ts
@@ -454,4 +444,162 @@ func TestIssueConnectionRequestIssueAnotherRequestForTheSameSessionFailureNotNil
 	case <-time.After(2 * time.Second):
 		t.Fatal("test timed out")
 	}
+}
+
+func TestBuildTopologyForLastFinalizedIfNeeded(t *testing.T) {
+	gs := NewGossipSupport(nil, nil, nil)
+	gs.minKnownSession = parachaintypes.SessionIndex(10)
+	finalizedNeededSession := parachaintypes.SessionIndex(1)
+	gs.finalizedNeededSession = &finalizedNeededSession
+	currentSessionIdx := parachaintypes.SessionIndex(5)
+
+	testKs := keystore.NewBasicKeystore("test", crypto.Sr25519Type)
+	keyring, err := keystore.NewSr25519Keyring()
+	assert.Nil(t, err)
+
+	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
+	err = testKs.Insert(aliceKeypair)
+	assert.Nil(t, err)
+
+	gs.keystore = testKs
+
+	ctrl := gomock.NewController(t)
+	runtimeMock := NewMockInstance(ctrl)
+
+	runtimeMock.EXPECT().FinalizeBlock().Return(&types.Header{Number: 1}, nil).Times(1)
+
+	runtimeMock.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(2), nil).Times(1)
+
+	mockedSessionInfo := &parachaintypes.SessionInfo{
+		DiscoveryKeys: []parachaintypes.AuthorityDiscoveryID{
+			parachaintypes.AuthorityDiscoveryID(aliceKeypair.Public().Encode()),
+		},
+	}
+	runtimeMock.EXPECT().ParachainHostSessionInfo(parachaintypes.SessionIndex(2)).Return(mockedSessionInfo, nil).Times(1)
+
+	err = gs.buildTopologyForLastFinalizedIfNeeded(currentSessionIdx, runtimeMock)
+	assert.Nil(t, err)
+
+	assert.EqualValues(t, parachaintypes.SessionIndex(2), *gs.finalizedNeededSession)
+}
+
+func TestProcessBlockFinalizedSignalError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	blockAPIMock := NewMockBlockState(ctrl)
+
+	blockAPIMock.EXPECT().GetRuntime(common.Hash{0x01}).Return(
+		nil, errors.New("something is off")).Times(1)
+
+	signal := parachaintypes.BlockFinalizedSignal{
+		Hash: common.Hash{0x01},
+	}
+
+	gs := NewGossipSupport(nil, nil, blockAPIMock)
+	err := gs.ProcessBlockFinalizedSignal(signal)
+	assert.EqualError(t, err, "something is off")
+
+}
+
+func TestProcessBlockFinalizedSignal(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	blockAPIMock := NewMockBlockState(ctrl)
+	runtimeMock := NewMockInstance(ctrl)
+
+	gs := NewGossipSupport(nil, nil, blockAPIMock)
+	lastSessionInd := parachaintypes.SessionIndex(5)
+	gs.lastSessionIndex = &lastSessionInd
+	gs.minKnownSession = parachaintypes.SessionIndex(10)
+	finalizedNeededSession := parachaintypes.SessionIndex(1)
+	gs.finalizedNeededSession = &finalizedNeededSession
+
+	testKs := keystore.NewBasicKeystore("test", crypto.Sr25519Type)
+	keyring, err := keystore.NewSr25519Keyring()
+	assert.Nil(t, err)
+	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
+	err = testKs.Insert(aliceKeypair)
+	assert.Nil(t, err)
+	gs.keystore = testKs
+
+	blockAPIMock.EXPECT().GetRuntime(common.Hash{0x01}).Return(runtimeMock, nil).Times(1)
+	runtimeMock.EXPECT().FinalizeBlock().Return(nil, errors.New("something is off")).Times(1)
+	signal := parachaintypes.BlockFinalizedSignal{
+		Hash: common.Hash{0x01},
+	}
+
+	err = gs.ProcessBlockFinalizedSignal(signal)
+	assert.EqualError(t, err, "something is off")
+}
+
+func TestUpdateAuthorityIDsAuthorityIDsEmpty(t *testing.T) {
+	overseerChan := make(chan any)
+	gs := NewGossipSupport(nil, overseerChan, nil)
+	gs.authorityDiscovery = &MockAuthorityDiscoveryServiceForP2PAddress{}
+
+	var peerID parachaintypes.PeerID
+	addr := gs.authorityDiscovery.GetAddressesByAuthorityID(parachaintypes.AuthorityDiscoveryID{})
+	for a := range addr {
+		_, p := peer.SplitAddr(a)
+		peerID = parachaintypes.PeerID(p)
+	}
+	gs.connectedPeers = map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}{
+		peerID: {{0x01}: {}},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		for {
+			select {
+			case msg := <-overseerChan:
+				if _, ok := msg.(networkbridgemessages.UpdateAuthorityIDs); !ok {
+					t.Error("receiving wrong msg type")
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	var authorities []parachaintypes.AuthorityDiscoveryID
+	gs.updateAuthorityIDs(authorities)
+
+	cancel()
+}
+
+func TestUpdateAuthorityIDsConnectedPeersGotAllRemoved(t *testing.T) {
+	overseerChan := make(chan any)
+	gs := NewGossipSupport(nil, overseerChan, nil)
+	gs.authorityDiscovery = &MockAuthorityDiscoveryServiceForP2PAddress{}
+
+	var peerID parachaintypes.PeerID
+	addr := gs.authorityDiscovery.GetAddressesByAuthorityID(parachaintypes.AuthorityDiscoveryID{})
+	for a := range addr {
+		_, p := peer.SplitAddr(a)
+		peerID = parachaintypes.PeerID(p)
+	}
+	gs.connectedPeers = map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}{
+		peerID: {{0x01}: {}},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		for {
+			select {
+			case msg := <-overseerChan:
+				if _, ok := msg.(networkbridgemessages.UpdateAuthorityIDs); !ok {
+					t.Error("receiving wrong msg type")
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	authorities := []parachaintypes.AuthorityDiscoveryID{
+		{0x01},
+	}
+	gs.updateAuthorityIDs(authorities)
+
+	cancel()
 }

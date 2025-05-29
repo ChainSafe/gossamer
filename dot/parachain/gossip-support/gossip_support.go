@@ -91,11 +91,13 @@ type GossipSupport struct {
 func NewGossipSupport(
 	ks keystore.Keystore,
 	overseerChan chan<- any,
+	blockState BlockState,
 ) *GossipSupport {
 	return &GossipSupport{
 		subSystemToOverseer: overseerChan,
+		blockState:          blockState,
+		keystore:            ks,
 
-		keystore:              ks,
 		lastSessionIndex:      nil,
 		minKnownSession:       math.MaxUint32,
 		lastFailure:           nil,
@@ -323,7 +325,10 @@ func (gs *GossipSupport) checkConnectivity() {
 
 // buildTopologyForLastFinalizedIfNeeded builds the gossip topology for the session of the last finalized block
 // if we haven't built one
-func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(currentSessionIndex parachaintypes.SessionIndex, rt runtime.Instance) error {
+func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(
+	currentSessionIndex parachaintypes.SessionIndex,
+	rt runtime.Instance,
+) error {
 	if currentSessionIndex < gs.minKnownSession {
 		gs.minKnownSession = currentSessionIndex
 	}
@@ -359,6 +364,7 @@ func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(currentSessionInd
 				return err
 			}
 		}
+
 		gs.finalizedNeededSession = &finalizedSessionIndex
 	}
 
@@ -396,19 +402,19 @@ func (gs *GossipSupport) updateGossipTopology(_ourIndex uint, _relayParent commo
 }
 
 func (gs *GossipSupport) updateAuthorityIDs(authorities []parachaintypes.AuthorityDiscoveryID) {
-	authorityIDs := make(map[peer.ID]map[parachaintypes.AuthorityDiscoveryID]struct{})
+	authorityIDs := make(map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{})
 
 	for _, authority := range authorities {
-		peerIDs := make(map[peer.ID]struct{})
+		peerIDs := make([]parachaintypes.PeerID, 0)
 		addrs := gs.authorityDiscovery.GetAddressesByAuthorityID(authority)
 		for addr := range addrs {
 			_, peerID := peer.SplitAddr(addr)
-			peerIDs[peerID] = struct{}{}
+			peerIDs = append(peerIDs, parachaintypes.PeerID(peerID))
 		}
 
 		logger.Tracef("resolved to peer ids")
 
-		for peerID := range peerIDs {
+		for _, peerID := range peerIDs {
 			authorityIDs[peerID] = map[parachaintypes.AuthorityDiscoveryID]struct{}{
 				authority: {},
 			}
@@ -418,7 +424,7 @@ func (gs *GossipSupport) updateAuthorityIDs(authorities []parachaintypes.Authori
 	// peer was authority and now isn't
 	for peerID, current := range gs.connectedPeers {
 		// empty -> nonempty is handled in the next loop
-		_, ok := authorityIDs[peer.ID(peerID)]
+		_, ok := authorityIDs[peerID]
 		if len(current) != 0 && !ok {
 			gs.subSystemToOverseer <- networkbridgemessages.UpdateAuthorityIDs{
 				PeerID:                peer.ID(peerID),
@@ -433,9 +439,9 @@ func (gs *GossipSupport) updateAuthorityIDs(authorities []parachaintypes.Authori
 
 	// peer has new authority set.
 	for peerID, newOne := range authorityIDs {
-		if p, ok := gs.connectedPeers[parachaintypes.PeerID(peerID)]; ok {
+		if p, ok := gs.connectedPeers[peerID]; ok {
 			if reflect.DeepEqual(newOne, p) {
-				delete(gs.connectedPeers, parachaintypes.PeerID(peerID))
+				delete(gs.connectedPeers, peerID)
 			}
 
 			updatedAuthDiscovery := make([]parachaintypes.AuthorityDiscoveryID, 0)
@@ -443,7 +449,7 @@ func (gs *GossipSupport) updateAuthorityIDs(authorities []parachaintypes.Authori
 				updatedAuthDiscovery = append(updatedAuthDiscovery, c)
 			}
 			gs.subSystemToOverseer <- networkbridgemessages.UpdateAuthorityIDs{
-				PeerID:                peerID,
+				PeerID:                peer.ID(peerID),
 				AuthorityDiscoveryIDs: updatedAuthDiscovery,
 			}
 
@@ -454,10 +460,10 @@ func (gs *GossipSupport) updateAuthorityIDs(authorities []parachaintypes.Authori
 			}
 
 			for a := range newOne {
-				gs.connectedAuthorities[a] = parachaintypes.PeerID(peerID)
+				gs.connectedAuthorities[a] = peerID
 			}
 
-			gs.connectedPeers[parachaintypes.PeerID(peerID)] = newOne
+			gs.connectedPeers[peerID] = newOne
 		}
 	}
 }
