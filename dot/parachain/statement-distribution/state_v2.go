@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 //nolint:unused
 package statementdistribution
 
@@ -11,9 +14,17 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 )
 
+type statementStore interface {
+	// freshStatementsForBacking provides a list of all statements marked as being
+	// unknown by the backing subsystem. This provides `Seconded` statements prior to `Valid` statements.
+	freshStatementsForBacking(validators []parachaintypes.ValidatorIndex,
+		candidateHash parachaintypes.CandidateHash) []parachaintypes.SignedStatement
+	noteKnownByBacking(parachaintypes.ValidatorIndex, parachaintypes.CompactStatement)
+}
+
 type perRelayParentState struct {
 	localValidator       *localValidatorStore
-	statementStore       any // TODO #4719: Create statement store
+	statementStore       statementStore // TODO #4719: Create statement store
 	secondingLimit       uint
 	session              parachaintypes.SessionIndex
 	transposedClaimQueue parachaintypes.TransposedClaimQueue
