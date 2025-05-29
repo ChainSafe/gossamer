@@ -13,6 +13,7 @@ import (
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 )
 
 // ImportNotificationAction describes which block import notification stream should be notified.
@@ -351,4 +352,52 @@ type Backend[
 	// UsageInfo returns current usage statistics.
 	// TODO: implement UsageInfo if we require it
 	// UsageInfo() *UsageInfo
+}
+
+// StorageProvider provides access to storage primitives
+type StorageProvider[H runtime.Hash, Hasher runtime.Hasher[H]] interface {
+	// Storage returns the value under the key in that block, given a blocks hash and a key.
+	Storage(hash H, key statemachine.StorageKey) (statemachine.StorageValue, error)
+
+	// StorageHash returns the value under the hash in that block, given a blocks hash and a key.
+	StorageHash(hash H, key statemachine.StorageKey) (*H, error)
+
+	// StorageKeys returns a [statemachine.KeysIter] that iterates over matching storage keys in that block
+	// given a blocks hash and a key prefix.
+	StorageKeys(hash H, prefix, startKey statemachine.StorageKey) (statemachine.KeysIter[H, Hasher], error)
+
+	// StoragePairs returns an iterator over the storage keys and values in that block,
+	// given the blocks hash and a key prefix.
+	StoragePairs(hash H, prefix, startKey statemachine.StorageKey) (statemachine.PairsIter[H, Hasher], error)
+
+	// ChildStorage returns the value under the key in that block, given a blocks hash,
+	// a key and a child storage key.
+	ChildStorage(
+		hash H,
+		childInfo storage.ChildInfo,
+		key statemachine.StorageKey,
+	) (statemachine.StorageValue, error)
+
+	// ChildStorageKeys returns a [statemachine.KeysIter] that iterates matching storage keys in that block,
+	// given a blocks hash, an optional key prefix and an optional child storage key.
+	ChildStorageKeys(
+		hash H,
+		childInfo storage.ChildInfo,
+		prefix statemachine.StorageKey,
+		startKey statemachine.StorageKey,
+	) (statemachine.KeysIter[H, Hasher], error)
+
+	// ChildStorageHash returns the hash under the key in a block, given its hash,
+	// a key and a child storage key.
+	ChildStorageHash(hash H, childInfo storage.ChildInfo, key statemachine.StorageKey) (*H, error)
+
+	// ClosestMerkleValue returns the closest merkle value, given a blocks hash and a key.
+	ClosestMerkleValue(hash H, key statemachine.StorageKey) (triedb.MerkleValue[H], error)
+
+	// ChildClosestMerkleValue returns the closest merkle value, given a blocks hash, a key and a child storage key.
+	ChildClosestMerkleValue(
+		hash H,
+		childInfo storage.ChildInfo,
+		key statemachine.StorageKey,
+	) (triedb.MerkleValue[H], error)
 }
