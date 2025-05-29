@@ -12,6 +12,8 @@ import (
 
 	runtime "github.com/ChainSafe/gossamer/internal/primitives/runtime"
 
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+
 	sync "sync"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
@@ -1381,6 +1383,64 @@ func (_c *Client_RequiresFullSync_Call[H, Hasher, N, E, Header]) Return(_a0 bool
 }
 
 func (_c *Client_RequiresFullSync_Call[H, Hasher, N, E, Header]) RunAndReturn(run func() bool) *Client_RequiresFullSync_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(run)
+	return _c
+}
+
+// StateAt provides a mock function with given fields: hash
+func (_m *Client[H, Hasher, N, E, Header]) StateAt(hash H) (statemachine.Backend[H, Hasher], error) {
+	ret := _m.Called(hash)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StateAt")
+	}
+
+	var r0 statemachine.Backend[H, Hasher]
+	var r1 error
+	if rf, ok := ret.Get(0).(func(H) (statemachine.Backend[H, Hasher], error)); ok {
+		return rf(hash)
+	}
+	if rf, ok := ret.Get(0).(func(H) statemachine.Backend[H, Hasher]); ok {
+		r0 = rf(hash)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(statemachine.Backend[H, Hasher])
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(H) error); ok {
+		r1 = rf(hash)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_StateAt_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StateAt'
+type Client_StateAt_Call[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+	*mock.Call
+}
+
+// StateAt is a helper method to define mock.On call
+//   - hash H
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) StateAt(hash interface{}) *Client_StateAt_Call[H, Hasher, N, E, Header] {
+	return &Client_StateAt_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("StateAt", hash)}
+}
+
+func (_c *Client_StateAt_Call[H, Hasher, N, E, Header]) Run(run func(hash H)) *Client_StateAt_Call[H, Hasher, N, E, Header] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(H))
+	})
+	return _c
+}
+
+func (_c *Client_StateAt_Call[H, Hasher, N, E, Header]) Return(_a0 statemachine.Backend[H, Hasher], _a1 error) *Client_StateAt_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_StateAt_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) (statemachine.Backend[H, Hasher], error)) *Client_StateAt_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(run)
 	return _c
 }

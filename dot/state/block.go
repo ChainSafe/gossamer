@@ -36,7 +36,7 @@ var (
 	ReceiptPrefix       = []byte("rcp") // ReceiptPrefix + hash -> receipt
 	MessageQueuePrefix  = []byte("mqp") // MessageQueuePrefix + hash -> message queue
 	JustificationPrefix = []byte("jcp") // JustificationPrefix + hash -> justification
-	firstSlotNumberKey  = []byte("fsn") // firstSlotNumberKey -> First slot number
+	FirstSlotNumberKey  = []byte("fsn") // FirstSlotNumberKey -> First slot number
 
 	errNilBlockTree = errors.New("blocktree is nil")
 	errNilBlockBody = errors.New("block body is nil")
@@ -580,12 +580,12 @@ func (bs *DefaultBlockState) SetBlockBody(hash common.Hash, body *types.Body) er
 func (bs *DefaultBlockState) SetFirstNonOriginSlotNumber(slotNumber uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, slotNumber)
-	return bs.db.Put(firstSlotNumberKey, buf)
+	return bs.db.Put(FirstSlotNumberKey, buf)
 }
 
 // GetFirstNonOriginSlotNumber returns the slot number of the first non origin block
 func (s *DefaultBlockState) GetFirstNonOriginSlotNumber() (uint64, error) {
-	slotVal, err := s.db.Get(firstSlotNumberKey)
+	slotVal, err := s.db.Get(FirstSlotNumberKey)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
 			return 0, nil

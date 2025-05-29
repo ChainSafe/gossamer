@@ -5,16 +5,22 @@ package adapter
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/client/adapter/mocks"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -245,7 +251,7 @@ func TestBlockOps(t *testing.T) {
 	})
 }
 
-func TestGestJustification(t *testing.T) {
+func TestGetJustification(t *testing.T) {
 	hash := common.Hash{0x01, 0x02, 0x03}
 
 	t.Run("ok", func(t *testing.T) {
@@ -638,6 +644,8 @@ func TestNumberIsFinalised(t *testing.T) {
 
 func TestHasHeader(t *testing.T) {
 	t.Run("header_is_not_finalized", func(t *testing.T) {
+		t.Parallel()
+
 		client, _, adapter := setupTest(t)
 
 		children := []Hash{
@@ -709,5 +717,380 @@ func TestHasJustification(t *testing.T) {
 		has, err := adapter.HasJustification(common.NewHashFromGeneric(blockHash))
 		require.NoError(t, err)
 		require.True(t, has)
+	})
+}
+
+func TestGetStateRootFromBlock(t *testing.T) {
+	t.Run("error", func(t *testing.T) {
+		client, _, adapter := setupTest(t)
+
+		expectedError := errors.New("error")
+		client.EXPECT().Header(blockchainInfo.FinalizedHash).Return(nil, expectedError)
+
+		bhash := common.NewHashFromGeneric(blockchainInfo.FinalizedHash)
+
+		root, err := adapter.GetStateRootFromBlock(&bhash)
+		require.Error(t, err, expectedError)
+		require.Nil(t, root)
+	})
+
+	t.Run("block_not_found", func(t *testing.T) {
+		client, _, adapter := setupTest(t)
+
+		client.EXPECT().Header(blockchainInfo.FinalizedHash).Return(nil, nil)
+
+		bhash := common.NewHashFromGeneric(blockchainInfo.FinalizedHash)
+
+		root, err := adapter.GetStateRootFromBlock(&bhash)
+		require.ErrorIs(t, err, database.ErrNotFound)
+		require.Nil(t, root)
+	})
+
+	t.Run("ok", func(t *testing.T) {
+		client, _, adapter := setupTest(t)
+
+		client.EXPECT().Header(blockchainInfo.FinalizedHash).Return(&header, nil)
+
+		expectedRoot := common.NewHashFromGeneric(header.StateRoot())
+		bhash := common.NewHashFromGeneric(blockchainInfo.FinalizedHash)
+
+		root, err := adapter.GetStateRootFromBlock(&bhash)
+		require.NoError(t, err)
+		require.Equal(t, &expectedRoot, root)
+	})
+
+	t.Run("bhash_nil", func(t *testing.T) {
+		client, _, adapter := setupTest(t)
+
+		client.EXPECT().Info().Return(blockchainInfo)
+		client.EXPECT().Header(blockchainInfo.BestHash).Return(&header, nil)
+
+		expectedRoot := common.NewHashFromGeneric(header.StateRoot())
+
+		root, err := adapter.GetStateRootFromBlock(nil)
+
+		require.NoError(t, err)
+		require.Equal(t, &expectedRoot, root)
+	})
+}
+
+func TestGetStorage(t *testing.T) {
+	t.Run("error", func(t *testing.T) {
+		client, _, adapter := setupTest(t)
+
+		expectedError := errors.New("kaput")
+		client.EXPECT().StateAt(header.Hash()).Return(nil, expectedError)
+		client.EXPECT().Info().Return(blockchainInfo)
+		client.EXPECT().Header(header.Hash()).Return(&header, nil)
+
+		root := common.NewHashFromGeneric(header.StateRoot())
+
+		value, err := adapter.GetStorage(&root, []byte("key"))
+		require.ErrorIs(t, err, expectedError)
+		require.Nil(t, value)
+	})
+	t.Run("ok", func(t *testing.T) {
+		client, _, adapter := setupTest(t)
+
+		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
+		backend.EXPECT().Storage([]byte("key")).Return([]byte("value"), nil)
+
+		client.EXPECT().StateAt(header.Hash()).Return(backend, nil)
+		client.EXPECT().Info().Return(blockchainInfo)
+		client.EXPECT().Header(header.Hash()).Return(&header, nil)
+
+		root := common.NewHashFromGeneric(header.StateRoot())
+
+		value, err := adapter.GetStorage(&root, []byte("key"))
+		require.NoError(t, err)
+		require.Equal(t, []byte("value"), value)
+	})
+	t.Run("root_nil", func(t *testing.T) {
+		client, _, adapter := setupTest(t)
+
+		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
+		backend.EXPECT().Storage([]byte("key")).Return([]byte("value"), nil)
+
+		client.EXPECT().StateAt(blockchainInfo.BestHash).Return(backend, nil)
+		client.EXPECT().Info().Return(blockchainInfo)
+
+		value, err := adapter.GetStorage(nil, []byte("key"))
+		require.NoError(t, err)
+		require.Equal(t, []byte("value"), value)
+	})
+	t.Run("search_succeeds", func(t *testing.T) {
+		client, _, adapter := setupTest(t)
+
+		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
+		backend.EXPECT().Storage([]byte("key")).Return([]byte("value"), nil)
+
+		length := uint16(min(maxSearchDepth-1, 10))
+		_, genesisHeader := makeHeaderChain(t, client, length)
+		client.EXPECT().StateAt(genesisHeader.Hash()).Return(backend, nil)
+
+		root := common.NewHashFromGeneric(genesisHeader.StateRoot())
+
+		value, err := adapter.GetStorage(&root, []byte("key"))
+		require.NoError(t, err)
+		require.Equal(t, []byte("value"), value)
+	})
+	t.Run("search_fails", func(t *testing.T) {
+		client, _, adapter := setupTest(t)
+
+		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
+
+		backend.EXPECT().
+			Storage([]byte("key")).
+			Maybe().
+			Return([]byte("value"), nil)
+
+		_, genesisHeader := makeHeaderChain(t, client, maxSearchDepth+1)
+		client.EXPECT().StateAt(genesisHeader.Hash()).Maybe().Return(backend, nil)
+
+		root := common.NewHashFromGeneric(genesisHeader.StateRoot())
+
+		value, err := adapter.GetStorage(&root, []byte("key"))
+		require.Error(t, err)
+		require.Nil(t, value)
+	})
+}
+
+// makeHeaderChain creates a chain of headers with the given header as the genesis block,
+// at chain[0] and the best & finalized block at the end of the slice.
+// The given client is configured to return them from Header() by their hash and to return
+// [blockchain.Info] with appropriate values from Info().
+func makeHeaderChain(
+	t *testing.T,
+	client *mocks.Client[Hash, Hasher, Number, Extrinsic, Header],
+	length uint16,
+) (chain []Header, genesisHeader Header) {
+	t.Helper()
+
+	genesisHeader = header.Clone().(Header)
+	genesisHeader.SetNumber(Number(0))
+	client.EXPECT().Header(genesisHeader.Hash()).Maybe().Return(&genesisHeader, nil)
+	chain = make([]Header, length)
+	chain[0] = genesisHeader
+	hasher := new(Hasher)
+
+	for i := 1; i < int(length); i++ {
+		h := generic.NewHeader[Number, Hash, Hasher](
+			Number(i),
+			hash.NewRandomH256(),
+			hasher.Hash([]byte(fmt.Sprintf("header%d", i))),
+			chain[i-1].Hash(),
+			runtime.Digest{},
+		)
+
+		chain[i] = h
+		client.EXPECT().Header(h.Hash()).Maybe().Return(&h, nil)
+	}
+
+	info := blockchain.Info[Hash, Number]{
+		GenesisHash:     genesisHeader.Hash(),
+		BestHash:        chain[length-1].Hash(),
+		BestNumber:      chain[length-1].Number(),
+		FinalizedHash:   chain[length-1].Hash(),
+		FinalizedNumber: chain[length-1].Number(),
+	}
+
+	client.EXPECT().Info().Return(info)
+
+	return
+}
+
+func TestGetStorageByBlockHash(t *testing.T) {
+	t.Run("error", func(t *testing.T) {
+		client, _, adapter := setupTest(t)
+
+		expectedError := errors.New("kaput")
+		client.EXPECT().StateAt(blockchainInfo.FinalizedHash).Return(nil, expectedError)
+
+		bhash := common.NewHashFromGeneric(blockchainInfo.FinalizedHash)
+
+		value, err := adapter.GetStorageByBlockHash(&bhash, []byte("key"))
+		require.ErrorIs(t, err, expectedError)
+		require.Nil(t, value)
+	})
+	t.Run("ok", func(t *testing.T) {
+		client, _, adapter := setupTest(t)
+
+		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
+		backend.EXPECT().Storage([]byte("key")).Return([]byte("value"), nil)
+
+		client.EXPECT().StateAt(blockchainInfo.FinalizedHash).Return(backend, nil)
+
+		bhash := common.NewHashFromGeneric(blockchainInfo.FinalizedHash)
+
+		value, err := adapter.GetStorageByBlockHash(&bhash, []byte("key"))
+		require.NoError(t, err)
+		require.Equal(t, []byte("value"), value)
+	})
+	t.Run("bhash_nil", func(t *testing.T) {
+		client, _, adapter := setupTest(t)
+
+		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
+		backend.EXPECT().Storage([]byte("key")).Return([]byte("value"), nil)
+
+		client.EXPECT().StateAt(blockchainInfo.BestHash).Return(backend, nil)
+		client.EXPECT().Info().Return(blockchainInfo)
+
+		value, err := adapter.GetStorageByBlockHash(nil, []byte("key"))
+		require.NoError(t, err)
+		require.Equal(t, []byte("value"), value)
+	})
+}
+
+func Test_GetKeysWithPrefix_Entries(t *testing.T) {
+	client, _, adapter := setupTest(t)
+
+	entries := map[string][]byte{
+		"":        {},
+		"key1":    []byte("value1"),
+		"key2":    []byte("value2"),
+		"xyzKey1": []byte("xyzValue1"),
+		"long":    []byte("newvaluewithmorethan32byteslength"),
+	}
+
+	backend := statemachine.NewMemoryDBTrieBackendFromMap[Hash, Hasher](entries, storage.StateVersionV1)
+	client.EXPECT().Header(header.Hash()).Return(&header, nil)
+	client.EXPECT().StateAt(header.Hash()).Return(backend, nil)
+	client.EXPECT().Info().Return(blockchainInfo)
+
+	root := common.NewHashFromGeneric(header.StateRoot())
+
+	t.Run("GetKeysWithPrefix", func(t *testing.T) {
+		keys, err := adapter.GetKeysWithPrefix(&root, []byte("ke"))
+
+		require.NoError(t, err)
+		require.Len(t, keys, 2)
+		require.Contains(t, keys, []byte("key1"))
+		require.Contains(t, keys, []byte("key2"))
+	})
+
+	t.Run("GetKeysWithPrefix", func(t *testing.T) {
+		result, err := adapter.Entries(&root)
+
+		require.NoError(t, err)
+		require.Equal(t, entries, result)
+	})
+}
+
+func TestGetFinalisedHeader(t *testing.T) {
+	t.Run("error", func(t *testing.T) {
+		_, db, adapter := setupTest(t)
+
+		db.EXPECT().Get(state.FinalisedHashKey(23, 5)).Return(nil, database.ErrNotFound)
+
+		finalisedHeader, err := adapter.GetFinalisedHeader(23, 5)
+
+		require.ErrorIs(t, err, database.ErrNotFound)
+		require.Nil(t, finalisedHeader)
+	})
+	t.Run("ok", func(t *testing.T) {
+		client, db, adapter := setupTest(t)
+
+		client.EXPECT().Block(blockHash).Return(signedBlock, nil)
+
+		expectedHeader, err := types.NewHeaderFromGeneric(header)
+		require.NoError(t, err)
+
+		db.EXPECT().Get(state.FinalisedHashKey(23, 5)).Return(blockHash.Bytes(), nil)
+
+		finalisedHeader, err := adapter.GetFinalisedHeader(23, 5)
+
+		require.NoError(t, err)
+		require.Equal(t, expectedHeader, finalisedHeader)
+	})
+}
+
+func TestGetFirstNonOriginSlotNumber(t *testing.T) {
+	t.Run("not_found", func(t *testing.T) {
+		_, db, adapter := setupTest(t)
+
+		db.EXPECT().Get(state.FirstSlotNumberKey).Return(nil, database.ErrNotFound)
+
+		num, err := adapter.GetFirstNonOriginSlotNumber()
+
+		require.NoError(t, err)
+		require.Equal(t, uint64(0), num)
+	})
+	t.Run("other_error", func(t *testing.T) {
+		_, db, adapter := setupTest(t)
+
+		db.EXPECT().Get(state.FirstSlotNumberKey).Return(nil, errors.New("kaput"))
+
+		num, err := adapter.GetFirstNonOriginSlotNumber()
+
+		require.Error(t, err)
+		require.Equal(t, uint64(0), num)
+	})
+	t.Run("ok", func(t *testing.T) {
+		_, db, adapter := setupTest(t)
+
+		fiveEncoded := []byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+
+		db.EXPECT().Get(state.FirstSlotNumberKey).Return(fiveEncoded[:], nil)
+
+		num, err := adapter.GetFirstNonOriginSlotNumber()
+
+		require.NoError(t, err)
+		require.Equal(t, uint64(5), num)
+	})
+}
+
+func Test_GetStorageFromChild_GetStorageChild(t *testing.T) {
+	client, _, adapter := setupTest(t)
+
+	childInfo := storage.NewDefaultChildInfo([]byte("child1"))
+	mdb := trie.NewPrefixedMemoryDB[Hash, Hasher]()
+
+	ksdb := trie.NewKeyspacedDB(mdb, childInfo.Keyspace())
+	childTrie := triedb.NewEmptyTrieDB[Hash, Hasher](ksdb)
+	childTrie.SetVersion(storage.DefaultStateVersion.TrieLayout())
+	require.NoError(t, childTrie.Set([]byte("key"), []byte("value")))
+	require.NoError(t, childTrie.Set([]byte("anotherkey"), []byte("anothervalue")))
+
+	parentTrie := triedb.NewEmptyTrieDB[Hash, Hasher](mdb)
+	require.NoError(t, parentTrie.Set(childInfo.PrefixedStorageKey(), childTrie.MustHash().Bytes()))
+	require.NoError(t, parentTrie.Set([]byte("key"), []byte("value2")))
+	require.NoError(t, parentTrie.Set([]byte(":code"), []byte("return 42")))
+	parentTrie.SetVersion(storage.DefaultStateVersion.TrieLayout())
+
+	header := header.Clone().(Header)
+	header.SetStateRoot(parentTrie.MustHash())
+
+	info := blockchainInfo
+	info.BestHash = header.Hash()
+	client.EXPECT().Info().Return(info)
+
+	backend := statemachine.NewTrieBackend[Hash, Hasher](
+		statemachine.HashDBTrieBackendStorage[Hash]{mdb},
+		parentTrie.MustHash(),
+		nil,
+		nil,
+	)
+	client.EXPECT().StateAt(header.Hash()).Return(backend, nil)
+
+	t.Run("GetStorageFromChild", func(t *testing.T) {
+		value, err := adapter.GetStorageFromChild(nil, []byte("child1"), []byte("key"))
+
+		require.NoError(t, err)
+		require.Equal(t, []byte("value"), value)
+	})
+
+	t.Run("GetStorageChild", func(t *testing.T) {
+		storageChild, err := adapter.GetStorageChild(nil, []byte("child1"))
+
+		require.NoError(t, err)
+
+		require.Equal(
+			t,
+			map[string][]byte{
+				"key":        []byte("value"),
+				"anotherkey": []byte("anothervalue"),
+			},
+			storageChild.Entries(),
+		)
 	})
 }

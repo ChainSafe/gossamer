@@ -20,7 +20,7 @@ type StorageState interface {
 	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error)
-	StorageRoot() (common.Hash, error)                    // best block state root, use HeaderBackend
+	StorageRoot() (common.Hash, error)
 	Entries(root *common.Hash) (map[string][]byte, error) // should be overhauled to iterate
 	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
 	GetStorageChild(root *common.Hash, keyToChild []byte) (trie.Trie, error)

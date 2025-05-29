@@ -4,12 +4,15 @@
 package adapter
 
 import (
+	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
@@ -19,6 +22,8 @@ import (
 	rt "github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 )
 
@@ -173,10 +178,15 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByNumber(blockNumber u
 	return types.NewBlockFromGeneric(signedBlock.Block)
 }
 
-// GetFinalisedHeader is unimplemented
+// GetFinalisedHeader returns the finalised block header by round and setID
 // TODO: remove from BlockState interface since it is only use by RPC and is not part of the standard
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetFinalisedHeader(round, setID uint64) (*types.Header, error) {
-	panic("unimplemented")
+	rawHash, err := ca.db.Get(state.FinalisedHashKey(round, setID))
+	if err != nil {
+		return nil, err
+	}
+
+	return ca.GetHeader(common.NewHash(rawHash))
 }
 
 // GetHashesByNumber returns all block hashes at the given height.
@@ -269,6 +279,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestFinalisedHash() (com
 	return common.NewHashFromGeneric(ca.client.Info().FinalizedHash), nil
 }
 
+// GetHighestRoundAndSetID gets the highest round and setID that have been finalised
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestRoundAndSetID() (uint64, uint64, error) {
 	b, err := ca.db.Get(state.HighestRoundAndSetIDKey)
 	if err != nil {
@@ -280,39 +291,69 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestRoundAndSetID() (uin
 	return round, setID, nil
 }
 
+// GetJustification retrieves a Justification from the database
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetJustification(bhash common.Hash) ([]byte, error) {
-	data, err := ca.db.Get(prefixKey(bhash, state.JustificationPrefix))
+	return ca.db.Get(prefixKey(bhash, state.JustificationPrefix))
+}
+
+// GetFirstNonOriginSlotNumber returns the slot number of the first non origin block
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetFirstNonOriginSlotNumber() (uint64, error) {
+	rawVal, err := ca.db.Get(state.FirstSlotNumberKey)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, database.ErrNotFound) {
+			return 0, nil
+		}
+		return 0, err
 	}
 
-	return data, nil
+	val := binary.LittleEndian.Uint64(rawVal)
+	return val, nil
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetFirstNonOriginSlotNumber() (uint64, error) {
-	panic("unimplemented")
-}
-
+// GetReceipt retrieves a Receipt from the database
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetReceipt(hash common.Hash) ([]byte, error) {
-	panic("unimplemented")
+	return ca.db.Get(prefixKey(hash, state.ReceiptPrefix))
 }
 
+// GetMessageQueue retrieves a MessageQueue from the database
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetMessageQueue(hash common.Hash) ([]byte, error) {
-	panic("unimplemented")
+	return ca.db.Get(prefixKey(hash, state.MessageQueuePrefix))
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetTries() *state.Tries {
 	panic("unimplemented")
 }
 
+// GetBlockHashesBySlot gets all block hashes that were produced in the given slot.
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error) {
-	panic("unimplemented")
+	children, err := ca.client.Children(ca.client.Info().FinalizedHash)
+	if err != nil {
+		return nil, err
+	}
+
+	var blockHashes []common.Hash
+	for _, child := range children {
+		hash := common.NewHashFromGeneric(child)
+
+		slot, err := ca.GetSlotForBlock(hash)
+		if err != nil {
+			return nil, fmt.Errorf("getting slot for block %s: %w", child.String(), err)
+		}
+
+		if slot == slotNum {
+			blockHashes = append(blockHashes, hash)
+		}
+	}
+
+	return blockHashes, nil
 }
 
+// GetAllBlocksAtNumber returns all unfinalised blocks with the given number
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetAllBlocksAtNumber(num uint) ([]common.Hash, error) {
-	panic("unimplemented")
+	return ca.GetHashesByNumber(num)
 }
 
+// GetNonFinalisedBlocks get all the blocks in the blocktree
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetNonFinalisedBlocks() []common.Hash {
 	lastFinalized := ca.client.Info().FinalizedHash
 
@@ -374,7 +415,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) HasHeaderInDatabase(hash commo
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetLastFinalized() common.Hash {
-	panic("unimplemented")
+	return common.NewHashFromGeneric(ca.client.Info().FinalizedHash)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetFirstNonOriginSlotNumber(slotNumber uint64) error {
@@ -402,8 +443,10 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetHighestRoundAndSetID(round,
 	panic("unimplemented")
 }
 
+// GetRoundAndSetID returns the finalised round and setID
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetRoundAndSetID() (uint64, uint64) {
-	panic("unimplemented")
+	round, setID, _ := ca.GetHighestRoundAndSetID() // TODO check this is correct
+	return round, setID
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetRuntime(blockHash common.Hash) (instance rt.Instance, err error) {
@@ -499,8 +542,27 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoreTrie(*rtstorage.TrieState
 	panic("unimplemented")
 }
 
+// GetStateRootFromBlock returns the state root of the block with the given hash.
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
-	panic("unimplemented")
+	var hash H
+
+	if bhash == nil {
+		hash = ca.client.Info().BestHash
+	} else {
+		hasher := *new(Hasher)
+		hash = hasher.NewHash(bhash.ToBytes())
+	}
+
+	header, err := ca.client.Header(hash)
+	if err != nil {
+		return nil, err
+	}
+	if header == nil {
+		return nil, database.ErrNotFound
+	}
+
+	h := common.NewHashFromGeneric((*header).StateRoot())
+	return &h, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) (
@@ -508,44 +570,176 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GenerateTrieProof(stateRoot co
 	panic("unimplemented")
 }
 
+// GetStorage queries the state that corresponds to the given state root hash for the data at the given key.
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorage(root *common.Hash, key []byte) ([]byte, error) {
-	panic("unimplemented")
+	stateAt, err := ca.getStateByStateRoot(root)
+	if err != nil {
+		return nil, err
+	}
+
+	return stateAt.Storage(key)
 }
 
+const maxSearchDepth = 1000
+
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) getStateByStateRoot(
+	root *common.Hash,
+) (statemachine.Backend[H, Hasher], error) {
+	currentHash := ca.client.Info().BestHash
+
+	if root == nil {
+		return ca.client.StateAt(currentHash)
+	}
+
+	targetRoot := (*new(Hasher)).NewHash(root.ToBytes())
+
+	for i := 0; i < maxSearchDepth; i++ {
+		header, err := ca.client.Header(currentHash)
+		if err != nil {
+			return nil, err
+		}
+		if header == nil {
+			return nil, fmt.Errorf("no block header found for hash %s", currentHash.String())
+		}
+
+		if (*header).StateRoot() == targetRoot {
+			return ca.client.StateAt(currentHash)
+		}
+
+		currentHash = (*header).ParentHash()
+	}
+
+	return nil, fmt.Errorf("max search depth exceeded without finding storage root %s", targetRoot.String())
+}
+
+// GetStorageByBlockHash queries the state that at the given block hash for the data at the given key.
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorageByBlockHash(bhash *common.Hash, key []byte) (
 	[]byte, error) {
-	panic("unimplemented")
+	var hash H
+	if bhash == nil {
+		hash = ca.client.Info().BestHash
+	} else {
+		hasher := *new(Hasher)
+		hash = hasher.NewHash(bhash.ToBytes())
+	}
+
+	return ca.Storage(hash, key)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageRoot() (common.Hash, error) {
-	panic("unimplemented")
+	header, err := ca.client.Header(ca.client.Info().BestHash)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return common.NewHashFromGeneric((*header).StateRoot()), nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) Entries(root *common.Hash) (map[string][]byte, error) {
-	panic("unimplemented")
+	stateAt, err := ca.getStateByStateRoot(root)
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make(map[string][]byte)
+	iter, err := stateAt.Pairs(statemachine.IterArgs{})
+	if err != nil {
+		return nil, err
+	}
+
+	for kv, err := range iter.All() {
+		if err != nil {
+			return nil, err
+		}
+		entries[string(kv.StorageKey)] = kv.StorageValue
+	}
+
+	return entries, nil
 }
 
+// GetKeysWithPrefix returns all keys with the given prefix from the state
+// that corresponds to the given state root hash.
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetKeysWithPrefix(root *common.Hash, prefix []byte) (
 	[][]byte, error) {
-	panic("unimplemented")
+	stateAt, err := ca.getStateByStateRoot(root)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := stateAt.Keys(statemachine.IterArgs{Prefix: prefix})
+	if err != nil {
+		return nil, err
+	}
+
+	var res [][]byte
+	for key, err := range keys.All() {
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, bytes.Clone(key))
+	}
+	return res, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorageChild(root *common.Hash, keyToChild []byte) (
 	trie.Trie, error) {
-	panic("unimplemented")
+	stateAt, err := ca.getStateByStateRoot(root)
+	if err != nil {
+		return nil, err
+	}
+
+	memDB := db.NewEmptyMemoryDB()
+	storageTrie := inmemory.NewTrie(nil, memDB)
+
+	iterArgs := statemachine.IterArgs{
+		ChildInfo: storage.NewDefaultChildInfo(keyToChild),
+	}
+
+	iter, err := stateAt.Pairs(iterArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	for kv, err := range iter.All() {
+		if err != nil {
+			return nil, err
+		}
+
+		err = storageTrie.Put(kv.StorageKey, kv.StorageValue)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return storageTrie, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorageFromChild(root *common.Hash, keyToChild, key []byte) (
 	[]byte, error) {
-	panic("unimplemented")
+	stateAt, err := ca.getStateByStateRoot(root)
+	if err != nil {
+		return nil, err
+	}
+
+	info := storage.NewDefaultChildInfo(keyToChild)
+	return stateAt.ChildStorage(info, key)
 }
 
+// LoadCode returns the runtime blob for the given block hash.
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) LoadCode(hash *common.Hash) ([]byte, error) {
-	panic("unimplemented")
+	// InmemoryStorageState.LoadCode() calls GetStorage() but I'm pretty sure `hash` is meant to be a block hash,
+	// not a state root hash. 🤔
+	return ca.GetStorageByBlockHash(hash, common.CodeKey)
 }
 
+// LoadCodeHash returns the hash of the runtime blob for the given block hash.
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
-	panic("unimplemented")
+	code, err := ca.LoadCode(hash)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return common.Blake2bHash(code)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) RegisterStorageObserver(o state.Observer) {
