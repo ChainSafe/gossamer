@@ -3,6 +3,9 @@ package gossipsupport
 import (
 	"context"
 	"errors"
+	"testing"
+	"time"
+
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -15,8 +18,6 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"testing"
-	"time"
 )
 
 // --------  Mocks of the AuthorityDiscoveryService ------------- //
@@ -24,11 +25,15 @@ var _ networkbridge.AuthorityDiscoveryService = (*MockAuthorityDiscoveryServiceE
 
 type MockAuthorityDiscoveryServiceEmptyAddress struct{}
 
-func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetPeerIDByAuthorityID(authorityID parachaintypes.AuthorityDiscoveryID) peer.ID {
+func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetPeerIDByAuthorityID(
+	_ parachaintypes.AuthorityDiscoveryID,
+) peer.ID {
 	return "0"
 }
 
-func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetAuthorityIDsByPeerID(peerID peer.ID) map[parachaintypes.AuthorityDiscoveryID]struct{} {
+func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetAuthorityIDsByPeerID(
+	_ peer.ID,
+) map[parachaintypes.AuthorityDiscoveryID]struct{} {
 	return nil
 }
 
@@ -42,11 +47,15 @@ var _ networkbridge.AuthorityDiscoveryService = (*MockAuthorityDiscoveryServiceF
 
 type MockAuthorityDiscoveryServiceForIP4Address struct{}
 
-func (m *MockAuthorityDiscoveryServiceForIP4Address) GetPeerIDByAuthorityID(_ parachaintypes.AuthorityDiscoveryID) peer.ID {
+func (m *MockAuthorityDiscoveryServiceForIP4Address) GetPeerIDByAuthorityID(
+	_ parachaintypes.AuthorityDiscoveryID,
+) peer.ID {
 	return "0"
 }
 
-func (m *MockAuthorityDiscoveryServiceForIP4Address) GetAuthorityIDsByPeerID(_ peer.ID) map[parachaintypes.AuthorityDiscoveryID]struct{} {
+func (m *MockAuthorityDiscoveryServiceForIP4Address) GetAuthorityIDsByPeerID(
+	_ peer.ID,
+) map[parachaintypes.AuthorityDiscoveryID]struct{} {
 	return nil
 }
 
@@ -66,11 +75,15 @@ var _ networkbridge.AuthorityDiscoveryService = (*MockAuthorityDiscoveryServiceF
 
 type MockAuthorityDiscoveryServiceForP2PAddress struct{}
 
-func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetPeerIDByAuthorityID(_ parachaintypes.AuthorityDiscoveryID) peer.ID {
+func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetPeerIDByAuthorityID(
+	_ parachaintypes.AuthorityDiscoveryID,
+) peer.ID {
 	return "0"
 }
 
-func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetAuthorityIDsByPeerID(_ peer.ID) map[parachaintypes.AuthorityDiscoveryID]struct{} {
+func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetAuthorityIDsByPeerID(
+	_ peer.ID,
+) map[parachaintypes.AuthorityDiscoveryID]struct{} {
 	return nil
 }
 
@@ -210,7 +223,10 @@ func TestGetKeyIndexAndUpdateMetricsIsAuthorityNow(t *testing.T) {
 
 	// The subset of authorities participating in parachain consensus is greater
 	// than the key index of the current authority
-	sessionInfo := &parachaintypes.SessionInfo{DiscoveryKeys: authorities, Validators: []parachaintypes.ValidatorID{{0x01}, {0x02}, {0x03}}}
+	sessionInfo := &parachaintypes.SessionInfo{
+		DiscoveryKeys: authorities,
+		Validators:    []parachaintypes.ValidatorID{{0x01}, {0x02}, {0x03}},
+	}
 	keyIdx, err := gs.getKeyIndexAndUpdateMetrics(sessionInfo)
 
 	assert.Nil(t, err)
@@ -341,6 +357,11 @@ func TestIssueConnectionRequestToChangedOldAddressesNotNil(t *testing.T) {
 	gs.issueConnectionRequestToChanged([]parachaintypes.AuthorityDiscoveryID{
 		{0x01},
 	})
+
+	assert.EqualValues(t, map[parachaintypes.AuthorityDiscoveryID]map[multiaddr.Multiaddr]struct{}{
+		{0x01}: {addr: {}},
+	},
+		gs.resolvedAuthorities)
 }
 
 func TestIssueConnectionRequestToChangedOldAddressesIsNil(t *testing.T) {
@@ -352,6 +373,9 @@ func TestIssueConnectionRequestToChangedOldAddressesIsNil(t *testing.T) {
 	gs.issueConnectionRequestToChanged([]parachaintypes.AuthorityDiscoveryID{
 		{0x01},
 	})
+
+	assert.EqualValues(t, map[parachaintypes.AuthorityDiscoveryID]map[multiaddr.Multiaddr]struct{}{},
+		gs.resolvedAuthorities)
 }
 
 func TestIssueConnectionRequest(t *testing.T) {
@@ -496,8 +520,8 @@ func TestProcessBlockFinalizedSignalError(t *testing.T) {
 
 	gs := NewGossipSupport(nil, nil, blockAPIMock)
 	err := gs.ProcessBlockFinalizedSignal(signal)
-	assert.EqualError(t, err, "something is off")
 
+	assert.EqualError(t, err, "something is off")
 }
 
 func TestProcessBlockFinalizedSignal(t *testing.T) {
@@ -562,6 +586,10 @@ func TestUpdateAuthorityIDsAuthorityIDsEmpty(t *testing.T) {
 
 	var authorities []parachaintypes.AuthorityDiscoveryID
 	gs.updateAuthorityIDs(authorities)
+	assert.EqualValues(t, map[parachaintypes.AuthorityDiscoveryID]parachaintypes.PeerID{}, gs.connectedAuthorities)
+	assert.EqualValues(t,
+		map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}{peerID: {{0x01}: {}}},
+		gs.connectedPeers)
 
 	cancel()
 }
@@ -600,6 +628,78 @@ func TestUpdateAuthorityIDsConnectedPeersGotAllRemoved(t *testing.T) {
 		{0x01},
 	}
 	gs.updateAuthorityIDs(authorities)
+	assert.EqualValues(t,
+		map[parachaintypes.AuthorityDiscoveryID]parachaintypes.PeerID{{0x01}: peerID},
+		gs.connectedAuthorities)
+	assert.EqualValues(t,
+		map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}{peerID: {{0x01}: {}}},
+		gs.connectedPeers)
+
+	cancel()
+}
+
+func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	blockAPIMock := NewMockBlockState(ctrl)
+	runtimeMock := NewMockInstance(ctrl)
+
+	testKs := keystore.NewBasicKeystore("test", crypto.Sr25519Type)
+	keyring, err := keystore.NewSr25519Keyring()
+	assert.Nil(t, err)
+
+	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
+	err = testKs.Insert(aliceKeypair)
+	assert.Nil(t, err)
+
+	blockAPIMock.EXPECT().GetRuntime(common.Hash{0x01}).Return(runtimeMock, nil).Times(1)
+	auth := types.NewAuthority(aliceKeypair.Public(), 0)
+	runtimeMock.EXPECT().GrandpaAuthorities().Return([]types.Authority{*auth}, nil).Times(1)
+	runtimeMock.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(2), nil).Times(2)
+	runtimeMock.EXPECT().FinalizeBlock().Return(&types.Header{Number: 1}, nil).Times(1)
+
+	mockedSessionInfo := &parachaintypes.SessionInfo{
+		DiscoveryKeys: []parachaintypes.AuthorityDiscoveryID{
+			parachaintypes.AuthorityDiscoveryID(aliceKeypair.Public().Encode()),
+		},
+	}
+	runtimeMock.EXPECT().ParachainHostSessionInfo(parachaintypes.SessionIndex(2)).Return(mockedSessionInfo, nil).Times(1)
+
+	overseerChan := make(chan any)
+	gs := NewGossipSupport(testKs, overseerChan, blockAPIMock)
+	gs.authorityDiscovery = &MockAuthorityDiscoveryServiceForP2PAddress{}
+	lastFailure := time.Now().Add(11 * time.Minute)
+	lastConnectionRequest := time.Now().Add(20 * time.Minute)
+	gs.lastFailure = &lastFailure
+	gs.lastConnectionRequest = &lastConnectionRequest
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		for {
+			select {
+			case msg := <-overseerChan:
+				switch msg.(type) {
+				case networkbridgemessages.UpdateAuthorityIDs, networkbridgemessages.ConnectTOResolvedValidators,
+					networkbridgemessages.AddToResolvedValidators:
+					continue
+				default:
+					t.Error("receiving wrong msg type")
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	signal := parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: &parachaintypes.ActivatedLeaf{
+			Hash: common.Hash{0x01},
+		},
+	}
+	err = gs.ProcessActiveLeavesUpdateSignal(signal)
+	assert.Nil(t, err)
+
+	assert.EqualValues(t, parachaintypes.SessionIndex(2), *gs.lastSessionIndex)
 
 	cancel()
 }

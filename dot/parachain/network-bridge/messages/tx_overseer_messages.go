@@ -65,8 +65,8 @@ type ConnectToValidators struct {
 	Failed chan<- uint
 }
 
-// ConnectTOResolvedValidators is alternative to `ConnectToValidators` in case you already know the `Multiaddrs` you want to
-// be connected to.
+// ConnectTOResolvedValidators is alternative to `ConnectToValidators` in case you already know the `Multiaddrs`
+// you want to be connected to.
 type ConnectTOResolvedValidators struct {
 	// Each entry corresponds to the addresses of an already resolved validator.
 	ValidatorAddrs map[multiaddr.Multiaddr]struct{}

@@ -6,6 +6,10 @@ package gossipsupport
 import (
 	"context"
 	"fmt"
+	"math"
+	"reflect"
+	"time"
+
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
@@ -14,9 +18,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/pkg/errors"
-	"math"
-	"reflect"
-	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -135,12 +136,12 @@ func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.A
 
 	sinceFailure := time.Duration(0)
 	if gs.lastFailure != nil {
-		sinceFailure = time.Now().Sub(*gs.lastFailure)
+		sinceFailure = time.Since(*gs.lastFailure)
 	}
 
 	sinceLastReconnect := time.Duration(0)
 	if gs.lastConnectionRequest != nil {
-		sinceLastReconnect = time.Now().Sub(*gs.lastConnectionRequest)
+		sinceLastReconnect = time.Since(*gs.lastConnectionRequest)
 	}
 
 	forceRequest := sinceFailure >= BackoffDuration
@@ -333,7 +334,8 @@ func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(
 		gs.minKnownSession = currentSessionIndex
 	}
 
-	if gs.finalizedNeededSession == nil || (gs.finalizedNeededSession != nil && *gs.finalizedNeededSession < gs.minKnownSession) {
+	if gs.finalizedNeededSession == nil ||
+		(gs.finalizedNeededSession != nil && *gs.finalizedNeededSession < gs.minKnownSession) {
 		finalizedBlock, err := rt.FinalizeBlock()
 		if err != nil {
 			return err
@@ -397,7 +399,7 @@ func (gs *GossipSupport) getKeyIndexAndUpdateMetrics(SessionInfo *parachaintypes
 }
 
 func (gs *GossipSupport) updateGossipTopology(_ourIndex uint, _relayParent common.Hash) error {
-	// TODO: implement in #4510
+	// TODO implement in #4510
 	return nil
 }
 
@@ -529,7 +531,7 @@ func (gs *GossipSupport) issueConnectionRequest(authorities []parachaintypes.Aut
 			gs.failureStart = &timestamp
 		} else {
 			first := *gs.failureStart
-			if first.Sub(time.Now()) >= LowConnectivityWarnDelay {
+			if time.Until(first) >= LowConnectivityWarnDelay {
 				logger.Warnf("Low connectivity - authority lookup failed for too many validators.")
 			}
 			logger.Debugf("Low connectivity (due to authority lookup failures) - expected on startup.")
