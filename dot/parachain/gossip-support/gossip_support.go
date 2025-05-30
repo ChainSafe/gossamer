@@ -115,7 +115,7 @@ func NewGossipSupport(
 	}
 }
 
-func (gs *GossipSupport) Name() parachaintypes.SubSystemName {
+func (*GossipSupport) Name() parachaintypes.SubSystemName {
 	return parachaintypes.GossipSupport
 }
 
@@ -245,7 +245,7 @@ func (gs *GossipSupport) ProcessBlockFinalizedSignal(signal parachaintypes.Block
 	return nil
 }
 
-func (gs *GossipSupport) Stop() { logger.Tracef("Stopping GossipSupport subsystem") }
+func (*GossipSupport) Stop() { logger.Tracef("Stopping GossipSupport subsystem") }
 
 // Run starts the GossipSupport subsystem
 func (gs *GossipSupport) Run(ctx context.Context, overseerToSubsystem <-chan any) {
@@ -287,12 +287,12 @@ func (gs *GossipSupport) processMessage(msg any) error {
 	return nil
 }
 
-func (gs *GossipSupport) processPeerConnectedEvent(_event networkbridgeevents.PeerConnected) {
-	//TODO implement in #4509
+func (*GossipSupport) processPeerConnectedEvent(_event networkbridgeevents.PeerConnected) {
+	// TODO implement in #4509
 }
 
-func (gs *GossipSupport) processPeerDisconnectedEvent(_event networkbridgeevents.PeerDisconnected) {
-	//TODO implement in #4509
+func (*GossipSupport) processPeerDisconnectedEvent(_event networkbridgeevents.PeerDisconnected) {
+	// TODO implement in #4509
 }
 
 // checkConnectivity checks connectivity and report on it in logs.
@@ -398,7 +398,7 @@ func (gs *GossipSupport) getKeyIndexAndUpdateMetrics(SessionInfo *parachaintypes
 	return authCheckResult, err
 }
 
-func (gs *GossipSupport) updateGossipTopology(_ourIndex uint, _relayParent common.Hash) error {
+func (*GossipSupport) updateGossipTopology(_ourIndex uint, _relayParent common.Hash) error {
 	// TODO implement in #4510
 	return nil
 }

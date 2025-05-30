@@ -25,19 +25,19 @@ var _ networkbridge.AuthorityDiscoveryService = (*MockAuthorityDiscoveryServiceE
 
 type MockAuthorityDiscoveryServiceEmptyAddress struct{}
 
-func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetPeerIDByAuthorityID(
+func (*MockAuthorityDiscoveryServiceEmptyAddress) GetPeerIDByAuthorityID(
 	_ parachaintypes.AuthorityDiscoveryID,
 ) peer.ID {
 	return "0"
 }
 
-func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetAuthorityIDsByPeerID(
+func (*MockAuthorityDiscoveryServiceEmptyAddress) GetAuthorityIDsByPeerID(
 	_ peer.ID,
 ) map[parachaintypes.AuthorityDiscoveryID]struct{} {
 	return nil
 }
 
-func (m *MockAuthorityDiscoveryServiceEmptyAddress) GetAddressesByAuthorityID(
+func (*MockAuthorityDiscoveryServiceEmptyAddress) GetAddressesByAuthorityID(
 	_ parachaintypes.AuthorityDiscoveryID,
 ) map[multiaddr.Multiaddr]struct{} {
 	return nil
@@ -47,19 +47,19 @@ var _ networkbridge.AuthorityDiscoveryService = (*MockAuthorityDiscoveryServiceF
 
 type MockAuthorityDiscoveryServiceForIP4Address struct{}
 
-func (m *MockAuthorityDiscoveryServiceForIP4Address) GetPeerIDByAuthorityID(
+func (*MockAuthorityDiscoveryServiceForIP4Address) GetPeerIDByAuthorityID(
 	_ parachaintypes.AuthorityDiscoveryID,
 ) peer.ID {
 	return "0"
 }
 
-func (m *MockAuthorityDiscoveryServiceForIP4Address) GetAuthorityIDsByPeerID(
+func (*MockAuthorityDiscoveryServiceForIP4Address) GetAuthorityIDsByPeerID(
 	_ peer.ID,
 ) map[parachaintypes.AuthorityDiscoveryID]struct{} {
 	return nil
 }
 
-func (m *MockAuthorityDiscoveryServiceForIP4Address) GetAddressesByAuthorityID(
+func (*MockAuthorityDiscoveryServiceForIP4Address) GetAddressesByAuthorityID(
 	_ parachaintypes.AuthorityDiscoveryID,
 ) map[multiaddr.Multiaddr]struct{} {
 	addr, err := multiaddr.NewMultiaddrBytes([]byte{4, 1, 2, 3, 4, 6, 0, 80})
@@ -75,19 +75,19 @@ var _ networkbridge.AuthorityDiscoveryService = (*MockAuthorityDiscoveryServiceF
 
 type MockAuthorityDiscoveryServiceForP2PAddress struct{}
 
-func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetPeerIDByAuthorityID(
+func (*MockAuthorityDiscoveryServiceForP2PAddress) GetPeerIDByAuthorityID(
 	_ parachaintypes.AuthorityDiscoveryID,
 ) peer.ID {
 	return "0"
 }
 
-func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetAuthorityIDsByPeerID(
+func (*MockAuthorityDiscoveryServiceForP2PAddress) GetAuthorityIDsByPeerID(
 	_ peer.ID,
 ) map[parachaintypes.AuthorityDiscoveryID]struct{} {
 	return nil
 }
 
-func (m *MockAuthorityDiscoveryServiceForP2PAddress) GetAddressesByAuthorityID(
+func (*MockAuthorityDiscoveryServiceForP2PAddress) GetAddressesByAuthorityID(
 	_ parachaintypes.AuthorityDiscoveryID,
 ) map[multiaddr.Multiaddr]struct{} {
 	addr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/4001/p2p/QmYwAPJzv5CZsnAzt8auVZRnX2pRhe84p2zjKBdTHZnr5k")

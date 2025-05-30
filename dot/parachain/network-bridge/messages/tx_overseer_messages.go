@@ -13,6 +13,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
+// ReportPeer is type of peer reporting
+// Single peer report about malicious actions which should be sent right away
 // TODO: If need be, add ability to report multiple peers in batches
 type ReportPeer struct {
 	PeerID           peer.ID
