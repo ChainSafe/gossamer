@@ -5,8 +5,14 @@ package provisioner
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
+
+	"github.com/ChainSafe/gossamer/dot/parachain/backing"
+	prospectiveparachain "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -18,9 +24,31 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-provisioner"))
 // inherentPreProposeTimeout is the duration to wait before inherent data is ready
 const inherentPreProposeTimeout = 2 * time.Second
 
-func New() *Provisioner {
+// maxDisputesVotes is the maximum number of disputes that Provisioner will include
+// in the inherent data to prevent flooding the Runtime with excessive data.
+//
+// NOTE:
+//   - Production value: 200,000.
+//   - Test value: 200
+const maxDisputesVotes = 200000 //nolint:unused
+
+// voteSelectionBatchSize controls how many dispute votes to fetch from the dispute-coordinator per iteration
+// in vote selection. Votes are fetched in batches until maxDisputesVotes is reached. This prevents
+// an unnecessary load on the dispute-coordinator by avoiding fetching votes that won't be used.
+//
+// This value should be less than maxDisputesVotes. Increase it if the provisioner sends too many
+// QueryCandidateVotes messages to the dispute-coordinator.
+//
+// NOTE:
+//   - Production value: 1100.
+//   - Test value: 11
+const voteSelectionBatchSize = 1100 //nolint:unused
+
+func New(overseerChan chan<- any, blockState BlockState) *Provisioner {
 	return &Provisioner{
-		perRelayParent: make(map[common.Hash]*perRelayParent),
+		subSystemToOverseer: overseerChan,
+		blockState:          blockState,
+		perRelayParent:      make(map[common.Hash]*perRelayParent),
 
 		// Buffer size 2: one active delay + safety margin
 		availableInherent: make(chan common.Hash, 2),
@@ -28,7 +56,9 @@ func New() *Provisioner {
 }
 
 type Provisioner struct {
-	perRelayParent map[common.Hash]*perRelayParent
+	subSystemToOverseer chan<- any
+	blockState          BlockState
+	perRelayParent      map[common.Hash]*perRelayParent
 
 	// TODO #4162
 	// This doesn't have to be a channel with buffer.
@@ -53,7 +83,6 @@ func (p *Provisioner) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 			// This inherentAfterDelay gets populated while handling active leaves update signal
 			// TODO #4162
 		}
-
 	}
 }
 
@@ -119,6 +148,292 @@ func (p *Provisioner) processProvisionableData(provisionableData provisionermess
 		// via reputation changes. Punitive actions here may become desirable
 		// enough to dedicate time to in the future.
 	}
+}
+
+func (p *Provisioner) sendInherentData( //nolint:unused
+	leaf *parachaintypes.ActivatedLeaf,
+	signedBitfields []parachaintypes.CheckedSignedAvailabilityBitfield,
+	responseSenders []chan provisionermessages.ProvisionerInherentData,
+) error {
+	instance, err := p.blockState.GetRuntime(leaf.Hash)
+	if err != nil {
+		return fmt.Errorf("getting runtime for leaf %s: %s", leaf.Hash, err)
+	}
+
+	cores, err := instance.ParachainHostAvailabilityCores()
+	if err != nil {
+		return fmt.Errorf("getting cores for leaf %s: %s", leaf.Hash, err)
+	}
+
+	disputes := SelectDisputes(p.subSystemToOverseer, p.blockState, leaf, maxDisputesVotes, voteSelectionBatchSize)
+
+	bitfields, err := selectAvailabilityBitfields(cores, signedBitfields)
+	if err != nil {
+		return fmt.Errorf("selecting availability bitfields for leaf %s: %s", leaf.Hash, err)
+	}
+
+	candidates, err := p.selectCandidates(cores, bitfields, leaf)
+	if err != nil {
+		return fmt.Errorf("selecting candidates for leaf %s: %s", leaf.Hash, err)
+	}
+
+	inherentData := provisionermessages.ProvisionerInherentData{
+		Bitfield:         bitfields,
+		BackedCandidates: candidates,
+		Disputes:         disputes,
+	}
+
+	for _, responseSender := range responseSenders {
+		responseSender <- inherentData
+	}
+	return nil
+}
+
+func selectAvailabilityBitfields( //nolint:unused
+	cores []parachaintypes.CoreState,
+	bitfields []parachaintypes.CheckedSignedAvailabilityBitfield,
+) ([]parachaintypes.CheckedSignedAvailabilityBitfield, error) {
+	coresLen := len(cores)
+
+	// Map to keep the best bitfield per validator
+	selected := make(map[parachaintypes.ValidatorIndex]parachaintypes.CheckedSignedAvailabilityBitfield)
+
+	// Process each bitfield
+	for _, bitfield := range bitfields {
+		// Check if bitfield has the correct length matching cores
+		if bitfield.Payload.Len() != coresLen {
+			continue
+		}
+
+		// Check if this is the best bitfield from this validator
+		current, exists := selected[bitfield.ValidatorIndex]
+		if exists {
+			// Compare bit counts - keep the one with more 1s
+			if current.Payload.CountOnes() >= bitfield.Payload.CountOnes() {
+				// dropping bitfield due to duplication - the better one is kept
+				continue
+			}
+		}
+
+		// Check that bits aren't set for unoccupied cores
+		for i, core := range cores {
+			_, coreValue, err := core.IndexValue()
+			if err != nil {
+				return nil, fmt.Errorf("getting core index and value: %w", err)
+			}
+			_, isOccupied := coreValue.(parachaintypes.OccupiedCore)
+
+			currBit, err := bitfield.Payload.Get(uint(i)) //nolint:staticcheck
+			if err != nil {
+				return nil, fmt.Errorf("getting bit from bitfield: %w", err)
+			}
+
+			if !isOccupied && currBit {
+				// Bit is set for an unoccupied core - invalid
+				continue
+			}
+		}
+
+		// This is the best valid bitfield from this validator so far
+		selected[bitfield.ValidatorIndex] = bitfield
+	}
+
+	// Convert a map to slice, ordered by validator index
+	result := make([]parachaintypes.CheckedSignedAvailabilityBitfield, 0, len(selected))
+
+	// Get sorted keys (validator indices)
+	keys := make([]parachaintypes.ValidatorIndex, 0, len(selected))
+	for k := range selected {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+
+	// Append values in order of sorted keys
+	for _, k := range keys {
+		result = append(result, selected[k])
+	}
+
+	return result, nil
+}
+
+func (p *Provisioner) selectCandidates( //nolint:unused
+	availabilityCores []parachaintypes.CoreState,
+	bitfields []parachaintypes.CheckedSignedAvailabilityBitfield,
+	leaf *parachaintypes.ActivatedLeaf,
+) ([]parachaintypes.BackedCandidate, error) {
+	selectedCandidates, err := p.requestBackableCandidates(availabilityCores, bitfields, leaf)
+	if err != nil {
+		return nil, fmt.Errorf("requesting backable candidates: %w", err)
+	}
+
+	getBackable := backing.GetBackableCandidatesMessage{
+		Candidates: selectedCandidates,
+		ResCh:      make(chan map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate, len(selectedCandidates)),
+	}
+
+	var backableCandidates map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate
+
+	p.subSystemToOverseer <- getBackable
+	select {
+	case <-time.After(parachaintypes.SubsystemRequestTimeout):
+		return nil, parachaintypes.ErrSubsystemRequestTimeout
+	case backableCandidates = <-getBackable.ResCh:
+	}
+
+	// keep only one candidate with validation code.
+	withValidationCode := false
+	// merge the candidates into a common collection, preserving the order
+	mergedCandidates := make([]parachaintypes.BackedCandidate, 0, len(availabilityCores))
+
+	for _, paraCandidates := range backableCandidates {
+		for _, candidate := range paraCandidates {
+			if candidate.Candidate.Commitments.NewValidationCode != nil {
+				if withValidationCode {
+					// if we already have a candidate with validation code, break the loop
+					break
+				}
+				withValidationCode = true
+			}
+
+			mergedCandidates = append(mergedCandidates, *candidate)
+		}
+	}
+
+	return mergedCandidates, nil
+}
+
+func (p *Provisioner) requestBackableCandidates( //nolint:unused
+	availabilityCores []parachaintypes.CoreState,
+	bitfields []parachaintypes.CheckedSignedAvailabilityBitfield,
+	relayParent *parachaintypes.ActivatedLeaf,
+) (map[parachaintypes.ParaID][]*parachaintypes.CandidateHashAndRelayParent, error) {
+	blockNumberUnderConstruction := parachaintypes.BlockNumber(relayParent.Number + 1)
+
+	scheduledCoresPerPara := make(map[parachaintypes.ParaID]uint, len(availabilityCores))
+	ancestorsPerPara := make(map[parachaintypes.ParaID]prospectiveparachain.Ancestors, len(availabilityCores))
+
+	for coreIdx, core := range availabilityCores {
+		coreValue, err := core.Value()
+		if err != nil {
+			return nil, fmt.Errorf("getting core value: %w", err)
+		}
+
+		switch coreValue := coreValue.(type) {
+		case parachaintypes.ScheduledCore:
+			numOfCores, exists := scheduledCoresPerPara[coreValue.ParaID]
+			if exists {
+				scheduledCoresPerPara[coreValue.ParaID] = numOfCores + 1
+			} else {
+				scheduledCoresPerPara[coreValue.ParaID] = 0
+			}
+
+		case parachaintypes.OccupiedCore:
+			isAvailable, err := bitfieldsIndicateAvailability(coreIdx, bitfields, coreValue.Availability)
+			if err != nil {
+				return nil, fmt.Errorf("checking availability for core %d: %w", coreIdx, err)
+			}
+
+			switch {
+			case isAvailable:
+				ancestors, exists := ancestorsPerPara[coreValue.CandidateDescriptor.ParaID]
+				if !exists {
+					ancestors = make(prospectiveparachain.Ancestors)
+				}
+				ancestors[parachaintypes.CandidateHash{Value: coreValue.CandidateHash}] = struct{}{}
+
+				if scheduledCore := coreValue.NextUpOnTimeOut; scheduledCore != nil {
+					numOfCores, exists := scheduledCoresPerPara[scheduledCore.ParaID]
+					if exists {
+						scheduledCoresPerPara[scheduledCore.ParaID] = numOfCores + 1
+					} else {
+						scheduledCoresPerPara[scheduledCore.ParaID] = 0
+					}
+				}
+			case coreValue.TimeoutAt <= blockNumberUnderConstruction: // Timed out before being available.
+				if scheduledCore := coreValue.NextUpOnTimeOut; scheduledCore != nil {
+					numOfCores, exists := scheduledCoresPerPara[scheduledCore.ParaID]
+					if exists {
+						scheduledCoresPerPara[scheduledCore.ParaID] = numOfCores + 1
+					} else {
+						scheduledCoresPerPara[scheduledCore.ParaID] = 0
+					}
+				}
+			default: // Not timed out and not available.
+				ancestors, exists := ancestorsPerPara[coreValue.CandidateDescriptor.ParaID]
+				if !exists {
+					ancestors = make(prospectiveparachain.Ancestors)
+				}
+				ancestors[parachaintypes.CandidateHash{Value: coreValue.CandidateHash}] = struct{}{}
+			}
+
+		case parachaintypes.Free:
+			continue
+		}
+	}
+
+	selectedCandidate := make(map[parachaintypes.ParaID][]*parachaintypes.CandidateHashAndRelayParent,
+		len(scheduledCoresPerPara))
+
+	orderedParaIds := maps.Keys(scheduledCoresPerPara)
+	slices.Sort(orderedParaIds)
+
+	for _, paraId := range orderedParaIds {
+		coreCount := scheduledCoresPerPara[paraId]
+
+		paraAncestor, exists := ancestorsPerPara[paraId]
+		if exists {
+			delete(ancestorsPerPara, paraId)
+		}
+
+		getBackable := prospectiveparachain.GetBackableCandidates{
+			RelayParentHash: relayParent.Hash,
+			ParaId:          paraId,
+			RequestedQty:    uint32(coreCount),
+			Ancestors:       paraAncestor,
+			Response:        make(chan []*parachaintypes.CandidateHashAndRelayParent),
+		}
+
+		p.subSystemToOverseer <- getBackable
+		select {
+		case candidates := <-getBackable.Response:
+			if len(candidates) == 0 {
+				continue
+			}
+			selectedCandidate[paraId] = candidates
+		case <-time.After(parachaintypes.SubsystemRequestTimeout):
+			return nil, parachaintypes.ErrSubsystemRequestTimeout
+		}
+	}
+
+	return selectedCandidate, nil
+}
+
+func bitfieldsIndicateAvailability( //nolint:unused
+	coreIndex int,
+	bitfields []parachaintypes.CheckedSignedAvailabilityBitfield,
+	availability parachaintypes.BitVec,
+) (bool, error) {
+	for _, bitfield := range bitfields {
+		validatorIndex := uint(bitfield.ValidatorIndex)
+		availabilityBit, err := availability.Get(validatorIndex)
+		if err != nil {
+			return false, nil //nolint:nilerr
+		}
+
+		bitfieldLength := bitfield.Payload.Len()
+		if coreIndex < bitfieldLength {
+			// impossible to get an error here, as we already ensure coreIndex is within bounds
+			bit, _ := bitfield.Payload.Get(uint(coreIndex))
+			availabilityBit = availabilityBit || bit
+
+			err := availability.Set(validatorIndex, availabilityBit)
+			if err != nil {
+				return false, fmt.Errorf("setting availability bit: %w", err)
+			}
+		}
+	}
+
+	return 3*availability.CountOnes() >= 2*availability.Len(), nil
 }
 
 type perRelayParent struct {

@@ -61,7 +61,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := New()
+			p := New(nil, nil)
 			p.perRelayParent = tc.perRP
 
 			err := p.ProcessActiveLeavesUpdateSignal(tc.update)
@@ -144,7 +144,7 @@ func TestProcessProvisionableData(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := New()
+			p := New(nil, nil)
 			p.perRelayParent = dummyPerRelayParentState()
 
 			p.processProvisionableData(tc.provisionableData)
