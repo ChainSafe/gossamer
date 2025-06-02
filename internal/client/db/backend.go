@@ -38,7 +38,7 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "client/db"))
 
-type MinimalBlockMetadata[H runtime.Hash, N runtime.Number] struct {
+type minimalBlockMetadata[H runtime.Hash, N runtime.Number] struct {
 	number N
 	hash   H
 	parent H
@@ -1479,7 +1479,7 @@ func (b *Backend[H, Hasher, N, E, Header]) AppendJustification(hash H, justifica
 	number := (*header).Number()
 
 	// Check if the block is finalized first.
-	isDescendantOf := utils.IsDescendantOf(b.blockchain, nil)
+	isDescendantOf := utils.IsDescendantOf[H, N, Header](b.blockchain, nil)
 	lastFinalized, err := b.blockchain.LastFinalized()
 	if err != nil {
 		return err

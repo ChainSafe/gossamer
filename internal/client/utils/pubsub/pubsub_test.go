@@ -28,11 +28,12 @@ func (r *Registry[M]) Unsubscribe(subsID uint64) {
 	delete(r.subscribers, subsID)
 }
 
-func (r *Registry[M]) Dispatch(message M, dispatch func(uint64, M)) {
+func (r *Registry[M]) Dispatch(message M, dispatch func(uint64, M)) error {
 	for id, subsKey := range r.subscribers {
 		_ = subsKey
 		dispatch(id, message)
 	}
+	return nil
 }
 
 type SubsKey struct {

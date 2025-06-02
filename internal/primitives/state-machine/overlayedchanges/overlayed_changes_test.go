@@ -35,7 +35,7 @@ func TestOffchainOverlayedChangesClone(t *testing.T) {
 func TestOverlayedStorageWorks(t *testing.T) {
 	overlayed := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
 
-	key := string([]byte{42, 69, 169, 142})
+	key := []byte{42, 69, 169, 142}
 
 	value, has := overlayed.Storage(key)
 	require.False(t, has)
@@ -272,7 +272,7 @@ func TestNextStorageKeyChangeWorks(t *testing.T) {
 
 func TestNextChildStorageKeyChangeWorks(t *testing.T) {
 	childInfo := storage.NewDefaultChildInfo([]byte("Child1"))
-	child := StorageKey(childInfo.StorageKey())
+	child := childInfo.StorageKey()
 	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
 
 	overlay.StartTransaction()

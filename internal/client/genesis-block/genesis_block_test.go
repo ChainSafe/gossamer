@@ -23,11 +23,11 @@ type Hash = hash.H256
 func TestResolveStateVersionFromWasmOk(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	var storagetTopData btree.Map[string, []byte]
-	storagetTopData.Set(string(keys.Code), []byte{0x01, 0x02, 0x03})
+	var storageTopData btree.Map[string, []byte]
+	storageTopData.Set(string(keys.Code), []byte{0x01, 0x02, 0x03})
 
 	storage := primitives_storage.Storage{
-		Top: storagetTopData,
+		Top: storageTopData,
 	}
 
 	executorMock := NewMockRuntimeVersionOf(ctrl)

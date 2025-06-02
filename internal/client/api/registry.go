@@ -201,8 +201,9 @@ func (r *registry[H]) listenFrom(
 	return keys
 }
 
-func (r *registry[H]) Dispatch(message SubscriberMessage[H], dispatch func(uint64, StorageNotification[H])) {
+func (r *registry[H]) Dispatch(message SubscriberMessage[H], dispatch func(uint64, StorageNotification[H])) error {
 	r.trigger(message.Hash, message.ChangeSet, message.ChildChangeSet, dispatch)
+	return nil
 }
 
 func (r *registry[H]) trigger( //nolint:gocyclo

@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/executor"
@@ -506,6 +508,23 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) StorageChangesNotificati
 	return c.storageNotifications.Listen(filterKeys, childFilterKeys)
 }
 
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) CompareAndSetBlockData(bd *types.BlockData) error {
+	storage := c.backend.OffchainStorage()
+	hash := bd.Hash[:]
+
+	if bd.Receipt != nil {
+		oldReceipt := storage.Get(state.ReceiptPrefix, hash)
+		_ = storage.CompareAndSet(state.ReceiptPrefix, hash, oldReceipt, *bd.Receipt)
+	}
+
+	if bd.MessageQueue != nil {
+		oldMessageQueue := storage.Get(state.MessageQueuePrefix, hash)
+		_ = storage.CompareAndSet(state.MessageQueuePrefix, hash, oldMessageQueue, *bd.MessageQueue)
+	}
+
+	return nil
+}
+
 // HeaderBackend implementation for Client
 
 func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Header(hash H) (*Header, error) {
@@ -712,8 +731,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) ImportBlock(
 	importResult, err := c.LockImportRun(func(
 		clientImportOp *api.ClientImportOperation[H, Hasher, N, Header, E],
 	) (any, error) {
-		result, err := c.applyBlock(clientImportOp, *block, storageChanges)
-		return result, err
+		return c.applyBlock(clientImportOp, *block, storageChanges)
 	})
 
 	if err != nil {
@@ -836,11 +854,11 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyBlock(
 	if len(importBlock.PostDigests) == 0 {
 		importHeaders = PrePostHeadersSame[N, H, Header]{importBlock.Header}
 	} else {
-		postHeader := importBlock.Header.Clone()
+		postHeader := importBlock.Header.Clone().(Header)
 		for _, item := range importBlock.PostDigests {
 			postHeader.DigestMut().Push(item)
 		}
-		importHeaders = PrePostHeadersDifferent[N, H, Header]{importBlock.Header, importBlock.Header}
+		importHeaders = PrePostHeadersDifferent[N, H, Header]{importBlock.Header, postHeader}
 	}
 
 	hash := importHeaders.Post().Hash()
@@ -1192,7 +1210,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyFinalityWithBlockHa
 	// not always checking this condition.
 	blockNumber, err := c.backend.Blockchain().Number(hash)
 	if err != nil {
-		return fmt.Errorf("failed to get header for hash %v", hash)
+		return fmt.Errorf("failed to get block number for hash %v", hash)
 	}
 
 	leaves, err := c.backend.Blockchain().Leaves()
