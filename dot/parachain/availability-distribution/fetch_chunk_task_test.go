@@ -26,7 +26,7 @@ func TestFetchChunkTask(t *testing.T) {
 
 		core = &parachaintypes.OccupiedCore{
 			CandidateHash: common.MustHexToHash("0x1337"),
-			CandidateDescriptor: parachaintypes.CandidateDescriptor{
+			CandidateDescriptor: parachaintypes.CandidateDescriptorV2{
 				ErasureRoot: common.MustHexToHash("0x513489282098e960bfd57ed52d62838ce9395f3f59257f1f40fadd02261a7991"),
 			},
 			GroupResponsible: parachaintypes.GroupIndex(0),

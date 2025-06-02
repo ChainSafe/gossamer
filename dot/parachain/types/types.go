@@ -206,7 +206,8 @@ type OccupiedCore struct {
 	// The hash of the candidate occupying the core.
 	CandidateHash common.Hash `scale:"7"`
 	// The descriptor of the candidate occupying the core.
-	CandidateDescriptor CandidateDescriptor `scale:"8"`
+	// CandidateDescriptor CandidateDescriptor `scale:"8"`
+	CandidateDescriptor CandidateDescriptorV2 `scale:"8"`
 }
 
 // ScheduledCore Information about a core which is currently occupied.
