@@ -5,6 +5,7 @@ package adapter
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"time"
 
@@ -24,6 +25,9 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
+
+var ErrMissingOverlayedChanges = errors.New("missing overlayed changes")
+var ErrMissingStorageVersion = errors.New("missing storage version")
 
 type ClientAdapterDB interface {
 	Get(key []byte) (value []byte, err error)
@@ -45,6 +49,10 @@ type Client[
 	CompareAndSetBlockData(bd *types.BlockData) error
 }
 
+type Backend[H runtime.Hash, Hasher runtime.Hasher[H]] interface {
+	statemachine.Backend[H, Hasher]
+}
+
 type ClientAdapter[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
@@ -52,7 +60,7 @@ type ClientAdapter[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 ] struct {
-	backend statemachine.Backend[H, Hasher]
+	backend Backend[H, Hasher]
 	client  Client[H, Hasher, N, E, Header]
 	db      ClientAdapterDB
 }
@@ -63,8 +71,12 @@ func NewClientAdapter[
 	N runtime.Number,
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
-](client Client[H, Hasher, N, E, Header], db ClientAdapterDB) *ClientAdapter[H, Hasher, N, E, Header] {
-	return &ClientAdapter[H, Hasher, N, E, Header]{client: client, db: db}
+](
+	client Client[H, Hasher, N, E, Header],
+	db ClientAdapterDB,
+	backend Backend[H, Hasher],
+) *ClientAdapter[H, Hasher, N, E, Header] {
+	return &ClientAdapter[H, Hasher, N, E, Header]{client: client, db: db, backend: backend}
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(
@@ -73,10 +85,10 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(
 	storageVersion *storage.StateVersion,
 ) error {
 	if changes == nil {
-		return fmt.Errorf("changes are required")
+		return ErrMissingOverlayedChanges
 	}
 	if storageVersion == nil {
-		return fmt.Errorf("storage version is required")
+		return ErrMissingStorageVersion
 	}
 	// Convert old header into generic one
 	encodedHeader, err := scale.Marshal(block.Header)
