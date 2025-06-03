@@ -287,12 +287,33 @@ func (gs *GossipSupport) processMessage(msg any) error {
 	return nil
 }
 
-func (*GossipSupport) processPeerConnectedEvent(_event networkbridgeevents.PeerConnected) {
-	// TODO implement in #4509
+func (gs *GossipSupport) processPeerConnectedEvent(event networkbridgeevents.PeerConnected) {
+	authorityIDs := event.AuthorityDiscoveryIDs
+	peerID := event.PeerID
+
+	if authorityIDs != nil {
+		for _, authID := range *authorityIDs {
+			gs.connectedAuthorities[authID] = parachaintypes.PeerID(peerID)
+
+			gs.connectedPeers[parachaintypes.PeerID(peerID)] = map[parachaintypes.AuthorityDiscoveryID]struct{}{
+				authID: {},
+			}
+		}
+	} else {
+		gs.connectedPeers[parachaintypes.PeerID(peerID)] = map[parachaintypes.AuthorityDiscoveryID]struct{}{}
+	}
 }
 
-func (*GossipSupport) processPeerDisconnectedEvent(_event networkbridgeevents.PeerDisconnected) {
-	// TODO implement in #4509
+func (gs *GossipSupport) processPeerDisconnectedEvent(event networkbridgeevents.PeerDisconnected) {
+	peerID := event.PeerID
+
+	if authID, ok := gs.connectedPeers[parachaintypes.PeerID(peerID)]; ok {
+		delete(gs.connectedPeers, parachaintypes.PeerID(peerID))
+
+		for id := range authID {
+			delete(gs.connectedAuthorities, id)
+		}
+	}
 }
 
 // checkConnectivity checks connectivity and report on it in logs.

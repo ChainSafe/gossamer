@@ -3,6 +3,7 @@ package gossipsupport
 import (
 	"context"
 	"errors"
+	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	"testing"
 	"time"
 
@@ -702,4 +703,56 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 	assert.EqualValues(t, parachaintypes.SessionIndex(2), *gs.lastSessionIndex)
 
 	cancel()
+}
+
+func TestProcessPeerConnectedEvent(t *testing.T) {
+	gs := NewGossipSupport(nil, nil, nil)
+
+	eventWithEmptyAuth := networkbridgeevents.PeerConnected{
+		PeerID:                "1",
+		AuthorityDiscoveryIDs: nil,
+	}
+
+	assert.EqualValues(t, gs.connectedPeers,
+		map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}{})
+
+	gs.processPeerConnectedEvent(eventWithEmptyAuth)
+
+	assert.EqualValues(t, gs.connectedPeers, map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}{
+		"1": {},
+	})
+
+	eventWithAuth := networkbridgeevents.PeerConnected{
+		PeerID:                "2",
+		AuthorityDiscoveryIDs: &[]parachaintypes.AuthorityDiscoveryID{{0x02}},
+	}
+
+	assert.EqualValues(t, gs.connectedPeers, map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}{
+		"1": {},
+	})
+
+	gs.processPeerConnectedEvent(eventWithAuth)
+
+	assert.EqualValues(t, gs.connectedAuthorities, map[parachaintypes.AuthorityDiscoveryID]parachaintypes.PeerID{
+		{0x02}: "2",
+	})
+	assert.EqualValues(t, gs.connectedPeers, map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}{
+		"1": {},
+		"2": {{0x02}: {}},
+	})
+}
+
+func TestProcessPeerDisconnectedEvent(t *testing.T) {
+	gs := NewGossipSupport(nil, nil, nil)
+	gs.connectedPeers["1"] = map[parachaintypes.AuthorityDiscoveryID]struct{}{{0x01}: {}}
+	gs.connectedAuthorities[parachaintypes.AuthorityDiscoveryID{0x01}] = "1"
+
+	event := networkbridgeevents.PeerDisconnected{
+		PeerID: "1",
+	}
+
+	gs.processPeerDisconnectedEvent(event)
+	assert.EqualValues(t, gs.connectedPeers,
+		map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}{})
+	assert.EqualValues(t, gs.connectedAuthorities, map[parachaintypes.AuthorityDiscoveryID]parachaintypes.PeerID{})
 }
