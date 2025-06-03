@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/db"
 	"github.com/ChainSafe/gossamer/internal/client/executor"
+	"github.com/ChainSafe/gossamer/internal/primitives/core"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/tidwall/btree"
@@ -240,6 +241,7 @@ func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G]) SetNoGenesis() {
 
 type ExecutorDispatch interface {
 	api.CallExecutor
+	core.CodeExecutor
 	executor.RuntimeVersionOf
 }
 
@@ -265,7 +267,7 @@ type ExecutorDispatch interface {
 // {
 func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G]) BuildWithExecutor(
 	executor ExecutorDispatch,
-) (client.Client[H, Hasher, N, E, Header], common.LongestChain[H, N, Hasher, Header, E]) {
+) (*client.Client[H, Hasher, N, E, Header], common.LongestChain[H, N, Hasher, Header, E]) {
 	// 		let storage = {
 	// 			let mut storage = self.genesis_init.genesis_storage();
 	// 			// Add some child storage keys.
@@ -330,23 +332,25 @@ func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G]) BuildWithExecutor(
 	// 			client_config,
 	// 		)
 	// 		.expect("Creates new client");
+	client, err := client.New[H, Hasher, N, E, Header](
+		tcb.backend,
+		clientConfig,
+		executor,
+		nil,
+		genesisBlockBuilder,
+		tcb.forkBlocks,
+		tcb.badBlocks,
+	)
+	if err != nil {
+		panic("Creates new client")
+	}
 
-	// client := client.New[H, Hasher, N, E, Header](
-	// 	tcb.backend,
-	// 	executor,
-	// 	chainspec.NewTaskExecutor(),
-	// 	genesisBlockBuilder,
-	// 	tcb.forkBlocks,
-	// 	tcb.badBlocks,
-	// 	nil,
-	// 	nil,
-	// 	clientConfig,
-	// )
-
+	_ = client
 	// 		let longest_chain = sc_consensus::LongestChain::new(self.backend);
+	longestChain := common.NewLongestChain[H, N, Hasher, Header, E](tcb.backend)
 
 	// 		(client, longest_chain)
-	panic("Not implemented")
+	return client, longestChain
 }
 
 // }
@@ -376,7 +380,7 @@ func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G]) BuildWithExecutor(
 //		{
 func (tcb *TestClientBuilder[H, Hasher, N, E, Header, G]) BuildWithNativeExecutor(
 	exec *executor.WasmExecutor,
-) (client.Client[H, Hasher, N, E, Header], common.LongestChain[H, N, Hasher, Header, E]) {
+) (*client.Client[H, Hasher, N, E, Header], common.LongestChain[H, N, Hasher, Header, E]) {
 
 	// 		let executor = executor.into().unwrap_or_else(|| WasmExecutor::<H>::builder().build());
 	// 		let executor = LocalCallExecutor::new(

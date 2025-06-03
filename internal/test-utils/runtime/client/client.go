@@ -56,14 +56,18 @@ func (g GenesisParameters) GenesisStorage() storage.Storage {
 	panic("unimpl")
 }
 
-type TestClientBuilder = client.TestClientBuilder[
-	runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header, *GenesisParameters,
-]
+type TestClientBuilder struct {
+	client.TestClientBuilder[
+		runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header, *GenesisParameters,
+	]
+}
 
 func NewTestClientBuilderWithDefaultBackend() TestClientBuilder {
-	return client.NewTestClientBuilderWithDefaultBackend[
-		runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header, *GenesisParameters,
-	]()
+	return TestClientBuilder{
+		client.NewTestClientBuilderWithDefaultBackend[
+			runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header, *GenesisParameters,
+		](),
+	}
 }
 
 // / Create new `TestClientBuilder` with default backend and pruning window size
@@ -73,9 +77,11 @@ func NewTestClientBuilderWithDefaultBackend() TestClientBuilder {
 //		Self::with_backend(backend)
 //	}
 func NewTestClientBuilderWithPruningWindow(blocksPruning uint32) TestClientBuilder {
-	return client.NewTestClientBuilderWithPruningWindow[
-		runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header, *GenesisParameters,
-	](blocksPruning)
+	return TestClientBuilder{
+		client.NewTestClientBuilderWithPruningWindow[
+			runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header, *GenesisParameters,
+		](blocksPruning),
+	}
 }
 
 // / Create new `TestClientBuilder` with default backend and storage chain mode
@@ -87,9 +93,11 @@ func NewTestClientBuilderWithPruningWindow(blocksPruning uint32) TestClientBuild
 //		}
 //	}
 func NewTestClientBuilderWithTxStorage(blocksPruning uint32) TestClientBuilder {
-	return client.NewTestClientBuilderWithTxStorage[
-		runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header, *GenesisParameters,
-	](blocksPruning)
+	return TestClientBuilder{
+		client.NewTestClientBuilderWithTxStorage[
+			runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic, runtime.Header, *GenesisParameters,
+		](blocksPruning),
+	}
 }
 
 // / Test client type with `WasmExecutor` and generic Backend.
@@ -101,12 +109,10 @@ func NewTestClientBuilderWithTxStorage(blocksPruning uint32) TestClientBuilder {
 //	substrate_test_runtime::RuntimeApi,
 //
 // >;
-type Client struct {
-	service_client.Client[
-		runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic,
-		runtime.Header,
-	]
-}
+type Client = service_client.Client[
+	runtime.Hash, runtime.Hasher, runtime.BlockNumber, runtime.Extrinsic,
+	runtime.Header,
+]
 
 // / A `test-runtime` extensions to `TestClientBuilder`.
 // pub trait TestClientBuilderExt<B>: Sized {
@@ -196,10 +202,9 @@ type TestClientBuilderExt[
 //	) -> (Client<B>, sc_consensus::LongestChain<B, substrate_test_runtime::Block>) {
 //		self.build_with_native_executor(None)
 //	}
-func (c *Client) BuildWithLongestChain() (Client, common.LongestChain[runtime.Hash, runtime.BlockNumber, runtime.Hasher, runtime.Header, runtime.Extrinsic]) {
+func (tcb *TestClientBuilder) BuildWithLongestChain() (*Client, common.LongestChain[runtime.Hash, runtime.BlockNumber, runtime.Hasher, runtime.Header, runtime.Extrinsic]) {
 	// 	self.build_with_native_executor(None)
-	// return c.Client.BuildWithNativeExecutor(nil)
-	panic("unimpl")
+	return tcb.BuildWithNativeExecutor(nil)
 }
 
 // 	fn build_with_backend(self) -> (Client<B>, Arc<B>) {

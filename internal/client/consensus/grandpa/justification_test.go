@@ -57,7 +57,7 @@ func TestJustificationEncoding(t *testing.T) {
 		hash.H256(""),
 		hash.H256(""),
 		hash.H256(hashA),
-		runtime.Digest{}),
+		runtime.Digest{Logs: []runtime.DigestItem{}}),
 	)
 
 	expected := primitives.GrandpaJustification[hash.H256, uint64, generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
@@ -136,7 +136,7 @@ func TestDecodeGrandpaJustificationVerifyFinalizes(t *testing.T) {
 		hash.H256(""),
 		hash.H256(""),
 		a,
-		runtime.Digest{})
+		runtime.Digest{Logs: []runtime.DigestItem{}})
 
 	headerList := []generic.Header[uint64, hash.H256, runtime.BlakeTwo256]{*headerB}
 

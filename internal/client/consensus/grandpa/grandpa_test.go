@@ -22,7 +22,7 @@ type PeerData struct {
 	*TestLinkHalf
 	sync.Mutex
 }
-type GrandpaPeer = test.Peer[*PeerData, grandpa.GrandpaBlockImport]
+type GrandpaPeer = test.Peer[*PeerData, grandpa.GrandpaBlockImport[runtime.Hash, runtime.BlockNumber, runtime.Hasher, runtime.Header, runtime.Extrinsic]]
 
 // #[derive(Default)]
 //
@@ -106,22 +106,27 @@ func (gtn *GrandpaTestNet) addFullPeer() {
 // 		PassThroughVerifier::new(false) // use non-instant finality.
 // 	}
 
-// 	fn make_block_import(
-// 		&self,
-// 		client: PeersClient,
-// 	) -> (BlockImportAdapter<Self::BlockImport>, Option<BoxJustificationImport<Block>>, PeerData) {
-// 		let (client, backend) = (client.as_client(), client.as_backend());
-// 		let (import, link) = block_import(
-// 			client.clone(),
-// 			JUSTIFICATION_IMPORT_PERIOD,
-// 			&self.test_config,
-// 			LongestChain::new(backend.clone()),
-// 			None,
-// 		)
-// 		.expect("Could not create block import for fresh peer.");
-// 		let justification_import = Box::new(import.clone());
-// 		(BlockImportAdapter::new(import), Some(justification_import), Mutex::new(Some(link)))
-// 	}
+// fn make_block_import(
+//
+//	&self,
+//	client: PeersClient,
+//
+//	) -> (BlockImportAdapter<Self::BlockImport>, Option<BoxJustificationImport<Block>>, PeerData) {
+//		let (client, backend) = (client.as_client(), client.as_backend());
+//		let (import, link) = block_import(
+//			client.clone(),
+//			JUSTIFICATION_IMPORT_PERIOD,
+//			&self.test_config,
+//			LongestChain::new(backend.clone()),
+//			None,
+//		)
+//		.expect("Could not create block import for fresh peer.");
+//		let justification_import = Box::new(import.clone());
+//		(BlockImportAdapter::new(import), Some(justification_import), Mutex::new(Some(link)))
+//	}
+func (gtn *GrandpaTestNet) makeBlockImport(client test.PeersClient) {
+	panic("unimpl")
+}
 
 // 	fn peer(&mut self, i: usize) -> &mut GrandpaPeer {
 // 		&mut self.peers[i]
@@ -185,8 +190,10 @@ func (gtn *GrandpaTestNet) addFullPeerWithConfig(config test.FullPeerConfig) {
 	// 	let backend = test_client_builder.backend();
 	// 	let (c, longest_chain) = test_client_builder.build_with_longest_chain();
 	// 	let client = Arc::new(c);
-	// backend = testClientBuilder.Backend()
-	// c, longestChain := testClientBuilder.BuildWithLongestChain()
+	backend := testClientBuilder.Backend()
+	c, longestChain := testClientBuilder.BuildWithLongestChain()
+
+	_, _, _ = backend, c, longestChain
 
 	// 	let (block_import, justification_import, data) = self
 	// 		.make_block_import(PeersClient { client: client.clone(), backend: backend.clone() });

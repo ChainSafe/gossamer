@@ -694,9 +694,10 @@ func (e *environment[H, N, Hasher, Header, E]) reportEquivocation(
 	bestBlockHash := info.BestHash
 	bestBlockNumber := info.BestNumber
 
-	e.AuthoritySet.mtx.Lock()
-	defer e.AuthoritySet.mtx.Unlock()
-	authoritySet := e.AuthoritySet.inner
+	// e.AuthoritySet.mtx.Lock()
+	// defer e.AuthoritySet.mtx.Unlock()
+	authoritySet, unlock := e.AuthoritySet.inner.DataMut()
+	defer unlock()
 
 	// block hash and number of the next pending authority set change in the given best chain.
 	nextChange, err := authoritySet.nextChange(bestBlockHash, isDescendentOf)
@@ -823,7 +824,7 @@ func (e *environment[H, N, Hasher, Header, E]) BestChainContaining(
 	// NOTE: when we finalize an authority set change through the sync protocol the voter is signalled asynchronously
 	// therefore the voter could still vote in the next round before activating the new set. the [AuthoritySet] is
 	// updated immediately thus we restrict the voter based on that.
-	if e.SetID != SetID(e.AuthoritySet.inner.SetID) {
+	if e.SetID != SetID(e.AuthoritySet.SetID()) {
 		ch <- grandpa.BestChainOutput[H, N]{
 			Value: nil,
 			Error: nil,
@@ -1449,7 +1450,7 @@ func finalizeBlock[
 	E runtime.Extrinsic,
 ](
 	client ClientForGrandpa[H, N, Hasher, Header, E],
-	authoritySet *SharedAuthoritySet[H, N],
+	sharedAuthoritySet *SharedAuthoritySet[H, N],
 	justificationGenerationPeriod *uint32,
 	hash H,
 	number N,
@@ -1460,8 +1461,10 @@ func finalizeBlock[
 
 	// NOTE: lock must be held through writing to DB to avoid race. this lock also implicitly synchronises the check
 	// for last finalized number below.
-	authoritySet.mtx.Lock()
-	defer authoritySet.mtx.Unlock()
+	// authoritySet.mtx.Lock()
+	// defer authoritySet.mtx.Unlock()
+	authoritySet, unlock := sharedAuthoritySet.inner.DataMut()
+	defer unlock()
 
 	status := client.Info()
 
@@ -1484,7 +1487,7 @@ func finalizeBlock[
 	}
 
 	// TODO: do I need to clone this?
-	oldAuthoritySet := authoritySet.inner
+	oldAuthoritySet := authoritySet.Clone()
 
 	var vc voterCommand // closure specific variable checked after LockImportRun
 	_, err := client.LockImportRun(func(importOp *api.ClientImportOperation[H, Hasher, N, Header, E]) (any, error) {
@@ -1576,7 +1579,7 @@ func finalizeBlock[
 			canonHash := status.NewSetBlock.Hash
 			canonNumber := status.NewSetBlock.Number
 			// the authority set has changed.
-			newID, setRef := authoritySet.Current()
+			newID, setRef := authoritySet.current()
 
 			var level func(format string, args ...interface{}) = logger.Debugf
 			if initialSync {
@@ -1599,7 +1602,7 @@ func finalizeBlock[
 		}
 
 		if status.Changed {
-			err := updateAuthoritySet(authoritySet.inner, newAuthorities, func(insert []api.KeyValue) error {
+			err := updateAuthoritySet(*authoritySet, newAuthorities, func(insert []api.KeyValue) error {
 				return api.ApplyAux(importOp, insert, nil)
 			})
 			if err != nil {
@@ -1625,7 +1628,7 @@ func finalizeBlock[
 		return command
 	}
 	if err != nil {
-		authoritySet.inner = oldAuthoritySet
+		*authoritySet = oldAuthoritySet
 		return err
 	}
 	return nil

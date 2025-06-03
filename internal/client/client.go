@@ -29,8 +29,6 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "client"))
 
-type BadBlocks[H runtime.Hash] map[H]struct{}
-
 type prepareStorageChangesResult interface {
 	isPrepareStorageChangesResult()
 }
@@ -127,6 +125,7 @@ type Client[
 }
 
 type Executor interface {
+	api.CallExecutor
 	core.CodeExecutor
 	executor.RuntimeVersionOf
 }
@@ -144,6 +143,8 @@ func New[
 	executor Executor,
 	runtimeConstructor primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any, Header]],
 	genesisBlockBuilder *chainspec.GenesisBlockBuilder[H, N, Hasher, Header, E],
+	forkBlocks api.ForkBlocks[H, N],
+	badBlocks api.BadBlocks[H],
 ) (*Client[H, Hasher, N, E, Header], error) {
 	// let info = backend.blockchain().info();
 	info := backend.Blockchain().Info()
@@ -181,6 +182,10 @@ func New[
 		// 	op.set_block_data(header, Some(body), None, None, block_state)?;
 		op.SetBlockData(header, body, nil, nil, blockState)
 		// 	backend.commit_operation(op)?;
+		err = backend.CommitOperation(op)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	unpinWorkerChan := make(chan api.UnpinWorkerMessage[H])
@@ -197,6 +202,7 @@ func New[
 		unpinWorkerChan:              unpinWorkerChan,
 		config:                       config,
 		runtimeConstructor:           runtimeConstructor,
+		blockRules:                   *NewBlockRules[H, N](forkBlocks, badBlocks),
 	}, nil
 }
 

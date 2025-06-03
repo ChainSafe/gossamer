@@ -169,6 +169,8 @@ func newTestClient(t *testing.T) *Client[
 		NewTestExecutor(t),
 		NewRuntimeConstructor(t),
 		nil,
+		nil,
+		nil,
 	)
 	require.NoError(t, err)
 	return client
@@ -466,7 +468,7 @@ func TestHeaderBackendImplementation(t *testing.T) {
 
 	backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-	c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+	c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 	require.NoError(t, err)
 
 	// Get Header
@@ -525,7 +527,7 @@ func TestBlockBackendImplementation(t *testing.T) {
 	backendMock.EXPECT().Blockchain().Return(blockchainMock)
 	blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 
-	c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+	c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 	require.NoError(t, err)
 
 	expectedHeader := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
@@ -682,7 +684,7 @@ func TestCheckBlock(t *testing.T) {
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 		backendMock.EXPECT().HaveStateAt(importedBlockWithStatus.Hash, importedBlockWithStatus.Number).Return(true)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 		result, err := c.CheckBlock(importedBlockWithStatus)
 		require.NoError(t, err)
@@ -709,7 +711,7 @@ func TestCheckBlock(t *testing.T) {
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 		backendMock.EXPECT().HaveStateAt(prunedBlock.Hash, prunedBlock.Number).Return(false)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		result, err := c.CheckBlock(prunedBlock)
@@ -737,7 +739,7 @@ func TestCheckBlock(t *testing.T) {
 
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		result, err := c.CheckBlock(blockUnknownParent)
@@ -771,7 +773,7 @@ func TestCheckBlock(t *testing.T) {
 
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		result, err := c.CheckBlock(blockUnknownParent)
@@ -803,7 +805,7 @@ func TestCheckBlock(t *testing.T) {
 		backendMock.EXPECT().HaveStateAt(parentHash, parentNumber).Return(true)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		result, err := c.CheckBlock(blockUnknownParent)
@@ -838,7 +840,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		_, err = c.prepareBlockStorageChanges(&block)
@@ -878,7 +880,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
@@ -911,7 +913,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		blockchainMock.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{})
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
@@ -946,7 +948,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(false)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
@@ -981,7 +983,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(false)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
@@ -1020,7 +1022,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(true)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
@@ -1055,7 +1057,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(true)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
@@ -1090,7 +1092,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(true)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
@@ -1125,7 +1127,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(true)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil)
+		c, err := New(backendMock, ClientConfig[uint64]{}, NewTestExecutor(t), NewRuntimeConstructor(t), nil, nil, nil)
 		require.NoError(t, err)
 
 		result, err := c.prepareBlockStorageChanges(&block)
@@ -1205,6 +1207,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 			NewTestExecutor(t),
 			runtimeConstructorMock,
 			nil,
+			nil, nil,
 		)
 		require.NoError(t, err)
 

@@ -4,9 +4,12 @@
 package grandpa
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
+	shareddata "github.com/ChainSafe/gossamer/internal/client/consensus/common/shared-data"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -17,7 +20,13 @@ var (
 	concludedRounds   = []byte("grandpa_concluded_rounds")
 	authoritySetKey   = []byte("grandpa_voters")
 	bestJustification = []byte("grandpa_best_justification")
+
+	errValueNotFound = errors.New("value not found")
 )
+
+type writeAux func(insertions []api.KeyValue) error
+
+type getGenesisAuthorities func() (primitives.AuthorityList, error)
 
 // / Persistent data kept between runs.
 type persistentData[H runtime.Hash, N runtime.Number] struct {
@@ -25,7 +34,90 @@ type persistentData[H runtime.Hash, N runtime.Number] struct {
 	setState     *SharedVoterSetState[H, N]
 }
 
-type writeAux func(insertions []api.KeyValue) error
+func loadDecoded[T any](store api.AuxStore, key []byte) (*T, error) {
+	encodedValue, err := store.GetAux(key)
+	if err != nil {
+		return nil, err
+	}
+	if encodedValue == nil {
+		return nil, nil
+	}
+
+	var dst T
+	err = scale.Unmarshal(encodedValue, &dst)
+	if err != nil {
+		return nil, err
+	}
+	return &dst, nil
+}
+
+func loadPersistent[H runtime.Hash, N runtime.Number](
+	store api.AuxStore,
+	genesisHash H,
+	genesisNumber N,
+	genesisAuths getGenesisAuthorities,
+) (*persistentData[H, N], error) {
+	genesis := grandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber}
+	makeGenesisRound := grandpa.NewRoundState[H, N]
+
+	authSet, err := loadDecoded[AuthoritySet[H, N]](store, authoritySetKey)
+	if authSet != nil {
+		var setState voterSetState[H, N]
+		state, err := loadDecoded[voterSetStateVDT[H, N]](store, setStateKey)
+		if err != nil {
+			return nil, err
+		}
+
+		if state != nil && state.inner != nil {
+			setState = state.inner
+		} else {
+			state := makeGenesisRound(genesis)
+			if state.PrevoteGHOST == nil {
+				panic("state is for completed round; completed rounds must have a prevote ghost; qed.")
+			}
+			base := state.PrevoteGHOST
+			setState = newVoterSetStateLive(primitives.SetID(authSet.SetID), *authSet, *base)
+		}
+
+		return &persistentData[H, N]{
+			authoritySet: &SharedAuthoritySet[H, N]{inner: *shareddata.NewSharedData(*authSet)},
+			setState:     &SharedVoterSetState[H, N]{inner: setState},
+		}, nil
+	}
+
+	logger.Info("👴 Loading GRANDPA authority set from genesis on what appears to be first startup")
+	genesisAuthorities, err := genesisAuths()
+	if err != nil {
+		return nil, err
+	}
+	genesisSet, err := NewGenesisAuthoritySet[H, N](genesisAuthorities)
+	if err != nil {
+		panic("genesis authorities is non-empty; all weights are non-zero; qed.")
+	}
+
+	state := makeGenesisRound(genesis)
+	base := state.PrevoteGHOST
+	if base == nil {
+		panic("state is for completed round; completed rounds must have a prevote ghost; qed.")
+	}
+
+	genesisState := newVoterSetStateLive(0, *genesisSet, *base)
+	genesisStateVDT := newVoterSetStateVDT[H, N]()
+	genesisStateVDT.inner = genesisState
+	insert := []api.KeyValue{
+		{Key: authoritySetKey, Value: scale.MustMarshal(*genesisSet)},
+		{Key: setStateKey, Value: scale.MustMarshal(genesisStateVDT)},
+	}
+	err = store.InsertAux(insert, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &persistentData[H, N]{
+		authoritySet: &SharedAuthoritySet[H, N]{inner: *shareddata.NewSharedData(*genesisSet)},
+		setState:     &SharedVoterSetState[H, N]{inner: genesisState},
+	}, nil
+}
 
 // updateAuthoritySet Update the authority set on disk after a change.
 //

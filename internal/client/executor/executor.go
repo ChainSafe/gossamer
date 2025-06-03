@@ -332,9 +332,18 @@ type WasmExecutor struct {
 // 			},
 // 		);
 
-// 		(result, false)
-// 	}
-// }
+//			(result, false)
+//		}
+//	}
+func (e WasmExecutor) Call(
+	ext externalities.Externalities,
+	runtimeCode core.RuntimeCode,
+	method string,
+	data []byte,
+	context core.CallContext,
+) (result []byte, native bool, err error) {
+	panic("unimpl")
+}
 
 // impl<H> RuntimeVersionOf for WasmExecutor<H>
 // where

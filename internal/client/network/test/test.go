@@ -24,9 +24,9 @@ type PeersFullClient = client.Client[
 // pub struct PeersClient {
 type PeersClient struct {
 	// client: Arc<PeersFullClient>,
-	client PeersFullClient
+	client *PeersFullClient
 	// backend: Arc<substrate_test_runtime_client::Backend>,
-	backend testruntimeclient.Backend
+	backend *testruntimeclient.Backend
 }
 
 // pub struct Peer<D, BlockImport> {
