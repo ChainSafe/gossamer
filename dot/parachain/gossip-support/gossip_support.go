@@ -10,7 +10,8 @@ import (
 	"reflect"
 	"time"
 
-	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
+	"github.com/ChainSafe/gossamer/dot/types"
+
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -34,9 +35,11 @@ const (
 	LowConnectivityWarnThreshold = 90
 	// BackoffDuration indicates how much time should we wait to reissue a connection request since the last
 	// authority discovery resolution failure
-	BackoffDuration = 5
-	// TryReResolveAuthorities indicates the authority discovery queries runs every time minutes
-	TryReResolveAuthorities = 300
+	BackoffDuration = 5 * time.Second
+	// TryReResolveAuthorities is the interval at which the authority discovery service should be queried for
+	// new authorities. The authority_discovery queries runs every ten minutes, so it make sense to run a bit
+	// more often than that to detect changes as often as we can.
+	TryReResolveAuthorities = 300 * time.Second
 )
 
 type leafSession struct {
@@ -46,6 +49,11 @@ type leafSession struct {
 
 type BlockState interface {
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+	GetHighestFinalisedHeader() (*types.Header, error)
+}
+
+type AuthorityDiscoveryService interface {
+	GetAddressesByAuthorityID(authority parachaintypes.AuthorityDiscoveryID) map[multiaddr.Multiaddr]struct{}
 }
 
 // GossipSupport is the parachain subsystem that is responsible for keeping track of session changes and issuing a
@@ -83,7 +91,7 @@ type GossipSupport struct {
 	// Needed for efficient handling of disconnect events.
 	connectedPeers map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}
 	// Authority discovery service.
-	authorityDiscovery networkbridge.AuthorityDiscoveryService
+	authorityDiscovery AuthorityDiscoveryService
 	// The oldest session we need to build a topology for because
 	// the finalized blocks are from a session we haven't built a topology for.
 	finalizedNeededSession *parachaintypes.SessionIndex
@@ -166,7 +174,7 @@ func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.A
 		relayParent := maybeIssueConnection.Leaf
 
 		sessionInfo, err := rt.ParachainHostSessionInfo(sessionIndex)
-		if err != nil {
+		if err != nil || sessionInfo == nil {
 			logger.Warnf("failed to get session info for session %d", sessionIndex)
 			return err
 		}
@@ -336,7 +344,7 @@ func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(
 
 	if gs.finalizedNeededSession == nil ||
 		(gs.finalizedNeededSession != nil && *gs.finalizedNeededSession < gs.minKnownSession) {
-		finalizedBlock, err := rt.FinalizeBlock()
+		finalizedBlock, err := gs.blockState.GetHighestFinalisedHeader()
 		if err != nil {
 			return err
 		}
@@ -518,7 +526,7 @@ func (gs *GossipSupport) issueConnectionRequest(authorities []parachaintypes.Aut
 
 	logger.Debugf("Issuing a connection request: %d", num)
 
-	gs.subSystemToOverseer <- networkbridgemessages.ConnectTOResolvedValidators{
+	gs.subSystemToOverseer <- networkbridgemessages.ConnectToResolvedValidators{
 		ValidatorAddrs: validatorAddrs,
 		PeerSet:        networkbridgemessages.ValidationProtocol,
 	}

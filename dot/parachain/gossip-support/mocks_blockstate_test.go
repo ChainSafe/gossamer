@@ -12,6 +12,7 @@ package gossipsupport
 import (
 	reflect "reflect"
 
+	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	gomock "go.uber.org/mock/gomock"
@@ -39,6 +40,21 @@ func NewMockBlockState(ctrl *gomock.Controller) *MockBlockState {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockBlockState) EXPECT() *MockBlockStateMockRecorder {
 	return m.recorder
+}
+
+// GetHighestFinalisedHeader mocks base method.
+func (m *MockBlockState) GetHighestFinalisedHeader() (*types.Header, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHighestFinalisedHeader")
+	ret0, _ := ret[0].(*types.Header)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHighestFinalisedHeader indicates an expected call of GetHighestFinalisedHeader.
+func (mr *MockBlockStateMockRecorder) GetHighestFinalisedHeader() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHighestFinalisedHeader", reflect.TypeOf((*MockBlockState)(nil).GetHighestFinalisedHeader))
 }
 
 // GetRuntime mocks base method.

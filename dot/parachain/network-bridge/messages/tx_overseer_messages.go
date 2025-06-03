@@ -67,9 +67,9 @@ type ConnectToValidators struct {
 	Failed chan<- uint
 }
 
-// ConnectTOResolvedValidators is alternative to `ConnectToValidators` in case you already know the `Multiaddrs`
+// ConnectToResolvedValidators is alternative to `ConnectToValidators` in case you already know the `Multiaddrs`
 // you want to be connected to.
-type ConnectTOResolvedValidators struct {
+type ConnectToResolvedValidators struct {
 	// Each entry corresponds to the addresses of an already resolved validator.
 	ValidatorAddrs map[multiaddr.Multiaddr]struct{}
 	// The peer set we want the connection on.

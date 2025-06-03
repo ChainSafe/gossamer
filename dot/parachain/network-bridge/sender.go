@@ -97,7 +97,7 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 		}
 	case networkbridgemessages.SendRequests:
 		nbs.sendRequests(msg.Requests, msg.IfDisconnected)
-		// TODO: add ConnectTOResolvedValidators
+		// TODO: add ConnectToResolvedValidators
 	case networkbridgemessages.ConnectToValidators:
 		// TODO
 	case networkbridgemessages.ReportPeer:
