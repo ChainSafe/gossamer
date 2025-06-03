@@ -337,7 +337,7 @@ func TestIssueConnectionRequest(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	adsMock := NewMockAuthorityDiscoveryService(ctrl)
 
-	t.Run("simple connection request", func(t *testing.T) {
+	t.Run("simple_connection_request", func(t *testing.T) {
 		overseerChan := make(chan any)
 
 		gs := NewGossipSupport(nil, overseerChan, nil)
