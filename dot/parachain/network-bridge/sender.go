@@ -44,21 +44,21 @@ func (nbs *NetworkBridgeSender) Run(ctx context.Context, overseerToSubSystem <-c
 	}
 }
 
-func (nbs *NetworkBridgeSender) Name() parachaintypes.SubSystemName {
+func (*NetworkBridgeSender) Name() parachaintypes.SubSystemName {
 	return parachaintypes.NetworkBridgeSender
 }
 
-func (nbs *NetworkBridgeSender) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
+func (*NetworkBridgeSender) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
 	// nothing to do here
 	return nil
 }
 
-func (nbs *NetworkBridgeSender) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
+func (*NetworkBridgeSender) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
 	// nothing to do here
 	return nil
 }
 
-func (nbs *NetworkBridgeSender) Stop() {}
+func (*NetworkBridgeSender) Stop() {}
 
 func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 	// run this function as a goroutine, ideally
