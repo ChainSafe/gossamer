@@ -560,7 +560,7 @@ func (c *Client[H, Hasher, N, E, Header]) StorageChangesNotificationStream(
 	return c.storageNotifications.Listen(filterKeys, childFilterKeys)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header, RA]) CompareAndSetBlockData(bd *types.BlockData) error {
+func (c *Client[H, Hasher, N, E, Header]) CompareAndSetBlockData(bd *types.BlockData) error {
 	storage := c.backend.OffchainStorage()
 	hash := bd.Hash[:]
 
