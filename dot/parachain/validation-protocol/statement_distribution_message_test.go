@@ -56,10 +56,8 @@ func TestStatementDistributionMessage(t *testing.T) {
 	copy(collatorID[:], tempCollatID)
 
 	hash5 := getDummyHash(5)
-
-	statementVDTWithValid := parachaintypes.NewStatementVDT()
-	err := statementVDTWithValid.SetValue(parachaintypes.Valid{Value: hash5})
-	require.NoError(t, err)
+	compactValidStmt := parachaintypes.NewCompactValid(
+		parachaintypes.CandidateHash{Value: hash5}).ToEncodable()
 
 	secondedEnumValue := parachaintypes.Seconded{
 		Descriptor: parachaintypes.CandidateDescriptor{
@@ -84,33 +82,25 @@ func TestStatementDistributionMessage(t *testing.T) {
 		},
 	}
 
-	statementVDTWithSeconded := parachaintypes.NewStatementVDT()
-	err = statementVDTWithSeconded.SetValue(secondedEnumValue)
-	require.NoError(t, err)
+	compactSecondedStmt := parachaintypes.NewCompactSeconded(
+		parachaintypes.CandidateHash{Value: secondedEnumValue.Commitments.Hash()}).ToEncodable()
 
 	signedFullStatementWithValid := Statement{
-		Hash: hash5,
-		UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
-			Payload:        statementVDTWithValid,
+		RelayParent: hash5,
+		Compact: parachaintypes.UncheckedSignedCompactStatement{
+			Payload:        *compactValidStmt,
 			ValidatorIndex: parachaintypes.ValidatorIndex(5),
 			Signature:      validatorSignature,
 		},
 	}
 
-	signedFullStatementWithSeconded := Statement{
-		Hash: hash5,
-		UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
-			Payload:        statementVDTWithSeconded,
+	signedStatementWithSeconded := Statement{
+		RelayParent: hash5,
+		Compact: parachaintypes.UncheckedSignedCompactStatement{
+			Payload:        *compactSecondedStmt,
 			ValidatorIndex: parachaintypes.ValidatorIndex(5),
 			Signature:      validatorSignature,
 		},
-	}
-
-	largePayload := LargePayload{
-		RelayParent:   hash5,
-		CandidateHash: parachaintypes.CandidateHash{Value: hash5},
-		SignedBy:      parachaintypes.ValidatorIndex(5),
-		Signature:     validatorSignature,
 	}
 
 	testCases := []struct {
@@ -183,22 +173,17 @@ func TestStatementDistributionMessage(t *testing.T) {
 		// }
 
 		{
-			name:          "Statement with valid statementVDT",
+			name:          "signed_statement_valid",
 			enumValue:     signedFullStatementWithValid,
 			encodingValue: common.MustHexToBytes(testDataStatement["statementValid"]),
 		},
 		{
-			name:          "Statement with Seconded statementVDT",
-			enumValue:     signedFullStatementWithSeconded,
+			name:          "signed_statement_seconded",
+			enumValue:     signedStatementWithSeconded,
 			encodingValue: common.MustHexToBytes(testDataStatement["statementSeconded"]),
 		},
 		{
-			name:          "Seconded Statement With LargePayload",
-			enumValue:     largePayload,
-			encodingValue: common.MustHexToBytes(testDataStatement["statementWithLargePayload"]),
-		},
-		{
-			name:        "invalid struct",
+			name:        "invalid_struct",
 			enumValue:   invalidVayingDataTypeValue{},
 			expectedErr: ErrInvalidVayingDataTypeValue,
 		},

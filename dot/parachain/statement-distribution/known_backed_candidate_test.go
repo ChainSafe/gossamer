@@ -51,7 +51,7 @@ func TestKnownBackedCandidate_hasReceivedManifestFrom(t *testing.T) {
 			mutualKnowledge: make(map[parachaintypes.ValidatorIndex]mutualKnowledge),
 		}
 
-		filter, err := newStatementFilter(5, false)
+		filter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
 		kbc.mutualKnowledge[validatorIndex] = mutualKnowledge{
@@ -105,7 +105,7 @@ func TestKnownBackedCandidate_hasSentManifestTo(t *testing.T) {
 			mutualKnowledge: make(map[parachaintypes.ValidatorIndex]mutualKnowledge),
 		}
 
-		filter, err := newStatementFilter(5, false)
+		filter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
 		kbc.mutualKnowledge[validatorIndex] = mutualKnowledge{
@@ -127,7 +127,7 @@ func TestKnownBackedCandidate_sentManifestTo(t *testing.T) {
 	}
 
 	validatorIndex := parachaintypes.ValidatorIndex(42)
-	filter, err := newStatementFilter(5, false)
+	filter, err := parachaintypes.NewStatementFilter(5, false)
 	require.NoError(t, err)
 
 	kbc.manifestSentTo(validatorIndex, *filter)
@@ -149,7 +149,7 @@ func TestKnownBackedCandidate_manifestReceivedFrom(t *testing.T) {
 	}
 
 	validatorIndex := parachaintypes.ValidatorIndex(42)
-	filter, err := newStatementFilter(5, false)
+	filter, err := parachaintypes.NewStatementFilter(5, false)
 	require.NoError(t, err)
 
 	kbc.manifestReceivedFrom(validatorIndex, *filter)
@@ -175,18 +175,18 @@ func TestKnownBackedCandidate_directStatementSenders(t *testing.T) {
 	validatorIndex2 := parachaintypes.ValidatorIndex(2)
 
 	// set up a validator that should be included in the result
-	remoteFilter, err := newStatementFilter(5, false)
+	remoteFilter, err := parachaintypes.NewStatementFilter(5, false)
 	require.NoError(t, err)
-	localFilter, err := newStatementFilter(5, false)
+	localFilter, err := parachaintypes.NewStatementFilter(5, false)
 	require.NoError(t, err)
-	receivedFilter, err := newStatementFilter(5, false)
+	receivedFilter, err := parachaintypes.NewStatementFilter(5, false)
 	require.NoError(t, err)
 
 	// set statement as received
 	statementIndex := uint(2)
-	statementKind := seconded
-	receivedFilter.set(statementIndex, statementKind)
-	localFilter.set(statementIndex, statementKind)
+	statementKind := parachaintypes.SecondedKind
+	require.NoError(t, receivedFilter.Set(statementIndex, statementKind))
+	require.NoError(t, localFilter.Set(statementIndex, statementKind))
 
 	kbc.mutualKnowledge[validatorIndex1] = mutualKnowledge{
 		remoteKnowledge:   remoteFilter,
@@ -233,10 +233,10 @@ func TestKnownBackedCandidate_directStatementRecipients(t *testing.T) {
 	validatorIndex3 := parachaintypes.ValidatorIndex(3)
 
 	statementIndex := uint(2)
-	statementKind := seconded
+	statementKind := parachaintypes.SecondedKind
 
 	// set up validator1 with local knowledge but no remote knowledge (should be included)
-	localFilter, err := newStatementFilter(5, false)
+	localFilter, err := parachaintypes.NewStatementFilter(5, false)
 	require.NoError(t, err)
 	kbc.mutualKnowledge[validatorIndex1] = mutualKnowledge{
 		remoteKnowledge:   nil,
@@ -246,7 +246,7 @@ func TestKnownBackedCandidate_directStatementRecipients(t *testing.T) {
 
 	// set up validator2 with both local and remote knowledge
 	// but remote doesn't contain the statement (should be included)
-	remoteFilter, err := newStatementFilter(5, false)
+	remoteFilter, err := parachaintypes.NewStatementFilter(5, false)
 	require.NoError(t, err)
 	kbc.mutualKnowledge[validatorIndex2] = mutualKnowledge{
 		remoteKnowledge:   remoteFilter,
@@ -254,9 +254,9 @@ func TestKnownBackedCandidate_directStatementRecipients(t *testing.T) {
 		receivedKnowledge: nil,
 	}
 
-	remoteFilter3, err := newStatementFilter(5, false)
+	remoteFilter3, err := parachaintypes.NewStatementFilter(5, false)
 	require.NoError(t, err)
-	remoteFilter3.set(statementIndex, statementKind)
+	require.NoError(t, remoteFilter3.Set(statementIndex, statementKind))
 
 	// set up validator3 with both local and remote knowledge,
 	// and remote does contain the statement (should not be included)
@@ -289,7 +289,7 @@ func TestKnownBackedCandidate_directStatementRecipients(t *testing.T) {
 func TestKnownBackedCandidate_noteFreshStatement(t *testing.T) {
 	t.Parallel()
 
-	filter, err := newStatementFilter(5, false)
+	filter, err := parachaintypes.NewStatementFilter(5, false)
 	require.NoError(t, err)
 
 	kbc := &knownBackedCandidate{
@@ -299,7 +299,7 @@ func TestKnownBackedCandidate_noteFreshStatement(t *testing.T) {
 	}
 
 	statementIndex := uint(2)
-	statementKind := seconded
+	statementKind := parachaintypes.SecondedKind
 
 	// First time should be fresh
 	require.True(t, kbc.noteFreshStatement(statementIndex, statementKind))
@@ -308,7 +308,7 @@ func TestKnownBackedCandidate_noteFreshStatement(t *testing.T) {
 	require.False(t, kbc.noteFreshStatement(statementIndex, statementKind))
 
 	// Check that the statement was added to local knowledge
-	require.True(t, kbc.localKnowledge.contains(statementIndex, statementKind))
+	require.True(t, kbc.localKnowledge.Contains(statementIndex, statementKind))
 }
 
 func TestKnownBackedCandidate_sentOrReceivedDirectStatement(t *testing.T) {
@@ -316,7 +316,7 @@ func TestKnownBackedCandidate_sentOrReceivedDirectStatement(t *testing.T) {
 
 	validatorIndex := parachaintypes.ValidatorIndex(1)
 	statementIndex := uint(2)
-	statementKind := seconded
+	statementKind := parachaintypes.SecondedKind
 
 	t.Run("validator_not_in_mutual_knowledge", func(t *testing.T) {
 		t.Parallel()
@@ -334,19 +334,19 @@ func TestKnownBackedCandidate_sentOrReceivedDirectStatement(t *testing.T) {
 	t.Run("local_and_remote_knowledge_available", func(t *testing.T) {
 		t.Parallel()
 
-		localFilter, err := newStatementFilter(5, false)
+		localFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
-		remoteFilter, err := newStatementFilter(5, false)
+		remoteFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
-		receivedFilter, err := newStatementFilter(5, false)
+		receivedFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
 		t.Run("received", func(t *testing.T) {
 			t.Parallel()
 
-			remF := remoteFilter.clone()
-			locF := localFilter.clone()
-			recF := receivedFilter.clone()
+			remF := remoteFilter.Clone()
+			locF := localFilter.Clone()
+			recF := receivedFilter.Clone()
 
 			kbc := &knownBackedCandidate{
 				groupIndex:      parachaintypes.GroupIndex(1),
@@ -362,17 +362,17 @@ func TestKnownBackedCandidate_sentOrReceivedDirectStatement(t *testing.T) {
 			kbc.sentOrReceivedDirectStatement(validatorIndex, statementIndex, statementKind, true)
 
 			mk := kbc.mutualKnowledge[validatorIndex]
-			require.True(t, mk.localKnowledge.contains(statementIndex, statementKind))
-			require.True(t, mk.remoteKnowledge.contains(statementIndex, statementKind))
-			require.True(t, mk.receivedKnowledge.contains(statementIndex, statementKind))
+			require.True(t, mk.localKnowledge.Contains(statementIndex, statementKind))
+			require.True(t, mk.remoteKnowledge.Contains(statementIndex, statementKind))
+			require.True(t, mk.receivedKnowledge.Contains(statementIndex, statementKind))
 		})
 
 		t.Run("not_received", func(t *testing.T) {
 			t.Parallel()
 
-			remF := remoteFilter.clone()
-			locF := localFilter.clone()
-			recF := receivedFilter.clone()
+			remF := remoteFilter.Clone()
+			locF := localFilter.Clone()
+			recF := receivedFilter.Clone()
 
 			kbc := &knownBackedCandidate{
 				groupIndex:      parachaintypes.GroupIndex(1),
@@ -390,9 +390,9 @@ func TestKnownBackedCandidate_sentOrReceivedDirectStatement(t *testing.T) {
 			kbc.sentOrReceivedDirectStatement(validatorIndex, statementIndex2, statementKind, false)
 
 			mk := kbc.mutualKnowledge[validatorIndex]
-			require.True(t, mk.localKnowledge.contains(statementIndex2, statementKind))
-			require.True(t, mk.remoteKnowledge.contains(statementIndex2, statementKind))
-			require.False(t, mk.receivedKnowledge.contains(statementIndex2, statementKind))
+			require.True(t, mk.localKnowledge.Contains(statementIndex2, statementKind))
+			require.True(t, mk.remoteKnowledge.Contains(statementIndex2, statementKind))
+			require.False(t, mk.receivedKnowledge.Contains(statementIndex2, statementKind))
 		})
 	})
 }
@@ -402,7 +402,7 @@ func TestKnownBackedCandidate_isPendingStatement(t *testing.T) {
 
 	validatorIndex := parachaintypes.ValidatorIndex(1)
 	statementIndex := uint(2)
-	statementKind := seconded
+	statementKind := parachaintypes.SecondedKind
 
 	t.Run("validator_is_not_in_mutual_knowledge", func(t *testing.T) {
 		t.Parallel()
@@ -441,7 +441,7 @@ func TestKnownBackedCandidate_isPendingStatement(t *testing.T) {
 			mutualKnowledge: make(map[parachaintypes.ValidatorIndex]mutualKnowledge),
 		}
 
-		localFilter, err := newStatementFilter(5, false)
+		localFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
 		kbc.mutualKnowledge[validatorIndex] = mutualKnowledge{
@@ -462,13 +462,13 @@ func TestKnownBackedCandidate_isPendingStatement(t *testing.T) {
 			mutualKnowledge: make(map[parachaintypes.ValidatorIndex]mutualKnowledge),
 		}
 
-		localFilter, err := newStatementFilter(5, false)
+		localFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
-		remoteFilter, err := newStatementFilter(5, false)
+		remoteFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
-		remoteFilter.set(statementIndex, statementKind)
+		require.NoError(t, remoteFilter.Set(statementIndex, statementKind))
 
 		kbc.mutualKnowledge[validatorIndex] = mutualKnowledge{
 			remoteKnowledge:   remoteFilter,
@@ -487,10 +487,10 @@ func TestKnownBackedCandidate_isPendingStatement(t *testing.T) {
 			mutualKnowledge: make(map[parachaintypes.ValidatorIndex]mutualKnowledge),
 		}
 
-		localFilter, err := newStatementFilter(5, false)
+		localFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
-		remoteFilter, err := newStatementFilter(5, false)
+		remoteFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
 		kbc.mutualKnowledge[validatorIndex] = mutualKnowledge{
@@ -511,15 +511,15 @@ func TestKnownBackedCandidate_pendingStatements(t *testing.T) {
 	t.Run("validator_is_not_in_mutual_knowledge", func(t *testing.T) {
 		t.Parallel()
 
-		localFilter, err := newStatementFilter(5, false)
+		localFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
 		statementIndex1 := uint(1)
 		statementIndex2 := uint(2)
-		statementKind := seconded
+		statementKind := parachaintypes.SecondedKind
 
-		localFilter.set(statementIndex1, statementKind)
-		localFilter.set(statementIndex2, statementKind)
+		require.NoError(t, localFilter.Set(statementIndex1, statementKind))
+		require.NoError(t, localFilter.Set(statementIndex2, statementKind))
 
 		kbc := &knownBackedCandidate{
 			groupIndex:      parachaintypes.GroupIndex(1),
@@ -533,15 +533,15 @@ func TestKnownBackedCandidate_pendingStatements(t *testing.T) {
 	t.Run("has_no_local_knowledge", func(t *testing.T) {
 		t.Parallel()
 
-		localFilter, err := newStatementFilter(5, false)
+		localFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
 		statementIndex1 := uint(1)
 		statementIndex2 := uint(2)
-		statementKind := seconded
+		statementKind := parachaintypes.SecondedKind
 
-		localFilter.set(statementIndex1, statementKind)
-		localFilter.set(statementIndex2, statementKind)
+		require.NoError(t, localFilter.Set(statementIndex1, statementKind))
+		require.NoError(t, localFilter.Set(statementIndex2, statementKind))
 
 		kbc := &knownBackedCandidate{
 			groupIndex:      parachaintypes.GroupIndex(1),
@@ -559,7 +559,7 @@ func TestKnownBackedCandidate_pendingStatements(t *testing.T) {
 	})
 
 	t.Run("has_no_remote_knowledge", func(t *testing.T) {
-		localFilter, err := newStatementFilter(5, false)
+		localFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
 		kbc := &knownBackedCandidate{
@@ -583,13 +583,13 @@ func TestKnownBackedCandidate_pendingStatements(t *testing.T) {
 
 		statementIndex1 := uint(1)
 		statementIndex2 := uint(2)
-		statementKind := seconded
+		statementKind := parachaintypes.SecondedKind
 
-		localFilter, err := newStatementFilter(5, false)
+		localFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
-		localFilter.set(statementIndex1, statementKind)
-		localFilter.set(statementIndex2, statementKind)
+		require.NoError(t, localFilter.Set(statementIndex1, statementKind))
+		require.NoError(t, localFilter.Set(statementIndex2, statementKind))
 
 		kbc := &knownBackedCandidate{
 			groupIndex:      parachaintypes.GroupIndex(1),
@@ -597,12 +597,12 @@ func TestKnownBackedCandidate_pendingStatements(t *testing.T) {
 			mutualKnowledge: make(map[parachaintypes.ValidatorIndex]mutualKnowledge),
 		}
 
-		mutualLocalFilter, err := newStatementFilter(5, false)
+		mutualLocalFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
 
-		remoteFilter, err := newStatementFilter(5, false)
+		remoteFilter, err := parachaintypes.NewStatementFilter(5, false)
 		require.NoError(t, err)
-		remoteFilter.set(statementIndex1, statementKind)
+		require.NoError(t, remoteFilter.Set(statementIndex1, statementKind))
 
 		kbc.mutualKnowledge[validatorIndex] = mutualKnowledge{
 			remoteKnowledge:   remoteFilter,
@@ -613,7 +613,7 @@ func TestKnownBackedCandidate_pendingStatements(t *testing.T) {
 		pendingStatements := kbc.pendingStatements(validatorIndex)
 
 		require.NotNil(t, pendingStatements)
-		require.False(t, pendingStatements.contains(statementIndex1, statementKind)) // Known by remote
-		require.True(t, pendingStatements.contains(statementIndex2, statementKind))  // Not known by remote
+		require.False(t, pendingStatements.Contains(statementIndex1, statementKind)) // Known by remote
+		require.True(t, pendingStatements.Contains(statementIndex2, statementKind))  // Not known by remote
 	})
 }

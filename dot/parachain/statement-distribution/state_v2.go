@@ -6,20 +6,32 @@ package statementdistribution
 
 import (
 	"github.com/ChainSafe/gossamer/dot/parachain/grid"
-	parachainnetwork "github.com/ChainSafe/gossamer/dot/parachain/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 )
 
+type candidatesStore interface {
+	getConfirmed(candidateHash parachaintypes.CandidateHash) (*confirmedCandidate, bool)
+}
+
 type statementStore interface {
+	validatorStatement(stmt originatorStatementPair) *parachaintypes.SignedStatement
+
 	// freshStatementsForBacking provides a list of all statements marked as being
 	// unknown by the backing subsystem. This provides `Seconded` statements prior to `Valid` statements.
 	freshStatementsForBacking(validators []parachaintypes.ValidatorIndex,
 		candidateHash parachaintypes.CandidateHash) []parachaintypes.SignedStatement
 	noteKnownByBacking(parachaintypes.ValidatorIndex, parachaintypes.CompactStatement)
+	fillStatementFilter(parachaintypes.GroupIndex, parachaintypes.CandidateHash, *parachaintypes.StatementFilter)
+	// Get an iterator over stored signed statements by the group conforming to the
+	// given filter.
+	// Seconded statements are provided first.
+	groupStatements(*groups, parachaintypes.GroupIndex, parachaintypes.CandidateHash,
+		*parachaintypes.StatementFilter) []parachaintypes.SignedStatement
 }
 
 type perRelayParentState struct {
@@ -53,7 +65,7 @@ func (p *perRelayParentState) disableBitmask(group []parachaintypes.ValidatorInd
 }
 
 type localValidatorStore struct {
-	gridTracker any // TODO: use GridTracker implementation (#4576)
+	gridTracker *gridTracker
 	active      *activeValidatorState
 }
 
@@ -123,7 +135,7 @@ func (s *perSessionState) supplyTopology(topology *grid.SessionGridTopology, loc
 
 type peerState struct {
 	view            parachaintypes.View
-	protocolVersion parachainnetwork.ValidationVersion
+	protocolVersion validationprotocol.ValidationVersion
 	implicitView    map[common.Hash]struct{}
 	discoveryIds    *map[parachaintypes.AuthorityDiscoveryID]struct{}
 }

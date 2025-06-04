@@ -35,6 +35,11 @@ type SendValidationMessage struct {
 	ValidationProtocolMessage validationprotocol.ValidationProtocol
 }
 
+// TODO: implement the handler for this message
+type SendValidationMessages struct {
+	Messages []*SendValidationMessage
+}
+
 type PeerSetType int
 
 const (

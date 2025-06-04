@@ -21,17 +21,13 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
-	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	disputescoordinator "github.com/ChainSafe/gossamer/dot/parachain/disputes-coordinator"
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains"
-	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -152,39 +148,6 @@ func (Service) Stop() error {
 
 // main loop of parachain service
 func (s Service) run(_ *state.BlockState) {
-	// TODO: Add `Prospective Parachains` Subsystem. create an issue.
-
-	// NOTE: this is a temporary test, just to show that we can send messages to peers
-	//
-	time.Sleep(time.Second * 15)
-	// let's try sending a collation message  and validation message to a peer and see what happens
-	collatorProtocolMessage := collatorprotocolmessages.NewCollatorProtocolMessage()
-	// NOTE: This is just to test. We should not be sending declare messages, since we are not a collator, just a validator
-	_ = collatorProtocolMessage.SetValue(collatorprotocolmessages.Declare{})
-	collationMessage := collatorprotocolmessages.NewCollationProtocol()
-
-	_ = collationMessage.SetValue(collatorProtocolMessage)
-	s.Network.GossipMessage(&collationMessage)
-
-	statementDistributionLargeStatement := validationprotocol.StatementDistribution{
-		StatementDistributionMessage: validationprotocol.NewStatementDistributionMessage(),
-	}
-	err := statementDistributionLargeStatement.SetValue(validationprotocol.LargePayload{
-		RelayParent:   common.Hash{},
-		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{}},
-		SignedBy:      5,
-		Signature:     parachaintypes.ValidatorSignature{},
-	})
-	if err != nil {
-		logger.Errorf("creating test statement message: %w\n", err)
-	}
-
-	validationMessage := validationprotocol.NewValidationProtocolVDT()
-	err = validationMessage.SetValue(statementDistributionLargeStatement)
-	if err != nil {
-		logger.Errorf("creating test validation message: %w\n", err)
-	}
-	s.Network.GossipMessage(&validationMessage)
 
 }
 

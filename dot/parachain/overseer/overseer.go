@@ -135,7 +135,8 @@ func (o *OverseerSystem) processMessages() {
 
 			case networkbridgemessages.DisconnectPeer, networkbridgemessages.ConnectToValidators,
 				networkbridgemessages.ReportPeer, networkbridgemessages.SendCollationMessage,
-				networkbridgemessages.SendValidationMessage, networkbridgemessages.SendRequests:
+				networkbridgemessages.SendValidationMessage, networkbridgemessages.SendValidationMessages,
+				networkbridgemessages.SendRequests:
 				subsystem = o.nameToSubsystem[parachaintypes.NetworkBridgeSender]
 
 			case networkbridgeevents.Event[collatorprotocolmessages.CollationProtocol]:

@@ -11,8 +11,55 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+// A notification of a signed statement in compact form, for a given relay parent.
+type Statement struct {
+	RelayParent common.Hash
+	Compact     parachaintypes.UncheckedSignedCompactStatement
+}
+
+// A notification of a backed candidate being known by the
+// sending node, for the purpose of being requested by the receiving node
+// if needed.
+type BackedCandidateManifest struct {
+	RelayParent   common.Hash
+	CandidateHash parachaintypes.CandidateHash
+	// The group index backing the candidate at the relay-parent.
+	GroupIndex parachaintypes.GroupIndex
+
+	// The para ID of the candidate. It is illegal for this to
+	// be a para ID which is not assigned to the group indicated
+	// in this manifest.
+	ParaID             parachaintypes.ParaID
+	ParentHeadDataHash common.Hash
+
+	// A statement filter which indicates which validators in the
+	// para's group at the relay-parent have validated this candidate
+	// and issued statements about it, to the advertiser's knowledge.
+	//
+	// This MUST have exactly the minimum amount of bytes
+	// necessary to represent the number of validators in the assigned
+	// backing group as-of the relay-parent.
+	// TODO: make statement filter public and encodable/decodable
+	StatementKnwoledge parachaintypes.StatementFilter
+}
+
+// An acknowledgement of a backed candidate being known.
+type BackedCandidateKnown struct {
+	CandidateHash parachaintypes.CandidateHash
+
+	// A statement filter which indicates which validators in the
+	// para's group at the relay-parent have validated this candidate
+	// and issued statements about it, to the advertiser's knowledge.
+	//
+	// This MUST have exactly the minimum amount of bytes
+	// necessary to represent the number of validators in the assigned
+	// backing group as-of the relay-parent.
+	// TODO: make statement filter public and encodable/decodable
+	StatementKnwoledge parachaintypes.StatementFilter
+}
+
 type StatementDistributionMessageValues interface {
-	Statement | LargePayload
+	Statement | BackedCandidateManifest | BackedCandidateKnown
 }
 
 // StatementDistributionMessage represents network messages used by the statement distribution subsystem
@@ -37,12 +84,16 @@ func (mvdt *StatementDistributionMessage) SetValue(value any) (err error) {
 		setStatementDistributionMessage(mvdt, value)
 		return
 
-	case LargePayload:
+	case BackedCandidateManifest:
+		setStatementDistributionMessage(mvdt, value)
+		return
+
+	case BackedCandidateKnown:
 		setStatementDistributionMessage(mvdt, value)
 		return
 
 	default:
-		return fmt.Errorf("unsupported type")
+		return fmt.Errorf("unsupported value of type: %v (%T)", value, value)
 	}
 }
 
@@ -51,10 +102,13 @@ func (mvdt StatementDistributionMessage) IndexValue() (index uint, value any, er
 	case Statement:
 		return 0, mvdt.inner, nil
 
-	case LargePayload:
+	case BackedCandidateManifest:
 		return 1, mvdt.inner, nil
 
+	case BackedCandidateKnown:
+		return 2, mvdt.inner, nil
 	}
+
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
@@ -66,39 +120,14 @@ func (mvdt StatementDistributionMessage) Value() (value any, err error) {
 func (mvdt StatementDistributionMessage) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 0:
-		return *new(Statement), nil
+		return Statement{}, nil
 
 	case 1:
-		return *new(LargePayload), nil
+		return BackedCandidateManifest{}, nil
 
+	case 2:
+		return BackedCandidateKnown{}, nil
 	}
+
 	return nil, scale.ErrUnknownVaryingDataTypeValue
-}
-
-// Statement represents a signed full statement under a given relay-parent.
-type Statement struct {
-	Hash                         common.Hash                                 `scale:"1"`
-	UncheckedSignedFullStatement parachaintypes.UncheckedSignedFullStatement `scale:"2"`
-}
-
-// LargePayload represents Seconded statement with large payload
-// (e.g. containing a runtime upgrade).
-//
-// We only gossip the hash in that case, actual payloads can be fetched from sending node
-// via request/response.
-type LargePayload StatementMetadata
-
-// StatementMetadata represents the data that makes a statement unique.
-type StatementMetadata struct {
-	// Relay parent this statement is relevant under.
-	RelayParent common.Hash `scale:"1"`
-
-	// Hash of the candidate that got validated.
-	CandidateHash parachaintypes.CandidateHash `scale:"2"`
-
-	// Validator that attested the validity.
-	SignedBy parachaintypes.ValidatorIndex `scale:"3"`
-
-	// Signature of seconding validator.
-	Signature parachaintypes.ValidatorSignature `scale:"4"`
 }
