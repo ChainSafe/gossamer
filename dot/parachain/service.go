@@ -27,7 +27,6 @@ import (
 	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -42,8 +41,6 @@ type Service struct {
 	Network  Network
 	overseer overseer.Overseer
 }
-
-var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
 func NewService(net Network, forkID string, st *state.Service, ks keystore.Keystore, syncer Sync) (*Service, error) {
 	overseer := overseer.NewOverseer(st.Block)

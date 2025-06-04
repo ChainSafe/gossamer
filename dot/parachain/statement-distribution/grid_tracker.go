@@ -284,7 +284,7 @@ func (g *gridTracker) manifestSentTo(
 
 // pendingManifestsFor returns a vector of all candidates pending manifests for
 // the specific validator, and the type of manifest we should send.
-func (g *gridTracker) pendingManifestsFor( //nolint:unused // skipcq:SCC-U1000
+func (g *gridTracker) pendingManifestsFor(
 	validatorIndex parachaintypes.ValidatorIndex,
 ) manifestKindByCandidateHash {
 	return maps.Clone(g.pendingManifests[validatorIndex])
@@ -426,7 +426,7 @@ func (g *gridTracker) learnedFreshStatement(
 
 // / sentOrReceivedDirectStatement notes that a direct statement about a
 // given candidate was sent to or received from the given validator.
-func (g *gridTracker) sentOrReceivedDirectStatement( //nolint:unused // skipcq:SCC-U1000
+func (g *gridTracker) sentOrReceivedDirectStatement(
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
 	counterparty parachaintypes.ValidatorIndex,

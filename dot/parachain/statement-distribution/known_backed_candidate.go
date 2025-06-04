@@ -138,7 +138,9 @@ func (kbc *knownBackedCandidate) directStatementRecipients(
 	return recipients
 }
 
-func (kbc *knownBackedCandidate) noteFreshStatement(statementIndexInGroup uint, statementKind parachaintypes.StatementKind) bool {
+func (kbc *knownBackedCandidate) noteFreshStatement(
+	statementIndexInGroup uint, statementKind parachaintypes.StatementKind,
+) bool {
 	reallyFresh := !kbc.localKnowledge.Contains(statementIndexInGroup, statementKind)
 
 	err := kbc.localKnowledge.Set(statementIndexInGroup, statementKind)
@@ -200,7 +202,9 @@ func (kbc *knownBackedCandidate) isPendingStatement(
 	return !mk.remoteKnowledge.Contains(statementIndexInGroup, statementKind)
 }
 
-func (kbc *knownBackedCandidate) pendingStatements(validator parachaintypes.ValidatorIndex) *parachaintypes.StatementFilter {
+func (kbc *knownBackedCandidate) pendingStatements(
+	validator parachaintypes.ValidatorIndex,
+) *parachaintypes.StatementFilter {
 	// existence of both remote & local knowledge indicate we have exchanged
 	// manifests.
 	// then, everything that is not in the remote knowledge is pending, and we

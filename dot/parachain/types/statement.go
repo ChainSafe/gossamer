@@ -94,7 +94,7 @@ func (s StatementVDT) CompactStatement() (CompactStatement, error) {
 		if err != nil {
 			return nil, fmt.Errorf("getting candidate hash: %w", err)
 		}
-		return NewCompactSeconded(CandidateHash(hash)), nil
+		return NewCompactSeconded(hash), nil
 	}
 	return nil, fmt.Errorf("unsupported type")
 }

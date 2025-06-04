@@ -29,7 +29,9 @@ func NewBitVec(bits []bool) (BitVec, error) {
 	}
 
 	if len(bits) > MaxBitVecLength {
-		return BitVec{bits: []byte{}}, fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", len(bits), MaxBitVecLength)
+		return BitVec{
+			bits: []byte{},
+		}, fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", len(bits), MaxBitVecLength)
 	}
 
 	bv := BitVec{

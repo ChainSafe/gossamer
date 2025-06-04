@@ -248,8 +248,8 @@ func TestSendPendingGridMessages(t *testing.T) {
 		gt := newGridTracker()
 		gt.pendingManifests[peerValidatorID] = manifestKindByCandidateHash(
 			map[parachaintypes.CandidateHash]manifestKind{
-				{Value: common.Hash{0x12}}: manifestKind(full),
-				{Value: common.Hash{0xab}}: manifestKind(full),
+				{Value: common.Hash{0x12}}: full,
+				{Value: common.Hash{0xab}}: full,
 			},
 		)
 
@@ -286,8 +286,8 @@ func TestSendPendingGridMessages(t *testing.T) {
 		gt := newGridTracker()
 		gt.pendingManifests[peerValidatorID] = manifestKindByCandidateHash(
 			map[parachaintypes.CandidateHash]manifestKind{
-				{Value: common.Hash{0x12}}: manifestKind(full),
-				{Value: common.Hash{0xab}}: manifestKind(full),
+				{Value: common.Hash{0x12}}: full,
+				{Value: common.Hash{0xab}}: full,
 			},
 		)
 
@@ -384,8 +384,8 @@ func TestSendPendingGridMessages(t *testing.T) {
 		gt := newGridTracker()
 		gt.pendingManifests[peerValidatorID] = manifestKindByCandidateHash(
 			map[parachaintypes.CandidateHash]manifestKind{
-				{Value: common.Hash{0x12}}: manifestKind(full),
-				{Value: common.Hash{0xab}}: manifestKind(acknowledgement),
+				{Value: common.Hash{0x12}}: full,
+				{Value: common.Hash{0xab}}: acknowledgement,
 			},
 		)
 

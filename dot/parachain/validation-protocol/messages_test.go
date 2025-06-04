@@ -116,7 +116,8 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	}
 	*/
 	stmtRelayParentHash := common.Hash(bytes.Repeat([]byte{10}, 32))
-	compact := parachaintypes.NewCompactSeconded(parachaintypes.CandidateHash{Value: common.Hash(bytes.Repeat([]byte{15}, 32))})
+	compact := parachaintypes.NewCompactSeconded(
+		parachaintypes.CandidateHash{Value: common.Hash(bytes.Repeat([]byte{15}, 32))})
 
 	sdm := NewStatementDistributionMessage()
 	err = sdm.SetValue(Statement{
@@ -273,16 +274,19 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 			encodingValue: common.MustHexToBytes(testValidationProtocolHex["approvalDistributionMessageApprovals"]),
 		},
 		"ValidationProtocol_with_StatementDistribution_with_Statement": {
-			enumValue:     vpStatementDistributionStatementValue,
-			encodingValue: common.MustHexToBytes(testValidationProtocolHex["statementDistributionMessageStatement"]),
+			enumValue: vpStatementDistributionStatementValue,
+			encodingValue: common.MustHexToBytes(
+				testValidationProtocolHex["statementDistributionMessageStatement"]),
 		},
 		"ValidationProtocol_with_StatementDistribution_with_BackedCandidate": {
-			enumValue:     backedCandidateManifestSDM,
-			encodingValue: common.MustHexToBytes(testValidationProtocolHex["statementDistributionMessageBackedCandidateManifest"]),
+			enumValue: backedCandidateManifestSDM,
+			encodingValue: common.MustHexToBytes(
+				testValidationProtocolHex["statementDistributionMessageBackedCandidateManifest"]),
 		},
 		"ValidationProtocol_with_StatementDistribution_with_BackedCandidateKnown": {
-			enumValue:     backedCandidateKnownSDM,
-			encodingValue: common.MustHexToBytes(testValidationProtocolHex["statementDistributionMessageBackedCandidateAcknowledgement"]),
+			enumValue: backedCandidateKnownSDM,
+			encodingValue: common.MustHexToBytes(
+				testValidationProtocolHex["statementDistributionMessageBackedCandidateAcknowledgement"]),
 		},
 		"ValidationProtocol_with_BitfieldDistribution": {
 			enumValue:     vpBitfieldDistributionVal,

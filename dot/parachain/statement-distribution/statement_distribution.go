@@ -97,7 +97,8 @@ func (s *StatementDistribution) awaitMessageFrom(
 // upon learning about a new relay parent.
 func (s *StatementDistribution) sendPendingGridMessages(
 	rp common.Hash,
-	peerID peer.ID, validationVersion validationprotocol.ValidationVersion,
+	peerID peer.ID, //nolint:unparam
+	validationVersion validationprotocol.ValidationVersion, //nolint:unparam
 	peerValidatorID parachaintypes.ValidatorIndex,
 	groups *groups,
 	rpState *perRelayParentState,
@@ -110,7 +111,6 @@ func (s *StatementDistribution) sendPendingGridMessages(
 	pendingManifests := rpState.localValidator.gridTracker.pendingManifestsFor(peerValidatorID)
 
 	var messages []*networkbridgemessages.SendValidationMessage
-	stmtCount := 0
 
 	for candidateHash, kind := range pendingManifests {
 		confirmed, ok := candidates.getConfirmed(candidateHash)
@@ -171,7 +171,7 @@ func (s *StatementDistribution) sendPendingGridMessages(
 				})
 			}
 		case acknowledgement:
-			innerMessages, count := acknowledgementAndStatementMessages(
+			innerMessages, _ := acknowledgementAndStatementMessages(
 				peerID, validationVersion,
 				peerValidatorID,
 				groups,
@@ -182,7 +182,6 @@ func (s *StatementDistribution) sendPendingGridMessages(
 				*localKnowledge,
 			)
 			messages = append(messages, innerMessages...)
-			stmtCount += count
 		}
 	}
 
@@ -216,7 +215,6 @@ func (s *StatementDistribution) sendPendingGridMessages(
 		}
 	}
 
-	stmtCount += len(extraStmtMessages)
 	messages = append(messages, extraStmtMessages...)
 
 	if len(messages) > 0 {
