@@ -21,21 +21,21 @@ import (
 )
 
 func TestIsSuperSet(t *testing.T) {
-	superset := map[int]string{
-		1: "a",
-		2: "b",
-		3: "c",
+	superset := map[peer.ID]struct{}{
+		peer.ID("1"): {},
+		peer.ID("2"): {},
+		peer.ID("3"): {},
 	}
 
-	subset := map[int]string{
-		1: "a",
+	subset := map[peer.ID]struct{}{
+		peer.ID("1"): {},
+		peer.ID("2"): {},
+		peer.ID("3"): {},
 	}
 	assert.True(t, isSuperSet(superset, subset))
 
 	superset2 := map[peer.ID]struct{}{
 		peer.ID("1"): {},
-		peer.ID("2"): {},
-		peer.ID("3"): {},
 	}
 
 	subset2 := map[peer.ID]struct{}{
@@ -43,18 +43,7 @@ func TestIsSuperSet(t *testing.T) {
 		peer.ID("2"): {},
 		peer.ID("3"): {},
 	}
-	assert.True(t, isSuperSet(superset2, subset2))
-
-	superset3 := map[peer.ID]struct{}{
-		peer.ID("1"): {},
-	}
-
-	subset3 := map[peer.ID]struct{}{
-		peer.ID("1"): {},
-		peer.ID("2"): {},
-		peer.ID("3"): {},
-	}
-	assert.False(t, isSuperSet(superset3, subset3))
+	assert.False(t, isSuperSet(superset2, subset2))
 }
 
 func TestEnsureIamAnAuthority(t *testing.T) {
@@ -70,16 +59,16 @@ func TestEnsureIamAnAuthority(t *testing.T) {
 		{0x01},
 	}
 
-	keyIdx, err := ensureIamAnAuthority(testKs, authorities)
-	assert.EqualError(t, err, "node is not a validator")
+	keyIdx, ok := ensureIamAnAuthority(testKs, authorities)
+	assert.False(t, ok)
 	assert.EqualValues(t, 0, keyIdx)
 
 	authorities = []parachaintypes.AuthorityDiscoveryID{
 		parachaintypes.AuthorityDiscoveryID(aliceKeypair.Public().Encode()),
 	}
 
-	keyIdx, err = ensureIamAnAuthority(testKs, authorities)
-	assert.Nil(t, err)
+	keyIdx, ok = ensureIamAnAuthority(testKs, authorities)
+	assert.True(t, ok)
 	assert.EqualValues(t, 0, keyIdx)
 }
 

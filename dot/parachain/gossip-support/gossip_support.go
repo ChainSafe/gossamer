@@ -421,10 +421,10 @@ func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(
 // corresponding logic will be added later)
 // On success, returns the index of our keys in `session_info.discovery_keys`.
 func (gs *GossipSupport) getKeyIndexAndUpdateMetrics(SessionInfo *parachaintypes.SessionInfo) (uint, error) {
-	authCheckResult, err := ensureIamAnAuthority(gs.keystore, SessionInfo.DiscoveryKeys)
-	if err != nil {
+	authCheckResult, ok := ensureIamAnAuthority(gs.keystore, SessionInfo.DiscoveryKeys)
+	if !ok {
 		logger.Tracef("we are no longer an authority")
-		return authCheckResult, err
+		return authCheckResult, fmt.Errorf("node is not a validator")
 	}
 
 	logger.Tracef("we are now an authority")
@@ -438,7 +438,7 @@ func (gs *GossipSupport) getKeyIndexAndUpdateMetrics(SessionInfo *parachaintypes
 		logger.Tracef("we are no longer a parachain validator")
 	}
 
-	return authCheckResult, err
+	return authCheckResult, nil
 }
 
 func (*GossipSupport) updateGossipTopology(_ourIndex uint, _relayParent common.Hash) error {
@@ -648,7 +648,7 @@ func (gs *GossipSupport) resolveAuthorities(
 }
 
 // isSuperSet returns true if the superset is a superset of subset
-func isSuperSet[K, V comparable](superset, subset map[K]V) bool {
+func isSuperSet(superset, subset map[peer.ID]struct{}) bool {
 	for k, v := range subset {
 		if val, ok := superset[k]; !ok || val != v {
 			return false
@@ -659,7 +659,7 @@ func isSuperSet[K, V comparable](superset, subset map[K]V) bool {
 
 // ensureIamAnAuthority return an error if we're not a validator in the given set (do not have keys). Otherwise,
 // returns the index of our keys in authorities.
-func ensureIamAnAuthority(ks keystore.Keystore, authorities []parachaintypes.AuthorityDiscoveryID) (uint, error) {
+func ensureIamAnAuthority(ks keystore.Keystore, authorities []parachaintypes.AuthorityDiscoveryID) (uint, bool) {
 	for i, authority := range authorities {
 		publicKey, err := sr25519.NewPublicKey(authority[:])
 		if err != nil {
@@ -667,9 +667,9 @@ func ensureIamAnAuthority(ks keystore.Keystore, authorities []parachaintypes.Aut
 		}
 		authKey := ks.GetKeypair(publicKey)
 		if authKey != nil {
-			return uint(i), nil
+			return uint(i), true
 		}
 	}
 
-	return 0, fmt.Errorf("node is not a validator")
+	return 0, false
 }
