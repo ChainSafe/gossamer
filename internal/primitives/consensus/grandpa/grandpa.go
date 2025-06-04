@@ -358,7 +358,7 @@ type GrandpaAPI[H runtime.Hash, N runtime.Number] interface {
 	//
 	// When called at block B, it will return the set of authorities that should be used to finalize descendants of
 	// this block (B+1, B+2, ...). The block B itself is finalized by the authorities from block B-1.
-	GrandpaAuthorities() AuthorityList
+	GrandpaAuthorities(hash H) (AuthorityList, error)
 
 	// Submits an unsigned extrinsic to report an equivocation. The caller must provide the equivocation proof and a
 	// key ownership proof (should be obtained using GenerateKeyOwnershipProof). The extrinsic will be unsigned
@@ -384,4 +384,8 @@ type GrandpaAPI[H runtime.Hash, N runtime.Number] interface {
 		setID SetID,
 		authorityID AuthorityID,
 	) *OpaqueKeyOwnershipProof
+
+	/// Get current GRANDPA authority set id.
+	// fn current_set_id() -> SetId;
+	CurrentSetID(hash H) (SetID, error)
 }

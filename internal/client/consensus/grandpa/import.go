@@ -1,17 +1,21 @@
 package grandpa
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/client/api/utils"
 	client_common "github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	shareddata "github.com/ChainSafe/gossamer/internal/client/consensus/common/shared-data"
+	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/crypto/hashing"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	forktree "github.com/ChainSafe/gossamer/internal/utils/fork-tree"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // enum AppliedChanges<H, N> {
@@ -63,6 +67,43 @@ type pendingSetChanges[
 	appliedChanges importAppliedChanges
 	// do_pause: bool,
 	doPause bool
+}
+
+// revert the pending set change explicitly.
+// fn revert(self) {}
+func (pendingSetChanges[H, N, Hasher, Header]) revert() {}
+
+//	fn defuse(mut self) -> (AppliedChanges<Block::Hash, NumberFor<Block>>, bool) {
+//		self.just_in_case = None;
+//		let applied_changes = std::mem::replace(&mut self.applied_changes, AppliedChanges::None);
+//		(applied_changes, self.do_pause)
+//	}
+func (psc *pendingSetChanges[H, N, Hasher, Header]) defuse() (importAppliedChanges, bool) {
+	psc.justInCase = nil
+	appliedChanges := psc.appliedChanges
+	psc.appliedChanges = importAppliedChangesNone{}
+	return appliedChanges, psc.doPause
+}
+
+//	impl<Block: BlockT> Drop for PendingSetChanges<Block> {
+//		fn drop(&mut self) {
+//			if let Some((old_set, mut authorities)) = self.just_in_case.take() {
+//				*authorities.upgrade() = old_set;
+//			}
+//		}
+//	}
+func (psc *pendingSetChanges[H, N, Hasher, Header]) drop() {
+	// if let Some((oldSet, mut authorities)) = self.justInCase.take() {
+	// 	*authorities.upgrade() = oldSet;
+	// }
+	if psc.justInCase != nil {
+		jic := psc.justInCase
+		psc.justInCase = nil
+		oldSet := jic.old
+		locked := jic.SharedDataLocked
+		*locked.MutRef() = oldSet
+		defer locked.Unlock()
+	}
 }
 
 // / A block-import handler for GRANDPA.
@@ -707,7 +748,7 @@ func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) makeAuthoritiesChanges(
 
 // /// Read current set id form a given state.
 // fn current_set_id(&self, hash: Block::Hash) -> Result<SetId, ConsensusError> {
-func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) currentSetID(hash H) (SetID, error) {
+func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) currentSetID(hash H) (grandpa.SetID, error) {
 	// 		let runtime_version = self.inner.runtime_api().version(hash).map_err(|e| {
 	// 			ConsensusError::ClientImport(format!(
 	// 				"Unable to retrieve current runtime version. {}",
@@ -747,16 +788,28 @@ func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) currentSetID(hash H) (Se
 			// 						return Ok(id)
 			// 					}
 			// 				}
-			id, err := gbi.inner.Storage(hash, runtime.StorageKey(k))
+			id, _ := gbi.inner.Storage(hash, storage.StorageKey(k))
+			if id != nil {
+				var setID grandpa.SetID
+				err := scale.Unmarshal(*id, &setID)
+				if err == nil {
+					return setID, nil
+				}
+			}
 		}
 		// 			Err(ConsensusError::ClientImport("Unable to retrieve current set id.".into()))
+		return 0, fmt.Errorf("unable to retrieve current set id")
 	} else {
 		// 			self.inner
 		// 				.runtime_api()
 		// 				.current_set_id(hash)
 		// 				.map_err(|e| ConsensusError::ClientImport(e.to_string()))
+		setID, err := gbi.inner.RuntimeAPI().CurrentSetID(hash)
+		if err != nil {
+			return 0, err
+		}
+		return setID, nil
 	}
-	panic("unimpl")
 }
 
 // /// Import whole new state and reset authority set.
@@ -771,47 +824,560 @@ func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) importState(
 ) (client_common.ImportResult, error) {
 	// 		let hash = block.post_hash();
 	// 		let number = *block.header.number();
-	// 		// Force imported state finality.
+	hash := block.GetPostHash()
+	number := block.Header.Number()
+
+	// Force imported state finality.
 	// 		block.finalized = true;
 	// 		let import_result = (&*self.inner).import_block(block).await;
+	block.Finalized = true
+	importResult, err := gbi.inner.ImportBlock(block)
 	// 		match import_result {
-	// 			Ok(ImportResult::Imported(aux)) => {
-	// 				// We've just imported a new state. We trust the sync module has verified
-	// 				// finality proofs and that the state is correct and final.
-	// 				// So we can read the authority list and set id from the state.
-	// 				self.authority_set_hard_forks.lock().clear();
-	// 				let authorities = self
-	// 					.inner
-	// 					.runtime_api()
-	// 					.grandpa_authorities(hash)
-	// 					.map_err(|e| ConsensusError::ClientImport(e.to_string()))?;
-	// 				let set_id = self.current_set_id(hash)?;
-	// 				let authority_set = AuthoritySet::new(
-	// 					authorities.clone(),
-	// 					set_id,
-	// 					fork_tree::ForkTree::new(),
-	// 					Vec::new(),
-	// 					AuthoritySetChanges::empty(),
-	// 				)
-	// 				.ok_or_else(|| ConsensusError::ClientImport("Invalid authority list".into()))?;
-	// 				*self.authority_set.inner_locked() = authority_set.clone();
+	if err == nil {
+		// 			Ok(ImportResult::Imported(aux)) => {
+		switch importResult := importResult.(type) {
+		case client_common.ImportResultImported:
+			aux := client_common.ImportedAux(importResult)
+			// We've just imported a new state. We trust the sync module has verified
+			// finality proofs and that the state is correct and final.
+			// So we can read the authority list and set id from the state.
+			// 				self.authority_set_hard_forks.lock().clear();
+			gbi.authoritySetHardForksMtx.Lock()
+			gbi.authoritySetHardForks = make(map[H]PendingChange[H, N])
+			gbi.authoritySetHardForksMtx.Unlock()
+			// 				let authorities = self
+			// 					.inner
+			// 					.runtime_api()
+			// 					.grandpa_authorities(hash)
+			// 					.map_err(|e| ConsensusError::ClientImport(e.to_string()))?;
+			authorities, err := gbi.inner.RuntimeAPI().GrandpaAuthorities(hash)
+			if err != nil {
+				return nil, err
+			}
+			// 				let set_id = self.current_set_id(hash)?;
+			setID, err := gbi.currentSetID(hash)
+			if err != nil {
+				return nil, err
+			}
+			// 				let authority_set = AuthoritySet::new(
+			// 					authorities.clone(),
+			// 					set_id,
+			// 					fork_tree::ForkTree::new(),
+			// 					Vec::new(),
+			// 					AuthoritySetChanges::empty(),
+			// 				)
+			// 				.ok_or_else(|| ConsensusError::ClientImport("Invalid authority list".into()))?;
+			authoritySet, err := NewAuthoritySet[H, N](
+				authorities,
+				uint64(setID),
+				forktree.NewForkTree[H, N, PendingChange[H, N]](),
+				[]PendingChange[H, N]{},
+				AuthoritySetChanges[N]{},
+			)
+			if err != nil {
+				return nil, err
+			}
 
-	//				crate::aux_schema::update_authority_set::<Block, _, _>(
-	//					&authority_set,
-	//					None,
-	//					|insert| self.inner.insert_aux(insert, []),
-	//				)
-	//				.map_err(|e| ConsensusError::ClientImport(e.to_string()))?;
-	//				let new_set =
-	//					NewAuthoritySet { canon_number: number, canon_hash: hash, set_id, authorities };
-	//				let _ = self
-	//					.send_voter_commands
-	//					.unbounded_send(VoterCommand::ChangeAuthorities(new_set));
-	//				Ok(ImportResult::Imported(aux))
-	//			},
-	//			Ok(r) => Ok(r),
+			// 				*self.authority_set.inner_locked() = authority_set.clone();
+			locked := gbi.authoritySet.inner.Locked()
+			*locked.MutRef() = authoritySet.Clone()
+			defer locked.Unlock()
+
+			//				crate::aux_schema::update_authority_set::<Block, _, _>(
+			//					&authority_set,
+			//					None,
+			//					|insert| self.inner.insert_aux(insert, []),
+			//				)
+			//				.map_err(|e| ConsensusError::ClientImport(e.to_string()))?;
+			err = updateAuthoritySet(
+				locked.Data(),
+				nil,
+				func(insertions []api.KeyValue) error {
+					return gbi.inner.InsertAux(insertions, nil)
+				},
+			)
+			if err != nil {
+				return nil, err
+			}
+			//				let new_set =
+			//					NewAuthoritySet { canon_number: number, canon_hash: hash, set_id, authorities };
+			//				let _ = self
+			//					.send_voter_commands
+			//					.unbounded_send(VoterCommand::ChangeAuthorities(new_set));
+			//				Ok(ImportResult::Imported(aux))
+			newSet := newAuthoritySet[H, N]{
+				CanonNumber: number,
+				CanonHash:   hash,
+				SetID:       grandpa.SetID(setID),
+				Authorities: authorities,
+			}
+			gbi.sendVoterCommands <- voterCommandChangeAuthorities[H, N](newSet)
+			return client_common.ImportResultImported(aux), nil
+		//			},
+		case client_common.ImportResultAlreadyInChain,
+			client_common.ImportResultKnownBad,
+			client_common.ImportResultMissingState,
+			client_common.ImportResultUnknownParent:
+			//			Ok(r) => Ok(r),
+			return importResult, nil
+		default:
+			panic("unreachable")
+		}
+
+	} else {
+		return nil, err
+	}
 	//			Err(e) => Err(ConsensusError::ClientImport(e.to_string())),
 	//		}
 	//	}
-	panic("unimpl")
+}
+
+// impl<BE, Block: BlockT, Client, SC> BlockImport<Block> for GrandpaBlockImport<BE, Block, Client, SC>
+// where
+// 	NumberFor<Block>: finality_grandpa::BlockNumberOps,
+// 	BE: Backend<Block>,
+// 	Client: ClientForGrandpa<Block, BE>,
+// 	Client::Api: GrandpaApi<Block>,
+// 	for<'a> &'a Client: BlockImport<Block, Error = ConsensusError>,
+// 	SC: Send + Sync,
+// {
+// 	type Error = ConsensusError;
+
+// async fn import_block(
+//
+//	&self,
+//	mut block: BlockImportParams<Block>,
+//
+// ) -> Result<ImportResult, Self::Error> {
+func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) importBlock(
+	block *client_common.BlockImportParams[H, N, E, Header],
+) (client_common.ImportResult, error) {
+	// 		let hash = block.post_hash();
+	// 		let number = *block.header.number();
+	hash := block.GetPostHash()
+	number := block.Header.Number()
+
+	// early exit if block already in chain, otherwise the check for
+	// authority changes will error when trying to re-import a change block
+	// 		match self.inner.status(hash) {
+	// 			Ok(BlockStatus::InChain) => {
+	// 				// Strip justifications when re-importing an existing block.
+	// 				let _justifications = block.justifications.take();
+	// 				return (&*self.inner).import_block(block).await
+	// 			},
+	// 			Ok(BlockStatus::Unknown) => {},
+	// 			Err(e) => return Err(ConsensusError::ClientImport(e.to_string())),
+	// 		}
+	status, err := gbi.inner.Status(hash)
+	if err != nil {
+		return nil, err
+	}
+	if status == blockchain.BlockStatusInChain {
+		// Strip justifications when re-importing an existing block.
+		block.Justifications = nil
+		return gbi.inner.ImportBlock(block)
+	}
+
+	// 		if block.with_state() {
+	// 			return self.import_state(block).await
+	// 		}
+	if block.WithState() {
+		return gbi.importState(block)
+	}
+
+	// 		if number <= self.inner.info().finalized_number {
+	if number <= gbi.inner.Info().FinalizedNumber {
+		// Importing an old block. Just save justifications and authority set changes
+		// 			if self.check_new_change(&block.header, hash).is_some() {
+		// 				if block.justifications.is_none() {
+		// 					return Err(ConsensusError::ClientImport(
+		// 						"Justification required when importing \
+		// 							an old block with authority set change."
+		// 							.into(),
+		// 					))
+		// 				}
+		// 				let mut authority_set = self.authority_set.inner_locked();
+		// 				authority_set.authority_set_changes.insert(number);
+		// 				crate::aux_schema::update_authority_set::<Block, _, _>(
+		// 					&authority_set,
+		// 					None,
+		// 					|insert| {
+		// 						block
+		// 							.auxiliary
+		// 							.extend(insert.iter().map(|(k, v)| (k.to_vec(), Some(v.to_vec()))))
+		// 					},
+		// 				);
+		// 			}
+		if gbi.checkNewChange(block.Header, hash) != nil {
+			if block.Justifications == nil {
+				return nil, fmt.Errorf("justification required when importing an old block with authority set change")
+			}
+			locked := gbi.authoritySet.inner.Locked()
+			authoritySet := locked.MutRef()
+			authoritySet.AuthoritySetChanges.insert(number)
+			err := updateAuthoritySet(
+				*authoritySet,
+				nil,
+				func(insertions []api.KeyValue) error {
+					converted := make([]api.AuxDataOperation, len(insertions))
+					for i, kv := range insertions {
+						converted[i] = api.AuxDataOperation{
+							Key:  kv.Key,
+							Data: kv.Value,
+						}
+					}
+					block.Auxiliary = append(block.Auxiliary, converted...)
+					return nil
+				},
+			)
+			if err != nil {
+				return nil, err
+			}
+		}
+		// 			return (&*self.inner).import_block(block).await
+		return gbi.inner.ImportBlock(block)
+	}
+
+	// on initial sync we will restrict logging under info to avoid spam.
+	// 		let initial_sync = block.origin == BlockOrigin::NetworkInitialSync;
+	initialSync := block.Origin == common.NetworkInitialSyncBlockOrigin
+
+	// 		let pending_changes = self.make_authorities_changes(&mut block, hash, initial_sync)?;
+	pendingChanges, err := gbi.makeAuthoritiesChanges(block, hash, initialSync)
+	if err != nil {
+		return nil, err
+	}
+	defer pendingChanges.drop()
+
+	// we don't want to finalize on `inner.import_block`
+	// 		let mut justifications = block.justifications.take();
+	// 		let import_result = (&*self.inner).import_block(block).await;
+	justifications := block.Justifications
+	block.Justifications = nil
+	importResult, err := gbi.inner.ImportBlock(block)
+
+	// 		let mut imported_aux = {
+	// 			match import_result {
+	// 				Ok(ImportResult::Imported(aux)) => aux,
+	// 				Ok(r) => {
+	// 					debug!(
+	// 						target: LOG_TARGET,
+	// 						"Restoring old authority set after block import result: {:?}", r,
+	// 					);
+	// 					pending_changes.revert();
+	// 					return Ok(r)
+	// 				},
+	// 				Err(e) => {
+	// 					debug!(
+	// 						target: LOG_TARGET,
+	// 						"Restoring old authority set after block import error: {}", e,
+	// 					);
+	// 					pending_changes.revert();
+	// 					return Err(ConsensusError::ClientImport(e.to_string()))
+	// 				},
+	// 			}
+	// 		};
+	if err != nil {
+		logger.Debugf("Restoring old authority set after block import error: %s", err)
+		pendingChanges.revert()
+		return nil, err
+	}
+	var importedAux client_common.ImportedAux
+	switch importResult := importResult.(type) {
+	case client_common.ImportResultImported:
+		importedAux = client_common.ImportedAux(importResult)
+	default:
+		logger.Debugf("Restoring old authority set after block import result: %v", importResult)
+		pendingChanges.revert()
+		return importResult, nil
+	}
+
+	// 		let (applied_changes, do_pause) = pending_changes.defuse();
+	appliedChanges, doPause := pendingChanges.defuse()
+
+	// Send the pause signal after import but BEFORE sending a `ChangeAuthorities` message.
+	// 		if do_pause {
+	// 			let _ = self.send_voter_commands.unbounded_send(VoterCommand::Pause(
+	// 				"Forced change scheduled after inactivity".to_string(),
+	// 			));
+	// 		}
+	if doPause {
+		gbi.sendVoterCommands <- voterCommandPause("Forced change scheduled after inactivity")
+	}
+
+	// 		let needs_justification = applied_changes.needs_justification();
+	needsJustification := appliedChanges.needsJustification()
+
+	// 		match applied_changes {
+	switch appliedChanges := appliedChanges.(type) {
+	// 	AppliedChanges::Forced(new) => {
+	case importAppliedChangesForced[H, N]:
+		// NOTE: when we do a force change we are "discrediting" the old set so we
+		// ignore any justifications from them. this block may contain a justification
+		// which should be checked and imported below against the new authority
+		// triggered by this forced change. the new grandpa voter will start at the
+		// last median finalized block (which is before the block that enacts the
+		// change), full nodes syncing the chain will not be able to successfully
+		// import justifications for those blocks since their local authority set view
+		// is still of the set before the forced change was enacted, still after #1867
+		// they should import the block and discard the justification, and they will
+		// then request a justification from sync if it's necessary (which they should
+		// then be able to successfully validate).
+		// let _ =
+		// 	self.send_voter_commands.unbounded_send(VoterCommand::ChangeAuthorities(new));
+		gbi.sendVoterCommands <- voterCommandChangeAuthorities[H, N](newAuthoritySet[H, N](appliedChanges))
+		// we must clear all pending justifications requests, presumably they won't be
+		// finalized hence why this forced changes was triggered
+		// 	imported_aux.clear_justification_requests = true;
+		importedAux.ClearJustificationRequests = true
+
+	// AppliedChanges::Standard(false) => {
+	case importAppliedChangesStandard:
+		// this is a standard change, we don't apply it yet, but we will send a
+		// we can't apply this change yet since there are other dependent changes that we
+		// need to apply first, drop any justification that might have been provided with
+		// the block to make sure we request them from `sync` which will ensure they'll be
+		// applied in-order.
+		//  justifications.take();
+		justifications = nil
+	default:
+	}
+	// 		}
+
+	// 		let grandpa_justification =
+	// 			justifications.and_then(|just| just.into_justification(GRANDPA_ENGINE_ID));
+	var grandpaJustification *runtime.EncodedJustification
+	if justifications != nil {
+		grandpaJustification = justifications.IntoJustification(grandpa.GrandpaEngineID)
+	}
+
+	// 		match grandpa_justification {
+	// 			Some(justification) => {
+	if grandpaJustification != nil {
+		// if environment::should_process_justification(
+		// 	&*self.inner,
+		// 	self.justification_import_period,
+		// 	number,
+		// 	needs_justification,
+		// ) {
+		if shouldProcessJustification(
+			gbi.inner,
+			gbi.justificationImportPeriod,
+			number,
+			needsJustification,
+		) {
+			// let import_res = self.import_justification(
+			// 	hash,
+			// 	number,
+			// 	(GRANDPA_ENGINE_ID, justification),
+			// 	needs_justification,
+			// 	initial_sync,
+			// );
+			err := gbi.importJustification(
+				hash,
+				number,
+				runtime.Justification{
+					ConsensusEngineID:    grandpa.GrandpaEngineID,
+					EncodedJustification: *grandpaJustification,
+				},
+				needsJustification,
+				initialSync,
+			)
+
+			// import_res.unwrap_or_else(|err| {
+			if err != nil {
+				// 	if needs_justification {
+				// 		debug!(
+				// 			target: LOG_TARGET,
+				// 			"Requesting justification from peers due to imported block #{} that enacts authority set change with invalid justification: {}",
+				// 			number,
+				// 			err
+				// 		);
+				// 		imported_aux.bad_justification = true;
+				// 		imported_aux.needs_justification = true;
+				// 	}
+				if needsJustification {
+					logger.Debugf("Requesting justification from peers due to imported block #%d that enacts authority set change with invalid justification: %s", number, err)
+					importedAux.BadJustification = true
+					importedAux.NeedsJustification = true
+				}
+			}
+			// });
+		} else {
+			// 					debug!(
+			// 						target: LOG_TARGET,
+			// 						"Ignoring unnecessary justification for block #{}",
+			// 						number,
+			// 					);
+			logger.Debugf("Ignoring unnecessary justification for block #%d", number)
+		}
+	} else {
+		// 			None =>
+		// if needs_justification {
+		// 	debug!(
+		// 		target: LOG_TARGET,
+		// 		"Imported unjustified block #{} that enacts authority set change, waiting for finality for enactment.",
+		// 		number,
+		// 	);
+
+		// 	imported_aux.needs_justification = true;
+		// },
+		if needsJustification {
+			logger.Debugf("Imported unjustified block #%d that enacts authority set change, waiting for finality for enactment.", number)
+			importedAux.NeedsJustification = true
+		}
+	}
+
+	// 		Ok(ImportResult::Imported(imported_aux))
+	return client_common.ImportResultImported(importedAux), nil
+}
+
+// async fn check_block(
+//
+//	&self,
+//	block: BlockCheckParams<Block>,
+//
+//	) -> Result<ImportResult, Self::Error> {
+//		self.inner.check_block(block).await
+//	}
+func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) checkBlock(
+	block client_common.BlockCheckParams[H, N],
+) (client_common.ImportResult, error) {
+	return gbi.inner.CheckBlock(block)
+}
+
+// }
+
+// impl<BE, Block: BlockT, Client, SC> GrandpaBlockImport<BE, Block, Client, SC>
+// where
+//
+//	BE: Backend<Block>,
+//	Client: ClientForGrandpa<Block, BE>,
+//	NumberFor<Block>: finality_grandpa::BlockNumberOps,
+//
+//	{
+//		/// Import a block justification and finalize the block.
+//		///
+//		/// If `enacts_change` is set to true, then finalizing this block *must*
+//		/// enact an authority set change, the function will panic otherwise.
+//		fn import_justification(
+//			&self,
+//			hash: Block::Hash,
+//			number: NumberFor<Block>,
+//			justification: Justification,
+//			enacts_change: bool,
+//			initial_sync: bool,
+//		) -> Result<(), ConsensusError> {
+func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) importJustification(
+	hash H,
+	number N,
+	justification runtime.Justification,
+	enactsChange bool,
+	initialSync bool,
+) error {
+	// 		if justification.0 != GRANDPA_ENGINE_ID {
+	if justification.ConsensusEngineID != grandpa.GrandpaEngineID {
+		// TODO: the import queue needs to be refactored to be able dispatch to the correct
+		// `JustificationImport` instance based on `ConsensusEngineId`, or we need to build a
+		// justification import pipeline similar to what we do for `BlockImport`. In the
+		// meantime we'll just drop the justification, since this is only used for BEEFY which
+		// is still WIP.
+		return nil
+	}
+
+	// 		let justification = GrandpaJustification::decode_and_verify_finalizes(
+	// 			&justification.1,
+	// 			(hash, number),
+	// 			self.authority_set.set_id(),
+	// 			&self.authority_set.current_authorities(),
+	// 		);
+	just, err := DecodeGrandpaJustificationVerifyFinalizes[H, N, Hasher, Header](
+		justification.EncodedJustification,
+		HashNumber[H, N]{Hash: hash, Number: number},
+		gbi.authoritySet.SetID(),
+		gbi.authoritySet.CurrentAuthorities(),
+	)
+
+	// 		let justification = match justification {
+	// 			Err(e) => return Err(ConsensusError::ClientImport(e.to_string())),
+	// 			Ok(justification) => justification,
+	// 		};
+	if err != nil {
+		return err
+	}
+
+	// 		let result = environment::finalize_block(
+	// 			self.inner.clone(),
+	// 			&self.authority_set,
+	// 			None,
+	// 			hash,
+	// 			number,
+	// 			justification.into(),
+	// 			initial_sync,
+	// 			Some(&self.justification_sender),
+	// 			self.telemetry.clone(),
+	// 		);
+	err = finalizeBlock(
+		gbi.inner,
+		gbi.authoritySet,
+		nil,
+		hash,
+		number,
+		justificationOrCommitJustification[H, N, Header]{just},
+		initialSync,
+		&gbi.justificationSender,
+	)
+	// 		match result {
+	if err != nil {
+		// 			Err(CommandOrError::VoterCommand(command)) => {
+		// 				grandpa_log!(
+		// 					initial_sync,
+		// 					"👴 Imported justification for block #{} that triggers \
+		// 					command {}, signaling voter.",
+		// 					number,
+		// 					command,
+		// 				);
+
+		// 				// send the command to the voter
+		// 				let _ = self.send_voter_commands.unbounded_send(command);
+		// 			},
+		_, ok := err.(voterCommand)
+		if ok {
+			l := logger.Infof
+			if initialSync {
+				l = logger.Debugf
+			}
+			l("👴 Imported justification for block #%d that triggers command %s, signaling voter.", number, err)
+
+			// send the command to the voter
+			gbi.sendVoterCommands <- err.(voterCommand)
+		} else {
+			// 			Err(CommandOrError::Error(e)) =>
+			// 				return Err(match e {
+			// 					Error::Grandpa(error) => ConsensusError::ClientImport(error.to_string()),
+			// 					Error::Network(error) => ConsensusError::ClientImport(error),
+			// 					Error::Blockchain(error) => ConsensusError::ClientImport(error),
+			// 					Error::Client(error) => ConsensusError::ClientImport(error.to_string()),
+			// 					Error::Safety(error) => ConsensusError::ClientImport(error),
+			// 					Error::Signing(error) => ConsensusError::ClientImport(error),
+			// 					Error::Timer(error) => ConsensusError::ClientImport(error.to_string()),
+			// 					Error::RuntimeApi(error) => ConsensusError::ClientImport(error.to_string()),
+			// 				}),
+			return err
+		}
+	} else {
+		// 			Ok(_) => {
+		// 				assert!(
+		// 					!enacts_change,
+		// 					"returns Ok when no authority set change should be enacted; qed;"
+		// 				);
+		// 			},
+		if enactsChange {
+			panic("returns Ok when no authority set change should be enacted; qed;")
+		}
+	}
+
+	//		Ok(())
+	//	}
+	return nil
 }

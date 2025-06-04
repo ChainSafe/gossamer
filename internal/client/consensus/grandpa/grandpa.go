@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
+	client_common "github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/keystore"
 	"github.com/ChainSafe/gossamer/internal/client/network"
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
@@ -144,8 +145,8 @@ type ClientForGrandpa[
 	api.BlockchainEvents[H, N, Header]
 	papi.ProvideRuntimeAPI[primitives.GrandpaAPI[H, N]]
 	// api.ExecutorProvider
-	// common.BlockImport[H, N, E, Header]
-	// api.StorageProvider[H, N, Hasher]
+	client_common.BlockImport[H, N, E, Header]
+	api.StorageProvider[H, N, Hasher]
 }
 
 // Something that one can ask to do a block sync request.
