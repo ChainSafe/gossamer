@@ -15,7 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
-	events "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
+	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/dot/peerset"

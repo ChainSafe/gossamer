@@ -151,7 +151,7 @@ func TestSendBackingFreshStatements(t *testing.T) {
 		}
 	})
 
-	t.Run("should_panic_when_confirmed_candidate_does_not_match", func(t *testing.T) {
+	t.Run("should_fail_when_confirmed_candidate_does_not_match", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		relayParent := common.Hash{0x01}
