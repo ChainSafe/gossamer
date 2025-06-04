@@ -7,7 +7,6 @@ import (
 	"time"
 
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
-
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
