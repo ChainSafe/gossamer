@@ -13,19 +13,18 @@ import (
 )
 
 // Something that provides a runtime api.
-type ProvideRuntimeApi[Api any] interface {
+type ProvideRuntimeAPI[API any] interface {
 	// Returns the runtime api.
-	// The returned instance will keep track of modifications to the storage. Any successful
-	// call to an api function, will `commit` its changes to an internal buffer. Otherwise,
-	// the modifications will be `discarded`. The modifications will not be applied to the
-	// storage, even on a `commit`.
-	RuntimeApi() Api
+	// The returned instance will keep track of modifications to the storage. Any successful call to an api function,
+	// will commit its changes to an internal buffer. Otherwise, the modifications will be discarded. The modifications
+	// will not be applied to the storage, even on a commit.
+	RuntimeAPI() API
 }
 
 // Something that can be constructed to a runtime api.
-type ConstructRuntimeApi[RuntimeApi any] interface {
+type ConstructRuntimeApi[RuntimeAPI any] interface {
 	// Construct an instance of the runtime api.
-	ConstructRuntimeApi() RuntimeApi
+	ConstructRuntimeAPI() RuntimeAPI
 }
 
 // A type that records all accessed trie nodes and generates a proof out of it.
@@ -39,11 +38,12 @@ type ApiExt[
 	Hasher runtime.Hasher[H],
 	Backend statemachine.Backend[H, Hasher],
 	Result any,
+	Header runtime.Header[N, H],
 ] interface {
 	// Execute the given closure inside a new transaction.
 	// Depending on the outcome of the closure, the transaction is committed or rolled-back.
 	// The internal result of the closure is returned afterwards.
-	ExecuteInTransaction(call func(api ApiExt[N, E, H, Hasher, Backend, Result]) runtime.TransactionOutcome[Result]) Result
+	ExecuteInTransaction(call func(api ApiExt[N, E, H, Hasher, Backend, Result, Header]) runtime.TransactionOutcome[Result]) Result
 	// Checks if the given api is implemented and versions match.
 	HasAPI(atHash H) (bool, error)
 	// Check if the given api is implemented and the version passes a predicate.
@@ -67,5 +67,5 @@ type ApiExt[
 	// Register an [Extension] that will be accessible while executing a runtime api call.
 	RegisterExtension(extension any)
 	// Execute the given block
-	ExecuteBlock(runtimeApiAtParam H, block runtime.Block[N, H, E]) error
+	ExecuteBlock(runtimeApiAtParam H, block runtime.Block[H, N, E, Header]) error
 }

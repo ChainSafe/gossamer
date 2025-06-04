@@ -21,10 +21,18 @@ type Prefix struct {
 // Can be use when the prefix is not used internally or for root nodes.
 var EmptyPrefix = Prefix{}
 
+type Hash interface {
+	constraints.Ordered
+	// Bytes returns a byte slice representation of Hash
+	Bytes() []byte
+	// Length return the byte length of the hash
+	Length() int
+}
+
 // Hasher is an interface describing an object that can hash a slice of bytes. Used to abstract
 // other types over the hashing algorithm. Defines a single hash method and an
 // Out associated type with the necessary bounds.
-type Hasher[Out constraints.Ordered] interface {
+type Hasher[Out Hash] interface {
 	// Compute the hash of the provided slice of bytes returning the Out type of the Hasher.
 	Hash(x []byte) Out
 }

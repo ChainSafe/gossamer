@@ -3,14 +3,30 @@
 package triedb
 
 import (
+	"math"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hasher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type (
+	// substrate trie layout
+	layoutV0 struct{}
+	// substrate trie layout, with external value nodes.
+	layoutV1 struct{}
+)
+
+func (l layoutV0) MaxInlineValue() int {
+	return math.MaxInt
+}
+func (l layoutV1) MaxInlineValue() int {
+	return 32
+}
+
+var layout = layoutV1{}
 
 func Test_TrieDBRawIterator(t *testing.T) {
 	entries := map[string][]byte{
@@ -26,8 +42,7 @@ func Test_TrieDBRawIterator(t *testing.T) {
 	}
 
 	db := NewMemoryDB()
-	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
-	trieDB.SetVersion(trie.V1)
+	trieDB := NewEmptyTrieDB[hash.H256, hasher.Blake2Hasher](db, layout)
 
 	for k, v := range entries {
 		err := trieDB.Set([]byte(k), v)
@@ -181,8 +196,7 @@ func TestTrieDBIterator(t *testing.T) {
 	}
 
 	db := NewMemoryDB()
-	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
-	trieDB.SetVersion(trie.V1)
+	trieDB := NewEmptyTrieDB[hash.H256, hasher.Blake2Hasher](db, layout)
 
 	for k, v := range entries {
 		err := trieDB.Set([]byte(k), v)
@@ -279,8 +293,7 @@ func TestTrieDBKeyIterator(t *testing.T) {
 	}
 
 	db := NewMemoryDB()
-	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
-	trieDB.SetVersion(trie.V1)
+	trieDB := NewEmptyTrieDB[hash.H256, hasher.Blake2Hasher](db, layout)
 
 	for k, v := range entries {
 		err := trieDB.Set([]byte(k), v)

@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/externalities"
+	"github.com/ChainSafe/gossamer/internal/primitives/kv"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
@@ -17,8 +18,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/ChainSafe/gossamer/pkg/trie/db"
-	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/tidwall/btree"
 )
 
@@ -211,15 +210,11 @@ func (be *BasicExternalities) StorageAppend(key []byte, value []byte) {
 }
 
 func (be *BasicExternalities) StorageRoot(stateVersion storage.StateVersion) []byte {
-	memDB := db.NewEmptyMemoryDB()
-	storageTrie := inmemory.NewTrie(nil, memDB)
+	var top btree.Map[string, []byte]
 
 	for k, v := range be.overlay.Changes() {
 		if v.Value() != nil {
-			err := storageTrie.Put([]byte(k), []byte(v.Value()))
-			if err != nil {
-				panic("error building trie to calculate storage root")
-			}
+			top.Set(string(k), v.Value())
 		}
 	}
 
@@ -230,19 +225,28 @@ func (be *BasicExternalities) StorageRoot(stateVersion storage.StateVersion) []b
 
 	for _, childInfo := range be.overlay.Children() {
 		childRoot := be.ChildStorageRoot(childInfo, stateVersion)
-		var err error
 		if bytes.Equal(emptyHash.Bytes(), childRoot) {
-			err = storageTrie.Delete(childInfo.PrefixedStorageKey())
+			top.Delete(string(childInfo.PrefixedStorageKey()))
 		} else {
-			err = storageTrie.Put(childInfo.PrefixedStorageKey(), childRoot)
-		}
-
-		if err != nil {
-			panic("unexpected error updating child trie key")
+			top.Set(string(childInfo.PrefixedStorageKey()), childRoot)
 		}
 	}
 
-	return stateVersion.TrieLayout().MustHash(storageTrie).ToBytes()
+	topKVs := make([]kv.KeyValue, 0, top.Len())
+	keys, values := top.KeyValues()
+	for i, key := range keys {
+		value := values[i]
+		topKVs = append(topKVs, kv.KeyValue{Key: []byte(key), Value: value})
+	}
+
+	switch stateVersion {
+	case storage.StateVersionV0:
+		return trie.LayoutV0[runtime.BlakeTwo256, hash.H256]{}.TrieRoot(topKVs).Bytes()
+	case storage.StateVersionV1:
+		return trie.LayoutV1[runtime.BlakeTwo256, hash.H256]{}.TrieRoot(topKVs).Bytes()
+	default:
+		panic("unreachable")
+	}
 }
 
 func (be *BasicExternalities) ChildStorageRoot(

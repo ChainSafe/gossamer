@@ -9,7 +9,6 @@ import (
 	"slices"
 
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
-	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
@@ -29,7 +28,7 @@ type TrieLookup[H hash.Hash, Hasher hash.Hasher[H], QueryItem any] struct {
 	// optional recorder for recording trie accesses
 	recorder TrieRecorder
 	// layout for the trie
-	layout trie.TrieLayout
+	layout TrieLayout
 	// query function
 	query Query[QueryItem]
 }
@@ -40,6 +39,7 @@ func NewTrieLookup[H hash.Hash, Hasher hash.Hasher[H], QueryItem any](
 	hash H,
 	cache TrieCache[H],
 	recorder TrieRecorder,
+	layout TrieLayout,
 	query Query[QueryItem],
 ) TrieLookup[H, Hasher, QueryItem] {
 	return TrieLookup[H, Hasher, QueryItem]{
@@ -47,6 +47,7 @@ func NewTrieLookup[H hash.Hash, Hasher hash.Hasher[H], QueryItem any](
 		hash:     hash,
 		cache:    cache,
 		recorder: recorder,
+		layout:   layout,
 		query:    query,
 	}
 }

@@ -415,22 +415,22 @@ func mapDigest(t *testing.T, digest types.Digest) runtime.Digest {
 
 		switch v := value.(type) {
 		case types.PreRuntimeDigest:
-			newDigest.Push(runtime.NewDigestItem(runtime.PreRuntime{
+			newDigest.Push(runtime.DigestItemPreRuntime{
 				ConsensusEngineID: runtime.ConsensusEngineID(v.ConsensusEngineID),
 				Bytes:             v.Data,
-			}))
+			})
 		case types.ConsensusDigest:
-			newDigest.Push(runtime.NewDigestItem(runtime.Consensus{
+			runtime.NewDigestItemVDT(runtime.DigestItemConsensus{
 				ConsensusEngineID: runtime.ConsensusEngineID(v.ConsensusEngineID),
 				Bytes:             v.Data,
-			}))
+			})
 		case types.SealDigest:
-			newDigest.Push(runtime.NewDigestItem(runtime.Seal{
+			runtime.NewDigestItemVDT(runtime.DigestItemSeal{
 				ConsensusEngineID: runtime.ConsensusEngineID(v.ConsensusEngineID),
 				Bytes:             v.Data,
-			}))
+			})
 		case types.RuntimeEnvironmentUpdated:
-			newDigest.Push(runtime.NewDigestItem(runtime.RuntimeEnvironmentUpdated{}))
+			runtime.NewDigestItemVDT(runtime.DigestItemRuntimeEnvironmentUpdated{})
 		}
 	}
 
