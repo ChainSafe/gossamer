@@ -26,8 +26,6 @@ var (
 	errEmptyGroup                    = errors.New("group of validators empty")
 )
 
-var errEncodedStatementsMismatch = errors.New("encoded statements does not match")
-
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-statement-distribution"))
 
 type StatementDistribution struct {
