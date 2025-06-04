@@ -311,26 +311,26 @@ func (gs *GossipSupport) processMessage(msg any) error {
 
 func (gs *GossipSupport) processPeerConnectedEvent(event networkbridgeevents.PeerConnected) {
 	authorityIDs := event.AuthorityDiscoveryIDs
-	peerID := event.PeerID
+	peerID := parachaintypes.PeerID(event.PeerID)
 
 	if authorityIDs != nil {
 		for _, authID := range *authorityIDs {
-			gs.connectedAuthorities[authID] = parachaintypes.PeerID(peerID)
+			gs.connectedAuthorities[authID] = peerID
 
-			gs.connectedPeers[parachaintypes.PeerID(peerID)] = map[parachaintypes.AuthorityDiscoveryID]struct{}{
+			gs.connectedPeers[peerID] = map[parachaintypes.AuthorityDiscoveryID]struct{}{
 				authID: {},
 			}
 		}
 	} else {
-		gs.connectedPeers[parachaintypes.PeerID(peerID)] = map[parachaintypes.AuthorityDiscoveryID]struct{}{}
+		gs.connectedPeers[peerID] = map[parachaintypes.AuthorityDiscoveryID]struct{}{}
 	}
 }
 
 func (gs *GossipSupport) processPeerDisconnectedEvent(event networkbridgeevents.PeerDisconnected) {
-	peerID := event.PeerID
+	peerID := parachaintypes.PeerID(event.PeerID)
 
-	if authID, ok := gs.connectedPeers[parachaintypes.PeerID(peerID)]; ok {
-		delete(gs.connectedPeers, parachaintypes.PeerID(peerID))
+	if authID, ok := gs.connectedPeers[peerID]; ok {
+		delete(gs.connectedPeers, peerID)
 
 		for id := range authID {
 			delete(gs.connectedAuthorities, id)
