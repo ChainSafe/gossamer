@@ -5,8 +5,10 @@ package gossipsupport
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"math"
+	"math/big"
 	"reflect"
 	"time"
 
@@ -171,9 +173,8 @@ func (gs *GossipSupport) ProcessActiveLeavesUpdateSignal(signal parachaintypes.A
 
 	if maybeIssueConnection != nil {
 		sessionIndex := maybeIssueConnection.currentIndex
-		relayParent := maybeIssueConnection.Leaf
 		isNewSession := maybeNewSession != nil
-		err = gs.issueConnectionHelper(rt, forceRequest, sessionIndex, relayParent, isNewSession)
+		err = gs.issueConnectionHelper(rt, forceRequest, sessionIndex, isNewSession)
 		if err != nil {
 			return err
 		}
@@ -186,7 +187,6 @@ func (gs *GossipSupport) issueConnectionHelper(
 	rt runtime.Instance,
 	forceRequest bool,
 	sessionIndex parachaintypes.SessionIndex,
-	relayParent common.Hash,
 	isNewSession bool,
 ) error {
 	sessionInfo, err := rt.ParachainHostSessionInfo(sessionIndex)
@@ -239,7 +239,7 @@ func (gs *GossipSupport) issueConnectionHelper(
 			logger.Warnf("failed to get our index for session %d, %s", sessionIndex, err.Error())
 			return err
 		}
-		err = gs.updateGossipTopology(ourIndex, relayParent)
+		err = gs.updateGossipTopology(ourIndex, sessionInfo.DiscoveryKeys, sessionIndex)
 		if err != nil {
 			return err
 		}
@@ -404,7 +404,7 @@ func (gs *GossipSupport) buildTopologyForLastFinalizedIfNeeded(
 				return err
 			}
 
-			err = gs.updateGossipTopology(ourIndex, finalizedBlock.Hash())
+			err = gs.updateGossipTopology(ourIndex, finalizedSessionInfo.DiscoveryKeys, finalizedSessionIndex)
 			if err != nil {
 				return err
 			}
@@ -441,8 +441,45 @@ func (gs *GossipSupport) getKeyIndexAndUpdateMetrics(SessionInfo *parachaintypes
 	return authCheckResult, nil
 }
 
-func (*GossipSupport) updateGossipTopology(_ourIndex uint, _relayParent common.Hash) error {
-	// TODO implement in #4510
+// updateGossipTopology shuffles the list of AuthorityDiscoveryID with ValidatorIndex randomly and send a
+// networkbridgemessages.NewGossipTopology to overseer
+func (gs *GossipSupport) updateGossipTopology(
+	ourIndex uint,
+	authorities []parachaintypes.AuthorityDiscoveryID,
+	sessionIndex parachaintypes.SessionIndex,
+) error {
+	authLen := len(authorities)
+	canonicalShuffling := make([]networkbridgeevents.CanonicalShuffling, authLen)
+	shuffledIndices := make([]uint8, authLen)
+
+	for i, a := range authorities {
+		canonicalShuffling[i] = networkbridgeevents.CanonicalShuffling{AuthorityDiscoveryID: a,
+			ValidatorIndex: parachaintypes.ValidatorIndex(i)}
+	}
+
+	// Fisher-Yates shuffle
+	for i := authLen - 1; i > 0; i-- {
+		jb, err := rand.Int(rand.Reader, big.NewInt(int64(i+1)))
+		if err != nil {
+			return err
+		}
+		j := int(jb.Int64())
+		canonicalShuffling[i], canonicalShuffling[j] = canonicalShuffling[j], canonicalShuffling[i]
+	}
+
+	for i, pair := range canonicalShuffling {
+		shuffledIndices[int(pair.ValidatorIndex)] = uint8(i)
+	}
+
+	localIndex := parachaintypes.ValidatorIndex(ourIndex)
+
+	gs.subSystemToOverseer <- networkbridgemessages.NewGossipTopology{
+		Session:            sessionIndex,
+		LocalIndex:         &localIndex,
+		CanonicalShuffling: canonicalShuffling,
+		ShuffledIndices:    shuffledIndices,
+	}
+
 	return nil
 }
 
