@@ -34,6 +34,7 @@ type statementStore interface {
 		*parachaintypes.StatementFilter) []parachaintypes.SignedStatement
 }
 
+// skipcq:SCC-U1000
 type perRelayParentState struct {
 	localValidator       *localValidatorStore
 	statementStore       statementStore // TODO #4719: Create statement store
@@ -66,9 +67,10 @@ func (p *perRelayParentState) disableBitmask(group []parachaintypes.ValidatorInd
 
 type localValidatorStore struct {
 	gridTracker *gridTracker
-	active      *activeValidatorState
+	active      *activeValidatorState // skipcq:SCC-U1000
 }
 
+// skipcq:SCC-U1000
 type activeValidatorState struct {
 	index          parachaintypes.ValidatorIndex
 	groupIndex     parachaintypes.GroupIndex
@@ -76,6 +78,7 @@ type activeValidatorState struct {
 	clusterTracker any // TODO: use cluster tracker implementation (#4713)
 }
 
+// skipcq:SCC-U1000
 type perSessionState struct {
 	sessionInfo parachaintypes.SessionInfo
 	groups      *groups
@@ -87,6 +90,7 @@ type perSessionState struct {
 	allowV2Descriptors bool
 }
 
+// skipcq:SCC-U1000
 func newPerSessionState(sessionInfo parachaintypes.SessionInfo,
 	keystore keystore.Keystore,
 	backingThreshold uint32,
@@ -117,6 +121,7 @@ func newPerSessionState(sessionInfo parachaintypes.SessionInfo,
 // Note: we use the local index rather than the `perSessionState.localValidator` as the
 // former may be not nil when the latter is nil, due to the set of nodes in
 // discovery being a superset of the active validators for consensus.
+// skipcq:SCC-U1000
 func (s *perSessionState) supplyTopology(topology *grid.SessionGridTopology, localIdx *parachaintypes.ValidatorIndex) {
 	// TODO #4373: implement once buildSessionTopology is done
 	// gridView := buildSessionTopology(
@@ -133,9 +138,10 @@ func (s *perSessionState) supplyTopology(topology *grid.SessionGridTopology, loc
 		localIdx, s.localValidator)
 }
 
+// skipcq:SCC-U1000
 type peerState struct {
 	view            parachaintypes.View
-	protocolVersion validationprotocol.ValidationVersion
+	protocolVersion validationprotocol.ValidationVersion // skipcq:SCC-U1000
 	implicitView    map[common.Hash]struct{}
 	discoveryIds    *map[parachaintypes.AuthorityDiscoveryID]struct{}
 }
