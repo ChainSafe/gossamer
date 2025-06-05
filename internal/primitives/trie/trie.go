@@ -4,6 +4,7 @@
 package trie
 
 import (
+	"bytes"
 	"math"
 	"slices"
 
@@ -26,20 +27,20 @@ type (
 	LayoutV1[Hasher hashdb.Hasher[H], H hashdb.Hash] struct{}
 )
 
-func (l LayoutV0[Hasher, H]) MaxInlineValue() int {
+func (LayoutV0[Hasher, H]) MaxInlineValue() int {
 	return math.MaxInt
 }
-func (l LayoutV1[Hasher, H]) MaxInlineValue() int {
+func (LayoutV1[Hasher, H]) MaxInlineValue() int {
 	return 32
 }
 
-func (l LayoutV0[Hasher, H]) TrieRoot(input []kv.KeyValue) H {
+func (LayoutV0[Hasher, H]) TrieRoot(input []kv.KeyValue) H {
 	return trieroot.TrieRoot[Hasher, H](input, nil, NewTrieStream[Hasher, H]())
 }
 
-func (l LayoutV1[Hasher, H]) TrieRoot(input []kv.KeyValue) H {
-	max := uint32(32)
-	return trieroot.TrieRoot[Hasher, H](input, &max, NewTrieStream[Hasher, H]())
+func (LayoutV1[Hasher, H]) TrieRoot(input []kv.KeyValue) H {
+	threshold := uint32(32)
+	return trieroot.TrieRoot[Hasher, H](input, &threshold, NewTrieStream[Hasher, H]())
 }
 
 // PrefixedMemoryDB is reexport from [memorydb.MemoryDB] where supplied [memorydb.KeyFunction] is [memorydb.PrefixedKey]
@@ -91,7 +92,7 @@ func DeltaTrieRoot[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	slices.SortStableFunc(delta, func(a KeyValue, b KeyValue) int {
 		if string(a.Key) < string(b.Key) {
 			return -1
-		} else if string(a.Key) == string(b.Key) {
+		} else if bytes.Equal(a.Key, b.Key) {
 			return 0
 		} else {
 			return 1

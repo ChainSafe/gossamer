@@ -15,7 +15,7 @@ type TrieStream[Hasher hashdb.Hasher[H], H hashdb.Hash] struct {
 	buffer []byte
 }
 
-func (ts *TrieStream[Hasher, H]) New() trieroot.TrieStream {
+func (*TrieStream[Hasher, H]) New() trieroot.TrieStream {
 	return NewTrieStream[Hasher, H]()
 }
 func NewTrieStream[Hasher hashdb.Hasher[H], H hashdb.Hash]() *TrieStream[Hasher, H] {
@@ -84,7 +84,7 @@ func (ts *TrieStream[Hasher, H]) BeginBranch(maybePartial []byte, maybeValue tri
 	}
 }
 
-func (ts *TrieStream[Hasher, H]) AppendExtension(key []byte) {
+func (*TrieStream[Hasher, H]) AppendExtension(key []byte) {
 	panic("trie stream codec only for no extension trie")
 }
 
@@ -102,8 +102,8 @@ func (ts *TrieStream[Hasher, H]) Out() []byte {
 	return ts.buffer
 }
 
-func (ts *TrieStream[Hasher, H]) AppendEmptyChild()              {}
-func (ts *TrieStream[Hasher, H]) EndBranch(value trieroot.Value) {}
+func (*TrieStream[Hasher, H]) AppendEmptyChild()              {}
+func (*TrieStream[Hasher, H]) EndBranch(value trieroot.Value) {}
 
 func branchNodeBitMask(hasChildren []bool) (uint8, uint8) {
 	var (

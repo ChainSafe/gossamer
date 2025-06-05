@@ -70,7 +70,7 @@ func (mvdt DigestItemVDT) Value() (value any, err error) {
 	return
 }
 
-func (mvdt DigestItemVDT) ValueAt(index uint) (value any, err error) {
+func (DigestItemVDT) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 0:
 		return DigestItemOther{}, nil

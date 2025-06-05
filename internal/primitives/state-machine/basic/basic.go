@@ -77,7 +77,7 @@ func (be *BasicExternalities) intoStorages() storage.Storage {
 	}
 }
 
-func (be *BasicExternalities) SetOffchainStorage(key []byte, value []byte) {}
+func (*BasicExternalities) SetOffchainStorage(key []byte, value []byte) {}
 
 func (be *BasicExternalities) Storage(key []byte) []byte {
 	if value, ok := be.overlay.Storage(key); ok {
@@ -284,10 +284,10 @@ func (be *BasicExternalities) StorageCommitTransaction() error {
 	return be.overlay.CommitTransaction()
 }
 
-func (be *BasicExternalities) StorageIndexTransaction(index uint32, hash []byte, size uint32) {
+func (*BasicExternalities) StorageIndexTransaction(index uint32, hash []byte, size uint32) {
 	panic("not implemented StorageIndexTransaction")
 }
 
-func (be *BasicExternalities) StorageRenewTransactionIndex(index uint32, hash []byte) {
+func (*BasicExternalities) StorageRenewTransactionIndex(index uint32, hash []byte) {
 	panic("not implemented StorageRenewTransactionIndex")
 }

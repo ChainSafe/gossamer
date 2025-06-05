@@ -73,7 +73,7 @@ func (mvdt DigestItem) Value() (value any, err error) {
 	return
 }
 
-func (mvdt DigestItem) ValueAt(index uint) (value any, err error) {
+func (DigestItem) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 6:
 		return PreRuntimeDigest{}, nil

@@ -468,7 +468,7 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildClosestMerkleValue(
 
 // Create a raw iterator over the storage.
 func (tbe *trieBackendEssence[H, Hasher]) RawIter(args IterArgs) (*rawIter[H, Hasher], error) {
-	var root H = tbe.root
+	root := tbe.root
 	if args.ChildInfo != nil {
 		childRoot, err := tbe.childRoot(args.ChildInfo)
 		if err != nil {
@@ -611,15 +611,15 @@ func (tbe *trieBackendEssence[H, Hasher]) Contains(key H, prefix hashdb.Prefix) 
 	return tbe.Get(key, prefix) != nil
 }
 
-func (tbe *trieBackendEssence[H, Hasher]) Insert(prefix hashdb.Prefix, value []byte) H {
+func (*trieBackendEssence[H, Hasher]) Insert(prefix hashdb.Prefix, value []byte) H {
 	panic("unimplemented")
 }
 
-func (tbe *trieBackendEssence[H, Hasher]) Emplace(key H, prefix hashdb.Prefix, value []byte) {
+func (*trieBackendEssence[H, Hasher]) Emplace(key H, prefix hashdb.Prefix, value []byte) {
 	panic("unimplemented")
 }
 
-func (tbe *trieBackendEssence[H, Hasher]) Remove(key H, prefix hashdb.Prefix) {
+func (*trieBackendEssence[H, Hasher]) Remove(key H, prefix hashdb.Prefix) {
 	panic("unimplemented")
 }
 

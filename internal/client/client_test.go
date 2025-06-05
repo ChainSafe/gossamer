@@ -67,7 +67,7 @@ var (
 
 type TestExecutor struct{}
 
-func (e *TestExecutor) Call(
+func (*TestExecutor) Call(
 	ext externalities.Externalities,
 	runtimeCode core.RuntimeCode,
 	method string,
@@ -77,7 +77,7 @@ func (e *TestExecutor) Call(
 	panic("not implemented")
 }
 
-func (e *TestExecutor) RuntimeVersion(
+func (*TestExecutor) RuntimeVersion(
 	externalities externalities.Externalities,
 	runtimeCode core.RuntimeCode,
 ) (version.RuntimeVersion, error) {
@@ -91,7 +91,7 @@ func NewTestExecutor(t *testing.T) Executor {
 
 type RuntimeConstructor struct{}
 
-func (e *RuntimeConstructor) ConstructRuntimeAPI() primitives_api.ApiExt[
+func (*RuntimeConstructor) ConstructRuntimeAPI() primitives_api.ApiExt[
 	uint64,
 	runtime.OpaqueExtrinsic,
 	hash.H256,

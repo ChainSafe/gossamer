@@ -5,7 +5,6 @@ package warpsync
 
 import (
 	"errors"
-	"log"
 	"math/rand"
 	"slices"
 	"testing"
@@ -43,7 +42,7 @@ func TestDecodeWarpSyncProof(t *testing.T) {
 	// Generated using substrate
 	expected := common.MustHexToBytes(warpSyncProofs.SubstrateWarpSyncProof1)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 
 	var proof WarpSyncProof

@@ -19,10 +19,10 @@ type (
 	layoutV1 struct{}
 )
 
-func (l layoutV0) MaxInlineValue() int {
+func (layoutV0) MaxInlineValue() int {
 	return math.MaxInt
 }
-func (l layoutV1) MaxInlineValue() int {
+func (layoutV1) MaxInlineValue() int {
 	return 32
 }
 

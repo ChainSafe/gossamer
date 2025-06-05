@@ -64,9 +64,7 @@ func TestTrieBackendEssence(t *testing.T) {
 			require.Equal(t, root1.Bytes(), val)
 		}
 
-		essence1 := newTrieBackendEssence[hash.H256, runtime.BlakeTwo256](
-			HashDBTrieBackendStorage[hash.H256]{mdb}, root1, nil, nil)
-		tb1 := TrieBackend[hash.H256, runtime.BlakeTwo256]{essence: essence1} //nolint:govet
+		tb1 := NewTrieBackend[hash.H256, runtime.BlakeTwo256](HashDBTrieBackendStorage[hash.H256]{mdb}, root1, nil, nil)
 
 		key, err := tb1.NextStorageKey([]byte("2"))
 		require.NoError(t, err)

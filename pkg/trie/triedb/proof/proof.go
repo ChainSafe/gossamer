@@ -55,7 +55,7 @@ func NewMerkleProof[H hash.Hash, Hasher hash.Hasher[H]](
 			nextEntry := stack.At(i)
 			nextRecord := recordedNodes.Peek()
 
-			if nextRecord == nil || !bytes.Equal(nextEntry.nodeHash[:], nextRecord.Hash.Bytes()) {
+			if nextRecord == nil || !bytes.Equal(nextEntry.nodeHash, nextRecord.Hash.Bytes()) {
 				break
 			}
 

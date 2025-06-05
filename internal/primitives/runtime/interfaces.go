@@ -62,11 +62,11 @@ func (bt256 BlakeTwo256) HashEncoded(s any) hash.H256 {
 	return bt256.Hash(bytes)
 }
 
-func (bt256 BlakeTwo256) NewHash(data []byte) hash.H256 {
+func (BlakeTwo256) NewHash(data []byte) hash.H256 {
 	return hash.H256(data)
 }
 
-func (bt256 BlakeTwo256) TrieRoot(input []KeyValue, stateVersion storage.StateVersion) hash.H256 {
+func (BlakeTwo256) TrieRoot(input []KeyValue, stateVersion storage.StateVersion) hash.H256 {
 	return trie.BlakeTwo256Root(input, stateVersion)
 }
 

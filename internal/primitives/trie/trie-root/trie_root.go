@@ -114,8 +114,7 @@ func TrieRoot[Hasher hashdb.Hasher[H], H hashdb.Hash](
 	lens = append(lens, 0)
 	for _, kv := range input {
 		for _, b := range kv.Key {
-			nibbles = append(nibbles, b>>4)
-			nibbles = append(nibbles, b&0x0F)
+			nibbles = append(nibbles, b>>4, b&0x0F)
 		}
 		lens = append(lens, uint(len(nibbles)))
 	}

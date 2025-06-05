@@ -153,7 +153,7 @@ func Test_Decode(t *testing.T) {
 func Test_decodeBranch(t *testing.T) {
 	t.Parallel()
 
-	var childHash hash.H256 = hasher.Blake2Hasher{}.Hash([]byte{0})
+	childHash := hasher.Blake2Hasher{}.Hash([]byte{0})
 	scaleEncodedChildHash := scaleEncodeByteSlice(t, childHash.Bytes())
 
 	testCases := map[string]struct {

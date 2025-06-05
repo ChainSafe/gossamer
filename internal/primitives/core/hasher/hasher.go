@@ -10,7 +10,7 @@ import (
 
 type Blake2Hasher struct{}
 
-func (bt256 Blake2Hasher) Hash(s []byte) hash.H256 {
+func (Blake2Hasher) Hash(s []byte) hash.H256 {
 	h := hashing.BlakeTwo256(s)
 	return hash.H256(h[:])
 }
