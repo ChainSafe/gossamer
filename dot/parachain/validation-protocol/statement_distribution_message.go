@@ -40,7 +40,7 @@ type BackedCandidateManifest struct {
 	// necessary to represent the number of validators in the assigned
 	// backing group as-of the relay-parent.
 	// TODO: make statement filter public and encodable/decodable
-	StatementKnwoledge parachaintypes.StatementFilter
+	StatementKnowledge parachaintypes.StatementFilter
 }
 
 // An acknowledgement of a backed candidate being known.
@@ -55,7 +55,7 @@ type BackedCandidateKnown struct {
 	// necessary to represent the number of validators in the assigned
 	// backing group as-of the relay-parent.
 	// TODO: make statement filter public and encodable/decodable
-	StatementKnwoledge parachaintypes.StatementFilter
+	StatementKnowledge parachaintypes.StatementFilter
 }
 
 type StatementDistributionMessageValues interface {

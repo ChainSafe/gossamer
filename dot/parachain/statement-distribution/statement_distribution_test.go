@@ -196,7 +196,7 @@ func TestSendBackingFreshStatements(t *testing.T) {
 			sessionState,
 		)
 
-		require.ErrorIs(t, err, errEncodedStatementsDoesNotMatch)
+		require.ErrorIs(t, err, errEncodedStatementsDoNotMatch)
 	})
 }
 
@@ -347,7 +347,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		require.Equal(t, 1, len(overseer))
+		require.Len(t, overseer, 1)
 		outgoingMessage := <-overseer
 
 		// building the validation protocol exepected message
@@ -357,7 +357,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 			GroupIndex:         parachaintypes.GroupIndex(1),
 			ParaID:             parachaintypes.ParaID(10),
 			ParentHeadDataHash: common.Hash(bytes.Repeat([]byte{0xbc}, 32)),
-			StatementKnwoledge: *f,
+			StatementKnowledge: *f,
 		}
 
 		sdm := validationprotocol.NewStatementDistributionMessage()
@@ -476,12 +476,12 @@ func TestSendPendingGridMessages(t *testing.T) {
 			GroupIndex:         parachaintypes.GroupIndex(1),
 			ParaID:             parachaintypes.ParaID(10),
 			ParentHeadDataHash: common.Hash(bytes.Repeat([]byte{0xbc}, 32)),
-			StatementKnwoledge: *fstKnowledge,
+			StatementKnowledge: *fstKnowledge,
 		}
 
 		ack := validationprotocol.BackedCandidateKnown{
 			CandidateHash:      parachaintypes.CandidateHash{Value: common.Hash{0xab}},
-			StatementKnwoledge: *sndKnowledge,
+			StatementKnowledge: *sndKnowledge,
 		}
 
 		manifestSDM := validationprotocol.NewStatementDistributionMessage()

@@ -42,8 +42,6 @@ func (d *EncodableCompactStatement) UnmarshalSCALE(reader io.Reader) error {
 		return err
 	}
 
-	fmt.Println(magicBytes)
-
 	if !bytes.Equal(magicBytes[:], backingStatementMagic[:]) {
 		return fmt.Errorf("invalid magic bytes")
 	}
@@ -59,7 +57,6 @@ func (d *EncodableCompactStatement) UnmarshalSCALE(reader io.Reader) error {
 }
 
 func (d EncodableCompactStatement) MarshalSCALE() ([]byte, error) {
-	fmt.Println("called marshal SCALE on Encodable...")
 	buffer := bytes.NewBuffer(backingStatementMagic[:])
 	encoder := scale.NewEncoder(buffer)
 

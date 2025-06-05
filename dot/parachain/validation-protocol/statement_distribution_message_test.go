@@ -70,12 +70,12 @@ func TestStatementDistributionMessage(t *testing.T) {
 		GroupIndex:         parachaintypes.GroupIndex(0),
 		ParaID:             parachaintypes.ParaID(0),
 		ParentHeadDataHash: common.Hash(bytes.Repeat([]byte{10}, 32)),
-		StatementKnwoledge: *stmtFilter,
+		StatementKnowledge: *stmtFilter,
 	}
 
 	candidateKnown := BackedCandidateKnown{
 		CandidateHash:      parachaintypes.CandidateHash{Value: common.Hash(bytes.Repeat([]byte{15}, 32))},
-		StatementKnwoledge: *stmtFilter,
+		StatementKnowledge: *stmtFilter,
 	}
 
 	testCases := []struct {

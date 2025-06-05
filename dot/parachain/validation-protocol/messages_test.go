@@ -165,7 +165,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 		GroupIndex:         parachaintypes.GroupIndex(0),
 		ParaID:             parachaintypes.ParaID(0),
 		ParentHeadDataHash: common.Hash(bytes.Repeat([]byte{10}, 32)),
-		StatementKnwoledge: *stmtFilter,
+		StatementKnowledge: *stmtFilter,
 	}
 
 	sdm = NewStatementDistributionMessage()
@@ -198,7 +198,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 
 	candidateKnown := BackedCandidateKnown{
 		CandidateHash:      parachaintypes.CandidateHash{Value: common.Hash(bytes.Repeat([]byte{15}, 32))},
-		StatementKnwoledge: *stmtFilter,
+		StatementKnowledge: *stmtFilter,
 	}
 
 	sdm = NewStatementDistributionMessage()

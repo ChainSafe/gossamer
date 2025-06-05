@@ -21,9 +21,9 @@ import (
 )
 
 var (
-	errEncodedStatementsDoesNotMatch = errors.New("encoded statements does not match")
-	errUnkownLocalValidator          = errors.New("unknown local validator")
-	errEmptyGroup                    = errors.New("group of validators empty")
+	errEncodedStatementsDoNotMatch = errors.New("encoded statements do not match")
+	errUnkownLocalValidator        = errors.New("unknown local validator")
+	errEmptyGroup                  = errors.New("group of validators empty")
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-statement-distribution"))
@@ -146,7 +146,7 @@ func (s *StatementDistribution) sendPendingGridMessages(
 				GroupIndex:         groupIndex,
 				ParaID:             confirmed.receipt.Descriptor.ParaID,
 				ParentHeadDataHash: confirmed.parentHash,
-				StatementKnwoledge: *localKnowledge,
+				StatementKnowledge: *localKnowledge,
 			}
 
 			grid := rpState.localValidator.gridTracker
@@ -317,7 +317,7 @@ func compareAndConvert(
 	}
 
 	if !bytes.Equal(expectedCompactEncoded, encodedCompact) {
-		return nil, fmt.Errorf("%w: %v !=  %v", errEncodedStatementsDoesNotMatch, expectedCompactEncoded, encodedCompact)
+		return nil, fmt.Errorf("%w: %v !=  %v", errEncodedStatementsDoNotMatch, expectedCompactEncoded, encodedCompact)
 	}
 
 	uncheckedFreshStmt := parachaintypes.UncheckedSignedCompactStatement(original)
@@ -370,7 +370,7 @@ func acknowledgementAndStatementMessages(
 		ack := validationprotocol.NewStatementDistributionMessage()
 		err := ack.SetValue(validationprotocol.BackedCandidateKnown{
 			CandidateHash:      candidateHash,
-			StatementKnwoledge: localKnowledge,
+			StatementKnowledge: localKnowledge,
 		})
 		if err != nil {
 			panic(fmt.Sprintf("failed while defining enum variant: %s", err.Error()))
