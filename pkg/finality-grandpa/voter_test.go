@@ -87,7 +87,7 @@ func TestVoter_FinalizingAtFaultThreshold(t *testing.T) {
 		voter := NewVoter[string, uint32, Signature, ID](
 			&env,
 			*voters,
-			make(chan globalInItem[string, uint32, Signature, ID]),
+			make(chan GlobalInItem[string, uint32, Signature, ID]),
 			func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 			0,
 			nil,
@@ -143,7 +143,7 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 		voter := NewVoter[string, uint32, Signature, ID](
 			&env,
 			*voterSet,
-			make(chan globalInItem[string, uint32, Signature, ID]),
+			make(chan GlobalInItem[string, uint32, Signature, ID]),
 			func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 			0,
 			nil,
@@ -229,7 +229,7 @@ func TestVoter_BroadcastCommit(t *testing.T) {
 	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
-		make(chan globalInItem[string, uint32, Signature, ID]),
+		make(chan GlobalInItem[string, uint32, Signature, ID]),
 		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		0,
 		nil,

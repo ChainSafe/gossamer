@@ -266,11 +266,11 @@ func (rn *RoundNetwork) AddNode(
 }
 
 type GlobalMessageNetwork struct {
-	*BroadcastNetwork[globalInItem[string, uint32, Signature, ID], CommunicationOut[string, uint32, Signature, ID]]
+	*BroadcastNetwork[GlobalInItem[string, uint32, Signature, ID], CommunicationOut[string, uint32, Signature, ID]]
 }
 
 func NewGlobalMessageNetwork() *GlobalMessageNetwork {
-	bn := NewBroadcastNetwork[globalInItem[
+	bn := NewBroadcastNetwork[GlobalInItem[
 		string, uint32, Signature, ID], CommunicationOut[string, uint32, Signature, ID],
 	]()
 	gmn := GlobalMessageNetwork{bn}
@@ -278,9 +278,9 @@ func NewGlobalMessageNetwork() *GlobalMessageNetwork {
 }
 
 func (gmn *GlobalMessageNetwork) AddNode(
-	f func(CommunicationOut[string, uint32, Signature, ID]) globalInItem[string, uint32, Signature, ID],
+	f func(CommunicationOut[string, uint32, Signature, ID]) GlobalInItem[string, uint32, Signature, ID],
 	out chan CommunicationOut[string, uint32, Signature, ID],
-) (in chan globalInItem[string, uint32, Signature, ID]) {
+) (in chan GlobalInItem[string, uint32, Signature, ID]) {
 	return gmn.BroadcastNetwork.AddNode(f, out)
 }
 
@@ -332,12 +332,12 @@ func (n *Network) MakeRoundComms(
 
 func (n *Network) MakeGlobalComms(
 	out chan CommunicationOut[string, uint32, Signature, ID],
-) chan globalInItem[string, uint32, Signature, ID] {
+) chan GlobalInItem[string, uint32, Signature, ID] {
 	n.mtx.Lock()
 	defer n.mtx.Unlock()
 
 	return n.globalMessages.AddNode(
-		func(message CommunicationOut[string, uint32, Signature, ID]) globalInItem[string, uint32, Signature, ID] {
+		func(message CommunicationOut[string, uint32, Signature, ID]) GlobalInItem[string, uint32, Signature, ID] {
 			if message == nil {
 				panic("nil message variant")
 			}
@@ -348,7 +348,7 @@ func (n *Network) MakeGlobalComms(
 					CompactCommit: message.Commit.CompactCommit(),
 					Callback:      nil,
 				}
-				return globalInItem[string, uint32, Signature, ID]{
+				return GlobalInItem[string, uint32, Signature, ID]{
 					CommunicationIn: ci,
 				}
 			default:
@@ -358,5 +358,5 @@ func (n *Network) MakeGlobalComms(
 }
 
 func (n *Network) SendMessage(message CommunicationIn[string, uint32, Signature, ID]) {
-	n.globalMessages.SendMessage(globalInItem[string, uint32, Signature, ID]{message, nil})
+	n.globalMessages.SendMessage(GlobalInItem[string, uint32, Signature, ID]{message, nil})
 }

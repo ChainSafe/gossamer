@@ -362,17 +362,6 @@ type CommunicationOut[
 	isCommunicationOut()
 }
 
-// CommuincationOutVariants is interface constraint of `CommunicationOut`
-type CommuincationOutVariants[
-	Hash constraints.Ordered,
-	Number constraints.Unsigned,
-	Signature comparable,
-	ID constraints.Ordered,
-] interface {
-	CommunicationOutCommit[Hash, Number, Signature, ID]
-	CommunicationOut[Hash, Number, Signature, ID]
-}
-
 // CommunicationOutCommit is a commit message.
 type CommunicationOutCommit[
 	Hash constraints.Ordered,
@@ -480,16 +469,6 @@ type CommunicationIn[
 ] interface {
 	isCommunicationIn()
 }
-
-type CommunicationInVariants[
-	Hash constraints.Ordered,
-	Number constraints.Unsigned,
-	Signature comparable,
-	ID constraints.Ordered,
-] interface {
-	CommunicationInCommit[Hash, Number, Signature, ID] | CommunicationInCatchUp[Hash, Number, Signature, ID]
-	CommunicationIn[Hash, Number, Signature, ID]
-}
 type CommunicationInCommit[
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,
@@ -515,7 +494,7 @@ type CommunicationInCatchUp[
 
 func (CommunicationInCatchUp[Hash, Number, Signature, ID]) isCommunicationIn() {}
 
-type globalInItem[
+type GlobalInItem[
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,
 	Signature comparable,
@@ -549,7 +528,7 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	inner                  *innerVoterState[Hash, Number, Signature, ID, Environment[Hash, Number, Signature, ID]]
 	finalizedNotifications *wakerChan[finalizedNotification[Hash, Number, Signature, ID]]
 	lastFinalizedNumber    Number
-	globalIn               *wakerChan[globalInItem[Hash, Number, Signature, ID]]
+	globalIn               *wakerChan[GlobalInItem[Hash, Number, Signature, ID]]
 	globalOut              *buffered[CommunicationOut[Hash, Number, Signature, ID]]
 	// the commit protocol might finalize further than the current round (if we're
 	// behind), we keep track of last finalized in round so we don't violate any
@@ -575,7 +554,7 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered](
 	env Environment[Hash, Number, Signature, ID],
 	voters VoterSet[ID],
-	globalIn chan globalInItem[Hash, Number, Signature, ID],
+	globalIn chan GlobalInItem[Hash, Number, Signature, ID],
 	globalOutPresend func(CommunicationOut[Hash, Number, Signature, ID]) error,
 	lastRoundNumber uint64,
 	lastRoundVotes []SignedMessage[Hash, Number, Signature, ID],

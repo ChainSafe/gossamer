@@ -243,6 +243,7 @@ func Test_networkBridge(t *testing.T) {
 		private := []ed25519.Keyring{ed25519.Alice, ed25519.Bob, ed25519.Charlie}
 		public := makeIDs(private)
 		voterSet := grandpa.NewVoterSet(public)
+		require.NotNil(t, voterSet)
 
 		round := Round(1)
 		setID := SetID(1)
@@ -300,7 +301,7 @@ func Test_networkBridge(t *testing.T) {
 		tester.gossipValidator.NewPeer(NoopContext{}, id, role.ObservedRoleFull)
 
 		// start round, dispatch commit, and wait for broadcast.
-		commitsIn, commitsOut := tester.networkBridge.globalCommunication(setID, voterSet, false)
+		commitsIn, commitsOut := tester.networkBridge.globalCommunication(setID, *voterSet, false)
 		_ = commitsOut
 
 		{
@@ -462,7 +463,7 @@ func Test_networkBridge(t *testing.T) {
 		tester.gossipValidator.NewPeer(NoopContext{}, id, role.ObservedRoleFull)
 
 		// start round, dispatch commit, and wait for broadcast.
-		commitsIn, _ := tester.networkBridge.globalCommunication(setID, voterSet, false)
+		commitsIn, _ := tester.networkBridge.globalCommunication(setID, *voterSet, false)
 
 		{
 			action, _, _ := tester.gossipValidator.doValidate(id, encodedCommit)
