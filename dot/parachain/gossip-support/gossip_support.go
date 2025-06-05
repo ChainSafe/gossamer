@@ -441,7 +441,7 @@ func (gs *GossipSupport) getKeyIndexAndUpdateMetrics(SessionInfo *parachaintypes
 	return authCheckResult, nil
 }
 
-func (*GossipSupport) updateGossipTopology(_ourIndex uint, _relayParent common.Hash) error {
+func (*GossipSupport) updateGossipTopology(_ uint, _ common.Hash) error {
 	// TODO implement in #4510
 	return nil
 }
