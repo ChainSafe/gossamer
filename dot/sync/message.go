@@ -116,10 +116,7 @@ func (s *SyncService) handleAscendingRequest(req *messages.BlockRequestMessage) 
 			req.StartingBlock.RawValue())
 	}
 
-	endNumber := startNumber + max - 1
-	if endNumber > bestBlockNumber {
-		endNumber = bestBlockNumber
-	}
+	endNumber := min(startNumber+max-1, bestBlockNumber)
 
 	var endHash *common.Hash
 	if startHash != nil {
@@ -180,11 +177,7 @@ func (s *SyncService) handleDescendingRequest(req *messages.BlockRequestMessage)
 		}
 
 		// if request start is higher than our best block, only return blocks from our best block and below
-		if bestBlockNumber < startBlock {
-			startNumber = bestBlockNumber
-		} else {
-			startNumber = startBlock
-		}
+		startNumber = min(bestBlockNumber, startBlock)
 	default:
 		return nil, fmt.Errorf("%w, unexpected from block type: %T", ErrInvalidBlockRequest,
 			req.StartingBlock.RawValue())

@@ -123,11 +123,7 @@ func (f *FullSyncStrategy) NextActions() ([]*SyncTask, error) {
 	}
 
 	startRequestAt := bestBlockHeader.Number + 1
-	targetBlockNumber := startRequestAt + uint(f.numOfTasks)*127
-
-	if targetBlockNumber > uint(currentTarget) {
-		targetBlockNumber = uint(currentTarget)
-	}
+	targetBlockNumber := min(startRequestAt+uint(f.numOfTasks)*127, uint(currentTarget))
 
 	ascendingBlockRequests := messages.NewAscendingBlockRequests(
 		startRequestAt, targetBlockNumber,
