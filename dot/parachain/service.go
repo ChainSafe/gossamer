@@ -127,8 +127,6 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 		overseer: overseer,
 	}
 
-	go parachainService.run(st.Block)
-
 	return parachainService, nil
 }
 
@@ -140,11 +138,6 @@ func (Service) Start() error {
 // Stop stops the Handler
 func (Service) Stop() error {
 	return nil
-}
-
-// main loop of parachain service
-func (s Service) run(_ *state.BlockState) {
-
 }
 
 // Network is the interface required by parachain service for the network
