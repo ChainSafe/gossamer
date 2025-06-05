@@ -365,8 +365,7 @@ func acknowledgementAndStatementMessages(
 	localValidator := rpState.localValidator
 	var messages []*networkbridgemessages.SendValidationMessage
 
-	switch validationVersion {
-	case validationprotocol.ValidationVersionV3:
+	if validationVersion == validationprotocol.ValidationVersionV3 {
 		ack := validationprotocol.NewStatementDistributionMessage()
 		err := ack.SetValue(validationprotocol.BackedCandidateKnown{
 			CandidateHash:      candidateHash,
@@ -435,8 +434,7 @@ func postAcknowledgementStatementMessages(
 
 		gridTracker.sentOrReceivedDirectStatement(*groups, stmt.ValidatorIndex, recipient, compactStmt, false)
 
-		switch validationVersion {
-		case validationprotocol.ValidationVersionV3:
+		if validationVersion == validationprotocol.ValidationVersionV3 {
 			stmtMessage := validationprotocol.NewStatementDistributionMessage()
 			err := stmtMessage.SetValue(validationprotocol.Statement{
 				RelayParent: rp,
@@ -468,8 +466,7 @@ func pendingStatementNetworkMessage(
 	peerID peer.ID, validationVersion validationprotocol.ValidationVersion,
 	pending originatorStatementPair,
 ) *networkbridgemessages.SendValidationMessage {
-	switch validationVersion {
-	case validationprotocol.ValidationVersionV3:
+	if validationVersion == validationprotocol.ValidationVersionV3 {
 		signed := stmtStore.validatorStatement(pending)
 		if signed == nil {
 			return nil
