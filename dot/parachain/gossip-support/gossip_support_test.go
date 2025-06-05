@@ -3,9 +3,10 @@ package gossipsupport
 import (
 	"context"
 	"errors"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
@@ -451,7 +452,7 @@ func TestBuildTopologyForLastFinalizedIfNeeded(t *testing.T) {
 	// this is to unblock the overseerChan message called inside updateGossipTopology,
 	// but we don't care the msg details since our goal is testing buildTopologyForLastFinalizedIfNeeded method
 	go func() {
-		_ = <-overseerChan
+		<-overseerChan
 	}()
 
 	gs.minKnownSession = parachaintypes.SessionIndex(10)

@@ -227,7 +227,7 @@ func (gs *GossipSupport) issueConnectionHelper(
 	}
 
 	if isNewSession {
-		err := gs.buildTopologyForLastFinalizedIfNeeded(sessionIndex, rt)
+		err = gs.buildTopologyForLastFinalizedIfNeeded(sessionIndex, rt)
 		if err != nil {
 			logger.Warnf("failed to build topology for last finalized session %d, %s", sessionIndex, err.Error())
 			return err
