@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package collatorprotocol
+package validatorside
 
 import (
 	"errors"
@@ -19,6 +19,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
+)
+
+const (
+	Declare uint = iota
+	AdvertiseCollation
+	CollationSeconded
 )
 
 func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
@@ -149,10 +155,7 @@ func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation Pendi
 		return ErrNotAdvertised
 	}
 
-	// TODO: Add it to collation_fetch_timeouts if we can't process this in timeout time.
-	// state
-	// .collation_fetch_timeouts
-	// .push(timeout(id.clone(), candidate_hash, relay_parent).boxed());
+	// TODO #4711
 	collation, err := cpvs.requestCollation(pendingCollation.RelayParent, pendingCollation.ParaID,
 		pendingCollation.PeerID)
 	if err != nil {
@@ -210,7 +213,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 		return ErrInvalidAssignment
 	}
 
-	// Note: Prospective Parachain mode would be set or edited when the view gets updated.
+	// Note: prospectiveParachainMode should be removed
 	if perRelayParent.prospectiveParachainMode.IsEnabled && prospectiveCandidate == nil {
 		// Expected v2 advertisement.
 		return ErrProtocolMismatch
@@ -246,7 +249,6 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 		return ErrSecondedLimitReached
 	}
 
-	/*NOTE:---------------------------------------Matters only in V2----------------------------------------------*/
 	var isSecondingAllowed bool
 	if !perRelayParent.prospectiveParachainMode.IsEnabled {
 		isSecondingAllowed = true
@@ -281,7 +283,6 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 		cpvs.BlockedAdvertisements[backed.String()] = []blockedAdvertisement{blockedAd}
 		return nil
 	}
-	/*--------------------------------------------END----------------------------------------------------------*/
 
 	return cpvs.enqueueCollation(perRelayParent.collations,
 		relayParent,
@@ -320,8 +321,8 @@ func (cpvs *CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender
 	}
 
 	switch index {
-	// TODO: Create an issue to cover v2 types. #3534
-	case 0: // Declare
+	// TODO #4714: supports v2 types
+	case Declare:
 		declareMessage, ok := collatorProtocolMessageV.(collatorprotocolmessages.Declare)
 		if !ok {
 			return errors.New("expected message to be declare")
@@ -408,12 +409,10 @@ func (cpvs *CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender
 				Peer:    sender,
 				PeerSet: networkbridgemessages.CollationProtocol,
 			}
-
-			// Do a thorough review of substrate/client/network/src/
-			// check how are they managing peerset of different protocol.
-			// Currently we have a Handler in dot/peerset, but it does not get used anywhere.
 		}
-	case 1: // AdvertiseCollation
+
+	// TODO #4715
+	case AdvertiseCollation:
 		advertiseCollationMessage, ok := collatorProtocolMessageV.(collatorprotocolmessages.AdvertiseCollation)
 		if !ok {
 			return errors.New("expected message to be advertise collation")
@@ -423,11 +422,8 @@ func (cpvs *CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender
 		if err != nil {
 			return fmt.Errorf("handling v1 advertisement: %w", err)
 		}
-		// TODO:
-		// - tracks advertisements received and the source (peer id) of the advertisement
-		// - accept one advertisement per collator per source per relay-parent
 
-	case 2: // CollationSeconded
+	case CollationSeconded:
 		logger.Errorf("unexpected collation seconded message from peer %s, decreasing its reputation", sender)
 		cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
 			PeerID: sender,

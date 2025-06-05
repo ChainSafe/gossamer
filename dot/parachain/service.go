@@ -19,8 +19,8 @@ import (
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
-	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	validatorside "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/validator-side"
 	disputescoordinator "github.com/ChainSafe/gossamer/dot/parachain/disputes-coordinator"
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
@@ -84,7 +84,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	overseer.RegisterSubsystem(availabilityStore)
 
 	// register collation protocol
-	cpvs := collatorprotocol.New(
+	cpvs := validatorside.New(
 		net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel(), st.Block, ks)
 	overseer.RegisterSubsystem(cpvs)
 
