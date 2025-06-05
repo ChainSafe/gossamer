@@ -309,12 +309,33 @@ func (gs *GossipSupport) processMessage(msg any) error {
 	return nil
 }
 
-func (*GossipSupport) processPeerConnectedEvent(_event networkbridgeevents.PeerConnected) {
-	// TODO implement in #4509
+func (gs *GossipSupport) processPeerConnectedEvent(event networkbridgeevents.PeerConnected) {
+	authorityIDs := event.AuthorityDiscoveryIDs
+	peerID := parachaintypes.PeerID(event.PeerID)
+
+	if authorityIDs != nil {
+		for _, authID := range *authorityIDs {
+			gs.connectedAuthorities[authID] = peerID
+
+			gs.connectedPeers[peerID] = map[parachaintypes.AuthorityDiscoveryID]struct{}{
+				authID: {},
+			}
+		}
+	} else {
+		gs.connectedPeers[peerID] = map[parachaintypes.AuthorityDiscoveryID]struct{}{}
+	}
 }
 
-func (*GossipSupport) processPeerDisconnectedEvent(_event networkbridgeevents.PeerDisconnected) {
-	// TODO implement in #4509
+func (gs *GossipSupport) processPeerDisconnectedEvent(event networkbridgeevents.PeerDisconnected) {
+	peerID := parachaintypes.PeerID(event.PeerID)
+
+	if authID, ok := gs.connectedPeers[peerID]; ok {
+		delete(gs.connectedPeers, peerID)
+
+		for id := range authID {
+			delete(gs.connectedAuthorities, id)
+		}
+	}
 }
 
 // checkConnectivity checks connectivity and report on it in logs.
@@ -420,7 +441,7 @@ func (gs *GossipSupport) getKeyIndexAndUpdateMetrics(SessionInfo *parachaintypes
 	return authCheckResult, nil
 }
 
-func (*GossipSupport) updateGossipTopology(_ourIndex uint, _relayParent common.Hash) error {
+func (*GossipSupport) updateGossipTopology(_ uint, _ common.Hash) error {
 	// TODO implement in #4510
 	return nil
 }
