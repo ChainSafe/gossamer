@@ -17,7 +17,12 @@ type Block struct {
 }
 
 // NewBlockFromGeneric returns a new Block from a generic block
-func NewBlockFromGeneric[N runtime.Number, H runtime.Hash, E runtime.Extrinsic, Header runtime.Header[N, H]](gb runtime.Block[H, N, E, Header]) (
+func NewBlockFromGeneric[
+	N runtime.Number,
+	H runtime.Hash,
+	E runtime.Extrinsic,
+	Header runtime.Header[N, H],
+](gb runtime.Block[H, N, E, Header]) (
 	*Block, error) {
 	header, err := NewHeaderFromGeneric(gb.Header())
 	if err != nil {

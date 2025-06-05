@@ -44,7 +44,6 @@ var testData []trie.KeyValue = []trie.KeyValue{
 }
 
 var (
-	layoutV0 = trie.LayoutV0[runtime.BlakeTwo256, hash.H256]{}
 	layoutV1 = trie.LayoutV1[runtime.BlakeTwo256, hash.H256]{}
 )
 

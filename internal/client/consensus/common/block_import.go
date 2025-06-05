@@ -50,7 +50,7 @@ func (ImportResultMissingState) isImportResult()   {}
 type BlockImport[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] interface {
 	// Check block preconditions.
 	CheckBlock(block BlockCheckParams[H, N]) (ImportResult, error)
-	/// Import a block.
+	// Import a block.
 	ImportBlock(block *BlockImportParams[H, N, E, Header]) (ImportResult, error)
 }
 

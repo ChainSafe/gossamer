@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package trieroot
 
 import (
@@ -169,7 +172,6 @@ func buildTrie[Hasher hashdb.Hasher[H], H hashdb.Hash](
 			oBranchSlice = key[cursor:sharedNibbleCount]
 			cursor = sharedNibbleCount
 		} else {
-			cursor = cursor
 			oBranchSlice = key[0:0]
 		}
 

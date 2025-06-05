@@ -450,7 +450,7 @@ func (oc *OverlayedChanges[H, Hasher]) offchainDrainCommited() iter.Seq2[Storage
 	return oc.offchain.DrainCommited()
 }
 
-// / Get an iterator over all child changes as seen by the current transaction.
+// Get an iterator over all child changes as seen by the current transaction.
 func (oc *OverlayedChanges[H, Hasher]) Children() iter.Seq2[
 	iter.Seq2[StorageKey, *OverlayedStorageEntry],
 	storage.ChildInfo,

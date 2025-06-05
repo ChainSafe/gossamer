@@ -364,7 +364,12 @@ func (tbe *trieBackendEssence[H, Hasher]) Storage(key []byte) (val StorageValue,
 func (tbe *trieBackendEssence[H, Hasher]) StorageHash(key []byte) (hash *H, err error) {
 	withRecorderAndCache[H, Hasher](tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
 		trieDB := triedb.NewTrieDB(
-			tbe.root, tbe, trie.LayoutV1[Hasher, H]{}, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
+			tbe.root,
+			tbe,
+			trie.LayoutV1[Hasher, H]{},
+			triedb.WithCache[H, Hasher](cache),
+			triedb.WithRecorder[H, Hasher](recorder),
+		)
 		hash, err = trieDB.GetHash(key)
 	})
 	return
@@ -428,7 +433,14 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildStorageHash(childInfo storage.Chi
 // Get the closest merkle value at given key.
 func (tbe *trieBackendEssence[H, Hasher]) ClosestMerkleValue(key []byte) (val triedb.MerkleValue[H], err error) {
 	withRecorderAndCache(tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
-		val, err = trie.ReadTrieFirstDescendantValue[H, Hasher](tbe, tbe.root, key, recorder, cache, trie.LayoutV1[Hasher, H]{})
+		val, err = trie.ReadTrieFirstDescendantValue[H, Hasher](
+			tbe,
+			tbe.root,
+			key,
+			recorder,
+			cache,
+			trie.LayoutV1[Hasher, H]{},
+		)
 	})
 	return
 }

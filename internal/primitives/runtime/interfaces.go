@@ -43,7 +43,7 @@ type Hasher[H Hash] interface {
 	// Construct new hash from source data
 	NewHash(data []byte) H
 
-	/// The Patricia tree root of the given mapping.
+	// The Patricia tree root of the given mapping.
 	TrieRoot(input []KeyValue, stateVersion storage.StateVersion) H
 }
 

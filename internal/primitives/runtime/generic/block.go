@@ -46,7 +46,13 @@ func (id BlockIDNumber[H]) String() string {
 }
 
 // Block is a block.
-type Block[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H], E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+type Block[
+	N runtime.Number,
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	E runtime.Extrinsic,
+	Header runtime.Header[N, H],
+] struct {
 	// The block header.
 	header Header
 	// The accompanying extrinsics.
@@ -75,7 +81,13 @@ func (b Block[N, H, Hasher, E, Header]) Hash() H {
 }
 
 // NewBlock is the constructor for Block.
-func NewBlock[Hasher runtime.Hasher[H], E runtime.Extrinsic, N runtime.Number, H runtime.Hash, Header runtime.Header[N, H]](
+func NewBlock[
+	Hasher runtime.Hasher[H],
+	E runtime.Extrinsic,
+	N runtime.Number,
+	H runtime.Hash,
+	Header runtime.Header[N, H],
+](
 	header Header, extrinsics []E) Block[N, H, Hasher, E, Header] {
 	return Block[N, H, Hasher, E, Header]{
 		header:     header,
@@ -110,5 +122,5 @@ func NewSignedBlock[
 	}
 }
 
-var _ runtime.Block[hash.H256, uint, runtime.OpaqueExtrinsic, Header[uint, hash.H256, runtime.BlakeTwo256]] = Block[uint, hash.H256,
-	runtime.BlakeTwo256, runtime.OpaqueExtrinsic, Header[uint, hash.H256, runtime.BlakeTwo256]]{}
+var _ runtime.Block[hash.H256, uint, runtime.OpaqueExtrinsic, Header[uint, hash.H256, runtime.BlakeTwo256]] = Block[
+	uint, hash.H256, runtime.BlakeTwo256, runtime.OpaqueExtrinsic, Header[uint, hash.H256, runtime.BlakeTwo256]]{}

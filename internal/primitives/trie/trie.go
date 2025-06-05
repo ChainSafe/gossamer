@@ -20,9 +20,9 @@ type Layout[H hashdb.Hash] interface {
 }
 
 type (
-	// / substrate trie layout
+	// substrate trie layout
 	LayoutV0[Hasher hashdb.Hasher[H], H hashdb.Hash] struct{}
-	// / substrate trie layout, with external value nodes.
+	// substrate trie layout, with external value nodes.
 	LayoutV1[Hasher hashdb.Hasher[H], H hashdb.Hash] struct{}
 )
 
@@ -80,7 +80,13 @@ func DeltaTrieRoot[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	cache triedb.TrieCache[H],
 	stateVersion triedb.TrieLayout,
 ) (H, error) {
-	trieDB := triedb.NewTrieDB(root, db, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
+	trieDB := triedb.NewTrieDB(
+		root,
+		db,
+		stateVersion,
+		triedb.WithCache[H, Hasher](cache),
+		triedb.WithRecorder[H, Hasher](recorder),
+	)
 
 	slices.SortStableFunc(delta, func(a KeyValue, b KeyValue) int {
 		if string(a.Key) < string(b.Key) {
@@ -120,7 +126,11 @@ func ReadTrieValue[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	cache triedb.TrieCache[H],
 	stateVersion triedb.TrieLayout,
 ) ([]byte, error) {
-	trieDB := triedb.NewTrieDB(root, db, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
+	trieDB := triedb.NewTrieDB(
+		root, db, stateVersion,
+		triedb.WithCache[H, Hasher](cache),
+		triedb.WithRecorder[H, Hasher](recorder),
+	)
 	b, err := triedb.GetWith(trieDB, key, func(data []byte) []byte { return data })
 	if err != nil {
 		return nil, err
@@ -141,7 +151,11 @@ func ReadTrieValueWith[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	stateVersion triedb.TrieLayout,
 	query triedb.Query[[]byte],
 ) ([]byte, error) {
-	trieDB := triedb.NewTrieDB(root, db, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
+	trieDB := triedb.NewTrieDB(
+		root, db, stateVersion,
+		triedb.WithCache[H, Hasher](cache),
+		triedb.WithRecorder[H, Hasher](recorder),
+	)
 	b, err := triedb.GetWith(trieDB, key, query)
 	if err != nil {
 		return nil, err
@@ -162,7 +176,11 @@ func ReadTrieFirstDescendantValue[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	cache triedb.TrieCache[H],
 	stateVersion triedb.TrieLayout,
 ) (triedb.MerkleValue[H], error) {
-	trieDB := triedb.NewTrieDB(root, db, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
+	trieDB := triedb.NewTrieDB(
+		root, db, stateVersion,
+		triedb.WithCache[H, Hasher](cache),
+		triedb.WithRecorder[H, Hasher](recorder),
+	)
 
 	return trieDB.LookupFirstDescendant(key)
 }

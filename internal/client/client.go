@@ -121,7 +121,8 @@ type Client[
 	unpinWorkerChan    chan<- api.UnpinWorkerMessage[H]
 	blockRules         BlockRules[H, N]
 	config             ClientConfig[N]
-	runtimeConstructor primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any, Header]]
+	runtimeConstructor primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
+		N, E, H, Hasher, statemachine.Backend[H, Hasher], any, Header]]
 }
 
 type Executor interface {
@@ -140,7 +141,8 @@ func New[
 	backend api.Backend[H, N, Hasher, Header, E],
 	config ClientConfig[N],
 	executor Executor,
-	runtimeConstructor primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any, Header]],
+	runtimeConstructor primitives_api.ConstructRuntimeApi[primitives_api.ApiExt[
+		N, E, H, Hasher, statemachine.Backend[H, Hasher], any, Header]],
 	genesisBlockBuilder *chainspec.GenesisBlockBuilder[H, N, Hasher, Header, E],
 	forkBlocks api.ForkBlocks[H, N],
 	badBlocks api.BadBlocks[H],
@@ -164,7 +166,10 @@ func New[
 			blockState = api.NewBlockStateNormal
 		}
 		header, body := genesisBlock.Deconstruct()
-		op.SetBlockData(header, body, nil, nil, blockState)
+		err = op.SetBlockData(header, body, nil, nil, blockState)
+		if err != nil {
+			return nil, err
+		}
 		err = backend.CommitOperation(op)
 		if err != nil {
 			return nil, err

@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package trie
 
 import (
@@ -6,7 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// Codec-flavored TrieStream.
+// TrieStream is the codec implementation of [trieroot.TrieStream].
 type TrieStream[Hasher hashdb.Hasher[H], H hashdb.Hash] struct {
 	// Current node buffer.
 	buffer []byte
@@ -116,7 +119,7 @@ func branchNodeBitMask(hasChildren []bool) (uint8, uint8) {
 	return uint8(bitmap % 256), uint8(bitmap / 256)
 }
 
-// / Create a leaf/branch node, encoding a number of nibbles.
+// Create a leaf/branch node, encoding a number of nibbles.
 func fuseNibblesNode(nibbles []byte, kind nodeKind) []byte {
 	// let size = nibbles.len();
 	size := uint(len(nibbles))

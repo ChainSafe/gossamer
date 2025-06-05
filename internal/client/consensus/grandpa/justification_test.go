@@ -179,7 +179,7 @@ func TestDecodeGrandpaJustificationVerifyFinalizes(t *testing.T) {
 			id = ed25519.Ferdie.Pair().Public().(ced25519.Public)
 		}
 		idWeights = append(idWeights, grandpa.IDWeight[primitives.AuthorityID]{
-			ID: primitives.AuthorityID(id[:]), Weight: 1,
+			ID: id[:], Weight: 1,
 		})
 	}
 	voters := grandpa.NewVoterSet(idWeights)
@@ -272,7 +272,7 @@ func TestJustification_verifyWithVoterSet(t *testing.T) {
 			id = ed25519.Ferdie.Pair().Public().(ced25519.Public)
 		}
 		idWeights = append(idWeights, grandpa.IDWeight[primitives.AuthorityID]{
-			ID: primitives.AuthorityID(id[:]), Weight: 1,
+			ID: id[:], Weight: 1,
 		})
 	}
 	voters := grandpa.NewVoterSet(idWeights)

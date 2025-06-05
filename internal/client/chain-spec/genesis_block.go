@@ -124,12 +124,19 @@ func NewGenesisBlockBuilderWithStorage[
 	}
 }
 
-func (g *GenesisBlockBuilder[H, N, Hasher, Header, E]) BuildGenesisBlock() (runtime.Block[H, N, E, Header], api.BlockImportOperation[N, H, Hasher, Header, E], error) {
+func (g *GenesisBlockBuilder[H, N, Hasher, Header, E]) BuildGenesisBlock() (
+	runtime.Block[H, N, E, Header],
+	api.BlockImportOperation[N, H, Hasher, Header, E],
+	error,
+) {
 	genesisStateVersion, err := ResolveStateVersionFromWasm[Hasher, H](g.gensisStorage, g.executor)
 	if err != nil {
 		return nil, nil, err
 	}
 	op, err := g.backend.BeginOperation()
+	if err != nil {
+		return nil, nil, err
+	}
 	stateRoot, err := op.SetGenesisState(g.gensisStorage, g.commitGenesisState, genesisStateVersion)
 	if err != nil {
 		return nil, nil, err
