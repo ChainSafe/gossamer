@@ -10,26 +10,26 @@ import parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 type mutualKnowledge struct {
 	// Knowledge the remote peer has about the candidate, as far as we're aware.
 	// Non-nil only if they have advertised, acknowledged, or requested the candidate.
-	remoteKnowledge *statementFilter
+	remoteKnowledge *parachaintypes.StatementFilter
 
 	// Knowledge we have indicated to the remote peer about the candidate.
 	// Non-nil only if we have advertised, acknowledged, or requested the candidate
 	// from them.
-	localKnowledge *statementFilter
+	localKnowledge *parachaintypes.StatementFilter
 
 	// Knowledge peer circulated to us, this is different from `localKnowledge` and
 	// `remoteKnowledge`, through the fact that includes only statements that we received from
 	// peer while the other two, after manifest exchange part will include both what we sent to
 	// the peer and what we received from peer, see [sentOrReceivedDirectStatement] for more
 	// details.
-	receivedKnowledge *statementFilter
+	receivedKnowledge *parachaintypes.StatementFilter
 }
 
 // knownBackedCandidate is a utility struct for keeping track of metadata about candidates
 // we have confirmed as having been backed.
 type knownBackedCandidate struct {
 	groupIndex      parachaintypes.GroupIndex
-	localKnowledge  statementFilter
+	localKnowledge  parachaintypes.StatementFilter
 	mutualKnowledge map[parachaintypes.ValidatorIndex]mutualKnowledge
 }
 
@@ -53,11 +53,11 @@ func (kbc *knownBackedCandidate) hasSentManifestTo(validator parachaintypes.Vali
 
 func (kbc *knownBackedCandidate) manifestSentTo(
 	validator parachaintypes.ValidatorIndex,
-	localKnowledge statementFilter,
+	localKnowledge parachaintypes.StatementFilter,
 ) {
 	mk := kbc.mutualKnowledge[validator]
-	groupSize := uint(localKnowledge.secondedInGroup.Len())
-	receivedKnowledge, err := newStatementFilter(groupSize, false)
+	groupSize := uint(localKnowledge.SecondedInGroup.Len())
+	receivedKnowledge, err := parachaintypes.NewStatementFilter(groupSize, false)
 	if err != nil {
 		logger.Warnf("failed to create statement filter instance with group size %d: %v", groupSize, err)
 	}
@@ -69,7 +69,7 @@ func (kbc *knownBackedCandidate) manifestSentTo(
 
 func (kbc *knownBackedCandidate) manifestReceivedFrom(
 	validator parachaintypes.ValidatorIndex,
-	remoteKnowledge statementFilter,
+	remoteKnowledge parachaintypes.StatementFilter,
 ) {
 	mk, ok := kbc.mutualKnowledge[validator]
 	if !ok {
@@ -89,7 +89,7 @@ func (kbc *knownBackedCandidate) manifestReceivedFrom(
 func (kbc *knownBackedCandidate) directStatementSenders(
 	groupIndex parachaintypes.GroupIndex,
 	originatorIndexInGroup uint,
-	statementKind statementKind,
+	statementKind parachaintypes.StatementKind,
 ) map[parachaintypes.ValidatorIndex]bool {
 	senders := make(map[parachaintypes.ValidatorIndex]bool)
 
@@ -102,11 +102,11 @@ func (kbc *knownBackedCandidate) directStatementSenders(
 			continue
 		}
 
-		if mk.receivedKnowledge == nil || !mk.receivedKnowledge.contains(originatorIndexInGroup, statementKind) {
+		if mk.receivedKnowledge == nil || !mk.receivedKnowledge.Contains(originatorIndexInGroup, statementKind) {
 			continue
 		}
 
-		if mk.localKnowledge != nil && mk.localKnowledge.contains(originatorIndexInGroup, statementKind) {
+		if mk.localKnowledge != nil && mk.localKnowledge.Contains(originatorIndexInGroup, statementKind) {
 			senders[validatorIndex] = true
 		}
 	}
@@ -117,7 +117,7 @@ func (kbc *knownBackedCandidate) directStatementSenders(
 func (kbc *knownBackedCandidate) directStatementRecipients(
 	groupIndex parachaintypes.GroupIndex,
 	originatorIndexInGroup uint,
-	statementKind statementKind,
+	statementKind parachaintypes.StatementKind,
 ) []parachaintypes.ValidatorIndex {
 	recipients := make([]parachaintypes.ValidatorIndex, 0, len(kbc.mutualKnowledge))
 
@@ -130,7 +130,7 @@ func (kbc *knownBackedCandidate) directStatementRecipients(
 			continue
 		}
 
-		if mk.remoteKnowledge == nil || !mk.remoteKnowledge.contains(originatorIndexInGroup, statementKind) {
+		if mk.remoteKnowledge == nil || !mk.remoteKnowledge.Contains(originatorIndexInGroup, statementKind) {
 			recipients = append(recipients, validatorIndex)
 		}
 	}
@@ -138,10 +138,15 @@ func (kbc *knownBackedCandidate) directStatementRecipients(
 	return recipients
 }
 
-func (kbc *knownBackedCandidate) noteFreshStatement(statementIndexInGroup uint, statementKind statementKind) bool {
-	reallyFresh := !kbc.localKnowledge.contains(statementIndexInGroup, statementKind)
+func (kbc *knownBackedCandidate) noteFreshStatement(
+	statementIndexInGroup uint, statementKind parachaintypes.StatementKind,
+) bool {
+	reallyFresh := !kbc.localKnowledge.Contains(statementIndexInGroup, statementKind)
 
-	kbc.localKnowledge.set(statementIndexInGroup, statementKind)
+	err := kbc.localKnowledge.Set(statementIndexInGroup, statementKind)
+	if err != nil {
+		logger.Warnf("failed to set index %d in secondedInGroup: %v", statementIndexInGroup, err)
+	}
 
 	return reallyFresh
 }
@@ -149,7 +154,7 @@ func (kbc *knownBackedCandidate) noteFreshStatement(statementIndexInGroup uint, 
 func (kbc *knownBackedCandidate) sentOrReceivedDirectStatement(
 	validator parachaintypes.ValidatorIndex,
 	statementIndexInGroup uint,
-	statementKind statementKind,
+	statementKind parachaintypes.StatementKind,
 	received bool,
 ) {
 	mk, ok := kbc.mutualKnowledge[validator]
@@ -158,19 +163,29 @@ func (kbc *knownBackedCandidate) sentOrReceivedDirectStatement(
 	}
 
 	if mk.localKnowledge != nil && mk.remoteKnowledge != nil {
-		mk.localKnowledge.set(statementIndexInGroup, statementKind)
-		mk.remoteKnowledge.set(statementIndexInGroup, statementKind)
+		err := mk.localKnowledge.Set(statementIndexInGroup, statementKind)
+		if err != nil {
+			logger.Warnf("failed to set index %d in secondedInGroup: %v", statementIndexInGroup, err)
+		}
+
+		err = mk.remoteKnowledge.Set(statementIndexInGroup, statementKind)
+		if err != nil {
+			logger.Warnf("failed to set index %d in secondedInGroup: %v", statementIndexInGroup, err)
+		}
 	}
 
 	if received {
-		mk.receivedKnowledge.set(statementIndexInGroup, statementKind)
+		err := mk.receivedKnowledge.Set(statementIndexInGroup, statementKind)
+		if err != nil {
+			logger.Warnf("failed to set index %d in secondedInGroup: %v", statementIndexInGroup, err)
+		}
 	}
 }
 
 func (kbc *knownBackedCandidate) isPendingStatement(
 	validator parachaintypes.ValidatorIndex,
 	statementIndexInGroup uint,
-	statementKind statementKind,
+	statementKind parachaintypes.StatementKind,
 ) bool {
 	// existence of both remote & local knowledge indicate we have exchanged
 	// manifests.
@@ -184,10 +199,12 @@ func (kbc *knownBackedCandidate) isPendingStatement(
 		return false
 	}
 
-	return !mk.remoteKnowledge.contains(statementIndexInGroup, statementKind)
+	return !mk.remoteKnowledge.Contains(statementIndexInGroup, statementKind)
 }
 
-func (kbc *knownBackedCandidate) pendingStatements(validator parachaintypes.ValidatorIndex) *statementFilter {
+func (kbc *knownBackedCandidate) pendingStatements(
+	validator parachaintypes.ValidatorIndex,
+) *parachaintypes.StatementFilter {
 	// existence of both remote & local knowledge indicate we have exchanged
 	// manifests.
 	// then, everything that is not in the remote knowledge is pending, and we
@@ -202,14 +219,14 @@ func (kbc *knownBackedCandidate) pendingStatements(validator parachaintypes.Vali
 		return nil
 	}
 
-	seconded := kbc.localKnowledge.secondedInGroup.Clone()
-	seconded.Mask(mk.remoteKnowledge.secondedInGroup)
+	seconded := kbc.localKnowledge.SecondedInGroup.Clone()
+	seconded.Mask(mk.remoteKnowledge.SecondedInGroup)
 
-	validated := kbc.localKnowledge.validatedInGroup.Clone()
-	validated.Mask(mk.remoteKnowledge.validatedInGroup)
+	validated := kbc.localKnowledge.ValidatedInGroup.Clone()
+	validated.Mask(mk.remoteKnowledge.ValidatedInGroup)
 
-	return &statementFilter{
-		secondedInGroup:  seconded,
-		validatedInGroup: validated,
+	return &parachaintypes.StatementFilter{
+		SecondedInGroup:  seconded,
+		ValidatedInGroup: validated,
 	}
 }

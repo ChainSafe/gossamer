@@ -117,17 +117,17 @@ func (g *gridTracker) importManifest( //skipcq: GO-R1005
 		return false, errManifestImportMalformed
 	}
 
-	remoteKnowledge := manifest.statementKnowledge.clone()
-	if !remoteKnowledge.hasLen(int(*groupSize)) {
+	remoteKnowledge := manifest.statementKnowledge.Clone()
+	if !remoteKnowledge.HasLen(int(*groupSize)) {
 		return false, errManifestImportMalformed
 	}
 
-	if !remoteKnowledge.hasSeconded() {
+	if !remoteKnowledge.HasSeconded() {
 		return false, errManifestImportMalformed
 	}
 
 	// ensure votes are sufficient to back.
-	if remoteKnowledge.backingValidators() < int(*backingThreshold) {
+	if remoteKnowledge.BackingValidators() < int(*backingThreshold) {
 		return false, errManifestImportInsufficient
 	}
 
@@ -192,7 +192,7 @@ func (g *gridTracker) addBackedCandidate(
 	sessionTopology *sessionTopologyView,
 	candidateHash parachaintypes.CandidateHash,
 	groupIndex parachaintypes.GroupIndex,
-	localKnowledge statementFilter,
+	localKnowledge parachaintypes.StatementFilter,
 ) []validatorManifestKindPair {
 	if _, ok := g.confirmedBacked[candidateHash]; ok {
 		return nil
@@ -262,7 +262,7 @@ func (g *gridTracker) manifestSentTo(
 	groups groups,
 	validatorIndex parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
-	localKnowledge statementFilter,
+	localKnowledge parachaintypes.StatementFilter,
 ) {
 	if known, ok := g.confirmedBacked[candidateHash]; ok {
 		known.manifestSentTo(validatorIndex, localKnowledge)
@@ -284,7 +284,7 @@ func (g *gridTracker) manifestSentTo(
 
 // pendingManifestsFor returns a vector of all candidates pending manifests for
 // the specific validator, and the type of manifest we should send.
-func (g *gridTracker) pendingManifestsFor( //nolint:unused // skipcq:SCC-U1000
+func (g *gridTracker) pendingManifestsFor(
 	validatorIndex parachaintypes.ValidatorIndex,
 ) manifestKindByCandidateHash {
 	return maps.Clone(g.pendingManifests[validatorIndex])
@@ -295,7 +295,7 @@ func (g *gridTracker) pendingManifestsFor( //nolint:unused // skipcq:SCC-U1000
 func (g *gridTracker) pendingStatementsFor(
 	validatorIndex parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
-) *statementFilter {
+) *parachaintypes.StatementFilter {
 	known, ok := g.confirmedBacked[candidateHash]
 	if !ok {
 		return nil
@@ -426,7 +426,7 @@ func (g *gridTracker) learnedFreshStatement(
 
 // / sentOrReceivedDirectStatement notes that a direct statement about a
 // given candidate was sent to or received from the given validator.
-func (g *gridTracker) sentOrReceivedDirectStatement( //nolint:unused // skipcq:SCC-U1000
+func (g *gridTracker) sentOrReceivedDirectStatement(
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
 	counterparty parachaintypes.ValidatorIndex,
@@ -453,7 +453,7 @@ func (g *gridTracker) sentOrReceivedDirectStatement( //nolint:unused // skipcq:S
 func (g *gridTracker) advertisedStatements( //nolint:unused // skipcq:SCC-U1000
 	validator parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
-) *statementFilter {
+) *parachaintypes.StatementFilter {
 	manifests, ok := g.received[validator]
 	if !ok {
 		return nil
@@ -523,7 +523,7 @@ func decomposeStatementFilter(
 	groups groups,
 	groupIndex parachaintypes.GroupIndex,
 	candidateHash parachaintypes.CandidateHash,
-	statementFilter statementFilter,
+	statementFilter parachaintypes.StatementFilter,
 ) originatorStatementPairSet {
 	result := make(originatorStatementPairSet)
 	group := groups.get(groupIndex)
@@ -531,7 +531,7 @@ func decomposeStatementFilter(
 		return result
 	}
 
-	for i, bit := range statementFilter.secondedInGroup.Bits() {
+	for i, bit := range statementFilter.SecondedInGroup.Bits() {
 		if bit {
 			validatorIndex := group[i]
 
@@ -544,7 +544,7 @@ func decomposeStatementFilter(
 		}
 	}
 
-	for i, bit := range statementFilter.validatedInGroup.Bits() {
+	for i, bit := range statementFilter.ValidatedInGroup.Bits() {
 		if bit {
 			validatorIndex := group[i]
 
@@ -565,14 +565,14 @@ func extractStatementAndGroupInfo(
 	groups groups,
 	originator parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
-) (gi *parachaintypes.GroupIndex, ch parachaintypes.CandidateHash, sk statementKind, i uint) {
+) (gi *parachaintypes.GroupIndex, ch parachaintypes.CandidateHash, sk parachaintypes.StatementKind, i uint) {
 	ch = statement.CandidateHash()
 
 	switch statement.(type) {
 	case *parachaintypes.CompactSeconded:
-		sk = seconded
+		sk = parachaintypes.SecondedKind
 	case *parachaintypes.CompactValid:
-		sk = valid
+		sk = parachaintypes.ValidKind
 	default:
 		panic("unreachable")
 	}
