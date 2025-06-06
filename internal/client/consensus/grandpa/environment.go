@@ -1621,11 +1621,7 @@ func finalizeBlock[
 	})
 
 	if vc != nil {
-		command, ok := vc.(voterCommand)
-		if !ok {
-			panic("unexpected type")
-		}
-		return command
+		return vc
 	}
 	if err != nil {
 		*authoritySet = oldAuthoritySet

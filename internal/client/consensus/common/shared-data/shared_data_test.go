@@ -18,13 +18,13 @@ func TestSharedData(t *testing.T) {
 		ref, unlock := sharedData.DataMut()
 
 		for i := 0; i < numThreads; i++ {
-			go func(i int) {
+			go func() {
 				ref, unlock := sharedData.DataMut()
 				defer unlock()
 				// Give the other threads some time to wake up
 				time.Sleep(10 * time.Millisecond)
 				*ref += 1
-			}(i)
+			}()
 		}
 
 		time.Sleep(100 * time.Millisecond)
@@ -50,14 +50,14 @@ func TestSharedData(t *testing.T) {
 		ref := locked.MutRef()
 
 		for i := 0; i < numThreads; i++ {
-			go func(i int) {
+			go func() {
 				locked := sharedData.Locked()
 				defer locked.Unlock()
 				ref := locked.MutRef()
 				// Give the other threads some time to wake up
 				time.Sleep(10 * time.Millisecond)
 				*ref += 1
-			}(i)
+			}()
 		}
 
 		time.Sleep(100 * time.Millisecond)

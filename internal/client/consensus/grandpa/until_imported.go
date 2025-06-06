@@ -386,12 +386,6 @@ type knownOrUnknown[N runtime.Number] interface {
 	Number() N
 }
 
-type itemToAwait[H runtime.Hash, N runtime.Number] struct {
-	targetHash   H
-	targetNumber N
-	blockGlobalMessage[H, N]
-}
-
 func (bgm blockGlobalMessage[H, N]) NeedsWaiting(
 	input communicationIn[H, N],
 	statusCheck BlockStatus[H, N],

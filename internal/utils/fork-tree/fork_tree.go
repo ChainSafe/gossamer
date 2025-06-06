@@ -524,7 +524,8 @@ func (ft *ForkTree[H, N, V]) Prune(
 		rootSiblings = &(*rootSiblings)[idx].Children
 	}
 	root := (*rootSiblings)[newRootPath[len(newRootPath)-1]]
-	*rootSiblings = append((*rootSiblings)[:newRootPath[len(newRootPath)-1]], (*rootSiblings)[newRootPath[len(newRootPath)-1]+1:]...)
+	*rootSiblings = append(
+		(*rootSiblings)[:newRootPath[len(newRootPath)-1]], (*rootSiblings)[newRootPath[len(newRootPath)-1]+1:]...)
 	ft.roots = []node[H, N, V]{root}
 
 	// If, because of the predicate, the new root is not the deepest ancestor
@@ -888,7 +889,7 @@ func (ft *ForkTree[H, N, V]) FinalizeWithDescendentIf(
 	ft.roots = nil
 
 	for _, root := range roots {
-		var retain bool = false
+		var retain bool
 		if root.Number > number {
 			var err error
 			retain, err = isDescendentOf(hash, root.Hash)

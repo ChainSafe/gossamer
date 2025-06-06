@@ -4,11 +4,9 @@
 package grandpa
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -19,13 +17,9 @@ var (
 	concludedRounds   = []byte("grandpa_concluded_rounds")
 	authoritySetKey   = []byte("grandpa_voters")
 	bestJustification = []byte("grandpa_best_justification")
-
-	errValueNotFound = errors.New("value not found")
 )
 
 type writeAux func(insertions []api.KeyValue) error
-
-type getGenesisAuthorities func() (primitives.AuthorityList, error)
 
 // Persistent data kept between runs.
 type persistentData[H runtime.Hash, N runtime.Number] struct {

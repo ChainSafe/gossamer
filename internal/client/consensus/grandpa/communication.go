@@ -793,7 +793,7 @@ func newCommitsOut[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	}
 }
 
-func (co *commitsOut[H, N, Hasher]) preSend( //nolint: unused
+func (co *commitsOut[H, N, Hasher]) preSend(
 	out grandpa.CommunicationOut[H, N, primitives.AuthoritySignature, primitives.AuthorityID],
 ) error {
 	nc := out.(grandpa.CommunicationOutCommit[H, N, primitives.AuthoritySignature, primitives.AuthorityID])

@@ -157,7 +157,7 @@ func (sas *SharedAuthoritySet[H, N]) applyForcedChanges( //nolint:unused
 //
 // When the set has changed, the return value will be a status type where newSetBlockInfo is the canonical block where
 // the set last changed (i.e. the given hash and number).
-func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(
+func (sas *SharedAuthoritySet[H, N]) applyStandardChanges( //nolint: unused
 	finalisedHash H,
 	finalisedNumber N,
 	isDescendentOf IsDescendentOf[H],

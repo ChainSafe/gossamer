@@ -10,7 +10,7 @@ import "github.com/ChainSafe/gossamer/internal/client/utils/pubsub"
 // The [NotificationStream] entity stores the [pubsub.Hub] so it can be
 // used to add more subscriptions.
 type NotificationStream[Payload any] struct {
-	hub *pubsub.Hub[struct{}, func() (Payload, error), Payload, *registry[Payload]]
+	hub *pubsub.Hub[struct{}, func() (Payload, error), Payload, *registry[Payload]] //nolint: unused
 }
 
 // NotificationSender is the sending half of the notifications channel(s).

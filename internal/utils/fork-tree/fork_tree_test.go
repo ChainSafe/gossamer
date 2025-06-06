@@ -50,7 +50,8 @@ func testForkTree(t *testing.T) (ForkTree[string, uint64, uint32], func(string, 
 		case base == "E":
 			return false, nil
 		case base == "F":
-			return block == "G" || block == "H" || block == "I" || block == "L" || block == "M" || block == "N" || block == "O", nil
+			return block == "G" || block == "H" || block == "I" || block == "L" ||
+				block == "M" || block == "N" || block == "O", nil
 		case base == "G":
 			return false, nil
 		case base == "H":
@@ -596,6 +597,7 @@ func TestForkTree(t *testing.T) {
 		removed, err = tree.Prune("E", 50, isDescendentOf, func(height uint32) bool {
 			return true
 		})
+		require.NoError(t, err)
 
 		actual = nil
 		for _, node := range tree.Roots() {
@@ -726,7 +728,7 @@ func TestForkTree(t *testing.T) {
 
 		// when searching the tree we reach node `C`, but the
 		// predicate doesn't pass. we should backtrack to `B`, but not to `A`,
-		// since "B" fulfills the predicate.
+		// since "B" fulfils the predicate.
 		node, err := tree.FindNodeWhere("D", 3, isDescendentOf, func(data int32) bool {
 			return data < 3
 		})

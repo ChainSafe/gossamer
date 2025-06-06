@@ -137,9 +137,9 @@ type voterCommand interface {
 }
 
 // Pause the voter for given reason.
-type voterCommandPause string //nolint: unused
+type voterCommandPause string
 
-func (vcp voterCommandPause) Error() string { //nolint: unused
+func (vcp voterCommandPause) Error() string {
 	return fmt.Sprintf("Pausing voter: %s", string(vcp))
 }
 func (vcp voterCommandPause) isVoterCommand() {}
@@ -165,7 +165,7 @@ type LinkHalf[
 	persistentData      persistentData[H, N]
 	voterCommandsRx     chan voterCommand
 	justificationSender GrandpaJustificationSender[H, N, Header]
-	justificationStream GrandpaJustificationStream[H, N, Header]
+	justificationStream GrandpaJustificationStream[H, N, Header] //nolint: unused
 }
 
 // Provider for the Grandpa authority set configured on the genesis block.
@@ -411,7 +411,8 @@ func (vw *voterWork[H, N, Hasher, Header, E]) rebuildVoter() {
 
 		lastCompletedRound := vss.completedRounds().last()
 
-		votes := make([]grandpa.SignedMessage[H, N, primitives.AuthoritySignature, primitives.AuthorityID], len(lastCompletedRound.Votes))
+		votes := make([]grandpa.SignedMessage[H, N, primitives.AuthoritySignature, primitives.AuthorityID],
+			len(lastCompletedRound.Votes))
 		for i, vote := range lastCompletedRound.Votes {
 			votes[i] = grandpa.SignedMessage[H, N, primitives.AuthoritySignature, primitives.AuthorityID]{
 				Signature: vote.Signature,
@@ -476,16 +477,17 @@ func (vw *voterWork[H, N, Hasher, Header, E]) handleVoterCommand(command voterCo
 			return err
 		}
 
-		authorites := make([]grandpa.IDWeight[primitives.AuthorityID], len(new.Authorities))
+		authorities := make([]grandpa.IDWeight[primitives.AuthorityID], len(new.Authorities))
 		for i, authority := range new.Authorities {
-			authorites[i] = grandpa.IDWeight[primitives.AuthorityID]{
+			authorities[i] = grandpa.IDWeight[primitives.AuthorityID]{
 				ID:     authority.AuthorityID,
 				Weight: uint64(authority.AuthorityWeight),
 			}
 		}
-		voters := grandpa.NewVoterSet(authorites)
+		voters := grandpa.NewVoterSet(authorities)
 		if voters == nil {
-			panic("new authorities come from pending change; pending change comes from AuthoritySet; AuthoritySet validates authorities is non-empty and weights are non-zero")
+			panic("new authorities come from pending change; pending change comes from AuthoritySet;" +
+				"AuthoritySet validates authorities is non-empty and weights are non-zero")
 		}
 
 		vw.env = &environment[H, N, Hasher, Header, E]{

@@ -860,11 +860,9 @@ type inner[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
 }
 
 func newInner[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](config Config) inner[H, N, Hasher] {
-	var catchUpConfig catchUpConfig[N]
-
 	// if the observer protocol isn't enabled and we're not a light client, then any full node should be able to
 	// answer catch-up requests.
-	catchUpConfig = catchUpConfigEnabled[N]{false}
+	catchUpConfig := catchUpConfigEnabled[N]{false}
 
 	return inner[H, N, Hasher]{
 		localView:       nil,
