@@ -51,9 +51,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, true, false),
-					validatedInGroup: newBitVec(t, true, false, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, true, false),
+					ValidatedInGroup: newBitVec(t, true, false, true),
 				},
 			},
 			full,
@@ -73,9 +73,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: 1,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, true, false),
-					validatedInGroup: newBitVec(t, true, false, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, true, false),
+					ValidatedInGroup: newBitVec(t, true, false, true),
 				},
 			},
 			full,
@@ -102,9 +102,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, true, false, true),
-					validatedInGroup: newBitVec(t, true, false, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, true, false, true),
+					ValidatedInGroup: newBitVec(t, true, false, true),
 				},
 			},
 			full,
@@ -131,9 +131,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, false, false),
-					validatedInGroup: newBitVec(t, true, true, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, false, false),
+					ValidatedInGroup: newBitVec(t, true, true, true),
 				},
 			},
 			full,
@@ -162,9 +162,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, false, true),
-					validatedInGroup: newBitVec(t, false, false, false),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, false, true),
+					ValidatedInGroup: newBitVec(t, false, false, false),
 				},
 			},
 			full,
@@ -184,9 +184,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, false, true),
-					validatedInGroup: newBitVec(t, false, false, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, false, true),
+					ValidatedInGroup: newBitVec(t, false, false, true),
 				},
 			},
 			full,
@@ -206,9 +206,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, false, true),
-					validatedInGroup: newBitVec(t, false, true, false),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, false, true),
+					ValidatedInGroup: newBitVec(t, false, true, false),
 				},
 			},
 			full,
@@ -231,11 +231,11 @@ func TestGridTracker(t *testing.T) {
 		sessionTopology.groupViews[groupIndex].sending[validatorIndex] = struct{}{}
 		sessionTopology.groupViews[groupIndex].receiving[1] = struct{}{}
 
-		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
+		localKnowledge, err := parachaintypes.NewStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Add the candidate as backed.
-		receivers := tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
+		receivers := tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.Clone())
 
 		// Validator 0 is in the sending group. Advertise onward to it.
 		//
@@ -257,9 +257,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, true, false),
-					validatedInGroup: newBitVec(t, true, false, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, true, false),
+					ValidatedInGroup: newBitVec(t, true, false, true),
 				},
 			},
 			acknowledgement,
@@ -284,7 +284,7 @@ func TestGridTracker(t *testing.T) {
 		sessionTopology.groupViews[groupIndex].sending[validatorIndex] = struct{}{}
 		sessionTopology.groupViews[groupIndex].receiving[1] = struct{}{}
 
-		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
+		localKnowledge, err := parachaintypes.NewStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Manifest should not be pending yet.
@@ -292,7 +292,7 @@ func TestGridTracker(t *testing.T) {
 		require.Nil(t, pendingManifest)
 
 		// Add the candidate as backed.
-		_ = tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
+		_ = tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.Clone())
 
 		// Manifest should be pending as `Full`.
 		pendingManifest = tracker.isManifestPendingFor(validatorIndex, candidateHash)
@@ -313,9 +313,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, true, false),
-					validatedInGroup: newBitVec(t, true, false, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, true, false),
+					ValidatedInGroup: newBitVec(t, true, false, true),
 				},
 			},
 			acknowledgement,
@@ -341,11 +341,11 @@ func TestGridTracker(t *testing.T) {
 		sessionTopology := emptySessionTopology.clone()
 		sessionTopology.groupViews[groupIndex].receiving[validatorIndex] = struct{}{}
 
-		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
+		localKnowledge, err := parachaintypes.NewStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Add the candidate as backed.
-		_ = tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
+		_ = tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.Clone())
 
 		// Manifest should not be pending yet.
 		pendingManifest := tracker.isManifestPendingFor(validatorIndex, candidateHash)
@@ -361,9 +361,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, true, false),
-					validatedInGroup: newBitVec(t, true, false, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, true, false),
+					ValidatedInGroup: newBitVec(t, true, false, true),
 				},
 			},
 			full,
@@ -408,7 +408,7 @@ func TestGridTracker(t *testing.T) {
 		sessionTopology.groupViews[groupIndex].sending[sendTo] = struct{}{}
 		sessionTopology.groupViews[groupIndex].receiving[receiveFrom] = struct{}{}
 
-		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
+		localKnowledge, err := parachaintypes.NewStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		t.Run("receiving_followed_by_sending_an_ack", func(t *testing.T) {
@@ -417,7 +417,7 @@ func TestGridTracker(t *testing.T) {
 			tracker := newGridTracker()
 
 			// Confirm the candidate.
-			receivers := tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
+			receivers := tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.Clone())
 			require.Len(t, receivers, 1)
 			require.Equal(t, sendTo, receivers[0].validator)
 			require.Equal(t, full, receivers[0].kind)
@@ -441,9 +441,9 @@ func TestGridTracker(t *testing.T) {
 				manifestSummary{
 					claimedParentHash: common.Hash{0x0},
 					claimedGroupIndex: groupIndex,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, false, true, false),
-						validatedInGroup: newBitVec(t, true, false, true),
+					statementKnowledge: parachaintypes.StatementFilter{
+						SecondedInGroup:  newBitVec(t, false, true, false),
+						ValidatedInGroup: newBitVec(t, true, false, true),
 					},
 				},
 				full,
@@ -457,9 +457,9 @@ func TestGridTracker(t *testing.T) {
 			tracker.manifestSentTo(*groups, receiveFrom, candidateHash, *localKnowledge)
 
 			// There should be pending statements now.
-			expectedFilter := &statementFilter{
-				secondedInGroup:  newBitVec(t, false, false, true),
-				validatedInGroup: newBitVec(t, false, false, false),
+			expectedFilter := &parachaintypes.StatementFilter{
+				SecondedInGroup:  newBitVec(t, false, false, true),
+				ValidatedInGroup: newBitVec(t, false, false, false),
 			}
 
 			ensurePendingStatements(
@@ -479,7 +479,7 @@ func TestGridTracker(t *testing.T) {
 			tracker := newGridTracker()
 
 			// Confirm the candidate.
-			receivers := tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
+			receivers := tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.Clone())
 			require.Len(t, receivers, 1)
 			require.Equal(t, sendTo, receivers[0].validator)
 			require.Equal(t, full, receivers[0].kind)
@@ -495,7 +495,7 @@ func TestGridTracker(t *testing.T) {
 			// Should start with no pending statements.
 			ensurePendingStatements(t, tracker, sendTo, sendTo, candidateHash, nil, nil)
 
-			tracker.manifestSentTo(*groups, sendTo, candidateHash, localKnowledge.clone())
+			tracker.manifestSentTo(*groups, sendTo, candidateHash, localKnowledge.Clone())
 
 			ack, err := tracker.importManifest(
 				sessionTopology,
@@ -505,9 +505,9 @@ func TestGridTracker(t *testing.T) {
 				manifestSummary{
 					claimedParentHash: common.Hash{0x0},
 					claimedGroupIndex: groupIndex,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, false, true, false),
-						validatedInGroup: newBitVec(t, false, false, true),
+					statementKnowledge: parachaintypes.StatementFilter{
+						SecondedInGroup:  newBitVec(t, false, true, false),
+						ValidatedInGroup: newBitVec(t, false, false, true),
 					},
 				},
 				acknowledgement,
@@ -518,9 +518,9 @@ func TestGridTracker(t *testing.T) {
 			require.False(t, ack)
 
 			// There should be pending statements now.
-			expectedFilter := &statementFilter{
-				secondedInGroup:  newBitVec(t, false, false, true),
-				validatedInGroup: newBitVec(t, false, false, false),
+			expectedFilter := &parachaintypes.StatementFilter{
+				SecondedInGroup:  newBitVec(t, false, false, true),
+				ValidatedInGroup: newBitVec(t, false, false, false),
 			}
 
 			ensurePendingStatements(
@@ -544,7 +544,7 @@ func TestGridTracker(t *testing.T) {
 		sessionTopology := emptySessionTopology.clone()
 		sessionTopology.groupViews[groupIndex].receiving[validatorIndex] = struct{}{}
 
-		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
+		localKnowledge, err := parachaintypes.NewStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Should start with no pending statements.
@@ -561,7 +561,7 @@ func TestGridTracker(t *testing.T) {
 		ensurePendingStatements(t, tracker, validatorIndex, validatorIndex, candidateHash, nil, nil)
 
 		// Add the candidate as backed.
-		tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
+		tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.Clone())
 
 		// Try to import fresh statement. Unknown group for validator index.
 		tracker.learnedFreshStatement(
@@ -583,14 +583,14 @@ func TestGridTracker(t *testing.T) {
 		sessionTopology := emptySessionTopology.clone()
 		sessionTopology.groupViews[groupIndex].receiving[validatorIndex] = struct{}{}
 
-		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
+		localKnowledge, err := parachaintypes.NewStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Should start with no pending statements.
 		ensurePendingStatements(t, tracker, validatorIndex, validatorIndex, candidateHash, nil, nil)
 
 		// Add the candidate as backed.
-		tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
+		tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.Clone())
 
 		// Import fresh statement.
 
@@ -602,9 +602,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, true, false),
-					validatedInGroup: newBitVec(t, true, false, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, true, false),
+					ValidatedInGroup: newBitVec(t, true, false, true),
 				},
 			},
 			full,
@@ -623,9 +623,9 @@ func TestGridTracker(t *testing.T) {
 		)
 
 		// There should be pending statements now.
-		expectedFilter := &statementFilter{
-			secondedInGroup:  newBitVec(t, true, false, false),
-			validatedInGroup: newBitVec(t, false, false, false),
+		expectedFilter := &parachaintypes.StatementFilter{
+			SecondedInGroup:  newBitVec(t, true, false, false),
+			ValidatedInGroup: newBitVec(t, false, false, false),
 		}
 
 		ensurePendingStatements(
@@ -668,14 +668,14 @@ func TestGridTracker(t *testing.T) {
 		sessionTopology := emptySessionTopology.clone()
 		sessionTopology.groupViews[groupIndex].receiving[validatorIndex] = struct{}{}
 
-		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
+		localKnowledge, err := parachaintypes.NewStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Should start with no pending statements.
 		ensurePendingStatements(t, tracker, validatorIndex, validatorIndex, candidateHash, nil, nil)
 
 		// Add the candidate as backed.
-		tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
+		tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.Clone())
 
 		// Import fresh statement.
 		ack, err := tracker.importManifest(
@@ -686,9 +686,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, true, false, true),
-					validatedInGroup: newBitVec(t, false, false, false),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, true, false, true),
+					ValidatedInGroup: newBitVec(t, false, false, false),
 				},
 			},
 			full,
@@ -715,9 +715,9 @@ func TestGridTracker(t *testing.T) {
 
 		// The pending statements should respect the remote knowledge (meaning the Seconded
 		// statement is ignored, but not the Valid statement).
-		expectedFilter := &statementFilter{
-			secondedInGroup:  newBitVec(t, false, false, false),
-			validatedInGroup: newBitVec(t, true, false, false),
+		expectedFilter := &parachaintypes.StatementFilter{
+			SecondedInGroup:  newBitVec(t, false, false, false),
+			ValidatedInGroup: newBitVec(t, true, false, false),
 		}
 
 		ensurePendingStatements(
@@ -742,7 +742,7 @@ func TestGridTracker(t *testing.T) {
 		sessionTopology.groupViews[groupIndex].receiving[validatorIndex] = struct{}{}
 		sessionTopology.groupViews[groupIndex].receiving[counterparty] = struct{}{}
 
-		localKnowledge, err := newStatementFilter(uint(*groupSize), false)
+		localKnowledge, err := parachaintypes.NewStatementFilter(uint(*groupSize), false)
 		require.NoError(t, err)
 
 		// Should start with no pending statements.
@@ -750,7 +750,7 @@ func TestGridTracker(t *testing.T) {
 		require.Empty(t, tracker.allPendingStatementsFor(validatorIndex))
 
 		// Add the candidate as backed.
-		tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.clone())
+		tracker.addBackedCandidate(sessionTopology, candidateHash, groupIndex, localKnowledge.Clone())
 
 		// Import statement for originator.
 		ack, err := tracker.importManifest(
@@ -761,9 +761,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, true, false),
-					validatedInGroup: newBitVec(t, true, false, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, true, false),
+					ValidatedInGroup: newBitVec(t, true, false, true),
 				},
 			},
 			full,
@@ -772,7 +772,7 @@ func TestGridTracker(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, ack)
 
-		tracker.manifestSentTo(*groups, validatorIndex, candidateHash, localKnowledge.clone())
+		tracker.manifestSentTo(*groups, validatorIndex, candidateHash, localKnowledge.Clone())
 
 		tracker.learnedFreshStatement(
 			*groups,
@@ -790,9 +790,9 @@ func TestGridTracker(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0x0},
 				claimedGroupIndex: groupIndex,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, true, false),
-					validatedInGroup: newBitVec(t, true, false, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, true, false),
+					ValidatedInGroup: newBitVec(t, true, false, true),
 				},
 			},
 			full,
@@ -801,7 +801,7 @@ func TestGridTracker(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, ack)
 
-		tracker.manifestSentTo(*groups, counterparty, candidateHash, localKnowledge.clone())
+		tracker.manifestSentTo(*groups, counterparty, candidateHash, localKnowledge.Clone())
 
 		tracker.learnedFreshStatement(
 			*groups,
@@ -811,9 +811,9 @@ func TestGridTracker(t *testing.T) {
 		)
 
 		// There should be pending statements now.
-		expectedFilter := &statementFilter{
-			secondedInGroup:  newBitVec(t, true, false, false),
-			validatedInGroup: newBitVec(t, false, false, false),
+		expectedFilter := &parachaintypes.StatementFilter{
+			SecondedInGroup:  newBitVec(t, true, false, false),
+			ValidatedInGroup: newBitVec(t, false, false, false),
 		}
 
 		ensurePendingStatements(
@@ -844,7 +844,7 @@ func ensurePendingStatements(
 	validator parachaintypes.ValidatorIndex,
 	originator parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
-	expectedFilter *statementFilter,
+	expectedFilter *parachaintypes.StatementFilter,
 	expectedStatement parachaintypes.CompactStatement,
 ) {
 	t.Helper()

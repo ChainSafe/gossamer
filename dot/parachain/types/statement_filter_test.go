@@ -1,10 +1,9 @@
 // Copyright 2025 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package statementdistribution
+package parachaintypes
 
 import (
-	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/stretchr/testify/require"
 
 	"testing"
@@ -62,10 +61,10 @@ func TestStatementFilter_HasLen(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			filter, err := newStatementFilter(tt.groupSize, tt.full)
+			filter, err := NewStatementFilter(tt.groupSize, tt.full)
 			require.NoError(t, err)
 
-			got := filter.hasLen(tt.input)
+			got := filter.HasLen(tt.input)
 			require.Equal(t, tt.expected, got)
 		})
 	}
@@ -75,13 +74,13 @@ func TestStatementFilter_BackingValidators(t *testing.T) {
 	t.Parallel()
 
 	// Helper function to modify filter BitVecs
-	setFilterBits := func(filter *statementFilter, seconded, validated []bool) {
-		newSeconded, err := parachaintypes.NewBitVec(seconded)
+	setFilterBits := func(filter *StatementFilter, seconded, validated []bool) {
+		newSeconded, err := NewBitVec(seconded)
 		require.NoError(t, err)
-		newValidated, err := parachaintypes.NewBitVec(validated)
+		newValidated, err := NewBitVec(validated)
 		require.NoError(t, err)
-		filter.secondedInGroup = newSeconded
-		filter.validatedInGroup = newValidated
+		filter.SecondedInGroup = newSeconded
+		filter.ValidatedInGroup = newValidated
 	}
 
 	tests := []struct {
@@ -147,11 +146,11 @@ func TestStatementFilter_BackingValidators(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			filter, err := newStatementFilter(tt.groupSize, false)
+			filter, err := NewStatementFilter(tt.groupSize, false)
 			require.NoError(t, err)
 			setFilterBits(filter, tt.seconded, tt.validated)
 
-			got := filter.backingValidators()
+			got := filter.BackingValidators()
 			require.Equal(t, tt.expected, got)
 		})
 	}
@@ -161,10 +160,10 @@ func TestStatementFilter_HasSeconded(t *testing.T) {
 	t.Parallel()
 
 	// Helper function to set seconded bits
-	setSecondedBits := func(filter *statementFilter, seconded []bool) {
-		newSeconded, err := parachaintypes.NewBitVec(seconded)
+	setSecondedBits := func(filter *StatementFilter, seconded []bool) {
+		newSeconded, err := NewBitVec(seconded)
 		require.NoError(t, err)
-		filter.secondedInGroup = newSeconded
+		filter.SecondedInGroup = newSeconded
 	}
 
 	tests := []struct {
@@ -210,11 +209,11 @@ func TestStatementFilter_HasSeconded(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			filter, err := newStatementFilter(tt.groupSize, false)
+			filter, err := NewStatementFilter(tt.groupSize, false)
 			require.NoError(t, err)
 			setSecondedBits(filter, tt.seconded)
 
-			got := filter.hasSeconded()
+			got := filter.HasSeconded()
 			require.Equal(t, tt.expected, got)
 		})
 	}
@@ -224,10 +223,10 @@ func TestStatementFilter_MaskSeconded(t *testing.T) {
 	t.Parallel()
 
 	// Helper function to set seconded bits
-	setSecondedBits := func(filter *statementFilter, seconded []bool) {
-		newSeconded, err := parachaintypes.NewBitVec(seconded)
+	setSecondedBits := func(filter *StatementFilter, seconded []bool) {
+		newSeconded, err := NewBitVec(seconded)
 		require.NoError(t, err)
-		filter.secondedInGroup = newSeconded
+		filter.SecondedInGroup = newSeconded
 	}
 
 	tests := []struct {
@@ -286,22 +285,22 @@ func TestStatementFilter_MaskSeconded(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			filter, err := newStatementFilter(tt.groupSize, false)
+			filter, err := NewStatementFilter(tt.groupSize, false)
 			require.NoError(t, err)
 			setSecondedBits(filter, tt.initialSeconded)
 
-			mask, err := parachaintypes.NewBitVec(tt.mask)
+			mask, err := NewBitVec(tt.mask)
 			require.NoError(t, err)
 
 			// Capture the initial valid bits to verify they remain unchanged
-			initialValidated := filter.validatedInGroup.Bits()
+			initialValidated := filter.ValidatedInGroup.Bits()
 
-			filter.maskSeconded(mask)
+			filter.MaskSeconded(mask)
 
 			// Check the result
-			require.Equal(t, tt.expectedResult, filter.secondedInGroup.Bits())
+			require.Equal(t, tt.expectedResult, filter.SecondedInGroup.Bits())
 			// Verify validatedInGroup was not modified
-			require.Equal(t, initialValidated, filter.validatedInGroup.Bits())
+			require.Equal(t, initialValidated, filter.ValidatedInGroup.Bits())
 		})
 	}
 }
@@ -310,10 +309,10 @@ func TestStatementFilter_MaskValid(t *testing.T) {
 	t.Parallel()
 
 	// Helper function to set valid bits
-	setValidatedBits := func(filter *statementFilter, validated []bool) {
-		newValidated, err := parachaintypes.NewBitVec(validated)
+	setValidatedBits := func(filter *StatementFilter, validated []bool) {
+		newValidated, err := NewBitVec(validated)
 		require.NoError(t, err)
-		filter.validatedInGroup = newValidated
+		filter.ValidatedInGroup = newValidated
 	}
 
 	tests := []struct {
@@ -372,22 +371,22 @@ func TestStatementFilter_MaskValid(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			filter, err := newStatementFilter(tt.groupSize, false)
+			filter, err := NewStatementFilter(tt.groupSize, false)
 			require.NoError(t, err)
 			setValidatedBits(filter, tt.initialValidated)
 
-			mask, err := parachaintypes.NewBitVec(tt.mask)
+			mask, err := NewBitVec(tt.mask)
 			require.NoError(t, err)
 
 			// Capture the initial seconded bits to verify they remain unchanged
-			initialSeconded := filter.secondedInGroup.Bits()
+			initialSeconded := filter.SecondedInGroup.Bits()
 
-			filter.maskValid(mask)
+			filter.MaskValid(mask)
 
 			// Check the result
-			require.Equal(t, tt.expectedResult, filter.validatedInGroup.Bits())
+			require.Equal(t, tt.expectedResult, filter.ValidatedInGroup.Bits())
 			// Verify secondedInGroup was not modified
-			require.Equal(t, initialSeconded, filter.secondedInGroup.Bits())
+			require.Equal(t, initialSeconded, filter.SecondedInGroup.Bits())
 		})
 	}
 }

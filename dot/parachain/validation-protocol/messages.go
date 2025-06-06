@@ -14,6 +14,22 @@ import (
 
 const MaxValidationMessageSize uint64 = 100 * 1024
 
+type ValidationVersion byte
+
+const (
+	ValidationVersionV3 ValidationVersion = iota + 3
+)
+
+type ValidationProtocols interface {
+	isValidationProtocols()
+}
+
+type ValidationProtocolV3 struct {
+	Protocol ValidationProtocol
+}
+
+func (v *ValidationProtocolV3) isValidationProtocols() {}
+
 // UncheckedBitfield availability bitfield for given relay-parent hash
 type UncheckedBitfield struct {
 	Hash                                common.Hash                                        `scale:"1"`
