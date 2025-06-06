@@ -170,15 +170,15 @@ func (ft *ForkTree[H, N, V]) Rebalance() {
 
 // Import a new node into the tree.
 //
-// The given function `is_descendent_of` should return `true` if the second
+// The given function isDescendentOf should return true if the second
 // hash (target) is a descendent of the first hash (base).
 //
 // This method assumes that nodes in the same branch are imported in order.
 //
-// Returns `true` if the imported node is a root.
+// Returns true if the imported node is a root.
 // WARNING: some users of this method (i.e. consensus epoch changes tree) currently silently
 // rely on a **post-order DFS** traversal. If we are using instead a top-down traversal method
-// then the `is_descendent_of` closure, when used after a warp-sync, may end up querying the
+// then the isDescendentOf closure, when used after a warp-sync, may end up querying the
 // backend for a block (the one corresponding to the root) that is not present and thus will
 // return a wrong result.
 func (ft *ForkTree[H, N, V]) Import(
@@ -344,7 +344,7 @@ func Map[H comparable, N constraints.Integer, V any, VT any](
 // Find a node in the tree that is the deepest ancestor of the given
 // block hash and which passes the given predicate.
 //
-// The given function `is_descendent_of` should return `true` if the
+// The given function isDescendentOf should return true if the
 // second hash (target) is a descendent of the first hash (base).
 func (ft *ForkTree[H, N, V]) FindNodeWhere(
 	hash H,
@@ -369,7 +369,7 @@ func (ft *ForkTree[H, N, V]) FindNodeWhere(
 	return &n, nil
 }
 
-// Same as [`find_node_where`](ForkTree::find_node_where), but returns mutable reference.
+// Same as [ForkTree.FindNodeWhere], but returns mutable reference.
 func (ft *ForkTree[H, N, V]) FindNodeWhereMut(
 	hash H,
 	number N,
@@ -393,18 +393,18 @@ func (ft *ForkTree[H, N, V]) FindNodeWhereMut(
 	return &(*children)[maybePath[len(maybePath)-1]], nil
 }
 
-// Same as [`find_node_where`](ForkTree::find_node_where), but returns indices.
+// Same as [ForkTree.FindNodeWhere], but returns indices.
 //
 // The returned indices represent the full path to reach the matching node starting
 // from one of the roots, i.e. the earliest index in the traverse path goes first,
 // and the final index in the traverse path goes last.
 //
 // If a node is found that matches the predicate the returned path should always
-// contain at least one index, otherwise `None` is returned.
+// contain at least one index, otherwise nil is returned.
 //
 // WARNING: some users of this method (i.e. consensus epoch changes tree) currently silently
 // rely on a **post-order DFS** traversal. If we are using instead a top-down traversal method
-// then the `is_descendent_of` closure, when used after a warp-sync, will end up querying the
+// then the  isDescendentOf closure, when used after a warp-sync, will end up querying the
 // backend for a block (the one corresponding to the root) that is not present and thus will
 // return a wrong result.
 func (ft *ForkTree[H, N, V]) FindNodeIndexWhere(
@@ -492,7 +492,7 @@ func (ft *ForkTree[H, N, V]) FindNodeIndexWhere(
 // and that passes the given predicate. If such a node exists, we re-root the
 // tree to this node. Otherwise the tree remains unchanged.
 //
-// The given function `is_descendent_of` should return `true` if the second
+// The given function isDescendentOf should return true if the second
 // hash (target) is a descendent of the first hash (base).
 //
 // Returns all pruned nodes data.
@@ -524,9 +524,9 @@ func (ft *ForkTree[H, N, V]) Prune(
 	*rootSiblings = append((*rootSiblings)[:newRootPath[len(newRootPath)-1]], (*rootSiblings)[newRootPath[len(newRootPath)-1]+1:]...)
 	ft.roots = []node[H, N, V]{root}
 
-	// If, because of the `predicate`, the new root is not the deepest ancestor
-	// of `hash` then we can remove all the nodes that are descendants of the new
-	// `root` but not ancestors of `hash`.
+	// If, because of the predicate, the new root is not the deepest ancestor
+	// of hash then we can remove all the nodes that are descendants of the new
+	// root but not ancestors of hash.
 	curr := &ft.roots[0]
 	for {
 		var maybeAncestorIdx *int
@@ -543,7 +543,7 @@ func (ft *ForkTree[H, N, V]) Prune(
 			}
 		}
 		if maybeAncestorIdx == nil {
-			// Now we are positioned just above block identified by `hash`
+			// Now we are positioned just above block identified by hash
 			break
 		}
 		// Preserve only the ancestor node, the siblings are removed
@@ -557,7 +557,7 @@ func (ft *ForkTree[H, N, V]) Prune(
 	}
 
 	// Curr now points to our direct ancestor, if necessary remove any node that is
-	// not a descendant of `hash`.
+	// not a descendant of hash.
 	children := curr.Children
 	curr.Children = nil
 	for _, child := range children {
@@ -584,7 +584,7 @@ func (ft *ForkTree[H, N, V]) Prune(
 	return ri.iter(), nil
 }
 
-// Finalize a root in the tree and return it, return `None` in case no root
+// Finalize a root in the tree and return it, return nil in case no root
 // with the given hash exists. All other roots are pruned, and the children
 // of the finalized node become the new roots.
 func (ft *ForkTree[H, N, V]) FinalizeRoot(hash H) *V {
@@ -602,7 +602,7 @@ func (ft *ForkTree[H, N, V]) FinalizeRoot(hash H) *V {
 	return &v
 }
 
-// Finalize root at given position. See `finalize_root` comment for details.
+// Finalize root at given position. See FinalizeRoot comment for details.
 func (ft *ForkTree[H, N, V]) FinalizeRootAt(position int) V {
 	node := ft.roots[position]
 	ft.roots = node.Children
@@ -613,7 +613,7 @@ func (ft *ForkTree[H, N, V]) FinalizeRootAt(position int) V {
 // Finalize a node in the tree. This method will make sure that the node
 // being finalized is either an existing root (and return its data), or a
 // node from a competing branch (not in the tree), tree pruning is done
-// accordingly. The given function `is_descendent_of` should return `true`
+// accordingly. The given function isDescendentOf should return true
 // if the second hash (target) is a descendent of the first hash (base).
 func (ft *ForkTree[H, N, V]) Finalize(
 	hash H,
@@ -676,7 +676,7 @@ func (ft *ForkTree[H, N, V]) Finalize(
 }
 
 // Finalize a node in the tree and all its ancestors. The given function
-// `is_descendent_of` should return `true` if the second hash (target) is
+// isDescendentOf should return true if the second hash (target) is
 // a descendent of the first hash (base).
 func (ft *ForkTree[H, N, V]) FinalizeWithAncestors(
 	hash H,
@@ -760,11 +760,11 @@ func (ft *ForkTree[H, N, V]) FinalizeWithAncestors(
 // Checks if any node in the tree is finalized by either finalizing the
 // node itself or a node's descendent that's not in the tree, guaranteeing
 // that the node being finalized isn't a descendent of (or equal to) any of
-// the node's children. Returns `Some(true)` if the node being finalized is
-// a root, `Some(false)` if the node being finalized is not a root, and
-// `None` if no node in the tree is finalized. The given `predicate` is
+// the node's children. Returns &true if the node being finalized is
+// a root, &false if the node being finalized is not a root, and
+// nil if no node in the tree is finalized. The given predicate is
 // checked on the prospective finalized root and must pass for finalization
-// to occur. The given function `is_descendent_of` should return `true` if
+// to occur. The given function isDescendentOf should return true if
 // the second hash (target) is a descendent of the first hash (base).
 func (ft *ForkTree[H, N, V]) FinalizesAnyWithDescendentIf(
 	hash H,
@@ -819,9 +819,9 @@ func (ft *ForkTree[H, N, V]) FinalizesAnyWithDescendentIf(
 // Finalize a root in the tree by either finalizing the node itself or a
 // node's descendent that's not in the tree, guaranteeing that the node
 // being finalized isn't a descendent of (or equal to) any of the root's
-// children. The given `predicate` is checked on the prospective finalized
+// children. The given predicate is checked on the prospective finalized
 // root and must pass for finalization to occur. The given function
-// `is_descendent_of` should return `true` if the second hash (target) is a
+// isDescendentOf should return true if the second hash (target) is a
 // descendent of the first hash (base).
 func (ft *ForkTree[H, N, V]) FinalizeWithDescendentIf(
 	hash H,
@@ -923,12 +923,12 @@ func (ft *ForkTree[H, N, V]) FinalizeWithDescendentIf(
 	}
 }
 
-// Remove from the tree some nodes (and their subtrees) using a `filter` predicate.
+// Remove from the tree some nodes (and their subtrees) using a filter predicate.
 //
-// The `filter` is called over tree nodes and returns a filter action:
-// - `Remove` if the node and its subtree should be removed;
-// - `KeepNode` if we should maintain the node and keep processing the tree.
-// - `KeepTree` if we should maintain the node and its entire subtree.
+// The filter is called over tree nodes and returns a filter action:
+// - Remove if the node and its subtree should be removed;
+// - KeepNode if we should maintain the node and keep processing the tree.
+// - KeepTree if we should maintain the node and its entire subtree.
 //
 // An iterator over all the pruned nodes is returned.
 func (ft *ForkTree[H, N, V]) DrainFilter(

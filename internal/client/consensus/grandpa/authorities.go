@@ -60,16 +60,11 @@ type status[H comparable, N constraints.Unsigned] struct {
 
 // SharedAuthoritySet A shared authority set
 type SharedAuthoritySet[H comparable, N constraints.Unsigned] struct {
-	// mtx   sync.Mutex
-	// inner AuthoritySet[H, N]
 	inner shareddata.SharedData[AuthoritySet[H, N]]
 }
 
-// / Get the current set ID. This is incremented every time the set changes.
+// Get the current set ID. This is incremented every time the set changes.
 func (sas *SharedAuthoritySet[H, N]) SetID() uint64 {
-	// sas.mtx.Lock()
-	// defer sas.mtx.Unlock()
-	// return sas.inner.SetID
 	authSet := sas.inner.Data()
 	return authSet.SetID
 }
@@ -94,53 +89,35 @@ func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[pgran
 
 // Current Get the current set id and a reference to the current authority set.
 func (sas *SharedAuthoritySet[H, N]) Current() (uint64, pgrandpa.AuthorityList) {
-	// sas.mtx.Lock()
-	// defer sas.mtx.Unlock()
-	// return sas.inner.current()
 	authSet := sas.inner.Data()
 	return authSet.current()
 }
 
 func (sas *SharedAuthoritySet[H, N]) revert() { //nolint //skipcq: SCC-U1000
-	// sas.mtx.Lock()
-	// defer sas.mtx.Unlock()
-	// sas.inner.revert()
 	authSet := sas.inner.Data()
 	authSet.revert()
 }
 
 func (sas *SharedAuthoritySet[H, N]) nextChange(bestHash H, //nolint //skipcq: SCC-U1000
 	isDescendentOf IsDescendentOf[H]) (*HashNumber[H, N], error) {
-	// sas.mtx.Lock()
-	// defer sas.mtx.Unlock()
-	// return sas.inner.nextChange(bestHash, isDescendentOf)
 	authSet := sas.inner.Data()
 	return authSet.nextChange(bestHash, isDescendentOf)
 }
 
 func (sas *SharedAuthoritySet[H, N]) addStandardChange(pending PendingChange[H, N], //nolint //skipcq: SCC-U1000
 	isDescendentOf IsDescendentOf[H]) error {
-	// sas.mtx.Lock()
-	// defer sas.mtx.Unlock()
-	// return sas.inner.addStandardChange(pending, isDescendentOf)
 	authSet := sas.inner.Data()
 	return authSet.addStandardChange(pending, isDescendentOf)
 }
 
 func (sas *SharedAuthoritySet[H, N]) addForcedChange(pending PendingChange[H, N], //nolint //skipcq: SCC-U1000
 	isDescendentOf IsDescendentOf[H]) error {
-	// sas.mtx.Lock()
-	// defer sas.mtx.Unlock()
-	// return sas.inner.addForcedChange(pending, isDescendentOf)
 	authSet := sas.inner.Data()
 	return authSet.addForcedChange(pending, isDescendentOf)
 }
 
 func (sas *SharedAuthoritySet[H, N]) addPendingChange(pending PendingChange[H, N], //nolint //skipcq: SCC-U1000
 	isDescendentOf IsDescendentOf[H]) error {
-	// sas.mtx.Lock()
-	// defer sas.mtx.Unlock()
-	// return sas.inner.addPendingChange(pending, isDescendentOf)
 	authSet := sas.inner.Data()
 	return authSet.addPendingChange(pending, isDescendentOf)
 }
@@ -148,9 +125,6 @@ func (sas *SharedAuthoritySet[H, N]) addPendingChange(pending PendingChange[H, N
 // PendingChanges inspects pending changes. Standard pending changes are iterated first, and the changes in the roots
 // are traversed in pre-order, afterwards all forced changes are iterated.
 func (sas *SharedAuthoritySet[H, N]) PendingChanges() []PendingChange[H, N] {
-	// sas.mtx.Lock()
-	// defer sas.mtx.Unlock()
-	// return sas.inner.pendingChanges()
 	authSet := sas.inner.Data()
 	return authSet.pendingChanges()
 }
@@ -162,9 +136,6 @@ func (sas *SharedAuthoritySet[H, N]) PendingChanges() []PendingChange[H, N] {
 // Only standard changes are taken into account for the current limit, since any existing forced change should preclude
 // the voter from voting.
 func (sas *SharedAuthoritySet[H, N]) currentLimit(min N) (limit *N) {
-	// sas.mtx.Lock()
-	// defer sas.mtx.Unlock()
-	// return sas.inner.currentLimit(min)
 	authSet := sas.inner.Data()
 	return authSet.currentLimit(min)
 }
@@ -175,9 +146,6 @@ func (sas *SharedAuthoritySet[H, N]) applyForcedChanges( //nolint:unused
 	isDescendentOf IsDescendentOf[H],
 	// TODO: telemtry,
 ) (newSet *appliedChanges[H, N], err error) {
-	// sas.mtx.Lock()
-	// defer sas.mtx.Unlock()
-	// return sas.inner.applyForcedChanges(bestHash, bestNumber, isDescendentOf)
 	authSet := sas.inner.Data()
 	return authSet.applyForcedChanges(bestHash, bestNumber, isDescendentOf)
 }
@@ -196,9 +164,6 @@ func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(
 	initialSync bool,
 	// TODO: telemetry,
 ) (status[H, N], error) {
-	// sas.mtx.Lock()
-	// defer sas.mtx.Unlock()
-	// return sas.inner.applyStandardChanges(finalisedHash, finalisedNumber, isDescendentOf, initialSync)
 	authSet := sas.inner.Data()
 	return authSet.applyStandardChanges(finalisedHash, finalisedNumber, isDescendentOf, initialSync)
 }
@@ -212,9 +177,6 @@ func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(
 func (sas *SharedAuthoritySet[H, N]) EnactsStandardChange(finalisedHash H,
 	finalisedNumber N,
 	isDescendentOf IsDescendentOf[H]) (*bool, error) {
-	// sas.mtx.Lock()
-	// defer sas.mtx.Unlock()
-	// return sas.inner.EnactsStandardChange(finalisedHash, finalisedNumber, isDescendentOf)
 	authSet := sas.inner.Data()
 	return authSet.EnactsStandardChange(finalisedHash, finalisedNumber, isDescendentOf)
 }
@@ -292,8 +254,15 @@ func NewAuthoritySet[H comparable, N constraints.Unsigned](
 	}, nil
 }
 
+// Clone creates a copy of the AuthoritySet.
 func (authSet *AuthoritySet[H, N]) Clone() AuthoritySet[H, N] {
-	panic("unimpl")
+	return AuthoritySet[H, N]{
+		CurrentAuthorities:     slices.Clone(authSet.CurrentAuthorities),
+		SetID:                  authSet.SetID,
+		PendingStandardChanges: authSet.PendingStandardChanges.Clone(),
+		PendingForcedChanges:   slices.Clone(authSet.PendingForcedChanges),
+		AuthoritySetChanges:    slices.Clone(authSet.AuthoritySetChanges),
+	}
 }
 
 // current retrieves the current set id and a reference to the current authority set.

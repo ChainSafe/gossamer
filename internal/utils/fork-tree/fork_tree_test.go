@@ -478,7 +478,7 @@ func TestForkTree(t *testing.T) {
 		{
 			// Deep tree where we want to call `finalizes_any_with_descendent_if`. The
 			// search for the node should first check the predicate (which is cheaper) and
-			// only then call `is_descendent_of`
+			// only then call `isDescendentOf`
 			tree := NewForkTree[string, uint, uint]()
 			letters := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"}
 
@@ -490,7 +490,7 @@ func TestForkTree(t *testing.T) {
 			}
 
 			// "L" is a descendent of "K", but the predicate will only pass for "K",
-			// therefore only one call to `is_descendent_of` should be made
+			// therefore only one call to `isDescendentOf` should be made
 			res, err := tree.FinalizesAnyWithDescendentIf("L", 11, isDescendentOf, func(i uint) bool {
 				return i == 10
 			})
@@ -506,7 +506,7 @@ func TestForkTree(t *testing.T) {
 		{
 			// Multiple roots in the tree where we want to call `finalize_with_descendent_if`.
 			// The search for the root node should first check the predicate (which is cheaper)
-			// and only then call `is_descendent_of`
+			// and only then call `isDescendentOf`
 			tree := NewForkTree[string, uint, uint]()
 			letters := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"}
 
@@ -518,7 +518,7 @@ func TestForkTree(t *testing.T) {
 			}
 
 			// "L" is a descendent of "K", but the predicate will only pass for "K",
-			// therefore only one call to `is_descendent_of` should be made
+			// therefore only one call to `isDescendentOf` should be made
 			res, err := tree.FinalizeWithDescendentIf("L", 11, isDescendentOf, func(i uint) bool {
 				return i == 10
 			})
@@ -925,7 +925,7 @@ func TestForkTree(t *testing.T) {
 		tree, isDescendentOf := testForkTree(t)
 
 		// Test for the post-order DFS traversal requirement as specified by the
-		// `find_node_index_where` and `import` comments.
+		// `FindNodeIndexWhere` and `Import` comments.
 		isDescendentOfForPostOrder := func(parent, child string) (bool, error) {
 			if parent == "A" {
 				return false, fmt.Errorf("TestError")
@@ -936,7 +936,7 @@ func TestForkTree(t *testing.T) {
 			return isDescendentOf(parent, child)
 		}
 
-		// Post order traversal requirement for `find_node_index_where`
+		// Post order traversal requirement for `FindNodeIndexWhere`
 		path, err := tree.FindNodeIndexWhere("N", 60, isDescendentOfForPostOrder, func(data uint32) bool {
 			return true
 		})
@@ -944,7 +944,7 @@ func TestForkTree(t *testing.T) {
 		require.NotNil(t, path)
 		require.Equal(t, []uint{0, 1, 0, 0, 0}, path)
 
-		// Post order traversal requirement for `import`
+		// Post order traversal requirement for `Import`
 		res, err := tree.Import("Z", 100, 10, isDescendentOfForPostOrder)
 		require.NoError(t, err)
 		require.False(t, res)

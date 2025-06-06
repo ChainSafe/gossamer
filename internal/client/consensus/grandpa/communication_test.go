@@ -173,7 +173,6 @@ func getConfig() Config {
 		KeyStore:                      nil,
 		Name:                          nil,
 		LocalRole:                     role.RoleAuthority,
-		ObserverEnabled:               false,
 		ProtocolName:                  "grandpa_protocol_name",
 	}
 }
