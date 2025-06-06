@@ -91,7 +91,7 @@ func (cpvs *CollatorProtocolValidatorSide) Run(
 
 	for {
 		select {
-		// TODO: #4697: implement reputation aggregator
+		// TODO: #4697: use util.ReputationAggregator
 		case msg, ok := <-overseerToSubSystem:
 			if !ok {
 				return
