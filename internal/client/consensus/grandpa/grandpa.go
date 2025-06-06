@@ -314,7 +314,6 @@ type voterWork[
 	Header runtime.Header[N, H],
 	E runtime.Extrinsic,
 ] struct {
-	// use string for AuthorityID and AuthoritySignature
 	voter            *grandpa.Voter[H, N, primitives.AuthoritySignature, primitives.AuthorityID]
 	voterErrChan     <-chan error
 	sharedVoterState *SharedVoterState[primitives.AuthorityID]

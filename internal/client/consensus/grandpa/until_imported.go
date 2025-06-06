@@ -513,7 +513,7 @@ func (bgm blockGlobalMessage[H, N]) NeedsWaiting(
 	}
 
 	// schedule waits for all unknown messages.
-	// when the last one of these has `wait_completed` called on it,
+	// when the last one of these has WaitCompleted called on it,
 	// the global message will be returned.
 	return itemsToAwait, nil
 }

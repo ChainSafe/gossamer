@@ -694,8 +694,6 @@ func (e *environment[H, N, Hasher, Header, E]) reportEquivocation(
 	bestBlockHash := info.BestHash
 	bestBlockNumber := info.BestNumber
 
-	// e.AuthoritySet.mtx.Lock()
-	// defer e.AuthoritySet.mtx.Unlock()
 	authoritySet, unlock := e.AuthoritySet.inner.DataMut()
 	defer unlock()
 
@@ -1461,8 +1459,6 @@ func finalizeBlock[
 
 	// NOTE: lock must be held through writing to DB to avoid race. this lock also implicitly synchronises the check
 	// for last finalized number below.
-	// authoritySet.mtx.Lock()
-	// defer authoritySet.mtx.Unlock()
 	authoritySet, unlock := sharedAuthoritySet.inner.DataMut()
 	defer unlock()
 
