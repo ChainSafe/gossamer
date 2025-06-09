@@ -41,7 +41,7 @@ func Keccak256(data []byte) [32]byte {
 	return buf
 }
 
-// / Do a XX 128-bit hash and return result.
+// Do a XX 128-bit hash and return result.
 func Twox128(data []byte) [16]byte {
 	// compute xxHash64 twice with seeds 0 and 1 applied on given byte array
 	h0 := xxhash.NewS64(0) // create xxHash with 0 seed

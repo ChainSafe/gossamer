@@ -99,71 +99,55 @@ type GrandpaJustification[H runtime.Hash, N runtime.Number, Header runtime.Heade
 	VoteAncestries []Header
 }
 
-// / An consensus log item for GRANDPA.
-// #[derive(Decode, Encode, PartialEq, Eq, Clone, RuntimeDebug)]
-// #[cfg_attr(feature = "serde", derive(Serialize))]
-// pub enum ConsensusLog<N: Codec> {
+// A consensus log item for GRANDPA.
 type ConsensusLog interface {
 	isConsensusLog()
 }
 
-// / Schedule an authority set change.
-// /
-// / The earliest digest of this type in a single block will be respected,
-// / provided that there is no `ForcedChange` digest. If there is, then the
-// / `ForcedChange` will take precedence.
-// /
-// / No change should be scheduled if one is already and the delay has not
-// / passed completely.
-// /
-// / This should be a pure function: i.e. as long as the runtime can interpret
-// / the digest type it should return the same result regardless of the current
-// / state.
-// #[codec(index = 1)]
-// ScheduledChange(ScheduledChange<N>),
+// Schedule an authority set change.
+//
+// The earliest digest of this type in a single block will be respected,
+// provided that there is no ForcedChange digest. If there is, then the
+// ForcedChange will take precedence.
+//
+// No change should be scheduled if one is already and the delay has not
+// passed completely.
+//
+// This should be a pure function: i.e. as long as the runtime can interpret
+// the digest type it should return the same result regardless of the current
+// state.
 type ConensusLogScheduledChange[N runtime.Number] ScheduledChange[N]
 
-// / Force an authority set change.
-// /
-// / Forced changes are applied after a delay of _imported_ blocks,
-// / while pending changes are applied after a delay of _finalized_ blocks.
-// /
-// / The earliest digest of this type in a single block will be respected,
-// / with others ignored.
-// /
-// / No change should be scheduled if one is already and the delay has not
-// / passed completely.
-// /
-// / This should be a pure function: i.e. as long as the runtime can interpret
-// / the digest type it should return the same result regardless of the current
-// / state.
+// Force an authority set change.
 //
-//	#[codec(index = 2)]
-//	ForcedChange(N, ScheduledChange<N>),
+// Forced changes are applied after a delay of _imported_ blocks,
+// while pending changes are applied after a delay of _finalized_ blocks.
+//
+// The earliest digest of this type in a single block will be respected,
+// with others ignored.
+//
+// No change should be scheduled if one is already and the delay has not
+// passed completely.
+//
+// This should be a pure function: i.e. as long as the runtime can interpret
+// the digest type it should return the same result regardless of the current
+// state.
 type ConsensusLogForcedChange[N runtime.Number] struct {
 	Median N
 	ScheduledChange[N]
 }
 
-// / Note that the authority with given index is disabled until the next change.
-//
-//	#[codec(index = 3)]
-//	OnDisabled(AuthorityIndex),
+// Note that the authority with given index is disabled until the next change.
 type ConsensusLogOnDisabled AuthorityIndex
 
-// / A signal to pause the current authority set after the given delay.
-// / After finalizing the block at _delay_ the authorities should stop voting.
-// #[codec(index = 4)]
-// Pause(N),
+// A signal to pause the current authority set after the given delay.
+// After finalizing the block at _delay_ the authorities should stop voting.
 type ConsensusLogPause[N runtime.Number] struct {
 	Delay N
 }
 
-// / A signal to resume the current authority set after the given delay.
-// / After authoring the block at _delay_ the authorities should resume voting.
-//
-//	#[codec(index = 5)]
-//	Resume(N),
+// A signal to resume the current authority set after the given delay.
+// After authoring the block at _delay_ the authorities should resume voting.
 type ConsensusLogResume[N runtime.Number] struct {
 	Delay N
 }
@@ -237,7 +221,7 @@ func (mvdt ConsensusLogVDT[N]) ValueAt(index uint) (value any, err error) {
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-// EquiovcationProof is proof of voter misbehavior on a given set id. Misbehavior/equivocation in GRANDPA happens when
+// EquivocationProof is proof of voter misbehavior on a given set id. Misbehavior/equivocation in GRANDPA happens when
 // a voter votes on the same round (either at prevote or precommit stage) for different blocks. Proving is achieved by
 // collecting the signed messages of conflicting votes.
 type EquivocationProof[H runtime.Hash, N runtime.Number] struct {
@@ -386,6 +370,5 @@ type GrandpaAPI[H runtime.Hash, N runtime.Number] interface {
 	) *OpaqueKeyOwnershipProof
 
 	/// Get current GRANDPA authority set id.
-	// fn current_set_id() -> SetId;
 	CurrentSetID(hash H) (SetID, error)
 }

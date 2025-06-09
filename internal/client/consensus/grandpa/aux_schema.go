@@ -58,6 +58,9 @@ func loadPersistent[H runtime.Hash, N runtime.Number](
 	makeGenesisRound := grandpa.NewRoundState[H, N]
 
 	authSet, err := loadDecoded[AuthoritySet[H, N]](store, authoritySetKey)
+	if err != nil {
+		return nil, err
+	}
 	if authSet != nil {
 		var setState voterSetState[H, N]
 		state, err := loadDecoded[voterSetStateVDT[H, N]](store, setStateKey)

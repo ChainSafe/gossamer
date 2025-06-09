@@ -165,7 +165,7 @@ type LinkHalf[
 	persistentData      persistentData[H, N]
 	voterCommandsRx     chan voterCommand
 	justificationSender GrandpaJustificationSender[H, N, Header]
-	justificationStream GrandpaJustificationStream[H, N, Header] //nolint: unused
+	justificationStream GrandpaJustificationStream[H, N, Header]
 }
 
 // Provider for the Grandpa authority set configured on the genesis block.
@@ -174,40 +174,12 @@ type GenesisAuthoritySetProvider interface {
 	Get() (primitives.AuthorityList, error)
 }
 
-// / Make block importer and link half necessary to tie the background voter
-// / to it.
-// /
-// / The `justification_import_period` sets the minimum period on which
-// / justifications will be imported.  When importing a block, if it includes a
-// / justification it will only be processed if it fits within this period,
-// / otherwise it will be ignored (and won't be validated). This is to avoid
-// / slowing down sync by a peer serving us unnecessary justifications which
-// / aren't trivial to validate.
-// pub fn block_import<BE, Block: BlockT, Client, SC>(
+// Make block importer and link half necessary to tie the background voter to it.
 //
-//	client: Arc<Client>,
-//	justification_import_period: u32,
-//	genesis_authorities_provider: &dyn GenesisAuthoritySetProvider<Block>,
-//	select_chain: SC,
-//	telemetry: Option<TelemetryHandle>,
-//
-// ) -> Result<(GrandpaBlockImport<BE, Block, Client, SC>, LinkHalf<Block, Client, SC>), ClientError>
-// where
-//
-//	SC: SelectChain<Block>,
-//	BE: Backend<Block> + 'static,
-//	Client: ClientForGrandpa<Block, BE> + 'static,
-//
-//	{
-//		block_import_with_authority_set_hard_forks(
-//			client,
-//			justification_import_period,
-//			genesis_authorities_provider,
-//			select_chain,
-//			Default::default(),
-//			telemetry,
-//		)
-//	}
+// The justificationImportPeriod sets the minimum period on which justifications will be imported.  When importing
+// a block, if it includes a justification it will only be processed if it fits within this period, otherwise it will
+// be ignored (and won't be validated). This is to avoid slowing down sync by a peer serving us unnecessary
+// justifications which aren't trivial to validate.
 func BlockImport[
 	H runtime.Hash,
 	N runtime.Number,
@@ -230,51 +202,24 @@ func BlockImport[
 	)
 }
 
-// / A descriptor for an authority set hard fork. These are authority set changes
-// / that are not signalled by the runtime and instead are defined off-chain
-// / (hence the hard fork).
-// pub struct AuthoritySetHardFork<Block: BlockT> {
+// A descriptor for an authority set hard fork. These are authority set changes that are not signalled by the runtime
+// and instead are defined off-chain (hence the hard fork).
 type AuthoritySetHardFork[H, N any] struct {
-	// /// The new authority set id.
-	// pub set_id: SetId,
+	// The new authority set id.
 	SetID SetID
-	// /// The block hash and number at which the hard fork should be applied.
-	// pub block: (Block::Hash, NumberFor<Block>),
+	// The block hash and number at which the hard fork should be applied.
 	Block HashNumber[H, N]
-	// /// The authorities in the new set.
-	// pub authorities: AuthorityList,
+	// The authorities in the new set.
 	Authorities primitives.AuthorityList
-	// /// The latest block number that was finalized before this authority set
-	// /// hard fork. When defined, the authority set change will be forced, i.e.
-	// /// the node won't wait for the block above to be finalized before enacting
-	// /// the change, and the given finalized number will be used as a base for
-	// /// voting.
-	// pub last_finalized: Option<NumberFor<Block>>,
+	// The latest block number that was finalized before this authority set hard fork. When defined, the authority set
+	// change will be forced, i.e. the node won't wait for the block above to be finalized before enacting the change,
+	// and the given finalized number will be used as a base for voting.
 	LastFinalized *N
 }
 
-// / Make block importer and link half necessary to tie the background voter to
-// / it. A vector of authority set hard forks can be passed, any authority set
-// / change signaled at the given block (either already signalled or in a further
-// / block when importing it) will be replaced by a standard change with the
-// / given static authorities.
-// pub fn block_import_with_authority_set_hard_forks<BE, Block: BlockT, Client, SC>(
-//
-//	client: Arc<Client>,
-//	justification_import_period: u32,
-//	genesis_authorities_provider: &dyn GenesisAuthoritySetProvider<Block>,
-//	select_chain: SC,
-//	authority_set_hard_forks: Vec<AuthoritySetHardFork<Block>>,
-//	telemetry: Option<TelemetryHandle>,
-//
-// ) -> Result<(GrandpaBlockImport<BE, Block, Client, SC>, LinkHalf<Block, Client, SC>), ClientError>
-// where
-//
-//	SC: SelectChain<Block>,
-//	BE: Backend<Block> + 'static,
-//	Client: ClientForGrandpa<Block, BE> + 'static,
-//
-// {
+// Make block importer and link half necessary to tie the background voter to it. A vector of authority set hard forks
+// can be passed, any authority set change signalled at the given block (either already signalled or in a further block
+// when importing it) will be replaced by a standard change with the given static authorities.
 func blockImportWithAuthoritySetHardForks[
 	H runtime.Hash,
 	N runtime.Number,
@@ -289,25 +234,9 @@ func blockImportWithAuthoritySetHardForks[
 	authoritySetHardForks []AuthoritySetHardFork[H, N],
 	// TODO: telemetry
 ) (*GrandpaBlockImport[H, N, Hasher, Header, E], LinkHalf[H, N, Hasher, Header, E], error) {
-	// 	let chain_info = client.info();
-	// 	let genesis_hash = chain_info.genesis_hash;
 	chainInfo := client.Info()
 	genesisHash := chainInfo.GenesisHash
 
-	// 	let persistent_data =
-	// 		aux_schema::load_persistent(&*client, genesis_hash, <NumberFor<Block>>::zero(), {
-	// 			let telemetry = telemetry.clone();
-	// 			move || {
-	// 				let authorities = genesis_authorities_provider.get()?;
-	// 				telemetry!(
-	// 					telemetry;
-	// 					CONSENSUS_DEBUG;
-	// 					"afg.loading_authorities";
-	// 					"authorities_len" => ?authorities.len()
-	// 				);
-	// 				Ok(authorities)
-	// 			}
-	// 		})?;
 	persistentData, err := loadPersistent[H, N](client, genesisHash, 0, func() (primitives.AuthorityList, error) {
 		authorities, err := genesisAuthoritySetProvider.Get()
 		if err != nil {
@@ -319,37 +248,11 @@ func blockImportWithAuthoritySetHardForks[
 		return nil, LinkHalf[H, N, Hasher, Header, E]{}, err
 	}
 
-	_ = persistentData
-
-	// 	let (voter_commands_tx, voter_commands_rx) =
-	// 		tracing_unbounded("mpsc_grandpa_voter_command", 100_000);
 	voterCommands := make(chan voterCommand, 100000)
 
-	// 	let (justification_sender, justification_stream) = GrandpaJustificationStream::channel();
 	justificationSender, justificationStream := NewGrandpaJustificationSender[H, N, Header]()
 
 	// create pending change objects with 0 delay for each authority set hard fork.
-	// 	let authority_set_hard_forks = authority_set_hard_forks
-	// 		.into_iter()
-	// 		.map(|fork| {
-	// 			let delay_kind = if let Some(last_finalized) = fork.last_finalized {
-	// 				authorities::DelayKind::Best { median_last_finalized: last_finalized }
-	// 			} else {
-	// 				authorities::DelayKind::Finalized
-	// 			};
-
-	// 			(
-	// 				fork.set_id,
-	// 				authorities::PendingChange {
-	// 					next_authorities: fork.authorities,
-	// 					delay: Zero::zero(),
-	// 					canon_hash: fork.block.0,
-	// 					canon_height: fork.block.1,
-	// 					delay_kind,
-	// 				},
-	// 			)
-	// 		})
-	// 		.collect();
 	hardForks := make([]struct {
 		SetID
 		PendingChange[H, N]
@@ -366,7 +269,7 @@ func blockImportWithAuthoritySetHardForks[
 			SetID
 			PendingChange[H, N]
 		}{
-			SetID: SetID(fork.SetID),
+			SetID: fork.SetID,
 			PendingChange: PendingChange[H, N]{
 				NextAuthorities: fork.Authorities,
 				Delay:           0,
@@ -376,30 +279,6 @@ func blockImportWithAuthoritySetHardForks[
 			},
 		}
 	}
-
-	// Ok((
-	//
-	//	GrandpaBlockImport::new(
-	//		client.clone(),
-	//		justification_import_period,
-	//		select_chain.clone(),
-	//		persistent_data.authority_set.clone(),
-	//		voter_commands_tx,
-	//		authority_set_hard_forks,
-	//		justification_sender.clone(),
-	//		telemetry.clone(),
-	//	),
-	//	LinkHalf {
-	//		client,
-	//		select_chain,
-	//		persistent_data,
-	//		voter_commands_rx,
-	//		justification_sender,
-	//		justification_stream,
-	//		telemetry,
-	//	},
-	//
-	// ))
 
 	blockImport := newGrandpaBlockImport(
 		client,

@@ -90,11 +90,7 @@ func (v *RuntimeVersion) StateVersion() storage.StateVersion {
 	return storage.StateVersion(stateVersion)
 }
 
-// / Returns the api version found for api with `id`.
-//
-//	pub fn api_version(&self, id: &ApiId) -> Option<u32> {
-//		self.apis.iter().find_map(|a| (a.0 == *id).then(|| a.1))
-//	}
+// Returns the api version found for api with id.
 func (v *RuntimeVersion) APIVersion(id ApiID) *uint32 {
 	for _, api := range v.APIs {
 		if api.ApiID == id {
