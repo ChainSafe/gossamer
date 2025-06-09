@@ -698,9 +698,9 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_InvalidSignalType(
 	peerA := generateDummyPeerID(t, -1)
 
 	message := validationprotocol.Statement{
-		Hash: common.Hash{1, 2, 3},
-		UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
-			Payload:        parachaintypes.StatementVDT{},
+		RelayParent: common.Hash{1, 2, 3},
+		Compact: parachaintypes.UncheckedSignedCompactStatement{
+			Payload:        *parachaintypes.NewCompactValid(parachaintypes.CandidateHash{}).ToEncodable(),
 			ValidatorIndex: 0,
 			Signature:      parachaintypes.ValidatorSignature([64]byte{1}),
 		},
