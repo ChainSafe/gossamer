@@ -25,7 +25,7 @@ func TestReceivedManifests_candidateStatementFilter(t *testing.T) {
 		name          string
 		setupReceived map[parachaintypes.CandidateHash]manifestSummary
 		candidateHash parachaintypes.CandidateHash
-		wantFilter    *statementFilter
+		wantFilter    *parachaintypes.StatementFilter
 	}{
 		{
 			name:          "nil_received",
@@ -43,16 +43,16 @@ func TestReceivedManifests_candidateStatementFilter(t *testing.T) {
 			name: "candidate_exists",
 			setupReceived: map[parachaintypes.CandidateHash]manifestSummary{
 				{Value: common.Hash{1, 2, 3}}: {
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, true, false, true, false),
-						validatedInGroup: newBitVec(t, false, true, false, true),
+					statementKnowledge: parachaintypes.StatementFilter{
+						SecondedInGroup:  newBitVec(t, true, false, true, false),
+						ValidatedInGroup: newBitVec(t, false, true, false, true),
 					},
 				},
 			},
 			candidateHash: parachaintypes.CandidateHash{Value: common.Hash{1, 2, 3}},
-			wantFilter: &statementFilter{
-				secondedInGroup:  newBitVec(t, true, false, true, false),
-				validatedInGroup: newBitVec(t, false, true, false, true),
+			wantFilter: &parachaintypes.StatementFilter{
+				SecondedInGroup:  newBitVec(t, true, false, true, false),
+				ValidatedInGroup: newBitVec(t, false, true, false, true),
 			},
 		},
 	}
@@ -101,9 +101,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 			summary: manifestSummary{
 				claimedParentHash: common.Hash{4, 5, 6},
 				claimedGroupIndex: 1,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, true, false, false),
-					validatedInGroup: newBitVec(t, false, true, false),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, true, false, false),
+					ValidatedInGroup: newBitVec(t, false, true, false),
 				},
 			},
 			wantErr: nil,
@@ -111,9 +111,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 				{Value: common.Hash{1, 2, 3}}: {
 					claimedParentHash: common.Hash{4, 5, 6},
 					claimedGroupIndex: 1,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, true, false, false),
-						validatedInGroup: newBitVec(t, false, true, false),
+					statementKnowledge: parachaintypes.StatementFilter{
+						SecondedInGroup:  newBitVec(t, true, false, false),
+						ValidatedInGroup: newBitVec(t, false, true, false),
 					},
 				},
 			},
@@ -133,9 +133,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 			summary: manifestSummary{
 				claimedParentHash: common.Hash{4, 5, 6},
 				claimedGroupIndex: 1,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, true, false, false),
-					validatedInGroup: newBitVec(t, false, true, false),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, true, false, false),
+					ValidatedInGroup: newBitVec(t, false, true, false),
 				},
 			},
 			wantErr:      errManifestImportOverflow,
@@ -150,9 +150,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 				{Value: common.Hash{1, 2, 3}}: {
 					claimedParentHash: common.Hash{4, 5, 6},
 					claimedGroupIndex: 1,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, true, false, false),
-						validatedInGroup: newBitVec(t, false, true, false),
+					statementKnowledge: parachaintypes.StatementFilter{
+						SecondedInGroup:  newBitVec(t, true, false, false),
+						ValidatedInGroup: newBitVec(t, false, true, false),
 					},
 				},
 			},
@@ -165,9 +165,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 			summary: manifestSummary{
 				claimedParentHash: common.Hash{4, 5, 6},
 				claimedGroupIndex: 2, // Different group index
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, true, false, false),
-					validatedInGroup: newBitVec(t, false, true, false),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, true, false, false),
+					ValidatedInGroup: newBitVec(t, false, true, false),
 				},
 			},
 			wantErr: errManifestImportConflicting,
@@ -175,9 +175,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 				{Value: common.Hash{1, 2, 3}}: {
 					claimedParentHash: common.Hash{4, 5, 6},
 					claimedGroupIndex: 1,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, true, false, false),
-						validatedInGroup: newBitVec(t, false, true, false),
+					statementKnowledge: parachaintypes.StatementFilter{
+						SecondedInGroup:  newBitVec(t, true, false, false),
+						ValidatedInGroup: newBitVec(t, false, true, false),
 					},
 				},
 			},
@@ -191,9 +191,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 				{Value: common.Hash{1, 2, 3}}: {
 					claimedParentHash: common.Hash{4, 5, 6},
 					claimedGroupIndex: 1,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, true, false, false),
-						validatedInGroup: newBitVec(t, false, true, false),
+					statementKnowledge: parachaintypes.StatementFilter{
+						SecondedInGroup:  newBitVec(t, true, false, false),
+						ValidatedInGroup: newBitVec(t, false, true, false),
 					},
 				},
 			},
@@ -206,9 +206,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 			summary: manifestSummary{
 				claimedParentHash: common.Hash{4, 5, 6},
 				claimedGroupIndex: 1,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, true, false), // Not a superset
-					validatedInGroup: newBitVec(t, false, true, false),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, true, false), // Not a superset
+					ValidatedInGroup: newBitVec(t, false, true, false),
 				},
 			},
 			wantErr: errManifestImportConflicting,
@@ -216,9 +216,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 				{Value: common.Hash{1, 2, 3}}: {
 					claimedParentHash: common.Hash{4, 5, 6},
 					claimedGroupIndex: 1,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, true, false, false),
-						validatedInGroup: newBitVec(t, false, true, false),
+					statementKnowledge: parachaintypes.StatementFilter{
+						SecondedInGroup:  newBitVec(t, true, false, false),
+						ValidatedInGroup: newBitVec(t, false, true, false),
 					},
 				},
 			},
@@ -232,9 +232,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 				{Value: common.Hash{1, 2, 3}}: {
 					claimedParentHash: common.Hash{4, 5, 6},
 					claimedGroupIndex: 1,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, true, false, false),
-						validatedInGroup: newBitVec(t, false, true, false),
+					statementKnowledge: parachaintypes.StatementFilter{
+						SecondedInGroup:  newBitVec(t, true, false, false),
+						ValidatedInGroup: newBitVec(t, false, true, false),
 					},
 				},
 			},
@@ -247,9 +247,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 			summary: manifestSummary{
 				claimedParentHash: common.Hash{4, 5, 6},
 				claimedGroupIndex: 1,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, true, false, false),
-					validatedInGroup: newBitVec(t, false, false, true), // Not a superset
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, true, false, false),
+					ValidatedInGroup: newBitVec(t, false, false, true), // Not a superset
 				},
 			},
 			wantErr: errManifestImportConflicting,
@@ -257,9 +257,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 				{Value: common.Hash{1, 2, 3}}: {
 					claimedParentHash: common.Hash{4, 5, 6},
 					claimedGroupIndex: 1,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, true, false, false),
-						validatedInGroup: newBitVec(t, false, true, false),
+					statementKnowledge: parachaintypes.StatementFilter{
+						SecondedInGroup:  newBitVec(t, true, false, false),
+						ValidatedInGroup: newBitVec(t, false, true, false),
 					},
 				},
 			},
@@ -273,9 +273,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 				{Value: common.Hash{1, 2, 3}}: {
 					claimedParentHash: common.Hash{4, 5, 6},
 					claimedGroupIndex: 1,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, true, false, false),
-						validatedInGroup: newBitVec(t, false, true, false),
+					statementKnowledge: parachaintypes.StatementFilter{
+						SecondedInGroup:  newBitVec(t, true, false, false),
+						ValidatedInGroup: newBitVec(t, false, true, false),
 					},
 				},
 			},
@@ -288,9 +288,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 			summary: manifestSummary{
 				claimedParentHash: common.Hash{4, 5, 6},
 				claimedGroupIndex: 1,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, true, false, false),
-					validatedInGroup: newBitVec(t, false, true, false),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, true, false, false),
+					ValidatedInGroup: newBitVec(t, false, true, false),
 				},
 			},
 			wantErr: nil,
@@ -298,9 +298,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 				{Value: common.Hash{1, 2, 3}}: {
 					claimedParentHash: common.Hash{4, 5, 6},
 					claimedGroupIndex: 1,
-					statementKnowledge: statementFilter{
-						secondedInGroup:  newBitVec(t, true, false, false),
-						validatedInGroup: newBitVec(t, false, true, false),
+					statementKnowledge: parachaintypes.StatementFilter{
+						SecondedInGroup:  newBitVec(t, true, false, false),
+						ValidatedInGroup: newBitVec(t, false, true, false),
 					},
 				},
 			},
@@ -342,9 +342,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 		expectedManifestSummary := manifestSummary{
 			claimedParentHash: common.Hash{2, 2, 2},
 			claimedGroupIndex: 0,
-			statementKnowledge: statementFilter{
-				secondedInGroup:  newBitVec(t, true, true, false),
-				validatedInGroup: newBitVec(t, false, true, true),
+			statementKnowledge: parachaintypes.StatementFilter{
+				SecondedInGroup:  newBitVec(t, true, true, false),
+				ValidatedInGroup: newBitVec(t, false, true, true),
 			},
 		}
 
@@ -378,7 +378,7 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 		t.Run("conflicting_seconded_statements_bitfield", func(t *testing.T) {
 			knowledge := setup(t)
 			s := expectedManifestSummary.clone()
-			s.statementKnowledge.secondedInGroup = newBitVec(t, false, true, false)
+			s.statementKnowledge.SecondedInGroup = newBitVec(t, false, true, false)
 
 			err := knowledge.importReceived(3, 2, candidateHash, s)
 
@@ -388,7 +388,7 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 		t.Run("conflicting_valid_statements_bitfield", func(t *testing.T) {
 			knowledge := setup(t)
 			s := expectedManifestSummary.clone()
-			s.statementKnowledge.validatedInGroup = newBitVec(t, false, true, false)
+			s.statementKnowledge.ValidatedInGroup = newBitVec(t, false, true, false)
 
 			err := knowledge.importReceived(3, 2, candidateHash, s)
 
@@ -408,9 +408,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0xA, 0xA, 0xA},
 				claimedGroupIndex: 0,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, true, true, false),
-					validatedInGroup: newBitVec(t, false, true, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, true, true, false),
+					ValidatedInGroup: newBitVec(t, false, true, true),
 				},
 			},
 		)
@@ -423,9 +423,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0xB, 0xB, 0xB},
 				claimedGroupIndex: 0,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, true, false, true),
-					validatedInGroup: newBitVec(t, false, true, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, true, false, true),
+					ValidatedInGroup: newBitVec(t, false, true, true),
 				},
 			},
 		)
@@ -440,9 +440,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0xC, 0xC, 0xC},
 				claimedGroupIndex: 0,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, true, true, true),
-					validatedInGroup: newBitVec(t, false, true, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, true, true, true),
+					ValidatedInGroup: newBitVec(t, false, true, true),
 				},
 			},
 		)
@@ -456,9 +456,9 @@ func TestReceivedManifests_importReceived(t *testing.T) {
 			manifestSummary{
 				claimedParentHash: common.Hash{0xC, 0xC, 0xC},
 				claimedGroupIndex: 0,
-				statementKnowledge: statementFilter{
-					secondedInGroup:  newBitVec(t, false, true, true),
-					validatedInGroup: newBitVec(t, false, true, true),
+				statementKnowledge: parachaintypes.StatementFilter{
+					SecondedInGroup:  newBitVec(t, false, true, true),
+					ValidatedInGroup: newBitVec(t, false, true, true),
 				},
 			},
 		)

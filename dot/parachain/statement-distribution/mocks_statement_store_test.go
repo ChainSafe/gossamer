@@ -40,6 +40,18 @@ func (m *MockstatementStore) EXPECT() *MockstatementStoreMockRecorder {
 	return m.recorder
 }
 
+// fillStatementFilter mocks base method.
+func (m *MockstatementStore) fillStatementFilter(arg0 parachaintypes.GroupIndex, arg1 parachaintypes.CandidateHash, arg2 *parachaintypes.StatementFilter) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "fillStatementFilter", arg0, arg1, arg2)
+}
+
+// fillStatementFilter indicates an expected call of fillStatementFilter.
+func (mr *MockstatementStoreMockRecorder) fillStatementFilter(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "fillStatementFilter", reflect.TypeOf((*MockstatementStore)(nil).fillStatementFilter), arg0, arg1, arg2)
+}
+
 // freshStatementsForBacking mocks base method.
 func (m *MockstatementStore) freshStatementsForBacking(validators []parachaintypes.ValidatorIndex, candidateHash parachaintypes.CandidateHash) []parachaintypes.SignedStatement {
 	m.ctrl.T.Helper()
@@ -54,6 +66,20 @@ func (mr *MockstatementStoreMockRecorder) freshStatementsForBacking(validators, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "freshStatementsForBacking", reflect.TypeOf((*MockstatementStore)(nil).freshStatementsForBacking), validators, candidateHash)
 }
 
+// groupStatements mocks base method.
+func (m *MockstatementStore) groupStatements(arg0 *groups, arg1 parachaintypes.GroupIndex, arg2 parachaintypes.CandidateHash, arg3 *parachaintypes.StatementFilter) []parachaintypes.SignedStatement {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "groupStatements", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].([]parachaintypes.SignedStatement)
+	return ret0
+}
+
+// groupStatements indicates an expected call of groupStatements.
+func (mr *MockstatementStoreMockRecorder) groupStatements(arg0, arg1, arg2, arg3 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "groupStatements", reflect.TypeOf((*MockstatementStore)(nil).groupStatements), arg0, arg1, arg2, arg3)
+}
+
 // noteKnownByBacking mocks base method.
 func (m *MockstatementStore) noteKnownByBacking(arg0 parachaintypes.ValidatorIndex, arg1 parachaintypes.CompactStatement) {
 	m.ctrl.T.Helper()
@@ -64,4 +90,18 @@ func (m *MockstatementStore) noteKnownByBacking(arg0 parachaintypes.ValidatorInd
 func (mr *MockstatementStoreMockRecorder) noteKnownByBacking(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "noteKnownByBacking", reflect.TypeOf((*MockstatementStore)(nil).noteKnownByBacking), arg0, arg1)
+}
+
+// validatorStatement mocks base method.
+func (m *MockstatementStore) validatorStatement(stmt originatorStatementPair) *parachaintypes.SignedStatement {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "validatorStatement", stmt)
+	ret0, _ := ret[0].(*parachaintypes.SignedStatement)
+	return ret0
+}
+
+// validatorStatement indicates an expected call of validatorStatement.
+func (mr *MockstatementStoreMockRecorder) validatorStatement(stmt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "validatorStatement", reflect.TypeOf((*MockstatementStore)(nil).validatorStatement), stmt)
 }
