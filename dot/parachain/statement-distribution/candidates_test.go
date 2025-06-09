@@ -443,11 +443,15 @@ func TestHypotheticalFrontiers(t *testing.T) {
 
 	paraID1 := parachaintypes.ParaID(1)
 
-	candidateA := util.MakeCandidate(relayHash, 1, paraID1, relayHeadData, candidateHeadDataA, parachaintypes.ValidationCodeHash(common.MustBlake2bHash([]byte("pov1000"))))
+	candidateA := util.MakeCandidate(relayHash, 1, paraID1, relayHeadData, candidateHeadDataA,
+		parachaintypes.ValidationCodeHash(common.MustBlake2bHash([]byte("pov1000"))))
 	pvdA := util.DummyPVD(relayHeadData, 1000)
-	candidateB := util.MakeCandidate(relayHash, 1, paraID1, candidateHeadDataA, candidateHeadDataB, parachaintypes.ValidationCodeHash(common.MustBlake2bHash([]byte("pov2000"))))
-	candidateC := util.MakeCandidate(relayHash, 1, paraID1, candidateHeadDataA, candidateHeadDataC, parachaintypes.ValidationCodeHash(common.MustBlake2bHash([]byte("pov3000"))))
-	candidateD := util.MakeCandidate(relayHash, 1, paraID1, candidateHeadDataB, candidateHeadDataD, parachaintypes.ValidationCodeHash(common.MustBlake2bHash([]byte("pov4000"))))
+	candidateB := util.MakeCandidate(relayHash, 1, paraID1, candidateHeadDataA, candidateHeadDataB,
+		parachaintypes.ValidationCodeHash(common.MustBlake2bHash([]byte("pov2000"))))
+	candidateC := util.MakeCandidate(relayHash, 1, paraID1, candidateHeadDataA, candidateHeadDataC,
+		parachaintypes.ValidationCodeHash(common.MustBlake2bHash([]byte("pov3000"))))
+	candidateD := util.MakeCandidate(relayHash, 1, paraID1, candidateHeadDataB, candidateHeadDataD,
+		parachaintypes.ValidationCodeHash(common.MustBlake2bHash([]byte("pov4000"))))
 
 	candidateHashAVal, err := candidateA.Hash()
 	require.NoError(t, err)
@@ -476,15 +480,18 @@ func TestHypotheticalFrontiers(t *testing.T) {
 	require.NoError(t, err)
 
 	// Advertise B with parent A.
-	err = candidates.insertUnconfirmed(peerID, candidateHashB, relayHash, groupIndex, &hashAndParaID{Hash: candidateHeadDataHashA, ParaID: paraID1})
+	err = candidates.insertUnconfirmed(peerID, candidateHashB, relayHash, groupIndex,
+		&hashAndParaID{Hash: candidateHeadDataHashA, ParaID: paraID1})
 	require.NoError(t, err)
 
 	// Advertise C with parent A.
-	err = candidates.insertUnconfirmed(peerID, candidateHashC, relayHash, groupIndex, &hashAndParaID{Hash: candidateHeadDataHashA, ParaID: paraID1})
+	err = candidates.insertUnconfirmed(peerID, candidateHashC, relayHash, groupIndex,
+		&hashAndParaID{Hash: candidateHeadDataHashA, ParaID: paraID1})
 	require.NoError(t, err)
 
 	// Advertise D with parent B.
-	err = candidates.insertUnconfirmed(peerID, candidateHashD, relayHash, groupIndex, &hashAndParaID{Hash: candidateHeadDataHashB, ParaID: paraID1})
+	err = candidates.insertUnconfirmed(peerID, candidateHashD, relayHash, groupIndex,
+		&hashAndParaID{Hash: candidateHeadDataHashB, ParaID: paraID1})
 	require.NoError(t, err)
 
 	require.Equal(t, map[hashAndParaID]map[parachaintypes.CandidateHash]struct{}{
@@ -522,7 +529,8 @@ func TestHypotheticalFrontiers(t *testing.T) {
 	require.Equal(t, []parachaintypes.HypotheticalCandidate{hypotheticalA}, hypotheticals)
 
 	// Test for parent (candidateHeadDataHashA, ParaID(2))
-	hypotheticals = candidates.frontierHypotheticals(&hashAndParaID{Hash: candidateHeadDataHashA, ParaID: parachaintypes.ParaID(2)})
+	hypotheticals = candidates.frontierHypotheticals(
+		&hashAndParaID{Hash: candidateHeadDataHashA, ParaID: parachaintypes.ParaID(2)})
 	require.Len(t, hypotheticals, 0)
 
 	// Test for parent (candidateHeadDataHashA, paraID1)

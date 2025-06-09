@@ -117,7 +117,7 @@ func (c *candidates) confirmCandidate(
 	candidateHash parachaintypes.CandidateHash,
 	candidateReceipt parachaintypes.CommittedCandidateReceiptV2,
 	persistedValidationData parachaintypes.PersistedValidationData,
-	assignedGroup parachaintypes.GroupIndex,
+	assignedGroup parachaintypes.GroupIndex, //nolint:unparam
 ) (*postConfirmation, error) {
 	parentHash, err := persistedValidationData.ParentHead.Hash()
 	if err != nil {
@@ -206,7 +206,7 @@ func (c *candidates) confirmCandidate(
 // This should be invoked only after performing
 // spam protection and only for advertisements that
 // are valid within the current view. [`Candidates`] never prunes
-// candidate by peer ID, to avoid peers skirting misbehavior
+// candidate by peer ID, to avoid peers skirting misbehaviour
 // reports by disconnecting intermittently. Therefore, this presumes
 // that spam protection limits the peers which can send advertisements
 // about unconfirmed candidates.
