@@ -311,7 +311,6 @@ func (c *candidates) frontierHypotheticals(parent *hashAndParaID) []parachaintyp
 			for cHash := range maybeChildren {
 				if state, ok := c.candidates[cHash]; ok {
 					i = append(i, candidateHashAndState{cHash: cHash, state: state})
-					break
 				}
 			}
 		}
@@ -518,7 +517,7 @@ func (u *unconfirmedCandidate) extendHypotheticals(
 	if requiredParent == nil {
 		for key, possibleRelayParent := range u.parentClaims {
 			for rp := range possibleRelayParent {
-				hypotheticalCandidates = append(hypotheticalCandidates, parachaintypes.HypotheticalCandidateIncomplete{
+				hypotheticalCandidates = append(hypotheticalCandidates, &parachaintypes.HypotheticalCandidateIncomplete{
 					ClaimedCandidateHash: candidateHash,
 					CandidateParaID:      key.ParaID,
 					ParentHeadDataHash:   key.Hash,
@@ -529,7 +528,7 @@ func (u *unconfirmedCandidate) extendHypotheticals(
 	} else {
 		if parentClaims, ok := u.parentClaims[*requiredParent]; ok {
 			for rp := range parentClaims {
-				hypotheticalCandidates = append(hypotheticalCandidates, parachaintypes.HypotheticalCandidateIncomplete{
+				hypotheticalCandidates = append(hypotheticalCandidates, &parachaintypes.HypotheticalCandidateIncomplete{
 					ClaimedCandidateHash: candidateHash,
 					CandidateParaID:      requiredParent.ParaID,
 					ParentHeadDataHash:   requiredParent.Hash,
@@ -569,7 +568,7 @@ func (c *confirmedCandidate) isImportable(underActiveLeaf *common.Hash) bool {
 func (c *confirmedCandidate) toHypothetical(
 	candidateHash parachaintypes.CandidateHash,
 ) parachaintypes.HypotheticalCandidate {
-	return parachaintypes.HypotheticalCandidateComplete{
+	return &parachaintypes.HypotheticalCandidateComplete{
 		ClaimedCandidateHash:      candidateHash,
 		CommittedCandidateReceipt: c.receipt,
 		PersistedValidationData:   *c.pvd,
