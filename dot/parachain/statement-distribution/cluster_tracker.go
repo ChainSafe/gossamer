@@ -10,7 +10,7 @@ import (
 )
 
 // accept signifies that an incoming statement was accepted.
-type accept interface {
+type accept interface { //nolint:unused
 	isAccept()
 }
 
@@ -26,7 +26,7 @@ type withPrejudice struct{}
 func (withPrejudice) isAccept() {}
 
 // / rejectIncoming signifies that an incoming statement was rejected.
-type rejectIncoming interface {
+type rejectIncoming interface { //nolint:unused
 	isRejectIncoming()
 }
 
@@ -38,7 +38,7 @@ func (excessiveSecondedIncoming) isRejectIncoming() {}
 // notInGroupIncoming means sender or originator is not in the group.
 type notInGroupIncoming struct{}
 
-func (notInGroupIncoming) isRejectIcoming() {}
+func (notInGroupIncoming) isRejectIcoming() {} //nolint:unused
 
 // candidateUnknownIncoming means the candidate is unknown to us. Only applies to `Valid` statements.
 type candidateUnknownIncoming struct{}
@@ -51,30 +51,30 @@ type duplicateIncoming struct{}
 func (duplicateIncoming) isRejectIncoming() {}
 
 // / rejectOutgoing signifies that an outgoing statement was rejected.
-type rejectOutgoing interface {
+type rejectOutgoing interface { //nolint:unused
 	isRejectOutgoing()
 }
 
 // candidateUnknownOutgoing means the candidate was unknown. Only applies to `Valid` statements.
-type candidateUnknownOutgoing struct{}
+type candidateUnknownOutgoing struct{} //nolint:unused
 
-func (candidateUnknownOutgoing) isRejectOutgoing() {}
+func (candidateUnknownOutgoing) isRejectOutgoing() {} //nolint:unused
 
 // excessiveSecondedOutgoing means we attempted to send excessive `Seconded` statements.
 // Indicates a bug on the local node's code.
-type excessiveSecondedOutgoing struct{}
+type excessiveSecondedOutgoing struct{} //nolint:unused
 
-func (excessiveSecondedOutgoing) isRejectOutgoing() {}
+func (excessiveSecondedOutgoing) isRejectOutgoing() {} //nolint:unused
 
 // knownOutgoing means the statement was already known to the peer.
-type knownOutgoing struct{}
+type knownOutgoing struct{} //nolint:unused
 
-func (knownOutgoing) isRejectOutgoing() {}
+func (knownOutgoing) isRejectOutgoing() {} //nolint:unused
 
 // notInGroupOutgoing means the target or originator are not in the group.
-type notInGroupOutgoing struct{}
+type notInGroupOutgoing struct{} //nolint:unused
 
-func (notInGroupOutgoing) isRejectOutgoing() {}
+func (notInGroupOutgoing) isRejectOutgoing() {} //nolint:unused
 
 type acceptOrRejectIncoming interface {
 	isAcceptOrRejectIncoming()
@@ -87,16 +87,16 @@ func (notInGroupIncoming) isAcceptOrRejectIncoming()        {}
 func (candidateUnknownIncoming) isAcceptOrRejectIncoming()  {}
 func (duplicateIncoming) isAcceptOrRejectIncoming()         {}
 
-type acceptOrRejectOutgoing interface {
+type acceptOrRejectOutgoing interface { //nolint:unused
 	isAcceptOrRejectOutgoing()
 }
 
 func (ok) isAcceptOrRejectOutgoing()                        {}
 func (withPrejudice) isAcceptOrRejectOutgoing()             {}
-func (candidateUnknownOutgoing) isAcceptOrRejectOutgoing()  {}
-func (excessiveSecondedOutgoing) isAcceptOrRejectOutgoing() {}
-func (knownOutgoing) isAcceptOrRejectOutgoing()             {}
-func (notInGroupOutgoing) isAcceptOrRejectOutgoing()        {}
+func (candidateUnknownOutgoing) isAcceptOrRejectOutgoing()  {} //nolint:unused
+func (excessiveSecondedOutgoing) isAcceptOrRejectOutgoing() {} //nolint:unused
+func (knownOutgoing) isAcceptOrRejectOutgoing()             {} //nolint:unused
+func (notInGroupOutgoing) isAcceptOrRejectOutgoing()        {} //nolint:unused
 
 // knowledge about a candidate
 type knowledge interface {
@@ -228,7 +228,7 @@ func (c *clusterTracker) canReceive(
 		// originator. we know by the duplicate check above that this iteration doesn't
 		// include the statement itself.
 		otherSecondedForOrigFromRemote := uint(0)
-		for taggedKnowldg, _ := range c.knowledge[sender] {
+		for taggedKnowldg := range c.knowledge[sender] {
 			incp2p, ok := taggedKnowldg.(incomingP2P)
 			if !ok {
 				continue
@@ -272,7 +272,7 @@ func (c *clusterTracker) canReceive(
 //
 // Should only be called after a successful [canReceive] call.
 func (c *clusterTracker) noteReceived(
-	sender parachaintypes.ValidatorIndex,
+	sender parachaintypes.ValidatorIndex, //nolint:unparam
 	originator parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
 ) {
@@ -333,7 +333,7 @@ func (c *clusterTracker) theySent(
 	validator parachaintypes.ValidatorIndex,
 	knowledge knowledge,
 ) bool {
-	for tk, _ := range c.knowledge[validator] {
+	for tk := range c.knowledge[validator] {
 		if tk.equals(incomingP2P{knowledge}) {
 			return true
 		}
@@ -345,7 +345,7 @@ func (c *clusterTracker) weSent(
 	validator parachaintypes.ValidatorIndex,
 	knowledge knowledge,
 ) bool {
-	for tk, _ := range c.knowledge[validator] {
+	for tk := range c.knowledge[validator] {
 		if tk.equals(outgoingP2P{knowledge}) {
 			return true
 		}
@@ -363,7 +363,7 @@ func (c *clusterTracker) secondedAlreadyOrWithinLimit(
 ) bool {
 	secondedOtherCandidates := uint(0)
 
-	for tk, _ := range c.knowledge[validator] {
+	for tk := range c.knowledge[validator] {
 		if seconded, ok := tk.(seconded); ok && seconded.candidateHash != candidateHash {
 			secondedOtherCandidates += 1
 		}
@@ -401,7 +401,7 @@ func (c *clusterTracker) validatorSeconded(
 	validator parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
 ) bool {
-	for tk, _ := range c.knowledge[validator] {
+	for tk := range c.knowledge[validator] {
 		if tk.equals(seconded{candidateHash}) {
 			return true
 		}
