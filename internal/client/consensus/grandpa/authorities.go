@@ -144,10 +144,11 @@ func (sas *SharedAuthoritySet[H, N]) applyForcedChanges( //nolint:unused
 	bestHash H,
 	bestNumber N,
 	isDescendentOf IsDescendentOf[H],
+	initialSync bool,
 	// TODO: telemtry,
 ) (newSet *appliedChanges[H, N], err error) {
 	authSet := sas.inner.Data()
-	return authSet.applyForcedChanges(bestHash, bestNumber, isDescendentOf)
+	return authSet.applyForcedChanges(bestHash, bestNumber, isDescendentOf, initialSync)
 }
 
 // applyStandardChanges will apply or prune any pending transitions based on a finality trigger. This method ensures
@@ -505,6 +506,7 @@ func (authSet *AuthoritySet[H, N]) currentLimit(min N) (limit *N) {
 func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H, //skipcq:  RVV-B0001
 	bestNumber N,
 	isDescendentOf IsDescendentOf[H],
+	initialSync bool,
 	// TODO: telemetry
 ) (newSet *appliedChanges[H, N], err error) {
 
@@ -541,7 +543,11 @@ func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H, //skipcq:  RVV
 				}
 
 				// apply this change: make the set canonical
-				logger.Infof("👴 Applying authority set change forced at block #%d", change.CanonHeight)
+				l := logger.Infof
+				if initialSync {
+					l = logger.Debugf
+				}
+				l("👴 Applying authority set change forced at block #%d", change.CanonHeight)
 
 				// TODO telemetry
 

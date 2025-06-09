@@ -346,7 +346,6 @@ func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) makeAuthoritiesChanges(
 	// when we update the authorities, we need to hold the lock
 	// until the block is written to prevent a race if we need to restore
 	// the old authority set on error or panic.
-
 	number := block.Header.Number()
 	maybeChange := gbi.checkNewChange(block.Header, hash)
 
@@ -387,6 +386,7 @@ func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) makeAuthoritiesChanges(
 		hash,
 		number,
 		isDescendentOf,
+		initialSync,
 	)
 	if err != nil {
 		return nil, err

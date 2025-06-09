@@ -577,12 +577,13 @@ func TestForceChanges(t *testing.T) {
 		"hash_a10",
 		10,
 		staticIsDescendentOf[string](true),
+		false,
 	)
 	require.NoError(t, err)
 	require.Nil(t, resForced)
 
 	// too late
-	resForced, err = authorities.applyForcedChanges("hash_a16", 16, isDescOfA)
+	resForced, err = authorities.applyForcedChanges("hash_a16", 16, isDescOfA, false)
 	require.NoError(t, err)
 	require.Nil(t, resForced)
 
@@ -602,7 +603,7 @@ func TestForceChanges(t *testing.T) {
 			},
 		},
 	}
-	resForced, err = authorities.applyForcedChanges("hash_a15", 15, isDescOfA)
+	resForced, err = authorities.applyForcedChanges("hash_a15", 15, isDescOfA, false)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
 	require.Equal(t, exp, *resForced)
@@ -644,6 +645,7 @@ func TestForceChangesWithNoDelay(t *testing.T) {
 		hashA,
 		5,
 		staticIsDescendentOf[string](false),
+		false,
 	)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
@@ -723,6 +725,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		"hash_d45",
 		45,
 		staticIsDescendentOf[string](true),
+		false,
 	)
 	require.ErrorIs(t, err, errForcedAuthoritySetChangeDependencyUnsatisfied)
 	require.Equal(t, 0, len(authorities.AuthoritySetChanges))
@@ -748,6 +751,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		"hash_d45",
 		45,
 		staticIsDescendentOf[string](true),
+		false,
 	)
 	require.ErrorIs(t, err, errForcedAuthoritySetChangeDependencyUnsatisfied)
 	require.Equal(t, expChanges, authorities.AuthoritySetChanges)
@@ -787,6 +791,7 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		hashD,
 		45,
 		staticIsDescendentOf[string](true),
+		false,
 	)
 	require.NoError(t, err)
 	require.NotNil(t, resForced)
