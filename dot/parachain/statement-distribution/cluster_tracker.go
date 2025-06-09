@@ -30,10 +30,10 @@ type rejectIncoming interface {
 	isRejectIncoming()
 }
 
-// excessiveSecondingIncoming means peer sent excessive `Seconded` statements.
-type excessiveSecondingIncoming struct{}
+// excessiveSecondedIncoming means peer sent excessive `Seconded` statements.
+type excessiveSecondedIncoming struct{}
 
-func (excessiveSecondingIncoming) isRejectIncoming() {}
+func (excessiveSecondedIncoming) isRejectIncoming() {}
 
 // notInGroupIncoming means sender or originator is not in the group.
 type notInGroupIncoming struct{}
@@ -60,11 +60,11 @@ type candidateUnknownOutgoing struct{}
 
 func (candidateUnknownOutgoing) isRejectOutgoing() {}
 
-// excessiveSecondingOutgoing means we attempted to send excessive `Seconded` statements.
+// excessiveSecondedOutgoing means we attempted to send excessive `Seconded` statements.
 // Indicates a bug on the local node's code.
-type excessiveSecondingOutgoing struct{}
+type excessiveSecondedOutgoing struct{}
 
-func (excessiveSecondingOutgoing) isRejectOutgoing() {}
+func (excessiveSecondedOutgoing) isRejectOutgoing() {}
 
 // knownOutgoing means the statement was already known to the peer.
 type knownOutgoing struct{}
@@ -80,23 +80,23 @@ type acceptOrRejectIncoming interface {
 	isAcceptOrRejectIncoming()
 }
 
-func (ok) isAcceptOrRejectIncoming()                         {}
-func (withPrejudice) isAcceptOrRejectIncoming()              {}
-func (excessiveSecondingIncoming) isAcceptOrRejectIncoming() {}
-func (notInGroupIncoming) isAcceptOrRejectIncoming()         {}
-func (candidateUnknownIncoming) isAcceptOrRejectIncoming()   {}
-func (duplicateIncoming) isAcceptOrRejectIncoming()          {}
+func (ok) isAcceptOrRejectIncoming()                        {}
+func (withPrejudice) isAcceptOrRejectIncoming()             {}
+func (excessiveSecondedIncoming) isAcceptOrRejectIncoming() {}
+func (notInGroupIncoming) isAcceptOrRejectIncoming()        {}
+func (candidateUnknownIncoming) isAcceptOrRejectIncoming()  {}
+func (duplicateIncoming) isAcceptOrRejectIncoming()         {}
 
 type acceptOrRejectOutgoing interface {
 	isAcceptOrRejectOutgoing()
 }
 
-func (ok) isAcceptOrRejectOutgoing()                         {}
-func (withPrejudice) isAcceptOrRejectOutgoing()              {}
-func (candidateUnknownOutgoing) isAcceptOrRejectOutgoing()   {}
-func (excessiveSecondingOutgoing) isAcceptOrRejectOutgoing() {}
-func (knownOutgoing) isAcceptOrRejectOutgoing()              {}
-func (notInGroupOutgoing) isAcceptOrRejectOutgoing()         {}
+func (ok) isAcceptOrRejectOutgoing()                        {}
+func (withPrejudice) isAcceptOrRejectOutgoing()             {}
+func (candidateUnknownOutgoing) isAcceptOrRejectOutgoing()  {}
+func (excessiveSecondedOutgoing) isAcceptOrRejectOutgoing() {}
+func (knownOutgoing) isAcceptOrRejectOutgoing()             {}
+func (notInGroupOutgoing) isAcceptOrRejectOutgoing()        {}
 
 // knowledge about a candidate
 type knowledge interface {
@@ -248,8 +248,8 @@ func (c *clusterTracker) canReceive(
 			}
 		}
 
-		if otherSecondedForOrigFromRemote > c.secondingLimit {
-			return excessiveSecondingIncoming{}
+		if otherSecondedForOrigFromRemote == c.secondingLimit {
+			return excessiveSecondedIncoming{}
 		}
 
 		// at this point, it doesn't seem like the remote has done anything wrong.
