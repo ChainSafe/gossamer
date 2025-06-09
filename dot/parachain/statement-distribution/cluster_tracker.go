@@ -268,6 +268,63 @@ func (c *clusterTracker) canReceive(
 	}
 }
 
+// noteReceived notes that we accepted an incoming statement. This updates internal structures.
+//
+// Should only be called after a successful [canReceive] call.
+func (c *clusterTracker) noteReceived(
+	sender parachaintypes.ValidatorIndex,
+	originator parachaintypes.ValidatorIndex,
+	statement parachaintypes.CompactStatement,
+) {
+	for _, clusterMember := range c.validators {
+		if clusterMember == sender {
+			if pending, ok := c.pending[sender]; ok {
+				pending.remove(originator, statement)
+			}
+		} else if !c.theyKnowStatement(clusterMember, originator, statement) {
+			// add the statement to pending knowledge for all peers
+			// which don't know the statement.
+			m := c.pending[clusterMember]
+			if m == nil {
+				m = make(originatorStatementPairSet)
+			}
+			m.insert(originator, statement)
+			c.pending[clusterMember] = m
+		}
+	}
+
+	senderKnowledge := c.knowledge[sender]
+	if senderKnowledge == nil {
+		senderKnowledge = make(map[taggedKnowledge]struct{})
+		c.knowledge[sender] = senderKnowledge
+	}
+	senderKnowledge[incomingP2P{specific{statement, originator}}] = struct{}{}
+
+	if _, ok := statement.(*parachaintypes.CompactSeconded); ok {
+		senderKnowledge[incomingP2P{general{statement.CandidateHash()}}] = struct{}{}
+
+		// since we accept additional `Seconded` statements beyond the limits
+		// 'with prejudice', we must respect the limit here.
+		if c.secondedAlreadyOrWithinLimit(originator, statement.CandidateHash()) {
+			originatorKnowledge := c.knowledge[originator]
+			if originatorKnowledge == nil {
+				originatorKnowledge = make(map[taggedKnowledge]struct{})
+				c.knowledge[originator] = originatorKnowledge
+			}
+			originatorKnowledge[seconded{statement.CandidateHash()}] = struct{}{}
+		}
+	}
+}
+
+func (c *clusterTracker) theyKnowStatement(
+	validator parachaintypes.ValidatorIndex,
+	originator parachaintypes.ValidatorIndex,
+	statement parachaintypes.CompactStatement,
+) bool {
+	knowledge := specific{statement, originator}
+	return c.weSent(validator, knowledge) || c.theySent(validator, knowledge)
+}
+
 func (c *clusterTracker) isInGroup(validator parachaintypes.ValidatorIndex) bool {
 	return slices.Contains(c.validators, validator)
 }
