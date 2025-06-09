@@ -441,8 +441,8 @@ func (gs *GossipSupport) getKeyIndexAndUpdateMetrics(SessionInfo *parachaintypes
 	return authCheckResult, nil
 }
 
-// updateGossipTopology shuffles the list of AuthorityDiscoveryID with ValidatorIndex randomly and send a
-// networkbridgemessages.NewGossipTopology to overseer
+// updateGossipTopology shuffles the list of AuthorityDiscoveryID with ValidatorIndex randomly and sends a
+// [networkbridgemessages.NewGossipTopology] to overseer
 func (gs *GossipSupport) updateGossipTopology(
 	ourIndex uint,
 	authorities []parachaintypes.AuthorityDiscoveryID,

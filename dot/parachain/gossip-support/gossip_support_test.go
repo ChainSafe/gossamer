@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -771,14 +769,13 @@ func TestUpdateGossipTopology(t *testing.T) {
 			assert.EqualValues(t, 3, len(val.CanonicalShuffling))
 			assert.EqualValues(t, 3, len(val.ShuffledIndices))
 
-			// Check that all ValidatorIndex are present
-			indexMap := make(map[parachaintypes.ValidatorIndex]bool)
+			// Check that all AuthorityDiscoveryID are present
+			authIDMap := make(map[parachaintypes.AuthorityDiscoveryID]bool)
 			for _, pair := range val.CanonicalShuffling {
-				indexMap[pair.ValidatorIndex] = true
+				authIDMap[pair.AuthorityDiscoveryID] = true
 			}
-			for i := range authorities {
-				require.True(t, indexMap[parachaintypes.ValidatorIndex(i)],
-					"missing validator index %d", i)
+			for _, authID := range authorities {
+				assert.True(t, authIDMap[authID], "missing AuthorityDiscoveryID %s", authID)
 			}
 		}
 		done <- struct{}{}
