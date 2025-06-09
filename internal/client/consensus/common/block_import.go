@@ -183,3 +183,53 @@ type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, He
 	// Cached full header hash (with post-digests applied).
 	PostHash *H
 }
+
+// / Get the full header hash (with post-digests applied).
+//
+//	pub fn post_hash(&self) -> Block::Hash {
+//		if let Some(hash) = self.post_hash {
+//			hash
+//		} else {
+//			self.post_header().hash()
+//		}
+//	}
+func (b *BlockImportParams[H, N, E, Header]) GetPostHash() H {
+	if b.PostHash != nil {
+		return *b.PostHash
+	}
+	return b.GetPostHeader().Hash()
+}
+
+/// Get the post header.
+// pub fn post_header(&self) -> Block::Header {
+// 	if self.post_digests.is_empty() {
+// 		self.header.clone()
+// 	} else {
+// 		let mut hdr = self.header.clone();
+// 		for digest_item in &self.post_digests {
+// 			hdr.digest_mut().push(digest_item.clone());
+// 		}
+
+//			hdr
+//		}
+//	}
+func (b *BlockImportParams[H, N, E, Header]) GetPostHeader() Header {
+	if len(b.PostDigests) == 0 {
+		return b.Header.Clone().(Header)
+	}
+	hdr := b.Header.Clone().(Header)
+	for _, digestItem := range b.PostDigests {
+		hdr.DigestMut().Push(digestItem)
+	}
+	return hdr
+}
+
+// / Check if this block contains state import action
+//
+//	pub fn with_state(&self) -> bool {
+//		matches!(self.state_action, StateAction::ApplyChanges(StorageChanges::Import(_)))
+//	}
+func (b *BlockImportParams[H, N, E, Header]) WithState() bool {
+	_, ok := b.StateAction.(StateActionApplyChanges)
+	return ok
+}

@@ -254,6 +254,18 @@ type AuxStore interface {
 	GetAux(key []byte) ([]byte, error)
 }
 
+// / Provides access to storage primitives
+// pub trait StorageProvider<Block: BlockT, B: Backend<Block>> {
+type StorageProvider[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] interface {
+	/// Given a block's `Hash` and a key, return the value under the key in that block.
+	// fn storage(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	key: &StorageKey,
+	// ) -> sp_blockchain::Result<Option<StorageData>>;
+	Storage(hash H, key storage.StorageKey) (*storage.StorageData, error)
+}
+
 // Backend is the client backend.
 //
 // Manages the data layer.

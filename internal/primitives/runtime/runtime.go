@@ -47,6 +47,21 @@ func (j Justifications) Get(engineID ConsensusEngineID) *EncodedJustification {
 	return nil
 }
 
+// / Return a copy of the encoded justification for the given consensus
+// / engine, if it exists.
+//
+//	pub fn into_justification(self, engine_id: ConsensusEngineId) -> Option<EncodedJustification> {
+//		self.into_iter().find(|j| j.0 == engine_id).map(|j| j.1)
+//	}
+func (j Justifications) IntoJustification(enginedID ConsensusEngineID) *EncodedJustification {
+	for _, justification := range j {
+		if justification.ConsensusEngineID == enginedID {
+			return &justification.EncodedJustification
+		}
+	}
+	return nil
+}
+
 // Complex storage builder stuff.
 type BuildStorage interface {
 	// Build the storage out of this builder.
