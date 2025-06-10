@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
@@ -16,57 +15,57 @@ func FixtureTopologyPeerInfo() []TopologyPeerInfo {
 		{
 			Peers:          []peer.ID{"peer1", "peer2"},
 			ValidatorIndex: parachaintypes.ValidatorIndex(0),
-			DiscoveryID:    types.AuthorityID{1},
+			DiscoveryID:    parachaintypes.AuthorityDiscoveryID{1},
 		},
 		{
 			Peers:          []peer.ID{"peer3", "peer4"},
 			ValidatorIndex: parachaintypes.ValidatorIndex(1),
-			DiscoveryID:    types.AuthorityID{2},
+			DiscoveryID:    parachaintypes.AuthorityDiscoveryID{2},
 		},
 		{
 			Peers:          []peer.ID{"peer5", "peer6"},
 			ValidatorIndex: parachaintypes.ValidatorIndex(2),
-			DiscoveryID:    types.AuthorityID{3},
+			DiscoveryID:    parachaintypes.AuthorityDiscoveryID{3},
 		},
 		{
 			Peers:          []peer.ID{"peer7", "peer8"},
 			ValidatorIndex: parachaintypes.ValidatorIndex(3),
-			DiscoveryID:    types.AuthorityID{4},
+			DiscoveryID:    parachaintypes.AuthorityDiscoveryID{4},
 		},
 		{
 			Peers:          []peer.ID{"peer9", "peer10"},
 			ValidatorIndex: parachaintypes.ValidatorIndex(4),
-			DiscoveryID:    types.AuthorityID{5},
+			DiscoveryID:    parachaintypes.AuthorityDiscoveryID{5},
 		},
 		{
 			Peers:          []peer.ID{"peer11", "peer12"},
 			ValidatorIndex: parachaintypes.ValidatorIndex(5),
-			DiscoveryID:    types.AuthorityID{6},
+			DiscoveryID:    parachaintypes.AuthorityDiscoveryID{6},
 		},
 		{
 			Peers:          []peer.ID{"peer13", "peer14"},
 			ValidatorIndex: parachaintypes.ValidatorIndex(6),
-			DiscoveryID:    types.AuthorityID{7},
+			DiscoveryID:    parachaintypes.AuthorityDiscoveryID{7},
 		},
 		{
 			Peers:          []peer.ID{"peer15", "peer16"},
 			ValidatorIndex: parachaintypes.ValidatorIndex(7),
-			DiscoveryID:    types.AuthorityID{8},
+			DiscoveryID:    parachaintypes.AuthorityDiscoveryID{8},
 		},
 		{
 			Peers:          []peer.ID{"peer17", "peer18"},
 			ValidatorIndex: parachaintypes.ValidatorIndex(8),
-			DiscoveryID:    types.AuthorityID{9},
+			DiscoveryID:    parachaintypes.AuthorityDiscoveryID{9},
 		},
 		{
 			Peers:          []peer.ID{"peer19", "peer20"},
 			ValidatorIndex: parachaintypes.ValidatorIndex(9),
-			DiscoveryID:    types.AuthorityID{10},
+			DiscoveryID:    parachaintypes.AuthorityDiscoveryID{10},
 		},
 		{
 			Peers:          []peer.ID{"peer21", "peer22"},
 			ValidatorIndex: parachaintypes.ValidatorIndex(10),
-			DiscoveryID:    types.AuthorityID{11},
+			DiscoveryID:    parachaintypes.AuthorityDiscoveryID{11},
 		},
 	}
 }
@@ -75,15 +74,15 @@ func Test_SessionGridTopology(t *testing.T) {
 	gt := NewSessionGridTopology([]uint{1, 2, 3}, []TopologyPeerInfo{{
 		Peers:          []peer.ID{"peer1", "peer2"},
 		ValidatorIndex: parachaintypes.ValidatorIndex(1),
-		DiscoveryID:    types.AuthorityID{1},
+		DiscoveryID:    parachaintypes.AuthorityDiscoveryID{1},
 	},
 	})
 	assert.Len(t, gt.Peers, 2)
 
-	updated := gt.UpdateAuthoritiesIDs(peer.ID("peer2"), map[types.AuthorityID]struct{}{{1}: {}})
+	updated := gt.UpdateAuthoritiesIDs(peer.ID("peer2"), map[parachaintypes.AuthorityDiscoveryID]struct{}{{1}: {}})
 	assert.False(t, updated)
 
-	updated = gt.UpdateAuthoritiesIDs(peer.ID("peer3"), map[types.AuthorityID]struct{}{{1}: {}})
+	updated = gt.UpdateAuthoritiesIDs(peer.ID("peer3"), map[parachaintypes.AuthorityDiscoveryID]struct{}{{1}: {}})
 	assert.True(t, updated)
 	assert.Len(t, gt.Peers, 3)
 	assert.Equal(t,
@@ -96,7 +95,7 @@ func Test_SessionGridTopologyNeighbours(t *testing.T) {
 	gt := NewSessionGridTopology([]uint{1, 2, 3}, []TopologyPeerInfo{{
 		Peers:          []peer.ID{"peer1", "peer2"},
 		ValidatorIndex: parachaintypes.ValidatorIndex(1),
-		DiscoveryID:    types.AuthorityID{1},
+		DiscoveryID:    parachaintypes.AuthorityDiscoveryID{1},
 	},
 	})
 	_, err := gt.ComputeGridNeighboursFor(1)
@@ -167,7 +166,7 @@ func Test_SessionGridTopologyEntry(t *testing.T) {
 	assert.Len(t, sgte.PeersToRoute(RequiredRoutingGridY), 6)
 	assert.Len(t, sgte.PeersToRoute(RequiredRoutingAll), 22)
 
-	updated, err := sgte.UpdateAuthoritiesIDs(peer.ID("peer99"), map[types.AuthorityID]struct{}{{10}: {}})
+	updated, err := sgte.UpdateAuthoritiesIDs(peer.ID("peer99"), map[parachaintypes.AuthorityDiscoveryID]struct{}{{10}: {}})
 	assert.True(t, updated)
 	assert.Nil(t, err)
 	// Now we added one more peer to validator with AuthorityID 10, index 9. Sine we are actins as validator with index 10

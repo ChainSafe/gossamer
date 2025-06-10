@@ -1,3 +1,7 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
+//nolint:unused
 package statementdistribution
 
 import (
@@ -7,7 +11,7 @@ import (
 
 type confirmedCandidate struct {
 	receipt         parachaintypes.CommittedCandidateReceiptV2
-	pvd             parachaintypes.PersistedValidationData
+	pvd             *parachaintypes.PersistedValidationData
 	assignedGroup   parachaintypes.GroupIndex
 	parentHash      common.Hash
 	importableUnder map[common.Hash]struct{}

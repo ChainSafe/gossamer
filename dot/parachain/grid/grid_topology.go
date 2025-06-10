@@ -5,7 +5,6 @@ import (
 	"math"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -18,7 +17,7 @@ type TopologyPeerInfo struct {
 	// This can extend _beyond_ the set of active parachain validators.
 	ValidatorIndex parachaintypes.ValidatorIndex
 	// DiscoveryID is the authority discovery public key of the validator in the corresponding `SessionInfo`.
-	DiscoveryID types.AuthorityID
+	DiscoveryID parachaintypes.AuthorityDiscoveryID
 }
 
 // SessionGridTopology is topology representation for session
@@ -54,7 +53,7 @@ func NewSessionGridTopology(shuffledIndices []uint, canonicalShuffling []Topolog
 // hence there could be multiple AuthorityID associated with a peerID.
 // Updates Peers hashset with new peer id if the peer is in the grid topology.
 // Returns true if the peer is in the grid topology.
-func (gt *SessionGridTopology) UpdateAuthoritiesIDs(peer peer.ID, discoveryIDs map[types.AuthorityID]struct{}) bool {
+func (gt *SessionGridTopology) UpdateAuthoritiesIDs(peer peer.ID, discoveryIDs map[parachaintypes.AuthorityDiscoveryID]struct{}) bool {
 	updated := false
 	if _, ok := gt.Peers[peer]; !ok {
 		for i := range gt.CanonicalShuffling {
@@ -295,7 +294,7 @@ func (s *SessionGridTopologyEntry) PeersToRoute(routing RequiredRouting) []peer.
 
 func (s *SessionGridTopologyEntry) UpdateAuthoritiesIDs(
 	peer peer.ID,
-	discoveryIDs map[types.AuthorityID]struct{}) (bool, error) {
+	discoveryIDs map[parachaintypes.AuthorityDiscoveryID]struct{}) (bool, error) {
 	if s.Topology.UpdateAuthoritiesIDs(peer, discoveryIDs) {
 		// If authorities update, recompile neighbours
 		new_neighbours, err := s.Topology.ComputeGridNeighboursFor(s.LocalIndex)

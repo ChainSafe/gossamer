@@ -1,41 +1,31 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 //nolint:unused
 package statementdistribution
 
 import (
-	parachainnetwork "github.com/ChainSafe/gossamer/dot/parachain/network"
+	"github.com/ChainSafe/gossamer/dot/parachain/grid"
 	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 )
 
-type compactType uint8
-
-const (
-	compactValid compactType = iota
-	compactSeconded
-)
-
-type pendingStmt struct {
-	validadorIdx parachaintypes.ValidatorIndex
-	compact      parachaintypes.CompactStatement
-}
-
-type statementStore interface {
-	// Get the full statement of this kind issued by this validator, if it is known.
-	// TODO: need to support a signed compact statement
-	validatorStatement(stmt pendingStmt) *parachaintypes.SignedStatement
-}
-
-// groupTracker interface exports methods
-// enabling the statement distribution
-// to track validator peers that belong
-// to the same validation group
-type groupTracker interface {
+type clusterTracker interface {
 	warningIfTooManyPendingStatements(rp common.Hash)
-	pendingStatementsFor(target parachaintypes.ValidatorIndex) []pendingStmt
+	pendingStatementsFor(target parachaintypes.ValidatorIndex) []originatorStatementPair
 	noteSend(target, originator parachaintypes.ValidatorIndex, stmt parachaintypes.CompactStatement)
+}
+
+type candidatesTracker interface {
+	frontierHypotheticals(*common.Hash, *parachaintypes.ParaID) []parachaintypes.HypotheticalCandidate
+	onDeactivateLeaves(leaves []common.Hash, rpLiveFn func(common.Hash) bool)
+	noteImportableUnder(hypo parachaintypes.HypotheticalCandidate, leaf common.Hash)
+	getConfirmed(candidateHash parachaintypes.CandidateHash) (*confirmedCandidate, bool)
+	isConfirmed(candidateHash parachaintypes.CandidateHash) bool
 }
 
 // requestManager defines the interface that manages
@@ -44,14 +34,23 @@ type requestManager interface {
 	removeByRelayParent(rp common.Hash)
 }
 
-type candidatesTracker interface {
-	frontierHypotheticals(*common.Hash, *parachaintypes.ParaID) []parachaintypes.HypotheticalCandidate
-	onDeactivateLeaves(leaves []common.Hash, rpLiveFn func(common.Hash) bool)
-	noteImportableUnder(hypo parachaintypes.HypotheticalCandidate, leaf common.Hash)
-	getConfirmed(candidateHash parachaintypes.CandidateHash) *confirmedCandidate
-	isConfirmed(candidateHash parachaintypes.CandidateHash) bool
+type statementStore interface {
+	validatorStatement(stmt originatorStatementPair) *parachaintypes.SignedStatement
+
+	// freshStatementsForBacking provides a list of all statements marked as being
+	// unknown by the backing subsystem. This provides `Seconded` statements prior to `Valid` statements.
+	freshStatementsForBacking(validators []parachaintypes.ValidatorIndex,
+		candidateHash parachaintypes.CandidateHash) []parachaintypes.SignedStatement
+	noteKnownByBacking(parachaintypes.ValidatorIndex, parachaintypes.CompactStatement)
+	fillStatementFilter(parachaintypes.GroupIndex, parachaintypes.CandidateHash, *parachaintypes.StatementFilter)
+	// Get an iterator over stored signed statements by the group conforming to the
+	// given filter.
+	// Seconded statements are provided first.
+	groupStatements(*groups, parachaintypes.GroupIndex, parachaintypes.CandidateHash,
+		*parachaintypes.StatementFilter) []parachaintypes.SignedStatement
 }
 
+// skipcq:SCC-U1000
 type perRelayParentState struct {
 	localValidator       *localValidatorStore
 	statementStore       statementStore // TODO #4719: Create statement store
@@ -92,17 +91,19 @@ func (p *perRelayParentState) disableBitmask(group []parachaintypes.ValidatorInd
 }
 
 type localValidatorStore struct {
-	gridTracker any // TODO: use GridTracker implementation (#4576)
-	active      *activeValidatorState
+	gridTracker *gridTracker
+	active      *activeValidatorState // skipcq:SCC-U1000
 }
 
+// skipcq:SCC-U1000
 type activeValidatorState struct {
 	index          parachaintypes.ValidatorIndex
 	groupIndex     parachaintypes.GroupIndex
 	assignments    []parachaintypes.ParaID
-	clusterTracker groupTracker // TODO: use cluster tracker implementation (#4713)
+	clusterTracker clusterTracker // TODO: use cluster tracker implementation (#4713)
 }
 
+// skipcq:SCC-U1000
 type perSessionState struct {
 	sessionInfo *parachaintypes.SessionInfo
 	groups      *groups
@@ -144,15 +145,20 @@ func newPerSessionState(sessionInfo *parachaintypes.SessionInfo,
 // Note: we use the local index rather than the `perSessionState.localValidator` as the
 // former may be not nil when the latter is nil, due to the set of nodes in
 // discovery being a superset of the active validators for consensus.
-func (s *perSessionState) supplyTopology(topology events.SessionGridTopology, localIdx *parachaintypes.ValidatorIndex) {
-	// TODO #4373: implement once buildSessionTopology is done
-	// gridView := buildSessionTopology(
-	// 	s.sessionInfo.ValidatorGroups,
-	// 	topology,
-	// 	localIdx,
-	// )
+// skipcq:SCC-U1000
+func (s *perSessionState) supplyTopology(topology *grid.SessionGridTopology, localIdx *parachaintypes.ValidatorIndex) {
+	gridView, err := buildSessionTopology(
+		s.sessionInfo.ValidatorGroups,
+		topology,
+		localIdx,
+	)
 
-	// s.gridView = gridView
+	if err != nil {
+		logger.Errorf("Failed to build session topology: %v", err)
+		return
+	}
+
+	s.gridView = gridView
 
 	logger.Infof(
 		"Node uses the following topology indices: "+
@@ -160,9 +166,10 @@ func (s *perSessionState) supplyTopology(topology events.SessionGridTopology, lo
 		localIdx, s.localValidator)
 }
 
+// skipcq:SCC-U1000
 type peerState struct {
 	view            parachaintypes.View
-	protocolVersion parachainnetwork.ValidationVersion
+	protocolVersion validationprotocol.ValidationVersion // skipcq:SCC-U1000
 	implicitView    map[common.Hash]struct{}
 	discoveryIds    *map[parachaintypes.AuthorityDiscoveryID]struct{}
 }

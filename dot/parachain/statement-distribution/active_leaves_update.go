@@ -106,7 +106,7 @@ func (s *StatementDistribution) handleActiveLeafUpdate(rp common.Hash) error {
 
 		if top, ok := s.state.unusedTopologies[sessionIdx]; ok {
 			delete(s.state.unusedTopologies, sessionIdx)
-			perSessionState.supplyTopology(top.Topology, top.LocalIndex)
+			perSessionState.supplyTopology(&top.Topology, top.LocalIndex)
 		}
 
 		s.state.perSession[sessionIdx] = perSessionState

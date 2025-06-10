@@ -115,6 +115,7 @@ type decodeState struct {
 
 func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 	unmarshalerType := reflect.TypeOf((*Unmarshaler)(nil)).Elem()
+
 	if dstv.CanAddr() && dstv.Addr().Type().Implements(unmarshalerType) {
 		methodVal := dstv.Addr().MethodByName("UnmarshalSCALE")
 		values := methodVal.Call([]reflect.Value{reflect.ValueOf(ds.Reader)})

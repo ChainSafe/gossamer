@@ -16,6 +16,13 @@ var (
 	errManifestImportOverflow = errors.New(
 		"the manifest has overflowed beyond the limits of what the counterparty was allowed to send us",
 	)
+
+	errManifestImportInsufficient = errors.New(
+		"the manifest claims insufficient attestations to achieve the backing threshold",
+	)
+
+	errManifestImportMalformed  = errors.New("the manifest is malformed")
+	errManifestImportDisallowed = errors.New("the manifest was not allowed to be sent")
 )
 
 // manifestSummary represents a summary of a manifest being sent by a counterparty.
@@ -25,7 +32,15 @@ type manifestSummary struct {
 	// claimedGroupIndex is the claimed group index assigned to the candidate.
 	claimedGroupIndex parachaintypes.GroupIndex
 	// statementKnowledge is a statement filter sent alongside the candidate, communicating knowledge.
-	statementKnowledge statementFilter
+	statementKnowledge parachaintypes.StatementFilter
+}
+
+func (s *manifestSummary) clone() manifestSummary {
+	return manifestSummary{
+		claimedParentHash:  s.claimedParentHash,
+		claimedGroupIndex:  s.claimedGroupIndex,
+		statementKnowledge: s.statementKnowledge.Clone(),
+	}
 }
 
 // receivedManifests contains the knowledge we are aware of counterparties having of manifests.
@@ -37,7 +52,16 @@ type receivedManifests struct {
 	secondedCounts map[parachaintypes.GroupIndex][]uint
 }
 
-func (rm *receivedManifests) candidateStatementFilter(candidateHash parachaintypes.CandidateHash) *statementFilter {
+func newReceivedManifests() *receivedManifests {
+	return &receivedManifests{
+		received:       make(map[parachaintypes.CandidateHash]manifestSummary),
+		secondedCounts: make(map[parachaintypes.GroupIndex][]uint),
+	}
+}
+
+func (rm *receivedManifests) candidateStatementFilter(
+	candidateHash parachaintypes.CandidateHash,
+) *parachaintypes.StatementFilter {
 	if rm.received == nil {
 		return nil
 	}
@@ -47,7 +71,7 @@ func (rm *receivedManifests) candidateStatementFilter(candidateHash parachaintyp
 		return nil
 	}
 
-	filter := manifestSummary.statementKnowledge.clone()
+	filter := manifestSummary.statementKnowledge.Clone()
 	return &filter
 }
 
@@ -77,7 +101,7 @@ func (rm *receivedManifests) importReceived(
 			manifestSummary.claimedGroupIndex,
 			groupSize,
 			secondingLimit,
-			manifestSummary.statementKnowledge.secondedInGroup,
+			manifestSummary.statementKnowledge.SecondedInGroup,
 		)
 
 		if withinLimits {
@@ -92,20 +116,24 @@ func (rm *receivedManifests) importReceived(
 		return errManifestImportConflicting
 	}
 
-	if !manifestSummary.statementKnowledge.secondedInGroup.Contains(
-		previousSummary.statementKnowledge.secondedInGroup,
+	if previousSummary.claimedParentHash != manifestSummary.claimedParentHash {
+		return errManifestImportConflicting
+	}
+
+	if !manifestSummary.statementKnowledge.SecondedInGroup.Contains(
+		previousSummary.statementKnowledge.SecondedInGroup,
 	) {
 		return errManifestImportConflicting
 	}
 
-	if !manifestSummary.statementKnowledge.validatedInGroup.Contains(
-		previousSummary.statementKnowledge.validatedInGroup,
+	if !manifestSummary.statementKnowledge.ValidatedInGroup.Contains(
+		previousSummary.statementKnowledge.ValidatedInGroup,
 	) {
 		return errManifestImportConflicting
 	}
 
-	freshSeconded := manifestSummary.statementKnowledge.secondedInGroup.Or(
-		previousSummary.statementKnowledge.secondedInGroup,
+	freshSeconded := manifestSummary.statementKnowledge.SecondedInGroup.Or(
+		previousSummary.statementKnowledge.SecondedInGroup,
 	)
 
 	withinLimits := updatingEnsureWithinSecondingLimit(

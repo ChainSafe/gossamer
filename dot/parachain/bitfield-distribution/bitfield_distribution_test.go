@@ -17,7 +17,6 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -627,7 +626,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_CheckSignedAvai
 	gt := grid.NewSessionGridTopology([]uint{1, 2, 3}, []grid.TopologyPeerInfo{{
 		Peers:          []peer.ID{"peer1", "peer2"},
 		ValidatorIndex: parachaintypes.ValidatorIndex(1),
-		DiscoveryID:    types.AuthorityID{1},
+		DiscoveryID:    parachaintypes.AuthorityDiscoveryID{1},
 	}})
 	sgte := &grid.SessionGridTopologyEntry{
 		Topology:     gt,
@@ -698,9 +697,9 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_InvalidSignalType(
 	peerA := generateDummyPeerID(t, -1)
 
 	message := validationprotocol.Statement{
-		Hash: common.Hash{1, 2, 3},
-		UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
-			Payload:        parachaintypes.StatementVDT{},
+		RelayParent: common.Hash{1, 2, 3},
+		Compact: parachaintypes.UncheckedSignedCompactStatement{
+			Payload:        *parachaintypes.NewCompactValid(parachaintypes.CandidateHash{}).ToEncodable(),
 			ValidatorIndex: 0,
 			Signature:      parachaintypes.ValidatorSignature([64]byte{1}),
 		},
@@ -1204,7 +1203,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_Success(t *testing
 	gt := grid.NewSessionGridTopology([]uint{1, 2, 3}, []grid.TopologyPeerInfo{{
 		Peers:          []peer.ID{"peer1", "peer2"},
 		ValidatorIndex: parachaintypes.ValidatorIndex(1),
-		DiscoveryID:    types.AuthorityID{1},
+		DiscoveryID:    parachaintypes.AuthorityDiscoveryID{1},
 	}})
 	sgte := &grid.SessionGridTopologyEntry{
 		Topology:        gt,
@@ -1607,7 +1606,7 @@ func TestBitfieldDistribution_processUpdatedAuthorityIDsEvent(t *testing.T) {
 	gt := grid.NewSessionGridTopology([]uint{1}, []grid.TopologyPeerInfo{{
 		Peers:          []peer.ID{"peer1", "peer2"},
 		ValidatorIndex: parachaintypes.ValidatorIndex(1),
-		DiscoveryID:    types.AuthorityID{2},
+		DiscoveryID:    parachaintypes.AuthorityDiscoveryID{2},
 	},
 	})
 	assert.Len(t, gt.Peers, 2)

@@ -4,3 +4,5 @@
 package statementdistribution
 
 //go:generate mockgen -destination=mocks_implicitview_test.go -package=$GOPACKAGE github.com/ChainSafe/gossamer/dot/parachain/util ImplicitView
+//go:generate mockgen -destination=mocks_statement_store_test.go -package=$GOPACKAGE . statementStore
+//go:generate mockgen -destination=mocks_candidates_store_test.go -package=$GOPACKAGE . candidatesStore

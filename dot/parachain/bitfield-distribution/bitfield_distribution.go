@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
@@ -265,7 +264,7 @@ func (b *BitfieldDistribution) processNewGossipTopologyEvent(event networkbridge
 	prevNeighbors := b.topologies.CurrentTopology.LocalNeighbours
 
 	peers := make(map[peer.ID]struct{})
-	for _, val := range newTopology.PeerIDs {
+	for val := range newTopology.Peers {
 		peers[val] = struct{}{}
 	}
 
@@ -277,9 +276,9 @@ func (b *BitfieldDistribution) processNewGossipTopologyEvent(event networkbridge
 	canonicalShuffling := make([]grid.TopologyPeerInfo, len(event.Topology.CanonicalShuffling))
 	for i, info := range event.Topology.CanonicalShuffling {
 		t := grid.TopologyPeerInfo{
-			Peers:          info.PeerID,
+			Peers:          info.Peers,
 			ValidatorIndex: info.ValidatorIndex,
-			DiscoveryID:    types.AuthorityID(info.DiscoveryID),
+			DiscoveryID:    parachaintypes.AuthorityDiscoveryID(info.DiscoveryID),
 		}
 		canonicalShuffling[i] = t
 	}
@@ -493,9 +492,9 @@ func (b *BitfieldDistribution) processIncomingPeerMessageEvent(event networkbrid
 func (b *BitfieldDistribution) processUpdatedAuthorityIDsEvent(event networkbridgeevents.UpdatedAuthorityIDs) error {
 	logger.Tracef("process UpdatedAuthorityIDs event: %v", event)
 
-	ids := make(map[types.AuthorityID]struct{})
+	ids := make(map[parachaintypes.AuthorityDiscoveryID]struct{})
 	for _, id := range event.AuthorityDiscoveryIDs {
-		ids[types.AuthorityID(id)] = struct{}{}
+		ids[parachaintypes.AuthorityDiscoveryID(id)] = struct{}{}
 	}
 	ok, err := b.topologies.CurrentTopology.UpdateAuthoritiesIDs(event.PeerID, ids)
 	if err != nil {

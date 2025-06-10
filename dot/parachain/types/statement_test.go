@@ -185,13 +185,13 @@ func TestCompactStatement(t *testing.T) {
 	}{
 		{
 			name:             "SecondedCandidateHash",
-			compactStatement: &CompactSeconded{SecondedCandidateHash{Value: getDummyHash(6)}},
+			compactStatement: &CompactSeconded{Value: getDummyHash(6)},
 			encodingValue: []byte{66, 75, 78, 71, 1,
 				6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6},
 		},
 		{
 			name:             "Valid",
-			compactStatement: &CompactValid{Valid{Value: getDummyHash(7)}},
+			compactStatement: &CompactValid{Value: getDummyHash(7)},
 			encodingValue: []byte{66, 75, 78, 71, 2,
 				7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7},
 		},
@@ -207,7 +207,7 @@ func TestCompactStatement(t *testing.T) {
 			t.Run("marshal", func(t *testing.T) {
 				t.Parallel()
 
-				compactStatementBytes, err := scale.Marshal(c.compactStatement)
+				compactStatementBytes, err := scale.Marshal(c.compactStatement.ToEncodable())
 				require.NoError(t, err)
 				require.Equal(t, c.encodingValue, compactStatementBytes)
 			})
@@ -217,16 +217,23 @@ func TestCompactStatement(t *testing.T) {
 
 				switch expectedSatetement := c.compactStatement.(type) {
 				case *CompactValid:
-					var actualStatement CompactValid
+					var actualStatement EncodableCompactStatement
 					err := scale.Unmarshal(c.encodingValue, &actualStatement)
 					require.NoError(t, err)
-					require.EqualValues(t, *expectedSatetement, actualStatement)
+
+					stmt, err := actualStatement.ToCompact()
+					require.NoError(t, err)
+
+					require.EqualValues(t, expectedSatetement, stmt)
 				case *CompactSeconded:
-					fmt.Println("testing sch...")
-					var actualStatement CompactSeconded
+					var actualStatement EncodableCompactStatement
 					err := scale.Unmarshal(c.encodingValue, &actualStatement)
 					require.NoError(t, err)
-					require.EqualValues(t, *expectedSatetement, actualStatement)
+
+					stmt, err := actualStatement.ToCompact()
+					require.NoError(t, err)
+
+					require.EqualValues(t, expectedSatetement, stmt)
 				}
 			})
 		})
