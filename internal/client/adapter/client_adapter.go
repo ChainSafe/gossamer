@@ -106,7 +106,8 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(
 	if err != nil {
 		return err
 	}
-	extrinsics := *new([]E)
+
+	var extrinsics []E
 	err = scale.Unmarshal(encodedExtrinsics, &extrinsics)
 	if err != nil {
 		return err
