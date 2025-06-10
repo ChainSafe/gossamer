@@ -444,7 +444,14 @@ func TestBuildTopologyForLastFinalizedIfNeeded(t *testing.T) {
 	err = testKs.Insert(aliceKeypair)
 	assert.Nil(t, err)
 
-	gs := NewGossipSupport(testKs, nil, blockAPIMock)
+	overseerChan := make(chan any)
+	gs := NewGossipSupport(testKs, overseerChan, blockAPIMock)
+
+	// this is to unblock the overseerChan message called inside updateGossipTopology,
+	// but we don't care the msg details since our goal is testing buildTopologyForLastFinalizedIfNeeded method
+	go func() {
+		<-overseerChan
+	}()
 
 	gs.minKnownSession = parachaintypes.SessionIndex(10)
 	finalizedNeededSession := parachaintypes.SessionIndex(1)
@@ -663,7 +670,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 			case msg := <-overseerChan:
 				switch msg.(type) {
 				case networkbridgemessages.UpdateAuthorityIDs, networkbridgemessages.ConnectToResolvedValidators,
-					networkbridgemessages.AddToResolvedValidators:
+					networkbridgemessages.AddToResolvedValidators, networkbridgemessages.NewGossipTopology:
 					continue
 				default:
 					t.Error("receiving wrong msg type")
@@ -738,4 +745,50 @@ func TestProcessPeerDisconnectedEvent(t *testing.T) {
 	assert.EqualValues(t, gs.connectedPeers,
 		map[parachaintypes.PeerID]map[parachaintypes.AuthorityDiscoveryID]struct{}{})
 	assert.EqualValues(t, gs.connectedAuthorities, map[parachaintypes.AuthorityDiscoveryID]parachaintypes.PeerID{})
+}
+
+func TestUpdateGossipTopology(t *testing.T) {
+	overseerChan := make(chan any)
+	gs := NewGossipSupport(nil, overseerChan, nil)
+	ourIndex := uint(1)
+	sessionIndex := parachaintypes.SessionIndex(2)
+	authorities := []parachaintypes.AuthorityDiscoveryID{
+		{0x01}, {0x02}, {0x03},
+	}
+
+	done := make(chan struct{})
+	go func() {
+		msg := <-overseerChan
+		val, ok := msg.(networkbridgemessages.NewGossipTopology)
+		if !ok {
+			t.Error("Received wrong msg type")
+			return
+		} else {
+			assert.EqualValues(t, parachaintypes.ValidatorIndex(ourIndex), *val.LocalIndex)
+			assert.EqualValues(t, sessionIndex, val.Session)
+			assert.EqualValues(t, 3, len(val.CanonicalShuffling))
+			assert.EqualValues(t, 3, len(val.ShuffledIndices))
+
+			// Check that all AuthorityDiscoveryID are present
+			authIDMap := make(map[parachaintypes.AuthorityDiscoveryID]bool)
+			for _, pair := range val.CanonicalShuffling {
+				authIDMap[pair.AuthorityDiscoveryID] = true
+			}
+			for _, authID := range authorities {
+				assert.True(t, authIDMap[authID], "missing AuthorityDiscoveryID %s", authID)
+			}
+		}
+		done <- struct{}{}
+
+	}()
+
+	err := gs.updateGossipTopology(ourIndex, authorities, sessionIndex)
+	assert.Nil(t, err)
+
+	select {
+	case <-done:
+		t.Log("test completed successfully")
+	case <-time.After(2 * time.Second):
+		t.Fatal("test timed out")
+	}
 }
