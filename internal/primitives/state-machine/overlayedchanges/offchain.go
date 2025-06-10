@@ -56,7 +56,7 @@ func (oc OffchainOverlayedChanges) Clone() OffchainOverlayedChanges {
 	}
 }
 
-// Remove a key and its associated value from the offchain database.
+// Set a key and its associated value in the offchain database.
 func (oc *OffchainOverlayedChanges) Set(prefix []byte, key []byte, value []byte) {
 	oc.SetOffchain(prefixKey(prefix, key), offchain.OffchainOverlayedChangeSetValue(value), nil)
 }
