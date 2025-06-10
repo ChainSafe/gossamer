@@ -54,8 +54,12 @@ type candidates struct {
 }
 
 func (c *candidates) isConfirmed(candidateHash parachaintypes.CandidateHash) bool {
-	_, ok := c.candidates[candidateHash].(*confirmedCandidate)
-	return ok
+	if _, ok := c.candidates[candidateHash]; ok {
+		_, ok := c.candidates[candidateHash].(*confirmedCandidate)
+		return ok
+	}
+
+	return false
 }
 
 // getConfirmed retrieves a confirmed candidate by its hash.
