@@ -118,7 +118,7 @@ func (om *OverlayedMap[K, V, E]) Changes() iter.Seq2[StorageKey, E] {
 
 // Return all committed changes.
 // Panics if there are open transactions: `transaction_depth() > 0`
-func (om *OverlayedMap[K, V, E]) DrainCommited() iter.Seq2[StorageKey, V] {
+func (om *OverlayedMap[K, V, E]) DrainCommitted() iter.Seq2[StorageKey, V] {
 	if om.TransactionDepth() != 0 {
 		panic("Drain is not allowed with open transactions.")
 	}

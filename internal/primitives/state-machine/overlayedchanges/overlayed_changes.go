@@ -662,7 +662,7 @@ func (oc *OverlayedChanges[H, Hasher]) DrainStorageChanges(
 
 	// Take main storage changes
 	var mainStorageChanges StorageCollection
-	for k, v := range oc.top.DrainCommited() {
+	for k, v := range oc.top.DrainCommitted() {
 		mainStorageChanges = append(mainStorageChanges, StorageKeyValue{
 			StorageKey:   k,
 			StorageValue: v.value(),
@@ -674,7 +674,7 @@ func (oc *OverlayedChanges[H, Hasher]) DrainStorageChanges(
 	var childStorageChanges ChildStorageCollection
 	for k, val := range oc.children {
 		storageCollection := make(StorageCollection, 0)
-		for k, v := range val.DrainCommited() {
+		for k, v := range val.DrainCommitted() {
 			storageCollection = append(storageCollection, StorageKeyValue{
 				StorageKey:   k,
 				StorageValue: v.value(),
