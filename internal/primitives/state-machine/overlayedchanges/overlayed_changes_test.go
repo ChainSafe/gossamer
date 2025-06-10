@@ -389,7 +389,7 @@ func checkOffchainContent(
 	}
 
 	var offchainData []offchainKeyValue
-	for k, v := range cloned.offchainDrainCommited() {
+	for k, v := range cloned.offchainDrainCommitted() {
 		offchainData = append(offchainData, offchainKeyValue{key: StorageKey(prefixKey(k.Prefix, k.Key)), value: v})
 	}
 

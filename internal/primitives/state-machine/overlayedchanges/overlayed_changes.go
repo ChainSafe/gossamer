@@ -447,7 +447,7 @@ func (oc *OverlayedChanges[H, Hasher]) ExitRuntime() error {
 //
 // Panics:
 // Panics if `transaction_depth() > 0`
-func (oc *OverlayedChanges[H, Hasher]) offchainDrainCommited() iter.Seq2[PrefixKey, offchain.OffchainOverlayedChange] {
+func (oc *OverlayedChanges[H, Hasher]) offchainDrainCommitted() iter.Seq2[PrefixKey, offchain.OffchainOverlayedChange] {
 	return oc.offchain.Drain()
 }
 
@@ -689,7 +689,7 @@ func (oc *OverlayedChanges[H, Hasher]) DrainStorageChanges(
 
 	// Take offchainStorageChanges
 	var offchainStorageChanges OffchainChangesCollection
-	for k, v := range oc.offchainDrainCommited() {
+	for k, v := range oc.offchainDrainCommitted() {
 		offchainStorageChanges = append(offchainStorageChanges, OffchainChange{
 			PrefixKey:      k,
 			ValueOperation: v,
