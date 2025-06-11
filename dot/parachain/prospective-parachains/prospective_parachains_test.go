@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
@@ -81,7 +82,7 @@ func TestFailedIntroduceSecondedCandidateWhenMissingViewPerRelayParent(
 	validationCodeHash := parachaintypes.ValidationCodeHash{0x01}
 	candidateRelayParentNumber := uint32(1)
 
-	candidate := makeCandidate(
+	candidate := util.MakeCandidate(
 		candidateRelayParent,
 		candidateRelayParentNumber,
 		paraId,
@@ -90,7 +91,7 @@ func TestFailedIntroduceSecondedCandidateWhenMissingViewPerRelayParent(
 		validationCodeHash,
 	)
 
-	pvd := dummyPVD(parentHead, candidateRelayParentNumber)
+	pvd := util.DummyPVD(parentHead, candidateRelayParentNumber)
 
 	subsystemToOverseer := make(chan any)
 	overseerToSubsystem := make(chan any)
@@ -116,7 +117,7 @@ func TestFailedIntroduceSecondedCandidateWhenParentHeadAndHeadDataEquals(
 	validationCodeHash := parachaintypes.ValidationCodeHash{0x01}
 	candidateRelayParentNumber := uint32(1)
 
-	candidate := makeCandidate(
+	candidate := util.MakeCandidate(
 		candidateRelayParent,
 		candidateRelayParentNumber,
 		paraId,
@@ -125,7 +126,7 @@ func TestFailedIntroduceSecondedCandidateWhenParentHeadAndHeadDataEquals(
 		validationCodeHash,
 	)
 
-	pvd := dummyPVD(parentHead, candidateRelayParentNumber)
+	pvd := util.DummyPVD(parentHead, candidateRelayParentNumber)
 
 	subsystemToOverseer := make(chan any)
 	overseerToSubsystem := make(chan any)
@@ -170,7 +171,7 @@ func TestHandleIntroduceSecondedCandidate(
 	validationCodeHash := parachaintypes.ValidationCodeHash(common.Hash{0x03})
 	candidateRelayParentNumber := uint32(1)
 
-	candidate := makeCandidate(
+	candidate := util.MakeCandidate(
 		candidateRelayParent,
 		candidateRelayParentNumber,
 		paraId,
@@ -179,7 +180,7 @@ func TestHandleIntroduceSecondedCandidate(
 		validationCodeHash,
 	)
 
-	pvd := dummyPVD(parentHead, candidateRelayParentNumber)
+	pvd := util.DummyPVD(parentHead, candidateRelayParentNumber)
 
 	subsystemToOverseer := make(chan any)
 	overseerToSubsystem := make(chan any)
@@ -237,88 +238,6 @@ func dummyConstraintsV2(
 		UpgradeRestriction:     nil,
 		FutureValidationCode:   nil,
 	}
-}
-
-func dummyPVD(
-	parentHead parachaintypes.HeadData,
-	relayParentNumber uint32,
-) parachaintypes.PersistedValidationData {
-	return parachaintypes.PersistedValidationData{
-		ParentHead:             parentHead,
-		RelayParentNumber:      relayParentNumber,
-		RelayParentStorageRoot: common.EmptyHash,
-		MaxPovSize:             MaxPoVSize,
-	}
-}
-
-func dummyCandidateReceiptBadSig(
-	relayParentHash common.Hash,
-	commitments *common.Hash,
-) parachaintypes.CandidateReceipt {
-	var commitmentsHash common.Hash
-
-	if commitments != nil {
-		commitmentsHash = *commitments
-	} else {
-		commitmentsHash = common.EmptyHash
-	}
-
-	descriptor := parachaintypes.CandidateDescriptor{
-		ParaID:                      parachaintypes.ParaID(0),
-		RelayParent:                 relayParentHash,
-		Collator:                    parachaintypes.CollatorID{},
-		PovHash:                     common.EmptyHash,
-		ErasureRoot:                 common.EmptyHash,
-		Signature:                   parachaintypes.CollatorSignature{},
-		ParaHead:                    common.EmptyHash,
-		ValidationCodeHash:          parachaintypes.ValidationCodeHash{},
-		PersistedValidationDataHash: common.EmptyHash,
-	}
-
-	return parachaintypes.CandidateReceipt{
-		CommitmentsHash: commitmentsHash,
-		Descriptor:      descriptor,
-	}
-}
-
-func makeCandidate(
-	relayParent common.Hash,
-	relayParentNumber uint32,
-	paraID parachaintypes.ParaID,
-	parentHead parachaintypes.HeadData,
-	headData parachaintypes.HeadData,
-	validationCodeHash parachaintypes.ValidationCodeHash,
-) parachaintypes.CommittedCandidateReceiptV2 {
-	pvd := dummyPVD(parentHead, relayParentNumber)
-
-	commitments := parachaintypes.CandidateCommitments{
-		HeadData:                  headData,
-		HorizontalMessages:        []parachaintypes.OutboundHrmpMessage{},
-		UpwardMessages:            []parachaintypes.UpwardMessage{},
-		NewValidationCode:         nil,
-		ProcessedDownwardMessages: 0,
-		HrmpWatermark:             relayParentNumber,
-	}
-
-	commitmentsHash := commitments.Hash()
-
-	candidate := dummyCandidateReceiptBadSig(relayParent, &commitmentsHash)
-	candidate.Descriptor.ParaID = paraID
-
-	pvdh, err := pvd.Hash()
-	if err != nil {
-		panic(err)
-	}
-
-	candidate.Descriptor.PersistedValidationDataHash = pvdh
-	candidate.Descriptor.ValidationCodeHash = validationCodeHash
-
-	result := parachaintypes.CommittedCandidateReceipt{
-		Descriptor:  candidate.Descriptor,
-		Commitments: commitments,
-	}
-
-	return result.V2()
 }
 
 func padTo32Bytes(input []byte) common.Hash {
@@ -451,7 +370,7 @@ func TestGetBackableCandidates(t *testing.T) {
 
 	validationCodeHash := parachaintypes.ValidationCodeHash{}
 
-	candidate1 := makeCandidate(
+	candidate1 := util.MakeCandidate(
 		candidateRelayParent1,
 		uint32(10),
 		paraId,
@@ -460,7 +379,7 @@ func TestGetBackableCandidates(t *testing.T) {
 		validationCodeHash,
 	)
 
-	candidate2 := makeCandidate(
+	candidate2 := util.MakeCandidate(
 		candidateRelayParent2,
 		uint32(9),
 		paraId2,
@@ -469,7 +388,7 @@ func TestGetBackableCandidates(t *testing.T) {
 		validationCodeHash,
 	)
 
-	candidate3 := makeCandidate(
+	candidate3 := util.MakeCandidate(
 		candidateRelayParent3,
 		uint32(8),
 		paraId3,
@@ -517,7 +436,7 @@ func TestGetBackableCandidates(t *testing.T) {
 		relayParent:        candidateRelayParent1,
 		candidate: &prospectiveCandidate{
 			Commitments:             candidate1.Commitments,
-			PersistedValidationData: dummyPVD(parentHead1, 10),
+			PersistedValidationData: util.DummyPVD(parentHead1, 10),
 			PoVHash:                 candidate1.Descriptor.PovHash,
 			ValidationCodeHash:      validationCodeHash,
 		},
@@ -538,7 +457,7 @@ func TestGetBackableCandidates(t *testing.T) {
 		relayParent:        candidateRelayParent2,
 		candidate: &prospectiveCandidate{
 			Commitments:             candidate2.Commitments,
-			PersistedValidationData: dummyPVD(parentHead2, 9),
+			PersistedValidationData: util.DummyPVD(parentHead2, 9),
 			PoVHash:                 candidate2.Descriptor.PovHash,
 			ValidationCodeHash:      validationCodeHash,
 		},
@@ -559,7 +478,7 @@ func TestGetBackableCandidates(t *testing.T) {
 		relayParent:        candidateRelayParent3,
 		candidate: &prospectiveCandidate{
 			Commitments:             candidate3.Commitments,
-			PersistedValidationData: dummyPVD(parentHead3, 8),
+			PersistedValidationData: util.DummyPVD(parentHead3, 8),
 			PoVHash:                 candidate3.Descriptor.PovHash,
 			ValidationCodeHash:      validationCodeHash,
 		},
@@ -1587,7 +1506,7 @@ func TestHandleBacked(
 	validationCodeHash := parachaintypes.ValidationCodeHash{0x01}
 	candidateRelayParentNumber := uint32(0)
 
-	candidate := makeCandidate(
+	candidate := util.MakeCandidate(
 		candidateRelayParent,
 		candidateRelayParentNumber,
 		paraId,
@@ -1596,7 +1515,7 @@ func TestHandleBacked(
 		validationCodeHash,
 	)
 
-	pvd := dummyPVD(parentHead, candidateRelayParentNumber)
+	pvd := util.DummyPVD(parentHead, candidateRelayParentNumber)
 
 	subsystemToOverseer := make(chan any)
 	overseerToSubsystem := make(chan any)
