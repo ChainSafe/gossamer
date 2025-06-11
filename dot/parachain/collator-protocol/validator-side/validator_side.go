@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package collatorprotocol
+package validatorside
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
@@ -19,11 +20,11 @@ import (
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"golang.org/x/exp/slices"
@@ -35,6 +36,11 @@ const (
 	activityPoll            = 10 * time.Millisecond
 	maxUnsharedDownloadTime = 100 * time.Millisecond
 )
+
+type BlockState interface {
+	GetHeader(hash common.Hash) (header *types.Header, err error)
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+}
 
 var (
 	ErrUnexpectedMessageOnCollationProtocol = errors.New("unexpected message on collation protocol")
@@ -60,7 +66,7 @@ var (
 )
 
 func New(net Network, protocolID protocol.ID, overseerChan chan<- any,
-	blockState *state.BlockState, ks keystore.Keystore) *CollatorProtocolValidatorSide {
+	blockState BlockState, ks keystore.Keystore) *CollatorProtocolValidatorSide {
 	collationFetchingReqResProtocol := net.GetRequestResponseProtocol(
 		string(protocolID), collationFetchingRequestTimeout, collationFetchingMaxResponseSize)
 
@@ -85,7 +91,7 @@ func (cpvs *CollatorProtocolValidatorSide) Run(
 
 	for {
 		select {
-		// TODO: polkadot-rust changes reputation in batches, so we do the same?
+		// TODO: #4697: use util.ReputationAggregator
 		case msg, ok := <-overseerToSubSystem:
 			if !ok {
 				return
@@ -98,12 +104,8 @@ func (cpvs *CollatorProtocolValidatorSide) Run(
 
 		case <-inactivityTicker.C:
 			// TODO: disconnect inactive peers, Issue #4256
-			// https://github.com/paritytech/polkadot/blob/8f05479e4bd61341af69f0721e617f01cbad8bb2/node/network/collator-protocol/src/validator_side/mod.rs#L1301
 
 		case unfetchedCollation := <-cpvs.unfetchedCollation:
-			// TODO: If we can't get the collation from given collator within MAX_UNSHARED_DOWNLOAD_TIME,
-			// we will start another one from the next collator.
-
 			// check if this peer id has advertised this relay parent
 			peerData := cpvs.peerData[unfetchedCollation.PendingCollation.PeerID]
 			if peerData.HasAdvertised(unfetchedCollation.PendingCollation.RelayParent, nil) {
@@ -115,6 +117,9 @@ func (cpvs *CollatorProtocolValidatorSide) Run(
 				}
 				cpvs.fetchedCollations = append(cpvs.fetchedCollations, *collation)
 			}
+
+		// TODO #4710: If we can't get the collation from given collator within MAX_UNSHARED_DOWNLOAD_TIME,
+		// we will start another one from the next collator.
 
 		case <-ctx.Done():
 			if err := ctx.Err(); err != nil {
@@ -130,10 +135,10 @@ func (*CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 
 func (*CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
 	signal parachaintypes.ActiveLeavesUpdateSignal) error {
-	// nothing to do
 	return nil
 }
 
+// TODO #4253: update handleOurViewChange and remove the usage of prospectiveParachainMode
 func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view parachaintypes.View) error {
 	// 1. Find out removed leaves (hashes) and newly added leaves
 	// 2. Go over each new leaves,
@@ -170,12 +175,6 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view parachaintyp
 		}
 		cpvs.activeLeaves[leaf] = mode
 		cpvs.perRelayParent[leaf] = *perRelayParent
-
-		//nolint:staticcheck
-		if mode.IsEnabled {
-			// TODO: Add it when we have async backing, Issue #4253
-			// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1303 //nolint
-		}
 	}
 
 	// handle removed leaves
@@ -185,8 +184,6 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view parachaintyp
 		mode := prospectiveParachainMode()
 		pruned := []common.Hash{}
 		if mode.IsEnabled {
-			// TODO: Do this when we have async backing,  Issue #4253
-			// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1340 //nolint
 		} else {
 			pruned = append(pruned, leaf)
 		}
@@ -210,13 +207,6 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view parachaintyp
 				}
 			}
 		}
-
-		// TODO #4204
-		// Remove blocked advertisements that left the view. cpvs.BlockedAdvertisements
-		// Re-trigger previously failed requests again. requestUnBlockedCollations
-		// prune old advertisements
-		// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1361-L1396
-
 	}
 
 	return nil
@@ -283,7 +273,6 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 		paraNow = &c.ParaID
 	case parachaintypes.Free:
 		// Nothing to do in case of free
-
 	}
 
 	if paraNow != nil {
@@ -329,9 +318,6 @@ func signingKeyAndIndex(validators []parachaintypes.ValidatorID, ks keystore.Key
 }
 
 func prospectiveParachainMode() parachaintypes.ProspectiveParachainsMode {
-	// TODO: complete this method by calling the runtime function Issue #4254
-	// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/subsystem-util/src/runtime/mod.rs#L496 //nolint
-	// NOTE: We will return false until we have support for async backing
 	return parachaintypes.ProspectiveParachainsMode{
 		IsEnabled: false,
 	}
@@ -364,10 +350,10 @@ func (*CollatorProtocolValidatorSide) Stop() {
 // This function will
 // - check for duplicate requests
 // - check if the requested collation is in our view
+// TODO: #4711
 func (cpvs *CollatorProtocolValidatorSide) requestCollation(relayParent common.Hash,
 	paraID parachaintypes.ParaID, peerID peer.ID) (*parachaintypes.Collation, error) {
 
-	// TODO: Make sure that the request can be done in MAX_UNSHARED_DOWNLOAD_TIME timeout
 	_, ok := cpvs.perRelayParent[relayParent]
 	if !ok {
 		return nil, ErrOutOfView
@@ -580,7 +566,7 @@ type CollationEvent struct {
 }
 
 type CollatorProtocolValidatorSide struct {
-	BlockState *state.BlockState
+	BlockState BlockState
 	Keystore   keystore.Keystore
 
 	SubSystemToOverseer chan<- any
@@ -753,8 +739,6 @@ func (cpvs *CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) er
 }
 
 func (cpvs *CollatorProtocolValidatorSide) processMessage(msg any) error {
-	// run this function as a goroutine, ideally
-
 	switch msg := msg.(type) {
 	case collatorprotocolmessages.CollateOn:
 		return fmt.Errorf("CollateOn %w", ErrNotExpectedOnValidatorSide)
@@ -775,6 +759,8 @@ func (cpvs *CollatorProtocolValidatorSide) processMessage(msg any) error {
 		}
 	case networkbridgeevents.Event[collatorprotocolmessages.CollationProtocol]:
 		return cpvs.handleNetworkBridgeEvents(msg.Inner)
+
+	// TODO #4255
 	case collatorprotocolmessages.Seconded:
 		_, statementV, err := msg.Stmt.Payload.IndexValue()
 		if err != nil {
@@ -846,9 +832,6 @@ func (cpvs *CollatorProtocolValidatorSide) processMessage(msg any) error {
 				perRelayParent.collations.secondedCount++
 				cpvs.perRelayParent[msg.Parent] = perRelayParent
 			}
-
-			// TODO: Few more things for async backing, but we don't have async backing yet Issue #4255
-			// https://github.com/paritytech/polkadot-sdk/blob/7035034710ecb9c6a786284e5f771364c520598d/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1531-L1532
 		}
 	case collatorprotocolmessages.Backed:
 		backed := msg
