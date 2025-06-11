@@ -21,6 +21,7 @@ import (
 type MockTransactionStateAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockTransactionStateAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockTransactionStateAPIMockRecorder is the mock recorder for MockTransactionStateAPI.
@@ -41,27 +42,27 @@ func (m *MockTransactionStateAPI) EXPECT() *MockTransactionStateAPIMockRecorder 
 }
 
 // FreeStatusNotifierChannel mocks base method.
-func (m *MockTransactionStateAPI) FreeStatusNotifierChannel(arg0 chan transaction.Status) {
+func (m *MockTransactionStateAPI) FreeStatusNotifierChannel(ch chan transaction.Status) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "FreeStatusNotifierChannel", arg0)
+	m.ctrl.Call(m, "FreeStatusNotifierChannel", ch)
 }
 
 // FreeStatusNotifierChannel indicates an expected call of FreeStatusNotifierChannel.
-func (mr *MockTransactionStateAPIMockRecorder) FreeStatusNotifierChannel(arg0 any) *gomock.Call {
+func (mr *MockTransactionStateAPIMockRecorder) FreeStatusNotifierChannel(ch any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeStatusNotifierChannel", reflect.TypeOf((*MockTransactionStateAPI)(nil).FreeStatusNotifierChannel), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeStatusNotifierChannel", reflect.TypeOf((*MockTransactionStateAPI)(nil).FreeStatusNotifierChannel), ch)
 }
 
 // GetStatusNotifierChannel mocks base method.
-func (m *MockTransactionStateAPI) GetStatusNotifierChannel(arg0 types.Extrinsic) chan transaction.Status {
+func (m *MockTransactionStateAPI) GetStatusNotifierChannel(ext types.Extrinsic) chan transaction.Status {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStatusNotifierChannel", arg0)
+	ret := m.ctrl.Call(m, "GetStatusNotifierChannel", ext)
 	ret0, _ := ret[0].(chan transaction.Status)
 	return ret0
 }
 
 // GetStatusNotifierChannel indicates an expected call of GetStatusNotifierChannel.
-func (mr *MockTransactionStateAPIMockRecorder) GetStatusNotifierChannel(arg0 any) *gomock.Call {
+func (mr *MockTransactionStateAPIMockRecorder) GetStatusNotifierChannel(ext any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatusNotifierChannel", reflect.TypeOf((*MockTransactionStateAPI)(nil).GetStatusNotifierChannel), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStatusNotifierChannel", reflect.TypeOf((*MockTransactionStateAPI)(nil).GetStatusNotifierChannel), ext)
 }

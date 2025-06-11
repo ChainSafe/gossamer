@@ -10,9 +10,9 @@
 package main
 
 import (
-	context "context"
 	reflect "reflect"
 
+	aws "github.com/aws/aws-sdk-go/aws"
 	request "github.com/aws/aws-sdk-go/aws/request"
 	ecs "github.com/aws/aws-sdk-go/service/ecs"
 	gomock "go.uber.org/mock/gomock"
@@ -22,6 +22,7 @@ import (
 type MockECSAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockECSAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockECSAPIMockRecorder is the mock recorder for MockECSAPI.
@@ -42,7 +43,7 @@ func (m *MockECSAPI) EXPECT() *MockECSAPIMockRecorder {
 }
 
 // DescribeServicesWithContext mocks base method.
-func (m *MockECSAPI) DescribeServicesWithContext(arg0 context.Context, arg1 *ecs.DescribeServicesInput, arg2 ...request.Option) (*ecs.DescribeServicesOutput, error) {
+func (m *MockECSAPI) DescribeServicesWithContext(arg0 aws.Context, arg1 *ecs.DescribeServicesInput, arg2 ...request.Option) (*ecs.DescribeServicesOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{arg0, arg1}
 	for _, a := range arg2 {
@@ -62,7 +63,7 @@ func (mr *MockECSAPIMockRecorder) DescribeServicesWithContext(arg0, arg1 any, ar
 }
 
 // ListServicesWithContext mocks base method.
-func (m *MockECSAPI) ListServicesWithContext(arg0 context.Context, arg1 *ecs.ListServicesInput, arg2 ...request.Option) (*ecs.ListServicesOutput, error) {
+func (m *MockECSAPI) ListServicesWithContext(arg0 aws.Context, arg1 *ecs.ListServicesInput, arg2 ...request.Option) (*ecs.ListServicesOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{arg0, arg1}
 	for _, a := range arg2 {
@@ -82,7 +83,7 @@ func (mr *MockECSAPIMockRecorder) ListServicesWithContext(arg0, arg1 any, arg2 .
 }
 
 // UpdateServiceWithContext mocks base method.
-func (m *MockECSAPI) UpdateServiceWithContext(arg0 context.Context, arg1 *ecs.UpdateServiceInput, arg2 ...request.Option) (*ecs.UpdateServiceOutput, error) {
+func (m *MockECSAPI) UpdateServiceWithContext(arg0 aws.Context, arg1 *ecs.UpdateServiceInput, arg2 ...request.Option) (*ecs.UpdateServiceOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{arg0, arg1}
 	for _, a := range arg2 {

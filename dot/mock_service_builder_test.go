@@ -20,6 +20,7 @@ import (
 type MockServiceBuilder struct {
 	ctrl     *gomock.Controller
 	recorder *MockServiceBuilderMockRecorder
+	isgomock struct{}
 }
 
 // MockServiceBuilderMockRecorder is the mock recorder for MockServiceBuilder.
@@ -40,16 +41,16 @@ func (m *MockServiceBuilder) EXPECT() *MockServiceBuilderMockRecorder {
 }
 
 // NewServiceIFace mocks base method.
-func (m *MockServiceBuilder) NewServiceIFace(arg0 *babe.ServiceConfig) (*babe.Service, error) {
+func (m *MockServiceBuilder) NewServiceIFace(cfg *babe.ServiceConfig) (*babe.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewServiceIFace", arg0)
+	ret := m.ctrl.Call(m, "NewServiceIFace", cfg)
 	ret0, _ := ret[0].(*babe.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewServiceIFace indicates an expected call of NewServiceIFace.
-func (mr *MockServiceBuilderMockRecorder) NewServiceIFace(arg0 any) *gomock.Call {
+func (mr *MockServiceBuilderMockRecorder) NewServiceIFace(cfg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewServiceIFace", reflect.TypeOf((*MockServiceBuilder)(nil).NewServiceIFace), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewServiceIFace", reflect.TypeOf((*MockServiceBuilder)(nil).NewServiceIFace), cfg)
 }
