@@ -37,6 +37,26 @@ type originatorStatementPair struct {
 
 type originatorStatementPairSet map[originatorStatementPair]struct{}
 
+func (o originatorStatementPairSet) insert(
+	validatorIndex parachaintypes.ValidatorIndex,
+	statement parachaintypes.CompactStatement,
+) {
+	o[originatorStatementPair{validatorIndex, statement}] = struct{}{}
+}
+
+func (o originatorStatementPairSet) remove(
+	validatorIndex parachaintypes.ValidatorIndex,
+	statement parachaintypes.CompactStatement,
+) bool {
+	for pair := range o {
+		if pair.validatorIndex == validatorIndex && pair.statement.Equals(statement) {
+			delete(o, pair)
+			return true
+		}
+	}
+	return false
+}
+
 // gridTracker tracks knowledge from authorities within the grid for a particular relay-parent.
 type gridTracker struct {
 	received         map[parachaintypes.ValidatorIndex]receivedManifests
