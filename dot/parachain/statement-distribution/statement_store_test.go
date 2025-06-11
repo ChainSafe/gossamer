@@ -44,7 +44,8 @@ func TestAlwaysProvidesFreshStatementsInOrder(t *testing.T) {
 	_, err = store.insert(groups, signedSecondedByB, statementOriginRemote)
 	require.NoError(t, err)
 
-	// Regardless of the order statements are requested, we will get them in the order [B, A] because seconded statements must be first.
+	// Regardless of the order statements are requested, we will get them
+	// in the order [B, A] because seconded statements must be first.
 	vals := []parachaintypes.ValidatorIndex{validatorA, validatorB}
 	statements := store.freshStatementsForBacking(vals, candidateHash)
 	require.Len(t, statements, 2)

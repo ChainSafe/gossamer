@@ -121,7 +121,7 @@ func (s *statements) insert(
 	groups *groups,
 	statement *parachaintypes.SignedStatement,
 	origin statementOrigin,
-) (bool, error) {
+) (bool, error) { //nolint:unparam
 	validatorIndex := statement.ValidatorIndex
 	validatorMeta, ok := s.validatorMeta[validatorIndex]
 	if !ok {
@@ -201,7 +201,7 @@ func (s *statements) insert(
 }
 
 // fillStatementFilter fills a StatementFilter with all statements already known for the given group and candidate hash.
-func (s *statements) fillStatementFilter(
+func (s *statements) fillStatementFilter( //nolint:unused
 	groupIndex parachaintypes.GroupIndex,
 	candidateHash parachaintypes.CandidateHash,
 	statementFilter *parachaintypes.StatementFilter,
@@ -218,7 +218,7 @@ func (s *statements) fillStatementFilter(
 
 // groupStatements returns all stored signed statements by the group conforming to the given filter.
 // Seconded statements are provided first.
-func (s *statements) groupStatements(
+func (s *statements) groupStatements( //nolint:unused
 	groups *groups,
 	groupIndex parachaintypes.GroupIndex,
 	candidateHash parachaintypes.CandidateHash,
@@ -230,7 +230,7 @@ func (s *statements) groupStatements(
 
 	// Seconded statements first
 	for _, i := range filter.SecondedInGroup.Ones() {
-		if int(i) < len(groupValidators) {
+		if i < len(groupValidators) {
 			v := groupValidators[i]
 			fp := fingerprint{
 				validator:     v,
@@ -245,7 +245,7 @@ func (s *statements) groupStatements(
 
 	// Then validated statements
 	for _, i := range filter.ValidatedInGroup.Ones() {
-		if int(i) < len(groupValidators) {
+		if i < len(groupValidators) {
 			v := groupValidators[i]
 			fp := fingerprint{
 				validator:     v,
@@ -262,7 +262,7 @@ func (s *statements) groupStatements(
 }
 
 // validatorStatement returns the full statement of this kind issued by this validator, if it is known.
-func (s *statements) validatorStatement(
+func (s *statements) validatorStatement( //nolint:unused
 	validatorIndex parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
 ) (*parachaintypes.SignedStatement, bool) {
@@ -280,7 +280,8 @@ func (s *statements) validatorStatement(
 	return sst.stmt, ok
 }
 
-// freshStatementsForBacking returns all statements for the given candidate hash and validators that are not yet known by backing.
+// freshStatementsForBacking returns all statements for the given candidate hash
+// and validators that are not yet known by backing.
 // Seconded statements are provided before Valid statements.
 func (s *statements) freshStatementsForBacking(
 	validators []parachaintypes.ValidatorIndex,
@@ -308,7 +309,9 @@ func (s *statements) freshStatementsForBacking(
 }
 
 // secondedCount returns the amount of known Seconded statements by the given validator index.
-func (s *statements) secondedCount(validatorIndex parachaintypes.ValidatorIndex) uint {
+func (s *statements) secondedCount( //nolint:unused
+	validatorIndex parachaintypes.ValidatorIndex,
+) uint {
 	if meta, ok := s.validatorMeta[validatorIndex]; ok {
 		return meta.secondedCount
 	}
@@ -316,7 +319,7 @@ func (s *statements) secondedCount(validatorIndex parachaintypes.ValidatorIndex)
 }
 
 // noteKnownByBacking marks a statement as known by the backing subsystem.
-func (s *statements) noteKnownByBacking(
+func (s *statements) noteKnownByBacking( //nolint:unused
 	validatorIndex parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
 ) {
