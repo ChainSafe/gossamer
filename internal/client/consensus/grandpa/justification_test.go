@@ -57,7 +57,7 @@ func TestJustificationEncoding(t *testing.T) {
 		hash.H256(""),
 		hash.H256(""),
 		hash.H256(hashA),
-		runtime.Digest{}),
+		runtime.Digest{Logs: []runtime.DigestItem{}}),
 	)
 
 	expected := primitives.GrandpaJustification[hash.H256, uint64, generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{
@@ -106,7 +106,7 @@ func TestDecodeGrandpaJustificationVerifyFinalizes(t *testing.T) {
 		invalidEncoding,
 		HashNumber[hash.H256, uint64]{},
 		2,
-		grandpa.VoterSet[string]{})
+		grandpa.VoterSet[primitives.AuthorityID]{})
 	require.Error(t, err)
 
 	// Invalid target
@@ -127,7 +127,7 @@ func TestDecodeGrandpaJustificationVerifyFinalizes(t *testing.T) {
 		encWrongTarget,
 		HashNumber[hash.H256, uint64]{},
 		2,
-		grandpa.VoterSet[string]{})
+		grandpa.VoterSet[primitives.AuthorityID]{})
 	require.Error(t, err)
 	require.ErrorContains(t, err, "invalid commit target in grandpa justification")
 
@@ -136,7 +136,7 @@ func TestDecodeGrandpaJustificationVerifyFinalizes(t *testing.T) {
 		hash.H256(""),
 		hash.H256(""),
 		a,
-		runtime.Digest{})
+		runtime.Digest{Logs: []runtime.DigestItem{}})
 
 	headerList := []generic.Header[uint64, hash.H256, runtime.BlakeTwo256]{*headerB}
 
@@ -165,7 +165,7 @@ func TestDecodeGrandpaJustificationVerifyFinalizes(t *testing.T) {
 		Number: 1,
 	}
 
-	idWeights := make([]grandpa.IDWeight[string], 0)
+	idWeights := make([]grandpa.IDWeight[primitives.AuthorityID], 0)
 	for i := 1; i <= 4; i++ {
 		var id ced25519.Public
 		switch i {
@@ -178,8 +178,8 @@ func TestDecodeGrandpaJustificationVerifyFinalizes(t *testing.T) {
 		case 4:
 			id = ed25519.Ferdie.Pair().Public().(ced25519.Public)
 		}
-		idWeights = append(idWeights, grandpa.IDWeight[string]{
-			ID: string(id[:]), Weight: 1,
+		idWeights = append(idWeights, grandpa.IDWeight[primitives.AuthorityID]{
+			ID: primitives.AuthorityID(id[:]), Weight: 1,
 		})
 	}
 	voters := grandpa.NewVoterSet(idWeights)
@@ -258,7 +258,7 @@ func TestJustification_verify(t *testing.T) {
 
 func TestJustification_verifyWithVoterSet(t *testing.T) {
 	// 1) invalid commit
-	idWeights := make([]grandpa.IDWeight[string], 0)
+	idWeights := make([]grandpa.IDWeight[primitives.AuthorityID], 0)
 	for i := 1; i <= 4; i++ {
 		var id ced25519.Public
 		switch i {
@@ -271,8 +271,8 @@ func TestJustification_verifyWithVoterSet(t *testing.T) {
 		case 4:
 			id = ed25519.Ferdie.Pair().Public().(ced25519.Public)
 		}
-		idWeights = append(idWeights, grandpa.IDWeight[string]{
-			ID: string(id[:]), Weight: 1,
+		idWeights = append(idWeights, grandpa.IDWeight[primitives.AuthorityID]{
+			ID: primitives.AuthorityID(id[:]), Weight: 1,
 		})
 	}
 	voters := grandpa.NewVoterSet(idWeights)

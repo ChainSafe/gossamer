@@ -6,6 +6,7 @@ package grandpa
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
@@ -353,10 +354,12 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(
 	}
 }
 
-func (pcn *PendingChangeNode[H, N]) importNode(hash H,
+func (pcn *PendingChangeNode[H, N]) importNode(
+	hash H,
 	number N,
 	change PendingChange[H, N],
-	isDescendentOf IsDescendentOf[H]) (bool, error) {
+	isDescendentOf IsDescendentOf[H],
+) (bool, error) {
 	announcingHash := pcn.Change.CanonHash
 	if hash == announcingHash {
 		return false, fmt.Errorf("%w: %v", errDuplicateHashes, hash)
@@ -476,4 +479,67 @@ func (ct *ChangeTree[H, N]) swapRemove(roots []*PendingChangeNode[H, N], index N
 // An iterator over all the pruned nodes is returned.
 func (_ *ChangeTree[H, N]) drainFilter() { //nolint //skipcq: SCC-U1000 //skipcq: RVV-B0013
 	// TODO implement
+}
+
+// / Map fork tree into values of new types.
+// /
+// / Tree traversal technique (e.g. BFS vs DFS) is left as not specified and
+// / may be subject to change in the future. In other words, your predicates
+// / should not rely on the observed traversal technique currently in use.
+func (ct *ChangeTree[H, N]) Map(f func(h H, n N, v PendingChange[H, N])) {
+	// let mut queue: Vec<_> =
+	// 		self.roots.into_iter().rev().map(|node| (usize::MAX, node)).collect();
+	// let mut next_queue = Vec::new();
+	// let mut output = Vec::new();
+	type queueItem struct {
+		parentIndex uint
+		node        PendingChangeNode[H, N]
+	}
+	queue := make([]queueItem, 0)
+	for i := len(ct.TreeRoots) - 1; i >= 0; i-- {
+		node := ct.TreeRoots[i]
+		queue = append(queue, queueItem{
+			parentIndex: math.MaxUint,
+			node:        *node,
+		})
+	}
+	nextQueue := make([]queueItem, 0)
+	output := make([]queueItem, 0)
+
+	_, _ = nextQueue, output
+
+	// while !queue.is_empty() {
+	for len(queue) > 0 {
+		// 	for (parent_index, node) in queue.drain(..) {
+		for _, item := range queue {
+			// 		let new_data = f(&node.hash, &node.number, node.data);
+			// 		let new_node = Node {
+			// 			hash: node.hash,
+			// 			number: node.number,
+			// 			data: new_data,
+			// 			children: Vec::with_capacity(node.children.len()),
+			// 		};
+			// newData := f(&item.node.)
+			_ = item
+			// 		let node_id = output.len();
+			// 		output.push((parent_index, new_node));
+
+			// 		for child in node.children.into_iter().rev() {
+			// 			next_queue.push((node_id, child));
+		}
+	}
+
+	// 	std::mem::swap(&mut queue, &mut next_queue);
+	// }
+
+	// let mut roots = Vec::new();
+	// while let Some((parent_index, new_node)) = output.pop() {
+	// 	if parent_index == usize::MAX {
+	// 		roots.push(new_node);
+	// 	} else {
+	// 		output[parent_index].1.children.push(new_node);
+	// 	}
+	// }
+
+	// ForkTree { roots, best_finalized_number: self.best_finalized_number }
 }

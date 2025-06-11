@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	forktree "github.com/ChainSafe/gossamer/internal/utils/fork-tree"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -106,7 +107,7 @@ func TestUpdateAuthoritySet(t *testing.T) {
 	store := newDummyStore()
 	authorities := AuthoritySet[TestString, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[TestString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[TestString, uint, PendingChange[TestString, uint]](),
 	}
 
 	err := updateAuthoritySet[TestString, uint](authorities, nil, write(store))
@@ -117,7 +118,7 @@ func TestUpdateAuthoritySet(t *testing.T) {
 	require.NotNil(t, encData)
 
 	newAuthorities := AuthoritySet[TestString, uint]{
-		PendingStandardChanges: NewChangeTree[TestString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[TestString, uint, PendingChange[TestString, uint]](),
 	}
 	err = scale.Unmarshal(encData, &newAuthorities)
 	require.NoError(t, err)
@@ -127,7 +128,7 @@ func TestUpdateAuthoritySet(t *testing.T) {
 	store = newDummyStore()
 	authorities = AuthoritySet[TestString, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[TestString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[TestString, uint, PendingChange[TestString, uint]](),
 	}
 
 	newAuthSet := &newAuthoritySet[TestString, uint]{
@@ -143,7 +144,7 @@ func TestUpdateAuthoritySet(t *testing.T) {
 	require.NotNil(t, encData)
 
 	newAuthorities = AuthoritySet[TestString, uint]{
-		PendingStandardChanges: NewChangeTree[TestString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[TestString, uint, PendingChange[TestString, uint]](),
 	}
 	err = scale.Unmarshal(encData, &newAuthorities)
 	require.NoError(t, err)
@@ -175,7 +176,7 @@ func TestWriteVoterSetState(t *testing.T) {
 	authorities := AuthoritySet[TestString, uint]{
 		CurrentAuthorities:     primitives.AuthorityList{},
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[TestString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[TestString, uint, PendingChange[TestString, uint]](),
 		PendingForcedChanges:   []PendingChange[TestString, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
@@ -226,7 +227,7 @@ func TestWriteConcludedRound(t *testing.T) {
 	authorities := AuthoritySet[TestString, uint]{
 		CurrentAuthorities:     primitives.AuthorityList{},
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[TestString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[TestString, uint, PendingChange[TestString, uint]](),
 		PendingForcedChanges:   []PendingChange[TestString, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}

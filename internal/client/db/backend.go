@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/db/offchain"
 	statedb "github.com/ChainSafe/gossamer/internal/client/state-db"
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
+	memorykvdb "github.com/ChainSafe/gossamer/internal/kvdb/memory-kvdb"
 	"github.com/ChainSafe/gossamer/internal/log"
 	memorydb "github.com/ChainSafe/gossamer/internal/memory-db"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
@@ -370,8 +371,7 @@ type emptyStorage[H runtime.Hash] struct {
 func newEmptyStorage[H runtime.Hash, Hasher runtime.Hasher[H]]() emptyStorage[H] {
 	var root H
 	mdb := trie.NewMemoryDB[H, Hasher]()
-	trie := triedb.NewEmptyTrieDB[H, Hasher](mdb)
-	trie.SetVersion(triedb.V1)
+	trie := triedb.NewEmptyTrieDB[H, Hasher](mdb, trie.LayoutV1[Hasher, H]{})
 	root = trie.MustHash()
 	return emptyStorage[H]{root}
 }
@@ -433,6 +433,78 @@ func NewBackend[
 	}
 
 	return newBackendFromDatabase[H, N, E, Hasher, Header](db, canonicalizationDelay, dbConfig, needsInit)
+}
+
+// / Create new memory-backed client backend for tests.
+// #[cfg(any(test, feature = "test-helpers"))]
+//
+//	pub fn new_test(blocks_pruning: u32, canonicalization_delay: u64) -> Self {
+//		Self::new_test_with_tx_storage(BlocksPruning::Some(blocks_pruning), canonicalization_delay)
+//	}
+func NewTestBackend[
+	H runtime.Hash,
+	N runtime.Number,
+	E runtime.Extrinsic,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+](blocksPruning uint32, canonicalizationDelay uint64) *Backend[H, Hasher, N, E, Header] {
+	return NewTestBackendWithTxStorage[H, N, E, Hasher, Header](BlocksPruningSome(blocksPruning), canonicalizationDelay)
+}
+
+/// Create new memory-backed client backend for tests.
+// #[cfg(any(test, feature = "test-helpers"))]
+// pub fn new_test_with_tx_storage(
+// 	blocks_pruning: BlocksPruning,
+// 	canonicalization_delay: u64,
+// ) -> Self {
+// 	let db = kvdb_memorydb::create(crate::utils::NUM_COLUMNS);
+// 	let db = sp_database::as_database(db);
+// 	let state_pruning = match blocks_pruning {
+// 		BlocksPruning::KeepAll => PruningMode::ArchiveAll,
+// 		BlocksPruning::KeepFinalized => PruningMode::ArchiveCanonical,
+// 		BlocksPruning::Some(n) => PruningMode::blocks_pruning(n),
+// 	};
+// 	let db_setting = DatabaseSettings {
+// 		trie_cache_maximum_size: Some(16 * 1024 * 1024),
+// 		state_pruning: Some(state_pruning),
+// 		source: DatabaseSource::Custom { db, require_create_flag: true },
+// 		blocks_pruning,
+// 	};
+
+//		Self::new(db_setting, canonicalization_delay).expect("failed to create test-db")
+//	}
+func NewTestBackendWithTxStorage[
+	H runtime.Hash,
+	N runtime.Number,
+	E runtime.Extrinsic,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+](blocksPruning BlocksPruning, canonicalizationDelay uint64) *Backend[H, Hasher, N, E, Header] {
+	kvdb := memorykvdb.New(13)
+	var statePruning statedb.PruningMode
+	switch blocksPruning := blocksPruning.(type) {
+	case BlocksPruningKeepAll:
+		statePruning = statedb.PruningModeArchiveAll{}
+	case BlocksPruningKeepFinalized:
+		statePruning = statedb.PruningModeArchiveCanonical{}
+	case BlocksPruningSome:
+		statePruning = statedb.NewPruningModeConstrained(uint32(blocksPruning))
+	default:
+		panic("unreachable")
+	}
+	trieCacheMaxSize := uint(16 * 1024 * 1024)
+	dbSetting := DatabaseConfig{
+		TrieCacheMaximumSize: &trieCacheMaxSize,
+		StatePruning:         statePruning,
+		Source:               DatabaseSource{DB: database.NewDBAdapter[hash.H256](kvdb), RequireCreateFlag: true},
+		BlocksPruning:        blocksPruning,
+	}
+
+	backend, err := NewBackend[H, N, E, Hasher, Header](dbSetting, canonicalizationDelay)
+	if err != nil {
+		panic("failed to create test-db")
+	}
+	return backend
 }
 
 func newBackendFromDatabase[

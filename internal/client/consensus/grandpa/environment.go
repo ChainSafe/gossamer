@@ -13,8 +13,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/client/api/utils"
-	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -71,12 +71,12 @@ func newCompletedRounds[H runtime.Hash, N runtime.Number](
 }
 
 // Get the set-id and voter set of the completed rounds.
-func (cr *completedRounds[H, N]) setInfo() (primitives.SetID, []primitives.AuthorityID) {
+func (cr completedRounds[H, N]) setInfo() (primitives.SetID, []primitives.AuthorityID) {
 	return cr.SetId, cr.Voters
 }
 
 // Iterate over all completed rounds.
-func (cr *completedRounds[H, N]) iter() []completedRound[H, N] {
+func (cr completedRounds[H, N]) iter() []completedRound[H, N] {
 	var reversed []completedRound[H, N]
 	for i := len(cr.Rounds) - 1; i >= 0; i-- {
 		reversed = append(reversed, cr.Rounds[i])
@@ -85,7 +85,7 @@ func (cr *completedRounds[H, N]) iter() []completedRound[H, N] {
 }
 
 // Returns the last (latest) completed round
-func (cr *completedRounds[H, N]) last() completedRound[H, N] {
+func (cr completedRounds[H, N]) last() completedRound[H, N] {
 	if len(cr.Rounds) == 0 {
 		panic("inner is never empty; always contains at least genesis; qed")
 	}
@@ -643,13 +643,13 @@ type environment[
 	SelectChain   common.SelectChain[H, N, Header]
 	Voters        grandpa.VoterSet[primitives.AuthorityID]
 	Config        Config
-	AuthoritySet  SharedAuthoritySet[H, N]
-	Network       networkBridge[H, N, Hasher]
+	AuthoritySet  *SharedAuthoritySet[H, N]
+	Network       *networkBridge[H, N, Hasher]
 	SetID         SetID
-	VoterSetState SharedVoterSetState[H, N]
+	VoterSetState *SharedVoterSetState[H, N]
 	VotingRule    VotingRule[H, N, Header]
 	// TODO: metrics
-	JustificationSender *GrandpaJustificationSender[H, N, Header]
+	JustificationSender *GrandpaJustificationSender[H, N, Header] // meant to be optional
 	// TODO: telemetry
 }
 
@@ -694,9 +694,10 @@ func (e *environment[H, N, Hasher, Header, E]) reportEquivocation(
 	bestBlockHash := info.BestHash
 	bestBlockNumber := info.BestNumber
 
-	e.AuthoritySet.mtx.Lock()
-	defer e.AuthoritySet.mtx.Unlock()
-	authoritySet := e.AuthoritySet.inner
+	// e.AuthoritySet.mtx.Lock()
+	// defer e.AuthoritySet.mtx.Unlock()
+	authoritySet, unlock := e.AuthoritySet.inner.DataMut()
+	defer unlock()
 
 	// block hash and number of the next pending authority set change in the given best chain.
 	nextChange, err := authoritySet.nextChange(bestBlockHash, isDescendentOf)
@@ -732,7 +733,7 @@ func (e *environment[H, N, Hasher, Header, E]) reportEquivocation(
 		currentSetLatestHash = bestBlockHash
 	}
 
-	runtimeAPI := e.Client.RuntimeApi()
+	runtimeAPI := e.Client.RuntimeAPI()
 
 	// generate key ownership proof at that block
 	keyOwnerProof := runtimeAPI.GenerateKeyOwnershipProof(
@@ -823,7 +824,7 @@ func (e *environment[H, N, Hasher, Header, E]) BestChainContaining(
 	// NOTE: when we finalize an authority set change through the sync protocol the voter is signalled asynchronously
 	// therefore the voter could still vote in the next round before activating the new set. the [AuthoritySet] is
 	// updated immediately thus we restrict the voter based on that.
-	if e.SetID != SetID(e.AuthoritySet.inner.SetID) {
+	if e.SetID != SetID(e.AuthoritySet.SetID()) {
 		ch <- grandpa.BestChainOutput[H, N]{
 			Value: nil,
 			Error: nil,
@@ -833,7 +834,7 @@ func (e *environment[H, N, Hasher, Header, E]) BestChainContaining(
 	}
 
 	go func() {
-		value, err := bestChainContaining(block, e.Client, &e.AuthoritySet, e.SelectChain, e.VotingRule)
+		value, err := bestChainContaining(block, e.Client, e.AuthoritySet, e.SelectChain, e.VotingRule)
 		ch <- grandpa.BestChainOutput[H, N]{
 			Value: value,
 			Error: err,
@@ -849,7 +850,7 @@ func (e *environment[H, N, Hasher, Header, E]) RoundData(
 	prevoteTimer := time.NewTimer(e.Config.GossipDuration * 2)
 	precommitTimer := time.NewTimer(e.Config.GossipDuration * 4)
 
-	localID := localAuthorityID(e.Voters, &e.Config.KeyStore)
+	localID := localAuthorityID(e.Voters, e.Config.KeyStore)
 
 	var hasVoted hasVoted[H, N]
 	hv := e.VoterSetState.hasVoted(primitives.RoundNumber(round))
@@ -884,7 +885,7 @@ func (e *environment[H, N, Hasher, Header, E]) RoundData(
 		}
 	}
 
-	in, out := e.Network.roundCommunication(keystore, Round(round), e.SetID, &e.Voters, hasVoted)
+	in, out := e.Network.roundCommunication(keystore, Round(round), e.SetID, e.Voters, hasVoted)
 
 	convertedIn := make(chan signedMessage[H, N])
 	go func() {
@@ -896,7 +897,7 @@ func (e *environment[H, N, Hasher, Header, E]) RoundData(
 	// schedule incoming messages from the network to be held until corresponding blocks are imported.
 	incoming := newUntilVoteTargetImported(
 		e.Client.RegisterImportNotificationStream(),
-		&e.Network,
+		e.Network,
 		e.Client,
 		convertedIn,
 		"round",
@@ -904,7 +905,8 @@ func (e *environment[H, N, Hasher, Header, E]) RoundData(
 
 	convertedOut := make(chan grandpa.SignedMessageError[H, N, primitives.AuthoritySignature, primitives.AuthorityID])
 	go func() {
-		for signed := range incoming.Chan() {
+		for be := range incoming.Chan() {
+			signed := be.Blocked
 			convertedOut <- grandpa.SignedMessageError[H, N, primitives.AuthoritySignature, primitives.AuthorityID]{
 				SignedMessage: signed.SignedMessage.SignedMessage,
 			}
@@ -1211,7 +1213,7 @@ func (e *environment[H, N, Hasher, Header, E]) FinalizeBlock(
 ) error {
 	return finalizeBlock(
 		e.Client,
-		&e.AuthoritySet,
+		e.AuthoritySet,
 		&e.Config.JustificationGenerationPeriod,
 		hash,
 		number,
@@ -1448,7 +1450,7 @@ func finalizeBlock[
 	E runtime.Extrinsic,
 ](
 	client ClientForGrandpa[H, N, Hasher, Header, E],
-	authoritySet *SharedAuthoritySet[H, N],
+	sharedAuthoritySet *SharedAuthoritySet[H, N],
 	justificationGenerationPeriod *uint32,
 	hash H,
 	number N,
@@ -1459,8 +1461,10 @@ func finalizeBlock[
 
 	// NOTE: lock must be held through writing to DB to avoid race. this lock also implicitly synchronises the check
 	// for last finalized number below.
-	authoritySet.mtx.Lock()
-	defer authoritySet.mtx.Unlock()
+	// authoritySet.mtx.Lock()
+	// defer authoritySet.mtx.Unlock()
+	authoritySet, unlock := sharedAuthoritySet.inner.DataMut()
+	defer unlock()
 
 	status := client.Info()
 
@@ -1483,7 +1487,7 @@ func finalizeBlock[
 	}
 
 	// TODO: do I need to clone this?
-	oldAuthoritySet := authoritySet.inner
+	oldAuthoritySet := authoritySet.Clone()
 
 	var vc voterCommand // closure specific variable checked after LockImportRun
 	_, err := client.LockImportRun(func(importOp *api.ClientImportOperation[H, Hasher, N, Header, E]) (any, error) {
@@ -1575,7 +1579,7 @@ func finalizeBlock[
 			canonHash := status.NewSetBlock.Hash
 			canonNumber := status.NewSetBlock.Number
 			// the authority set has changed.
-			newID, setRef := authoritySet.Current()
+			newID, setRef := authoritySet.current()
 
 			var level func(format string, args ...interface{}) = logger.Debugf
 			if initialSync {
@@ -1598,7 +1602,7 @@ func finalizeBlock[
 		}
 
 		if status.Changed {
-			err := updateAuthoritySet(authoritySet.inner, newAuthorities, func(insert []api.KeyValue) error {
+			err := updateAuthoritySet(*authoritySet, newAuthorities, func(insert []api.KeyValue) error {
 				return api.ApplyAux(importOp, insert, nil)
 			})
 			if err != nil {
@@ -1610,17 +1614,21 @@ func finalizeBlock[
 
 		if newAuthorities != nil {
 			vc = voterCommandChangeAuthorities[H, N](*newAuthorities)
-			return nil, err
+			return vc, nil
 		}
 		vc = nil
-		return nil, err
+		return vc, nil
 	})
 
 	if vc != nil {
-		return vc
+		command, ok := vc.(voterCommand)
+		if !ok {
+			panic("unexpected type")
+		}
+		return command
 	}
 	if err != nil {
-		authoritySet.inner = oldAuthoritySet
+		*authoritySet = oldAuthoritySet
 		return err
 	}
 	return nil

@@ -188,7 +188,7 @@ func newNetworkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 
 // Note the beginning of a new round to the gossipValidator.
 func (nb *networkBridge[H, N, Hasher]) noteRound(
-	round Round, setID SetID, voters *grandpa.VoterSet[primitives.AuthorityID],
+	round Round, setID SetID, voters grandpa.VoterSet[primitives.AuthorityID],
 ) {
 	authorities := make([]primitives.AuthorityID, voters.Len())
 	for i, ivi := range voters.Voters() {
@@ -224,7 +224,7 @@ func (nb *networkBridge[H, N, Hasher]) roundCommunication(
 	keystore *localIDKeystore,
 	round Round,
 	setID SetID,
-	voters *grandpa.VoterSet[primitives.AuthorityID],
+	voters grandpa.VoterSet[primitives.AuthorityID],
 	hasVoted hasVoted[H, N],
 ) (chan primitives.SignedMessage[H, N], outgoingMessages[H, N, Hasher]) {
 	nb.noteRound(round, setID, voters)
@@ -316,7 +316,7 @@ func (nb *networkBridge[H, N, Hasher]) roundCommunication(
 // Set up the global communication streams.
 func (nb *networkBridge[H, N, Hasher]) globalCommunication(
 	setID SetID,
-	voters *grandpa.VoterSet[primitives.AuthorityID],
+	voters grandpa.VoterSet[primitives.AuthorityID],
 	isVoter bool,
 ) (chan communicationIn[H, N], commitsOut[H, N, Hasher]) {
 	authorities := make([]primitives.AuthorityID, voters.Len())
@@ -385,7 +385,7 @@ func (nb *networkBridge[H, N, Hasher]) poll() error {
 func incomingGlobal[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	gossipEngine *gossip.GossipEngine[H, N, Hasher],
 	topic H,
-	voters *grandpa.VoterSet[primitives.AuthorityID],
+	voters grandpa.VoterSet[primitives.AuthorityID],
 	validator *gossipValidator[H, N, Hasher],
 	neighborSender neighbourPacketSender[N],
 	// TODO: telemetry
@@ -395,7 +395,7 @@ func incomingGlobal[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 		notification *gossip.TopicNotification,
 		gossipEngine *gossip.GossipEngine[H, N, Hasher],
 		gossipValidator *gossipValidator[H, N, Hasher],
-		voters *grandpa.VoterSet[primitives.AuthorityID],
+		voters grandpa.VoterSet[primitives.AuthorityID],
 	) communicationIn[H, N] {
 
 		cost := checkCompactCommit[H, N, Hasher](
@@ -451,7 +451,7 @@ func incomingGlobal[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 		notification *gossip.TopicNotification,
 		gossipEngine *gossip.GossipEngine[H, N, Hasher],
 		gossipValidator *gossipValidator[H, N, Hasher],
-		voters *grandpa.VoterSet[primitives.AuthorityID],
+		voters grandpa.VoterSet[primitives.AuthorityID],
 	) communicationIn[H, N] {
 		cost := checkCatchUp[H, N, Hasher](msg.Message, voters, msg.SetID)
 		if cost != nil {
@@ -594,7 +594,7 @@ func (om *outgoingMessages[H, N, Hasher]) preSend(msg grandpa.Message[H, N]) err
 // checks a compact commit. returns the cost associated with processing it if the commit was bad.
 func checkCompactCommit[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	msg primitives.CompactCommit[H, N],
-	voters *grandpa.VoterSet[primitives.AuthorityID],
+	voters grandpa.VoterSet[primitives.AuthorityID],
 	round Round,
 	setID SetID,
 	// TODO: telemetry
@@ -647,7 +647,7 @@ func checkCompactCommit[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[
 // checks a catch up. returns the cost associated with processing it if the catch up was bad.
 func checkCatchUp[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	msg primitives.CatchUp[H, N],
-	voters *grandpa.VoterSet[primitives.AuthorityID],
+	voters grandpa.VoterSet[primitives.AuthorityID],
 	setID SetID,
 	// TODO: telemetry
 ) *network.ReputationChange {
@@ -657,7 +657,7 @@ func checkCatchUp[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 
 	// check total weight is not out of range for a set of votes.
 	var checkWeight = func(
-		voters *grandpa.VoterSet[primitives.AuthorityID],
+		voters grandpa.VoterSet[primitives.AuthorityID],
 		votes []primitives.AuthorityID,
 		fullThreshold grandpa.VoterWeight,
 	) *network.ReputationChange {
@@ -794,9 +794,11 @@ func newCommitsOut[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 }
 
 func (co *commitsOut[H, N, Hasher]) preSend( //nolint: unused
-	round Round,
-	commit primitives.Commit[H, N],
+	out grandpa.CommunicationOut[H, N, primitives.AuthoritySignature, primitives.AuthorityID],
 ) error {
+	nc := out.(grandpa.CommunicationOutCommit[H, N, primitives.AuthoritySignature, primitives.AuthorityID])
+	commit := nc.Commit
+	round := Round(nc.Number)
 	if !co.isVoter {
 		return nil
 	}

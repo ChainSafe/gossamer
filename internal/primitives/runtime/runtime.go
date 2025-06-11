@@ -3,7 +3,11 @@
 
 package runtime
 
-import "slices"
+import (
+	"slices"
+
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+)
 
 // Justification is an abstraction over justification for a block's validity under a consensus algorithm.
 //
@@ -41,6 +45,37 @@ func (j Justifications) Get(engineID ConsensusEngineID) *EncodedJustification {
 		return &j[index].EncodedJustification
 	}
 	return nil
+}
+
+// / Return a copy of the encoded justification for the given consensus
+// / engine, if it exists.
+//
+//	pub fn into_justification(self, engine_id: ConsensusEngineId) -> Option<EncodedJustification> {
+//		self.into_iter().find(|j| j.0 == engine_id).map(|j| j.1)
+//	}
+func (j Justifications) IntoJustification(enginedID ConsensusEngineID) *EncodedJustification {
+	for _, justification := range j {
+		if justification.ConsensusEngineID == enginedID {
+			return &justification.EncodedJustification
+		}
+	}
+	return nil
+}
+
+// // / Complex storage builder stuff.
+// // #[cfg(feature = "std")]
+// // pub trait BuildStorage {
+type BuildStorage interface {
+	// /// Build the storage out of this builder.
+	//	fn build_storage(&self) -> Result<sp_core::storage::Storage, String> {
+	//		let mut storage = Default::default();
+	//		self.assimilate_storage(&mut storage)?;
+	//		Ok(storage)
+	//	}
+	BuildStorage() (storage.Storage, error)
+	//
+	// /// Assimilate the storage for this module into pre-existing overlays.
+	// fn assimilate_storage(&self, storage: &mut sp_core::storage::Storage) -> Result<(), String>;
 }
 
 // EncodedJustification returns a copy of the encoded justification for the given consensus engine, if it exists
