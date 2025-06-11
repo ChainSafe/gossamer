@@ -107,7 +107,7 @@ type perSessionState struct {
 	sessionInfo *parachaintypes.SessionInfo
 	groups      *groups
 	authLookup  map[parachaintypes.AuthorityDiscoveryID]parachaintypes.ValidatorIndex
-	gridView    any // TODO: use SessionTopologyView from statement-distribution grid (#4576)
+	gridView    *sessionTopologyView
 
 	// when localValidator is nil means it is inactive
 	localValidator     *parachaintypes.ValidatorIndex

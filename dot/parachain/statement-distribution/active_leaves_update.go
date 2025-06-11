@@ -49,7 +49,6 @@ func (s *StatementDistribution) handleActiveLeavesUpdate(leaf *parachaintypes.Ac
 		}
 	}
 
-	fmt.Println("calling fragmentChainUpdateInner", &leaf.Hash)
 	s.fragmentChainUpdateInner(&leaf.Hash, nil, nil, nil)
 	return nil
 }
@@ -175,7 +174,8 @@ func (s *StatementDistribution) handleActiveLeafUpdate(rp common.Hash) error {
 // Utility function to populate:
 // - per relay parent `ParaId` to `GroupIndex` mappings.
 // - per `GroupIndex` claim queue assignments
-func determineGroupAssignment(numCores int,
+func determineGroupAssignment(
+	numCores int,
 	groupRotationInfo *parachaintypes.GroupRotationInfo,
 	claimQueue *parachaintypes.ClaimQueue,
 ) (map[parachaintypes.ParaID][]parachaintypes.GroupIndex, map[parachaintypes.GroupIndex][]parachaintypes.ParaID) {
@@ -193,6 +193,7 @@ func determineGroupAssignment(numCores int,
 
 	for coreIdx, paras := range schedule {
 		groupIdx := groupRotationInfo.GroupForCore(coreIdx, uint(numCores))
+
 		assignmentsPerGroup[groupIdx] = slices.Clone(paras)
 
 		for _, para := range paras {
@@ -264,10 +265,11 @@ func (s *StatementDistribution) handleDeactivatedLeaves(leaves []common.Hash) {
 	// prospective_parachains gets enabled
 	maps.DeleteFunc(s.state.unusedTopologies, func(s parachaintypes.SessionIndex, _v events.NewGossipTopology) bool {
 		_, ok := sessions[s]
-		// delete if:
-		// The session index does not exists in the sessions map
-		// Or the session index exists BUT is not the lastSessionIndex
-		return !ok || (lastSessionIndex != nil && *lastSessionIndex != s)
+		if ok || lastSessionIndex != nil && *lastSessionIndex == s {
+			return false
+		}
+
+		return true
 	})
 }
 

@@ -165,8 +165,6 @@ func (s *StatementDistribution) fragmentChainUpdateInner(rp *common.Hash,
 	requiredParentHash *common.Hash, requiredParentParaID *parachaintypes.ParaID,
 	knowHypotheticals *[]parachaintypes.HypotheticalCandidate) {
 
-	fmt.Println("fragmentChainUpdateInner", rp)
-
 	// 1. get hypothetical candidates
 	var hypotheticals []parachaintypes.HypotheticalCandidate
 
@@ -251,12 +249,12 @@ func (s *StatementDistribution) fragmentChainUpdateInner(rp *common.Hash,
 // Send a peer all pending cluster statements for a relay parent.
 func (s *StatementDistribution) sendPendingClusterStatements(rp common.Hash,
 	peerID peer.ID, validationVersion validationprotocol.ValidationVersion,
-	peerValidatorID parachaintypes.ValidatorIndex,
+	peerValidatorIdx parachaintypes.ValidatorIndex,
 	clusterTracker clusterTracker,
 	candidates candidatesTracker,
 	statementStore statementStore,
 ) {
-	pendingStmts := clusterTracker.pendingStatementsFor(peerValidatorID)
+	pendingStmts := clusterTracker.pendingStatementsFor(peerValidatorIdx)
 	for _, stmt := range pendingStmts {
 		if !candidates.isConfirmed(stmt.compactStmt.CandidateHash()) {
 			continue
@@ -264,7 +262,7 @@ func (s *StatementDistribution) sendPendingClusterStatements(rp common.Hash,
 
 		msg := pendingStatementNetworkMessage(statementStore, rp, peerID, validationVersion, stmt)
 		if msg != nil {
-			clusterTracker.noteSend(peerValidatorID, stmt.validatorIndex, stmt.compactStmt)
+			clusterTracker.noteSend(peerValidatorIdx, stmt.validatorIndex, stmt.compactStmt)
 			// TODO: create a SendValidationMessages to send a batch of messages
 			s.SubSystemToOverseer <- msg
 		}
@@ -659,7 +657,6 @@ func pendingStatementNetworkMessage(
 			panic(fmt.Sprintf("unexpected error setting value in StatementDistributionMessageV3: %s", err))
 		}
 
-		// TODO: this will panic as validation protocol does not support V3 yet
 		vp := validationprotocol.NewValidationProtocolVDT()
 		err = vp.SetValue(validationprotocol.StatementDistribution{StatementDistributionMessage: sdmV3})
 		if err != nil {
