@@ -25,8 +25,8 @@ type postConfirmationReckoning struct {
 	incorrect map[peer.ID]struct{}
 }
 
-func newPostConfirmationReckoning() postConfirmationReckoning {
-	return postConfirmationReckoning{
+func newPostConfirmationReckoning() *postConfirmationReckoning {
+	return &postConfirmationReckoning{
 		correct:   make(map[peer.ID]struct{}),
 		incorrect: make(map[peer.ID]struct{}),
 	}
@@ -39,7 +39,7 @@ type postConfirmation struct {
 	hypothetical parachaintypes.HypotheticalCandidate
 	// A "reckoning" of peers who have advertised the candidate previously,
 	// either accurately or inaccurately.
-	reckoning postConfirmationReckoning
+	reckoning *postConfirmationReckoning
 }
 
 type hashAndParaID struct {
