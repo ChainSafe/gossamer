@@ -26,6 +26,7 @@ import (
 type MockInstance struct {
 	ctrl     *gomock.Controller
 	recorder *MockInstanceMockRecorder
+	isgomock struct{}
 }
 
 // MockInstanceMockRecorder is the mock recorder for MockInstance.
@@ -46,18 +47,18 @@ func (m *MockInstance) EXPECT() *MockInstanceMockRecorder {
 }
 
 // ApplyExtrinsic mocks base method.
-func (m *MockInstance) ApplyExtrinsic(arg0 types.Extrinsic) ([]byte, error) {
+func (m *MockInstance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplyExtrinsic", arg0)
+	ret := m.ctrl.Call(m, "ApplyExtrinsic", data)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ApplyExtrinsic indicates an expected call of ApplyExtrinsic.
-func (mr *MockInstanceMockRecorder) ApplyExtrinsic(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) ApplyExtrinsic(data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyExtrinsic", reflect.TypeOf((*MockInstance)(nil).ApplyExtrinsic), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyExtrinsic", reflect.TypeOf((*MockInstance)(nil).ApplyExtrinsic), data)
 }
 
 // BabeConfiguration mocks base method.
@@ -76,32 +77,32 @@ func (mr *MockInstanceMockRecorder) BabeConfiguration() *gomock.Call {
 }
 
 // BabeGenerateKeyOwnershipProof mocks base method.
-func (m *MockInstance) BabeGenerateKeyOwnershipProof(arg0 uint64, arg1 [32]byte) (types.OpaqueKeyOwnershipProof, error) {
+func (m *MockInstance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (types.OpaqueKeyOwnershipProof, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BabeGenerateKeyOwnershipProof", arg0, arg1)
+	ret := m.ctrl.Call(m, "BabeGenerateKeyOwnershipProof", slot, authorityID)
 	ret0, _ := ret[0].(types.OpaqueKeyOwnershipProof)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // BabeGenerateKeyOwnershipProof indicates an expected call of BabeGenerateKeyOwnershipProof.
-func (mr *MockInstanceMockRecorder) BabeGenerateKeyOwnershipProof(arg0, arg1 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) BabeGenerateKeyOwnershipProof(slot, authorityID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BabeGenerateKeyOwnershipProof", reflect.TypeOf((*MockInstance)(nil).BabeGenerateKeyOwnershipProof), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BabeGenerateKeyOwnershipProof", reflect.TypeOf((*MockInstance)(nil).BabeGenerateKeyOwnershipProof), slot, authorityID)
 }
 
 // BabeSubmitReportEquivocationUnsignedExtrinsic mocks base method.
-func (m *MockInstance) BabeSubmitReportEquivocationUnsignedExtrinsic(arg0 types.BabeEquivocationProof, arg1 types.OpaqueKeyOwnershipProof) error {
+func (m *MockInstance) BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof types.BabeEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BabeSubmitReportEquivocationUnsignedExtrinsic", arg0, arg1)
+	ret := m.ctrl.Call(m, "BabeSubmitReportEquivocationUnsignedExtrinsic", equivocationProof, keyOwnershipProof)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // BabeSubmitReportEquivocationUnsignedExtrinsic indicates an expected call of BabeSubmitReportEquivocationUnsignedExtrinsic.
-func (mr *MockInstanceMockRecorder) BabeSubmitReportEquivocationUnsignedExtrinsic(arg0, arg1 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) BabeSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BabeSubmitReportEquivocationUnsignedExtrinsic", reflect.TypeOf((*MockInstance)(nil).BabeSubmitReportEquivocationUnsignedExtrinsic), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BabeSubmitReportEquivocationUnsignedExtrinsic", reflect.TypeOf((*MockInstance)(nil).BabeSubmitReportEquivocationUnsignedExtrinsic), equivocationProof, keyOwnershipProof)
 }
 
 // CheckInherents mocks base method.
@@ -117,48 +118,48 @@ func (mr *MockInstanceMockRecorder) CheckInherents() *gomock.Call {
 }
 
 // DecodeSessionKeys mocks base method.
-func (m *MockInstance) DecodeSessionKeys(arg0 []byte) ([]byte, error) {
+func (m *MockInstance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DecodeSessionKeys", arg0)
+	ret := m.ctrl.Call(m, "DecodeSessionKeys", enc)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DecodeSessionKeys indicates an expected call of DecodeSessionKeys.
-func (mr *MockInstanceMockRecorder) DecodeSessionKeys(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) DecodeSessionKeys(enc any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DecodeSessionKeys", reflect.TypeOf((*MockInstance)(nil).DecodeSessionKeys), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DecodeSessionKeys", reflect.TypeOf((*MockInstance)(nil).DecodeSessionKeys), enc)
 }
 
 // Exec mocks base method.
-func (m *MockInstance) Exec(arg0 string, arg1 []byte) ([]byte, error) {
+func (m *MockInstance) Exec(function string, data []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Exec", arg0, arg1)
+	ret := m.ctrl.Call(m, "Exec", function, data)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Exec indicates an expected call of Exec.
-func (mr *MockInstanceMockRecorder) Exec(arg0, arg1 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) Exec(function, data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exec", reflect.TypeOf((*MockInstance)(nil).Exec), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exec", reflect.TypeOf((*MockInstance)(nil).Exec), function, data)
 }
 
 // ExecuteBlock mocks base method.
-func (m *MockInstance) ExecuteBlock(arg0 *types.Block) ([]byte, error) {
+func (m *MockInstance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecuteBlock", arg0)
+	ret := m.ctrl.Call(m, "ExecuteBlock", block)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ExecuteBlock indicates an expected call of ExecuteBlock.
-func (mr *MockInstanceMockRecorder) ExecuteBlock(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) ExecuteBlock(block any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBlock", reflect.TypeOf((*MockInstance)(nil).ExecuteBlock), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBlock", reflect.TypeOf((*MockInstance)(nil).ExecuteBlock), block)
 }
 
 // FinalizeBlock mocks base method.
@@ -218,61 +219,61 @@ func (mr *MockInstanceMockRecorder) GrandpaAuthorities() *gomock.Call {
 }
 
 // GrandpaGenerateKeyOwnershipProof mocks base method.
-func (m *MockInstance) GrandpaGenerateKeyOwnershipProof(arg0 uint64, arg1 ed25519.PublicKeyBytes) (types.GrandpaOpaqueKeyOwnershipProof, error) {
+func (m *MockInstance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (types.GrandpaOpaqueKeyOwnershipProof, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GrandpaGenerateKeyOwnershipProof", arg0, arg1)
+	ret := m.ctrl.Call(m, "GrandpaGenerateKeyOwnershipProof", authSetID, authorityID)
 	ret0, _ := ret[0].(types.GrandpaOpaqueKeyOwnershipProof)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GrandpaGenerateKeyOwnershipProof indicates an expected call of GrandpaGenerateKeyOwnershipProof.
-func (mr *MockInstanceMockRecorder) GrandpaGenerateKeyOwnershipProof(arg0, arg1 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) GrandpaGenerateKeyOwnershipProof(authSetID, authorityID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrandpaGenerateKeyOwnershipProof", reflect.TypeOf((*MockInstance)(nil).GrandpaGenerateKeyOwnershipProof), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrandpaGenerateKeyOwnershipProof", reflect.TypeOf((*MockInstance)(nil).GrandpaGenerateKeyOwnershipProof), authSetID, authorityID)
 }
 
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic mocks base method.
-func (m *MockInstance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(arg0 types.GrandpaEquivocationProof, arg1 types.GrandpaOpaqueKeyOwnershipProof) error {
+func (m *MockInstance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GrandpaSubmitReportEquivocationUnsignedExtrinsic", arg0, arg1)
+	ret := m.ctrl.Call(m, "GrandpaSubmitReportEquivocationUnsignedExtrinsic", equivocationProof, keyOwnershipProof)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic indicates an expected call of GrandpaSubmitReportEquivocationUnsignedExtrinsic.
-func (mr *MockInstanceMockRecorder) GrandpaSubmitReportEquivocationUnsignedExtrinsic(arg0, arg1 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, keyOwnershipProof any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrandpaSubmitReportEquivocationUnsignedExtrinsic", reflect.TypeOf((*MockInstance)(nil).GrandpaSubmitReportEquivocationUnsignedExtrinsic), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrandpaSubmitReportEquivocationUnsignedExtrinsic", reflect.TypeOf((*MockInstance)(nil).GrandpaSubmitReportEquivocationUnsignedExtrinsic), equivocationProof, keyOwnershipProof)
 }
 
 // InherentExtrinsics mocks base method.
-func (m *MockInstance) InherentExtrinsics(arg0 []byte) ([]byte, error) {
+func (m *MockInstance) InherentExtrinsics(data []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InherentExtrinsics", arg0)
+	ret := m.ctrl.Call(m, "InherentExtrinsics", data)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // InherentExtrinsics indicates an expected call of InherentExtrinsics.
-func (mr *MockInstanceMockRecorder) InherentExtrinsics(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) InherentExtrinsics(data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InherentExtrinsics", reflect.TypeOf((*MockInstance)(nil).InherentExtrinsics), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InherentExtrinsics", reflect.TypeOf((*MockInstance)(nil).InherentExtrinsics), data)
 }
 
 // InitializeBlock mocks base method.
-func (m *MockInstance) InitializeBlock(arg0 *types.Header) error {
+func (m *MockInstance) InitializeBlock(header *types.Header) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InitializeBlock", arg0)
+	ret := m.ctrl.Call(m, "InitializeBlock", header)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // InitializeBlock indicates an expected call of InitializeBlock.
-func (mr *MockInstanceMockRecorder) InitializeBlock(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) InitializeBlock(header any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InitializeBlock", reflect.TypeOf((*MockInstance)(nil).InitializeBlock), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InitializeBlock", reflect.TypeOf((*MockInstance)(nil).InitializeBlock), header)
 }
 
 // Keystore mocks base method.
@@ -359,18 +360,18 @@ func (mr *MockInstanceMockRecorder) OffchainWorker() *gomock.Call {
 }
 
 // PaymentQueryInfo mocks base method.
-func (m *MockInstance) PaymentQueryInfo(arg0 []byte) (*types.RuntimeDispatchInfo, error) {
+func (m *MockInstance) PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PaymentQueryInfo", arg0)
+	ret := m.ctrl.Call(m, "PaymentQueryInfo", ext)
 	ret0, _ := ret[0].(*types.RuntimeDispatchInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PaymentQueryInfo indicates an expected call of PaymentQueryInfo.
-func (mr *MockInstanceMockRecorder) PaymentQueryInfo(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) PaymentQueryInfo(ext any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PaymentQueryInfo", reflect.TypeOf((*MockInstance)(nil).PaymentQueryInfo), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PaymentQueryInfo", reflect.TypeOf((*MockInstance)(nil).PaymentQueryInfo), ext)
 }
 
 // RandomSeed mocks base method.
@@ -400,15 +401,15 @@ func (mr *MockInstanceMockRecorder) Role() *gomock.Call {
 }
 
 // SetContextStorage mocks base method.
-func (m *MockInstance) SetContextStorage(arg0 runtime.Storage) {
+func (m *MockInstance) SetContextStorage(s runtime.Storage) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetContextStorage", arg0)
+	m.ctrl.Call(m, "SetContextStorage", s)
 }
 
 // SetContextStorage indicates an expected call of SetContextStorage.
-func (mr *MockInstanceMockRecorder) SetContextStorage(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) SetContextStorage(s any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetContextStorage", reflect.TypeOf((*MockInstance)(nil).SetContextStorage), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetContextStorage", reflect.TypeOf((*MockInstance)(nil).SetContextStorage), s)
 }
 
 // Stop mocks base method.
@@ -424,18 +425,18 @@ func (mr *MockInstanceMockRecorder) Stop() *gomock.Call {
 }
 
 // ValidateTransaction mocks base method.
-func (m *MockInstance) ValidateTransaction(arg0 types.Extrinsic) (*transaction.Validity, error) {
+func (m *MockInstance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateTransaction", arg0)
+	ret := m.ctrl.Call(m, "ValidateTransaction", e)
 	ret0, _ := ret[0].(*transaction.Validity)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ValidateTransaction indicates an expected call of ValidateTransaction.
-func (mr *MockInstanceMockRecorder) ValidateTransaction(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) ValidateTransaction(e any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateTransaction", reflect.TypeOf((*MockInstance)(nil).ValidateTransaction), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateTransaction", reflect.TypeOf((*MockInstance)(nil).ValidateTransaction), e)
 }
 
 // Validator mocks base method.
