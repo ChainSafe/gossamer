@@ -21,6 +21,7 @@ import (
 type MockBlockImportHandler struct {
 	ctrl     *gomock.Controller
 	recorder *MockBlockImportHandlerMockRecorder
+	isgomock struct{}
 }
 
 // MockBlockImportHandlerMockRecorder is the mock recorder for MockBlockImportHandler.
@@ -41,15 +42,15 @@ func (m *MockBlockImportHandler) EXPECT() *MockBlockImportHandlerMockRecorder {
 }
 
 // HandleBlockProduced mocks base method.
-func (m *MockBlockImportHandler) HandleBlockProduced(arg0 *types.Block, arg1 *storage.TrieState) error {
+func (m *MockBlockImportHandler) HandleBlockProduced(block *types.Block, state *storage.TrieState) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleBlockProduced", arg0, arg1)
+	ret := m.ctrl.Call(m, "HandleBlockProduced", block, state)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // HandleBlockProduced indicates an expected call of HandleBlockProduced.
-func (mr *MockBlockImportHandlerMockRecorder) HandleBlockProduced(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockImportHandlerMockRecorder) HandleBlockProduced(block, state any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBlockProduced", reflect.TypeOf((*MockBlockImportHandler)(nil).HandleBlockProduced), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBlockProduced", reflect.TypeOf((*MockBlockImportHandler)(nil).HandleBlockProduced), block, state)
 }
