@@ -22,6 +22,7 @@ import (
 type MockWarpSyncProvider struct {
 	ctrl     *gomock.Controller
 	recorder *MockWarpSyncProviderMockRecorder
+	isgomock struct{}
 }
 
 // MockWarpSyncProviderMockRecorder is the mock recorder for MockWarpSyncProvider.
@@ -42,31 +43,31 @@ func (m *MockWarpSyncProvider) EXPECT() *MockWarpSyncProviderMockRecorder {
 }
 
 // Generate mocks base method.
-func (m *MockWarpSyncProvider) Generate(arg0 common.Hash) ([]byte, error) {
+func (m *MockWarpSyncProvider) Generate(start common.Hash) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Generate", arg0)
+	ret := m.ctrl.Call(m, "Generate", start)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Generate indicates an expected call of Generate.
-func (mr *MockWarpSyncProviderMockRecorder) Generate(arg0 any) *gomock.Call {
+func (mr *MockWarpSyncProviderMockRecorder) Generate(start any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockWarpSyncProvider)(nil).Generate), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockWarpSyncProvider)(nil).Generate), start)
 }
 
 // Verify mocks base method.
-func (m *MockWarpSyncProvider) Verify(arg0 []byte, arg1 grandpa.SetID, arg2 grandpa.AuthorityList) (*warpsync.WarpSyncVerificationResult, error) {
+func (m *MockWarpSyncProvider) Verify(encodedProof []byte, setId grandpa.SetID, authorities grandpa.AuthorityList) (*warpsync.WarpSyncVerificationResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Verify", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Verify", encodedProof, setId, authorities)
 	ret0, _ := ret[0].(*warpsync.WarpSyncVerificationResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Verify indicates an expected call of Verify.
-func (mr *MockWarpSyncProviderMockRecorder) Verify(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockWarpSyncProviderMockRecorder) Verify(encodedProof, setId, authorities any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Verify", reflect.TypeOf((*MockWarpSyncProvider)(nil).Verify), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Verify", reflect.TypeOf((*MockWarpSyncProvider)(nil).Verify), encodedProof, setId, authorities)
 }

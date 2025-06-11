@@ -22,6 +22,7 @@ import (
 type MockRuntimeVersionOf struct {
 	ctrl     *gomock.Controller
 	recorder *MockRuntimeVersionOfMockRecorder
+	isgomock struct{}
 }
 
 // MockRuntimeVersionOfMockRecorder is the mock recorder for MockRuntimeVersionOf.
@@ -42,16 +43,16 @@ func (m *MockRuntimeVersionOf) EXPECT() *MockRuntimeVersionOfMockRecorder {
 }
 
 // RuntimeVersion mocks base method.
-func (m *MockRuntimeVersionOf) RuntimeVersion(arg0 externalities.Externalities, arg1 core.RuntimeCode) (version.RuntimeVersion, error) {
+func (m *MockRuntimeVersionOf) RuntimeVersion(arg0 externalities.Externalities, runtimeCode core.RuntimeCode) (version.RuntimeVersion, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RuntimeVersion", arg0, arg1)
+	ret := m.ctrl.Call(m, "RuntimeVersion", arg0, runtimeCode)
 	ret0, _ := ret[0].(version.RuntimeVersion)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RuntimeVersion indicates an expected call of RuntimeVersion.
-func (mr *MockRuntimeVersionOfMockRecorder) RuntimeVersion(arg0, arg1 any) *gomock.Call {
+func (mr *MockRuntimeVersionOfMockRecorder) RuntimeVersion(arg0, runtimeCode any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RuntimeVersion", reflect.TypeOf((*MockRuntimeVersionOf)(nil).RuntimeVersion), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RuntimeVersion", reflect.TypeOf((*MockRuntimeVersionOf)(nil).RuntimeVersion), arg0, runtimeCode)
 }
