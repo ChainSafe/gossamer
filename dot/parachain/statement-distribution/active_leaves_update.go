@@ -49,8 +49,8 @@ func (s *StatementDistribution) handleActiveLeavesUpdate(leaf *parachaintypes.Ac
 		}
 	}
 
+	fmt.Println("calling fragmentChainUpdateInner", &leaf.Hash)
 	s.fragmentChainUpdateInner(&leaf.Hash, nil, nil, nil)
-
 	return nil
 }
 
@@ -143,11 +143,25 @@ func (s *StatementDistribution) handleActiveLeafUpdate(rp common.Hash) error {
 		&claimQueue,
 	)
 
+	var localValidator *localValidatorState
+	if perSession.localValidator != nil {
+		localValidator = findActiveValidatorState(
+			*perSession.localValidator,
+			perSession.groups,
+			assignmentsPerGroup,
+		)
+	} else {
+		localValidator = &localValidatorState{
+			gridTracker: newGridTracker(),
+			active:      nil,
+		}
+	}
+
 	transposedCq := claimQueue.ToTransposed()
 
 	s.state.perRelayParent[rp] = &perRelayParentState{
-		localValidator:       nil, //todo
-		statementStore:       nil, // todo
+		localValidator:       localValidator,
+		statementStore:       nil, // todo use statement store (#4719)
 		session:              sessionIdx,
 		groupsPerPara:        groupsPerPara,
 		disabledValidators:   disableValidatorsSet,
@@ -185,10 +199,10 @@ func determineGroupAssignment(numCores int,
 			groups, ok := groupsPerPara[para]
 			if !ok {
 				groups = make([]parachaintypes.GroupIndex, 0)
-				groupsPerPara[para] = groups
 			}
 
 			groups = append(groups, groupIdx)
+			groupsPerPara[para] = groups
 		}
 	}
 
@@ -255,4 +269,40 @@ func (s *StatementDistribution) handleDeactivatedLeaves(leaves []common.Hash) {
 		// Or the session index exists BUT is not the lastSessionIndex
 		return !ok || (lastSessionIndex != nil && *lastSessionIndex != s)
 	})
+}
+
+func findActiveValidatorState(
+	validatorIdx parachaintypes.ValidatorIndex,
+	groups *groups,
+	assignmentsPerGroup map[parachaintypes.GroupIndex][]parachaintypes.ParaID,
+) *localValidatorState {
+	if len(groups.all()) == 0 {
+		return nil
+	}
+
+	ourGroup := groups.byValidatorIndex(validatorIdx)
+	if ourGroup == nil {
+		logger.Warnf("no group found for validator %d, assignmentsPerGroup=%v", validatorIdx, assignmentsPerGroup)
+		return nil
+	}
+
+	groupValidators := groups.get(*ourGroup)
+	if len(groupValidators) == 0 {
+		logger.Warnf("no validators found in group %d, assignmentsPerGroup=%v", *ourGroup, assignmentsPerGroup)
+		return nil
+	}
+
+	parasAssignedToCore := assignmentsPerGroup[*ourGroup]
+	// TODO: use cluster tracker implementation (#4713)
+	// secondingLimit := len(parasAssignedToCore)
+
+	return &localValidatorState{
+		gridTracker: newGridTracker(),
+		active: &activeValidatorState{
+			index:          validatorIdx,
+			groupIndex:     *ourGroup,
+			assignments:    slices.Clone(parasAssignedToCore),
+			clusterTracker: nil, // TODO: use cluster tracker implementation (#4713)
+		},
+	}
 }

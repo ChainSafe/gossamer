@@ -52,9 +52,8 @@ type statementStore interface {
 
 // skipcq:SCC-U1000
 type perRelayParentState struct {
-	localValidator       *localValidatorStore
+	localValidator       *localValidatorState
 	statementStore       statementStore // TODO #4719: Create statement store
-	secondingLimit       uint
 	session              parachaintypes.SessionIndex
 	transposedClaimQueue parachaintypes.TransposedClaimQueue
 	groupsPerPara        map[parachaintypes.ParaID][]parachaintypes.GroupIndex
@@ -90,7 +89,7 @@ func (p *perRelayParentState) disableBitmask(group []parachaintypes.ValidatorInd
 	return bm, err
 }
 
-type localValidatorStore struct {
+type localValidatorState struct {
 	gridTracker *gridTracker
 	active      *activeValidatorState // skipcq:SCC-U1000
 }
@@ -115,7 +114,8 @@ type perSessionState struct {
 	allowV2Descriptors bool
 }
 
-func newPerSessionState(sessionInfo *parachaintypes.SessionInfo,
+func newPerSessionState(
+	sessionInfo *parachaintypes.SessionInfo,
 	keystore keystore.Keystore,
 	backingThreshold uint32,
 	allowV2Descriptor bool,

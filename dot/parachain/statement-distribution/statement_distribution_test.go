@@ -227,7 +227,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 		validationVersion := validationprotocol.ValidationVersionV3
 		peerValidatorID := parachaintypes.ValidatorIndex(0)
 		rpState := &perRelayParentState{
-			localValidator: &localValidatorStore{
+			localValidator: &localValidatorState{
 				gridTracker: gt,
 			},
 		}
@@ -257,12 +257,12 @@ func TestSendPendingGridMessages(t *testing.T) {
 		peerID := peer.ID("peer-ex")
 		validationVersion := validationprotocol.ValidationVersionV3
 		rpState := &perRelayParentState{
-			localValidator: &localValidatorStore{
+			localValidator: &localValidatorState{
 				gridTracker: gt,
 			},
 		}
 
-		candidatesMock := NewMockcandidatesStore(ctrl)
+		candidatesMock := NewMockcandidatesTracker(ctrl)
 		candidatesMock.EXPECT().
 			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0x12}}).
 			Return(nil, false)
@@ -291,7 +291,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 			},
 		)
 
-		candidatesMock := NewMockcandidatesStore(ctrl)
+		candidatesMock := NewMockcandidatesTracker(ctrl)
 		candidatesMock.EXPECT().
 			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0x12}}).
 			Return(&confirmedCandidate{
@@ -330,7 +330,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 			})
 
 		rpState := &perRelayParentState{
-			localValidator: &localValidatorStore{
+			localValidator: &localValidatorState{
 				gridTracker: gt,
 			},
 			statementStore: stmtStoreMock,
@@ -389,7 +389,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 			},
 		)
 
-		candidatesMock := NewMockcandidatesStore(ctrl)
+		candidatesMock := NewMockcandidatesTracker(ctrl)
 		candidatesMock.EXPECT().
 			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0x12}}).
 			Return(&confirmedCandidate{
@@ -449,7 +449,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 			})
 
 		rpState := &perRelayParentState{
-			localValidator: &localValidatorStore{
+			localValidator: &localValidatorState{
 				gridTracker: gt,
 			},
 			statementStore: stmtStoreMock,

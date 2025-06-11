@@ -37,13 +37,13 @@ var (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-statement-distribution"))
 
-type BlockState interface {
+type blockState interface {
 	GetHeader(hash common.Hash) (header *types.Header, err error)
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 }
 
 type StatementDistribution struct {
-	blockState          BlockState
+	blockState          blockState
 	SubSystemToOverseer chan<- any
 	state               *v2State
 }
@@ -165,13 +165,15 @@ func (s *StatementDistribution) fragmentChainUpdateInner(rp *common.Hash,
 	requiredParentHash *common.Hash, requiredParentParaID *parachaintypes.ParaID,
 	knowHypotheticals *[]parachaintypes.HypotheticalCandidate) {
 
+	fmt.Println("fragmentChainUpdateInner", rp)
+
 	// 1. get hypothetical candidates
 	var hypotheticals []parachaintypes.HypotheticalCandidate
 
 	if knowHypotheticals != nil {
 		hypotheticals = *knowHypotheticals
 	} else {
-		s.state.candidates.frontierHypotheticals(requiredParentHash, requiredParentParaID)
+		hypotheticals = s.state.candidates.frontierHypotheticals(requiredParentHash, requiredParentParaID)
 	}
 
 	// 2. find out which are in the frontier
@@ -191,7 +193,6 @@ func (s *StatementDistribution) fragmentChainUpdateInner(rp *common.Hash,
 		return
 	case resp := <-response:
 		candidateMemberships = resp
-
 	}
 
 	// 3. note that they are importable under a given leaf hash.
@@ -245,8 +246,6 @@ func (s *StatementDistribution) fragmentChainUpdateInner(rp *common.Hash,
 			)
 		}
 	}
-
-	panic("unimplemented")
 }
 
 // Send a peer all pending cluster statements for a relay parent.
