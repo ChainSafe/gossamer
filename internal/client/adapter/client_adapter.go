@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/client/api/utils"
 	client_consensus_common "github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	primitives_consensus_common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
@@ -42,6 +43,7 @@ type Client[
 	Header runtime.Header[N, H],
 ] interface {
 	blockchain.HeaderBackend[H, N, Header]
+	blockchain.HeaderMetadata[H, N]
 	blockchain.BlockBackend[H, N, Header, Hasher, E]
 	blockchain.Backend[H, N, Header, E]
 	client_consensus_common.BlockImport[H, N, E, Header]
@@ -497,11 +499,23 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) CompareAndSetBlockData(bd *typ
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) IsDescendantOf(parent, child common.Hash) (bool, error) {
-	panic("unimplemented")
+	hasher := *new(Hasher)
+	parentHash := hasher.NewHash(parent.ToBytes())
+	childHash := hasher.NewHash(child.ToBytes())
+
+	return utils.IsDescendantOf(ca.client, nil)(parentHash, childHash)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) LowestCommonAncestor(a, b common.Hash) (common.Hash, error) {
-	panic("unimplemented")
+	hasher := *new(Hasher)
+	hashA := hasher.NewHash(a.ToBytes())
+	hashB := hasher.NewHash(b.ToBytes())
+	ancestor, err := blockchain.LowestCommonAncestor(ca.client, hashA, hashB)
+	if err != nil {
+		return common.EmptyHash, err
+	}
+
+	return common.NewHashFromGeneric(ancestor.Hash), nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) NumberIsFinalised(blockNumber uint) (bool, error) {
@@ -518,11 +532,27 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) Leaves() []common.Hash {
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) Range(startHash, endHash common.Hash) (
 	hashes []common.Hash, err error) {
-	panic("unimplemented")
+	hasher := *new(Hasher)
+	start := hasher.NewHash(startHash.ToBytes())
+	end := hasher.NewHash(endHash.ToBytes())
+
+	treeRoute, err := blockchain.NewTreeRoute(ca.client, start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	route := treeRoute.Route
+
+	hashes = make([]common.Hash, len(route))
+	for i, hashNumber := range route {
+		hashes[i] = common.NewHashFromGeneric(hashNumber.Hash)
+	}
+
+	return hashes, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) RangeInMemory(start, end common.Hash) ([]common.Hash, error) {
-	panic("unimplemented")
+	return ca.Range(start, end)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoreRuntime(blockHash common.Hash, runtime rt.Instance) {
