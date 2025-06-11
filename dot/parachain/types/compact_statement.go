@@ -120,6 +120,7 @@ type CompactStatement interface {
 	CandidateHash() CandidateHash
 	SetCandidateHash(hash CandidateHash)
 	ToEncodable() *EncodableCompactStatement
+	Equals(other CompactStatement) bool
 }
 
 var (
@@ -153,6 +154,13 @@ func (v *CompactValid) ToEncodable() *EncodableCompactStatement {
 	return &EncodableCompactStatement{CompactStmt: cinner}
 }
 
+func (v *CompactValid) Equals(other CompactStatement) bool {
+	if otherValid, ok := other.(*CompactValid); ok {
+		return v.Value == otherValid.Value
+	}
+	return false
+}
+
 type CompactSeconded CandidateHash
 
 func NewCompactSeconded(hash CandidateHash) *CompactSeconded {
@@ -177,4 +185,11 @@ func (sch *CompactSeconded) ToEncodable() *EncodableCompactStatement {
 	}
 
 	return &EncodableCompactStatement{CompactStmt: cinner}
+}
+
+func (sch *CompactSeconded) Equals(other CompactStatement) bool {
+	if otherSeconded, ok := other.(*CompactSeconded); ok {
+		return sch.Value == otherSeconded.Value
+	}
+	return false
 }
