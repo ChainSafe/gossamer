@@ -428,7 +428,7 @@ type hashAndUnconfirmed struct {
 	unconfirmed unconfirmedImportable
 }
 
-// An unconfirmed candidate may have have been advertised under
+// An unconfirmed candidate may have been advertised under
 // multiple identifiers. We track here, on the basis of unique identifier,
 // the peers which advertised each candidate in a specific way.
 type unconfirmedCandidate struct {
