@@ -398,18 +398,18 @@ func (c CommittedCandidateReceipt) Hash() (common.Hash, error) {
 }
 
 var (
-	_ hashable = CommittedCandidateReceiptV2{}
-	_ hashable = CandidateReceiptV2{}
+	_ Hashable = CommittedCandidateReceiptV2{}
+	_ Hashable = CandidateReceiptV2{}
 )
 
-type hashable interface {
+type Hashable interface {
 	Hash() (common.Hash, error)
 }
 
 // GetCandidateHash returns the CandidateHash.
 //
 // candidate would be either CommittedCandidateReceipt or CandidateReceipt.
-func GetCandidateHash(candidate hashable) (CandidateHash, error) {
+func GetCandidateHash(candidate Hashable) (CandidateHash, error) {
 	h, err := candidate.Hash()
 	if err != nil {
 		return CandidateHash{}, err

@@ -67,6 +67,22 @@ type CandidateDescriptorV2 struct {
 	ValidationCodeHash ValidationCodeHash
 }
 
+// Equal returns true if two CandidateDescriptorV2 instances are equal
+func (cd CandidateDescriptorV2) Equal(other CandidateDescriptorV2) bool {
+	return cd.ParaID == other.ParaID &&
+		cd.RelayParent == other.RelayParent &&
+		cd.CurrentVersion == other.CurrentVersion &&
+		cd.CoreIndex == other.CoreIndex &&
+		cd.SessionIndex == other.SessionIndex &&
+		bytes.Equal(cd.Reserved1[:], other.Reserved1[:]) &&
+		cd.PersistedValidationDataHash == other.PersistedValidationDataHash &&
+		cd.PovHash == other.PovHash &&
+		cd.ErasureRoot == other.ErasureRoot &&
+		bytes.Equal(cd.Reserved2[:], other.Reserved2[:]) &&
+		cd.ParaHead == other.ParaHead &&
+		cd.ValidationCodeHash == other.ValidationCodeHash
+}
+
 func (cd CandidateDescriptorV2) Version() (CandidateDescriptorVersion, error) {
 	var zeroReserved1 [25]byte
 	var zeroReserved2 [64]byte

@@ -215,6 +215,8 @@ func selectAvailabilityBitfields( //nolint:unused
 			}
 		}
 
+		var continueOuterLoop bool
+
 		// Check that bits aren't set for unoccupied cores
 		for i, core := range cores {
 			_, coreValue, err := core.IndexValue()
@@ -230,8 +232,13 @@ func selectAvailabilityBitfields( //nolint:unused
 
 			if !isOccupied && currBit {
 				// Bit is set for an unoccupied core - invalid
-				continue
+				continueOuterLoop = true
+				break
 			}
+		}
+
+		if continueOuterLoop {
+			continue
 		}
 
 		// This is the best valid bitfield from this validator so far
@@ -291,8 +298,9 @@ func (p *Provisioner) selectCandidates( //nolint:unused
 				if withValidationCode {
 					// if we already have a candidate with validation code, break the loop
 					break
+				} else {
+					withValidationCode = true
 				}
-				withValidationCode = true
 			}
 
 			mergedCandidates = append(mergedCandidates, *candidate)
@@ -309,7 +317,7 @@ func (p *Provisioner) requestBackableCandidates( //nolint:unused
 ) (map[parachaintypes.ParaID][]*parachaintypes.CandidateHashAndRelayParent, error) {
 	blockNumberUnderConstruction := parachaintypes.BlockNumber(relayParent.Number + 1)
 
-	scheduledCoresPerPara := make(map[parachaintypes.ParaID]uint, len(availabilityCores))
+	scheduledCoresPerPara := make(map[parachaintypes.ParaID]uint)
 	ancestorsPerPara := make(map[parachaintypes.ParaID]prospectiveparachain.Ancestors, len(availabilityCores))
 
 	for coreIdx, core := range availabilityCores {
@@ -324,7 +332,7 @@ func (p *Provisioner) requestBackableCandidates( //nolint:unused
 			if exists {
 				scheduledCoresPerPara[coreValue.ParaID] = numOfCores + 1
 			} else {
-				scheduledCoresPerPara[coreValue.ParaID] = 0
+				scheduledCoresPerPara[coreValue.ParaID] = 1
 			}
 
 		case parachaintypes.OccupiedCore:
@@ -340,13 +348,14 @@ func (p *Provisioner) requestBackableCandidates( //nolint:unused
 					ancestors = make(prospectiveparachain.Ancestors)
 				}
 				ancestors[parachaintypes.CandidateHash{Value: coreValue.CandidateHash}] = struct{}{}
+				ancestorsPerPara[coreValue.CandidateDescriptor.ParaID] = ancestors
 
-				if scheduledCore := coreValue.NextUpOnTimeOut; scheduledCore != nil {
+				if scheduledCore := coreValue.NextUpOnAvailable; scheduledCore != nil {
 					numOfCores, exists := scheduledCoresPerPara[scheduledCore.ParaID]
 					if exists {
 						scheduledCoresPerPara[scheduledCore.ParaID] = numOfCores + 1
 					} else {
-						scheduledCoresPerPara[scheduledCore.ParaID] = 0
+						scheduledCoresPerPara[scheduledCore.ParaID] = 1
 					}
 				}
 			case coreValue.TimeoutAt <= blockNumberUnderConstruction: // Timed out before being available.
@@ -355,7 +364,7 @@ func (p *Provisioner) requestBackableCandidates( //nolint:unused
 					if exists {
 						scheduledCoresPerPara[scheduledCore.ParaID] = numOfCores + 1
 					} else {
-						scheduledCoresPerPara[scheduledCore.ParaID] = 0
+						scheduledCoresPerPara[scheduledCore.ParaID] = 1
 					}
 				}
 			default: // Not timed out and not available.
@@ -364,6 +373,7 @@ func (p *Provisioner) requestBackableCandidates( //nolint:unused
 					ancestors = make(prospectiveparachain.Ancestors)
 				}
 				ancestors[parachaintypes.CandidateHash{Value: coreValue.CandidateHash}] = struct{}{}
+				ancestorsPerPara[coreValue.CandidateDescriptor.ParaID] = ancestors
 			}
 
 		case parachaintypes.Free:

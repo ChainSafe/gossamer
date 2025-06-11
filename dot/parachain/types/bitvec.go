@@ -336,3 +336,21 @@ func (bv *BitVec) Or(other BitVec) BitVec { // skipcq:GO-W1029
 		len:  max(bv.len, other.len),
 	}
 }
+
+// Not performs a unary NOT operation on the BitVec, inverting all bits in place.
+func (bv *BitVec) Not() { // skipcq:GO-W1029
+	// Calculate the number of complete bytes
+	completeBytes := bv.len / 8
+
+	// Invert all complete bytes
+	for i := 0; i < completeBytes; i++ {
+		bv.bits[i] = ^bv.bits[i]
+	}
+
+	// Handle remaining bits in the last partial byte if any
+	if remainingBits := bv.len % 8; remainingBits > 0 {
+		lastByteIndex := completeBytes
+		mask := byte((1 << remainingBits) - 1) // Create mask for remaining bits
+		bv.bits[lastByteIndex] = (^bv.bits[lastByteIndex]) & mask
+	}
+}
