@@ -26,6 +26,7 @@ import (
 type MockTransactionState struct {
 	ctrl     *gomock.Controller
 	recorder *MockTransactionStateMockRecorder
+	isgomock struct{}
 }
 
 // MockTransactionStateMockRecorder is the mock recorder for MockTransactionState.
@@ -46,31 +47,31 @@ func (m *MockTransactionState) EXPECT() *MockTransactionStateMockRecorder {
 }
 
 // AddToPool mocks base method.
-func (m *MockTransactionState) AddToPool(arg0 *transaction.ValidTransaction) common.Hash {
+func (m *MockTransactionState) AddToPool(vt *transaction.ValidTransaction) common.Hash {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddToPool", arg0)
+	ret := m.ctrl.Call(m, "AddToPool", vt)
 	ret0, _ := ret[0].(common.Hash)
 	return ret0
 }
 
 // AddToPool indicates an expected call of AddToPool.
-func (mr *MockTransactionStateMockRecorder) AddToPool(arg0 any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) AddToPool(vt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToPool", reflect.TypeOf((*MockTransactionState)(nil).AddToPool), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToPool", reflect.TypeOf((*MockTransactionState)(nil).AddToPool), vt)
 }
 
 // Exists mocks base method.
-func (m *MockTransactionState) Exists(arg0 types.Extrinsic) bool {
+func (m *MockTransactionState) Exists(ext types.Extrinsic) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Exists", arg0)
+	ret := m.ctrl.Call(m, "Exists", ext)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // Exists indicates an expected call of Exists.
-func (mr *MockTransactionStateMockRecorder) Exists(arg0 any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) Exists(ext any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockTransactionState)(nil).Exists), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockTransactionState)(nil).Exists), ext)
 }
 
 // PendingInPool mocks base method.
@@ -88,48 +89,49 @@ func (mr *MockTransactionStateMockRecorder) PendingInPool() *gomock.Call {
 }
 
 // Push mocks base method.
-func (m *MockTransactionState) Push(arg0 *transaction.ValidTransaction) (common.Hash, error) {
+func (m *MockTransactionState) Push(vt *transaction.ValidTransaction) (common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Push", arg0)
+	ret := m.ctrl.Call(m, "Push", vt)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Push indicates an expected call of Push.
-func (mr *MockTransactionStateMockRecorder) Push(arg0 any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) Push(vt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Push", reflect.TypeOf((*MockTransactionState)(nil).Push), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Push", reflect.TypeOf((*MockTransactionState)(nil).Push), vt)
 }
 
 // RemoveExtrinsic mocks base method.
-func (m *MockTransactionState) RemoveExtrinsic(arg0 types.Extrinsic) {
+func (m *MockTransactionState) RemoveExtrinsic(ext types.Extrinsic) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RemoveExtrinsic", arg0)
+	m.ctrl.Call(m, "RemoveExtrinsic", ext)
 }
 
 // RemoveExtrinsic indicates an expected call of RemoveExtrinsic.
-func (mr *MockTransactionStateMockRecorder) RemoveExtrinsic(arg0 any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) RemoveExtrinsic(ext any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveExtrinsic", reflect.TypeOf((*MockTransactionState)(nil).RemoveExtrinsic), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveExtrinsic", reflect.TypeOf((*MockTransactionState)(nil).RemoveExtrinsic), ext)
 }
 
 // RemoveExtrinsicFromPool mocks base method.
-func (m *MockTransactionState) RemoveExtrinsicFromPool(arg0 types.Extrinsic) {
+func (m *MockTransactionState) RemoveExtrinsicFromPool(ext types.Extrinsic) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RemoveExtrinsicFromPool", arg0)
+	m.ctrl.Call(m, "RemoveExtrinsicFromPool", ext)
 }
 
 // RemoveExtrinsicFromPool indicates an expected call of RemoveExtrinsicFromPool.
-func (mr *MockTransactionStateMockRecorder) RemoveExtrinsicFromPool(arg0 any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) RemoveExtrinsicFromPool(ext any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveExtrinsicFromPool", reflect.TypeOf((*MockTransactionState)(nil).RemoveExtrinsicFromPool), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveExtrinsicFromPool", reflect.TypeOf((*MockTransactionState)(nil).RemoveExtrinsicFromPool), ext)
 }
 
 // MockNetwork is a mock of Network interface.
 type MockNetwork struct {
 	ctrl     *gomock.Controller
 	recorder *MockNetworkMockRecorder
+	isgomock struct{}
 }
 
 // MockNetworkMockRecorder is the mock recorder for MockNetwork.
@@ -176,21 +178,22 @@ func (mr *MockNetworkMockRecorder) IsSynced() *gomock.Call {
 }
 
 // ReportPeer mocks base method.
-func (m *MockNetwork) ReportPeer(arg0 peerset.ReputationChange, arg1 peer.ID) {
+func (m *MockNetwork) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ReportPeer", arg0, arg1)
+	m.ctrl.Call(m, "ReportPeer", change, p)
 }
 
 // ReportPeer indicates an expected call of ReportPeer.
-func (mr *MockNetworkMockRecorder) ReportPeer(arg0, arg1 any) *gomock.Call {
+func (mr *MockNetworkMockRecorder) ReportPeer(change, p any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), change, p)
 }
 
 // MockCodeSubstitutedState is a mock of CodeSubstitutedState interface.
 type MockCodeSubstitutedState struct {
 	ctrl     *gomock.Controller
 	recorder *MockCodeSubstitutedStateMockRecorder
+	isgomock struct{}
 }
 
 // MockCodeSubstitutedStateMockRecorder is the mock recorder for MockCodeSubstitutedState.
@@ -211,23 +214,24 @@ func (m *MockCodeSubstitutedState) EXPECT() *MockCodeSubstitutedStateMockRecorde
 }
 
 // StoreCodeSubstitutedBlockHash mocks base method.
-func (m *MockCodeSubstitutedState) StoreCodeSubstitutedBlockHash(arg0 common.Hash) error {
+func (m *MockCodeSubstitutedState) StoreCodeSubstitutedBlockHash(hash common.Hash) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StoreCodeSubstitutedBlockHash", arg0)
+	ret := m.ctrl.Call(m, "StoreCodeSubstitutedBlockHash", hash)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // StoreCodeSubstitutedBlockHash indicates an expected call of StoreCodeSubstitutedBlockHash.
-func (mr *MockCodeSubstitutedStateMockRecorder) StoreCodeSubstitutedBlockHash(arg0 any) *gomock.Call {
+func (mr *MockCodeSubstitutedStateMockRecorder) StoreCodeSubstitutedBlockHash(hash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreCodeSubstitutedBlockHash", reflect.TypeOf((*MockCodeSubstitutedState)(nil).StoreCodeSubstitutedBlockHash), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreCodeSubstitutedBlockHash", reflect.TypeOf((*MockCodeSubstitutedState)(nil).StoreCodeSubstitutedBlockHash), hash)
 }
 
 // MockTelemetry is a mock of Telemetry interface.
 type MockTelemetry struct {
 	ctrl     *gomock.Controller
 	recorder *MockTelemetryMockRecorder
+	isgomock struct{}
 }
 
 // MockTelemetryMockRecorder is the mock recorder for MockTelemetry.
@@ -248,21 +252,22 @@ func (m *MockTelemetry) EXPECT() *MockTelemetryMockRecorder {
 }
 
 // SendMessage mocks base method.
-func (m *MockTelemetry) SendMessage(arg0 json.Marshaler) {
+func (m *MockTelemetry) SendMessage(msg json.Marshaler) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SendMessage", arg0)
+	m.ctrl.Call(m, "SendMessage", msg)
 }
 
 // SendMessage indicates an expected call of SendMessage.
-func (mr *MockTelemetryMockRecorder) SendMessage(arg0 any) *gomock.Call {
+func (mr *MockTelemetryMockRecorder) SendMessage(msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockTelemetry)(nil).SendMessage), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockTelemetry)(nil).SendMessage), msg)
 }
 
 // MockBlockImportDigestHandler is a mock of BlockImportDigestHandler interface.
 type MockBlockImportDigestHandler struct {
 	ctrl     *gomock.Controller
 	recorder *MockBlockImportDigestHandlerMockRecorder
+	isgomock struct{}
 }
 
 // MockBlockImportDigestHandlerMockRecorder is the mock recorder for MockBlockImportDigestHandler.
@@ -300,6 +305,7 @@ func (mr *MockBlockImportDigestHandlerMockRecorder) HandleDigests(arg0 any) *gom
 type MockGrandpaState struct {
 	ctrl     *gomock.Controller
 	recorder *MockGrandpaStateMockRecorder
+	isgomock struct{}
 }
 
 // MockGrandpaStateMockRecorder is the mock recorder for MockGrandpaState.
@@ -320,15 +326,15 @@ func (m *MockGrandpaState) EXPECT() *MockGrandpaStateMockRecorder {
 }
 
 // ApplyForcedChanges mocks base method.
-func (m *MockGrandpaState) ApplyForcedChanges(arg0 *types.Header) error {
+func (m *MockGrandpaState) ApplyForcedChanges(importedHeader *types.Header) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplyForcedChanges", arg0)
+	ret := m.ctrl.Call(m, "ApplyForcedChanges", importedHeader)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ApplyForcedChanges indicates an expected call of ApplyForcedChanges.
-func (mr *MockGrandpaStateMockRecorder) ApplyForcedChanges(arg0 any) *gomock.Call {
+func (mr *MockGrandpaStateMockRecorder) ApplyForcedChanges(importedHeader any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyForcedChanges", reflect.TypeOf((*MockGrandpaState)(nil).ApplyForcedChanges), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyForcedChanges", reflect.TypeOf((*MockGrandpaState)(nil).ApplyForcedChanges), importedHeader)
 }

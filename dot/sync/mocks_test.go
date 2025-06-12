@@ -29,6 +29,7 @@ import (
 type MockTelemetry struct {
 	ctrl     *gomock.Controller
 	recorder *MockTelemetryMockRecorder
+	isgomock struct{}
 }
 
 // MockTelemetryMockRecorder is the mock recorder for MockTelemetry.
@@ -49,21 +50,22 @@ func (m *MockTelemetry) EXPECT() *MockTelemetryMockRecorder {
 }
 
 // SendMessage mocks base method.
-func (m *MockTelemetry) SendMessage(arg0 json.Marshaler) {
+func (m *MockTelemetry) SendMessage(msg json.Marshaler) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SendMessage", arg0)
+	m.ctrl.Call(m, "SendMessage", msg)
 }
 
 // SendMessage indicates an expected call of SendMessage.
-func (mr *MockTelemetryMockRecorder) SendMessage(arg0 any) *gomock.Call {
+func (mr *MockTelemetryMockRecorder) SendMessage(msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockTelemetry)(nil).SendMessage), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockTelemetry)(nil).SendMessage), msg)
 }
 
 // MockStorageState is a mock of StorageState interface.
 type MockStorageState struct {
 	ctrl     *gomock.Controller
 	recorder *MockStorageStateMockRecorder
+	isgomock struct{}
 }
 
 // MockStorageStateMockRecorder is the mock recorder for MockStorageState.
@@ -84,18 +86,18 @@ func (m *MockStorageState) EXPECT() *MockStorageStateMockRecorder {
 }
 
 // LoadCodeHash mocks base method.
-func (m *MockStorageState) LoadCodeHash(arg0 *common.Hash) (common.Hash, error) {
+func (m *MockStorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LoadCodeHash", arg0)
+	ret := m.ctrl.Call(m, "LoadCodeHash", hash)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LoadCodeHash indicates an expected call of LoadCodeHash.
-func (mr *MockStorageStateMockRecorder) LoadCodeHash(arg0 any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) LoadCodeHash(hash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadCodeHash", reflect.TypeOf((*MockStorageState)(nil).LoadCodeHash), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadCodeHash", reflect.TypeOf((*MockStorageState)(nil).LoadCodeHash), hash)
 }
 
 // Lock mocks base method.
@@ -111,32 +113,32 @@ func (mr *MockStorageStateMockRecorder) Lock() *gomock.Call {
 }
 
 // StoreTrie mocks base method.
-func (m *MockStorageState) StoreTrie(arg0 storage.TrieState, arg1 *types.Header) error {
+func (m *MockStorageState) StoreTrie(ts storage.TrieState, header *types.Header) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StoreTrie", arg0, arg1)
+	ret := m.ctrl.Call(m, "StoreTrie", ts, header)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // StoreTrie indicates an expected call of StoreTrie.
-func (mr *MockStorageStateMockRecorder) StoreTrie(arg0, arg1 any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) StoreTrie(ts, header any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreTrie", reflect.TypeOf((*MockStorageState)(nil).StoreTrie), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreTrie", reflect.TypeOf((*MockStorageState)(nil).StoreTrie), ts, header)
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(arg0 *common.Hash) (storage.TrieState, error) {
+func (m *MockStorageState) TrieState(root *common.Hash) (storage.TrieState, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TrieState", arg0)
+	ret := m.ctrl.Call(m, "TrieState", root)
 	ret0, _ := ret[0].(storage.TrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TrieState indicates an expected call of TrieState.
-func (mr *MockStorageStateMockRecorder) TrieState(arg0 any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) TrieState(root any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), root)
 }
 
 // Unlock mocks base method.
@@ -155,6 +157,7 @@ func (mr *MockStorageStateMockRecorder) Unlock() *gomock.Call {
 type MockTransactionState struct {
 	ctrl     *gomock.Controller
 	recorder *MockTransactionStateMockRecorder
+	isgomock struct{}
 }
 
 // MockTransactionStateMockRecorder is the mock recorder for MockTransactionState.
@@ -175,21 +178,22 @@ func (m *MockTransactionState) EXPECT() *MockTransactionStateMockRecorder {
 }
 
 // RemoveExtrinsic mocks base method.
-func (m *MockTransactionState) RemoveExtrinsic(arg0 types.Extrinsic) {
+func (m *MockTransactionState) RemoveExtrinsic(ext types.Extrinsic) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RemoveExtrinsic", arg0)
+	m.ctrl.Call(m, "RemoveExtrinsic", ext)
 }
 
 // RemoveExtrinsic indicates an expected call of RemoveExtrinsic.
-func (mr *MockTransactionStateMockRecorder) RemoveExtrinsic(arg0 any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) RemoveExtrinsic(ext any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveExtrinsic", reflect.TypeOf((*MockTransactionState)(nil).RemoveExtrinsic), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveExtrinsic", reflect.TypeOf((*MockTransactionState)(nil).RemoveExtrinsic), ext)
 }
 
 // MockBabeVerifier is a mock of BabeVerifier interface.
 type MockBabeVerifier struct {
 	ctrl     *gomock.Controller
 	recorder *MockBabeVerifierMockRecorder
+	isgomock struct{}
 }
 
 // MockBabeVerifierMockRecorder is the mock recorder for MockBabeVerifier.
@@ -210,23 +214,24 @@ func (m *MockBabeVerifier) EXPECT() *MockBabeVerifierMockRecorder {
 }
 
 // VerifyBlock mocks base method.
-func (m *MockBabeVerifier) VerifyBlock(arg0 *types.Header) error {
+func (m *MockBabeVerifier) VerifyBlock(header *types.Header) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VerifyBlock", arg0)
+	ret := m.ctrl.Call(m, "VerifyBlock", header)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // VerifyBlock indicates an expected call of VerifyBlock.
-func (mr *MockBabeVerifierMockRecorder) VerifyBlock(arg0 any) *gomock.Call {
+func (mr *MockBabeVerifierMockRecorder) VerifyBlock(header any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyBlock", reflect.TypeOf((*MockBabeVerifier)(nil).VerifyBlock), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyBlock", reflect.TypeOf((*MockBabeVerifier)(nil).VerifyBlock), header)
 }
 
 // MockFinalityGadget is a mock of FinalityGadget interface.
 type MockFinalityGadget struct {
 	ctrl     *gomock.Controller
 	recorder *MockFinalityGadgetMockRecorder
+	isgomock struct{}
 }
 
 // MockFinalityGadgetMockRecorder is the mock recorder for MockFinalityGadget.
@@ -266,6 +271,7 @@ func (mr *MockFinalityGadgetMockRecorder) VerifyBlockJustification(arg0, arg1, a
 type MockBlockImportHandler struct {
 	ctrl     *gomock.Controller
 	recorder *MockBlockImportHandlerMockRecorder
+	isgomock struct{}
 }
 
 // MockBlockImportHandlerMockRecorder is the mock recorder for MockBlockImportHandler.
@@ -286,37 +292,38 @@ func (m *MockBlockImportHandler) EXPECT() *MockBlockImportHandlerMockRecorder {
 }
 
 // HandleBlockImport mocks base method.
-func (m *MockBlockImportHandler) HandleBlockImport(arg0 *types.Block, arg1 storage.TrieState, arg2 bool) error {
+func (m *MockBlockImportHandler) HandleBlockImport(block *types.Block, state storage.TrieState, announce bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleBlockImport", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "HandleBlockImport", block, state, announce)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // HandleBlockImport indicates an expected call of HandleBlockImport.
-func (mr *MockBlockImportHandlerMockRecorder) HandleBlockImport(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockBlockImportHandlerMockRecorder) HandleBlockImport(block, state, announce any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBlockImport", reflect.TypeOf((*MockBlockImportHandler)(nil).HandleBlockImport), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBlockImport", reflect.TypeOf((*MockBlockImportHandler)(nil).HandleBlockImport), block, state, announce)
 }
 
 // HandleDigests mocks base method.
-func (m *MockBlockImportHandler) HandleDigests(arg0 *types.Header) error {
+func (m *MockBlockImportHandler) HandleDigests(header *types.Header) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleDigests", arg0)
+	ret := m.ctrl.Call(m, "HandleDigests", header)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // HandleDigests indicates an expected call of HandleDigests.
-func (mr *MockBlockImportHandlerMockRecorder) HandleDigests(arg0 any) *gomock.Call {
+func (mr *MockBlockImportHandlerMockRecorder) HandleDigests(header any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleDigests", reflect.TypeOf((*MockBlockImportHandler)(nil).HandleDigests), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleDigests", reflect.TypeOf((*MockBlockImportHandler)(nil).HandleDigests), header)
 }
 
 // MockNetwork is a mock of Network interface.
 type MockNetwork struct {
 	ctrl     *gomock.Controller
 	recorder *MockNetworkMockRecorder
+	isgomock struct{}
 }
 
 // MockNetworkMockRecorder is the mock recorder for MockNetwork.
@@ -365,17 +372,17 @@ func (mr *MockNetworkMockRecorder) BlockAnnounceHandshake(arg0 any) *gomock.Call
 }
 
 // GetRequestResponseProtocol mocks base method.
-func (m *MockNetwork) GetRequestResponseProtocol(arg0 string, arg1 time.Duration, arg2 uint64) *network.RequestResponseProtocol {
+func (m *MockNetwork) GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration, maxResponseSize uint64) *network.RequestResponseProtocol {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRequestResponseProtocol", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "GetRequestResponseProtocol", subprotocol, requestTimeout, maxResponseSize)
 	ret0, _ := ret[0].(*network.RequestResponseProtocol)
 	return ret0
 }
 
 // GetRequestResponseProtocol indicates an expected call of GetRequestResponseProtocol.
-func (mr *MockNetworkMockRecorder) GetRequestResponseProtocol(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockNetworkMockRecorder) GetRequestResponseProtocol(subprotocol, requestTimeout, maxResponseSize any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequestResponseProtocol", reflect.TypeOf((*MockNetwork)(nil).GetRequestResponseProtocol), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequestResponseProtocol", reflect.TypeOf((*MockNetwork)(nil).GetRequestResponseProtocol), subprotocol, requestTimeout, maxResponseSize)
 }
 
 // GossipMessageExcluding mocks base method.
@@ -391,21 +398,22 @@ func (mr *MockNetworkMockRecorder) GossipMessageExcluding(arg0, arg1 any) *gomoc
 }
 
 // ReportPeer mocks base method.
-func (m *MockNetwork) ReportPeer(arg0 peerset.ReputationChange, arg1 peer.ID) {
+func (m *MockNetwork) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ReportPeer", arg0, arg1)
+	m.ctrl.Call(m, "ReportPeer", change, p)
 }
 
 // ReportPeer indicates an expected call of ReportPeer.
-func (mr *MockNetworkMockRecorder) ReportPeer(arg0, arg1 any) *gomock.Call {
+func (mr *MockNetworkMockRecorder) ReportPeer(change, p any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), change, p)
 }
 
 // MockWarpSyncProofProvider is a mock of WarpSyncProofProvider interface.
 type MockWarpSyncProofProvider struct {
 	ctrl     *gomock.Controller
 	recorder *MockWarpSyncProofProviderMockRecorder
+	isgomock struct{}
 }
 
 // MockWarpSyncProofProviderMockRecorder is the mock recorder for MockWarpSyncProofProvider.
@@ -441,16 +449,16 @@ func (mr *MockWarpSyncProofProviderMockRecorder) CurrentAuthorities() *gomock.Ca
 }
 
 // Verify mocks base method.
-func (m *MockWarpSyncProofProvider) Verify(arg0 []byte, arg1 grandpa.SetID, arg2 grandpa.AuthorityList) (*warpsync.WarpSyncVerificationResult, error) {
+func (m *MockWarpSyncProofProvider) Verify(encodedProof []byte, setId grandpa.SetID, authorities grandpa.AuthorityList) (*warpsync.WarpSyncVerificationResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Verify", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Verify", encodedProof, setId, authorities)
 	ret0, _ := ret[0].(*warpsync.WarpSyncVerificationResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Verify indicates an expected call of Verify.
-func (mr *MockWarpSyncProofProviderMockRecorder) Verify(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockWarpSyncProofProviderMockRecorder) Verify(encodedProof, setId, authorities any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Verify", reflect.TypeOf((*MockWarpSyncProofProvider)(nil).Verify), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Verify", reflect.TypeOf((*MockWarpSyncProofProvider)(nil).Verify), encodedProof, setId, authorities)
 }
