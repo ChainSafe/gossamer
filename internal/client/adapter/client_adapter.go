@@ -411,7 +411,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) UnregisterRuntimeUpdatedChanne
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) HandleRuntimeChanges(
-	newState *rtstorage.TrieState,
+	newState rtstorage.TrieState,
 	in rt.Instance,
 	bHash common.Hash,
 ) error {
@@ -487,11 +487,11 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) Pause() error {
 	panic("unimplemented")
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) TrieState(root *common.Hash) (*rtstorage.TrieState, error) {
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) TrieState(root *common.Hash) (rtstorage.TrieState, error) {
 	panic("unimplemented")
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoreTrie(*rtstorage.TrieState, *types.Header) error {
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoreTrie(rtstorage.TrieState, *types.Header) error {
 	panic("unimplemented")
 }
 

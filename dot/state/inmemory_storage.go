@@ -59,30 +59,42 @@ func NewStorageState(db database.Database, blockState BlockState,
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *InmemoryStorageState) StoreTrie(ts *storage.TrieState, header *types.Header) error {
-	root := ts.Trie().MustHash()
-	s.tries.softSet(root, ts.Trie())
+func (s *InmemoryStorageState) StoreTrie(ts storage.TrieState, header *types.Header) error {
+	root, err := ts.Root()
+	if err != nil {
+		return err
+	}
+
+	// Hack to call Trie() only when the TrieState we are using is an in-memory one
+	// We can remove this once the migration to db.Backend is complete
+	if inMemoryTrieState, ok := ts.(*storage.InMemoryTrieState); ok {
+		s.tries.softSet(root, inMemoryTrieState.Trie())
+	}
 
 	if header != nil {
-		insertedNodeHashes, deletedNodeHashes, err := ts.GetChangedNodeHashes()
-		if err != nil {
-			return fmt.Errorf("getting trie changed node hashes for block hash %s: %w", header.Hash(), err)
-		}
+		if inMemoryTrieState, ok := ts.(*storage.InMemoryTrieState); ok {
+			insertedNodeHashes, deletedNodeHashes, err := inMemoryTrieState.GetChangedNodeHashes()
+			if err != nil {
+				return fmt.Errorf("getting trie changed node hashes for block hash %s: %w", header.Hash(), err)
+			}
 
-		err = s.pruner.StoreJournalRecord(
-			deletedNodeHashes, insertedNodeHashes, header.Hash(), int64(header.Number))
-		if err != nil {
-			return fmt.Errorf("storing journal record: %w", err)
+			err = s.pruner.StoreJournalRecord(
+				deletedNodeHashes, insertedNodeHashes, header.Hash(), int64(header.Number))
+			if err != nil {
+				return fmt.Errorf("storing journal record: %w", err)
+			}
 		}
 	}
 
 	logger.Tracef("cached trie in storage state: %s", root)
 
 	// TODO: all trie related db operations should be done in pkg/trie
-	if inmemoryTrie, ok := ts.Trie().(*inmemory_trie.InMemoryTrie); ok {
-		if err := inmemoryTrie.WriteDirty(s.db); err != nil {
-			logger.Warnf("failed to write trie with root %s to database: %s", root, err)
-			return err
+	if inMemoryTrieState, ok := ts.(*storage.InMemoryTrieState); ok {
+		if inmemoryTrie, ok := inMemoryTrieState.Trie().(*inmemory_trie.InMemoryTrie); ok {
+			if err := inmemoryTrie.WriteDirty(s.db); err != nil {
+				logger.Warnf("failed to write trie with root %s to database: %s", root, err)
+				return err
+			}
 		}
 	}
 
@@ -92,7 +104,7 @@ func (s *InmemoryStorageState) StoreTrie(ts *storage.TrieState, header *types.He
 
 // TrieState returns the TrieState for a given state root.
 // If no state root is provided, it returns the TrieState for the current chain head.
-func (s *InmemoryStorageState) TrieState(root *common.Hash) (*storage.TrieState, error) {
+func (s *InmemoryStorageState) TrieState(root *common.Hash) (storage.TrieState, error) {
 	if root == nil {
 		header, err := s.blockState.BestBlockHeader()
 		if err != nil {
@@ -117,7 +129,7 @@ func (s *InmemoryStorageState) TrieState(root *common.Hash) (*storage.TrieState,
 	// TODO: do we really need to create an snapshot here if TrieState handles
 	// the modifications?
 	nextTrie := t.(*inmemory_trie.InMemoryTrie).Snapshot()
-	next := storage.NewTrieState(nextTrie)
+	next := storage.NewInMemoryTrieState(nextTrie)
 
 	logger.Tracef("returning trie with root %s to be modified", root)
 	return next, nil

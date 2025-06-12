@@ -33,7 +33,7 @@ func TestWithLogLevel(lvl log.Level) TestInstanceOption {
 
 func TestWithTrie(tt *inmemory_trie.InMemoryTrie) TestInstanceOption {
 	return func(c *Config) {
-		c.Storage = storage.NewTrieState(tt)
+		c.Storage = storage.NewInMemoryTrieState(tt)
 	}
 }
 
@@ -48,7 +48,7 @@ func NewTestInstance(t *testing.T, targetRuntime string, opts ...TestInstanceOpt
 
 	ctrl := gomock.NewController(t)
 	cfg := &Config{
-		Storage:  storage.NewTrieState(inmemory_trie.NewEmptyTrie()),
+		Storage:  storage.NewInMemoryTrieState(inmemory_trie.NewEmptyTrie()),
 		Keystore: keystore.NewGlobalKeystore(),
 		LogLvl:   DefaultTestLogLvl,
 		NodeStorage: runtime.NodeStorage{

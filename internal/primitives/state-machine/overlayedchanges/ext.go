@@ -705,16 +705,14 @@ func (e Ext[H, Hasher, B]) StorageStartTransaction() {
 // Any changes made during that storage transaction are discarded. Returns an error when
 // no transaction is open that can be closed.
 func (e Ext[H, Hasher, B]) StorageRollbackTransaction() error {
-	_ = e.overlay.RollbackTransaction()
-	return nil
+	return e.overlay.RollbackTransaction()
 }
 
 // Commit the last transaction started by [Ext.StorageStartTransaction].
 // Any changes made during that storage transaction are committed. Returns an error when
 // no transaction is open that can be closed.
 func (e Ext[H, Hasher, B]) StorageCommitTransaction() error {
-	_ = e.overlay.CommitTransaction()
-	return nil
+	return e.overlay.CommitTransaction()
 }
 
 func (e Ext[H, Hasher, B]) limitRemoveFromBackend(
@@ -757,9 +755,9 @@ func (e Ext[H, Hasher, B]) limitRemoveFromBackend(
 			overlay, has = e.overlay.Storage(key)
 		}
 
-		if has {
+		if !has || overlay == nil {
 			// not pending deletion from the backend - delete it.
-			if overlay != nil {
+			if childInfo != nil {
 				e.overlay.SetChildStorage(childInfo, key, nil)
 			} else {
 				e.overlay.SetStorage(key, nil)

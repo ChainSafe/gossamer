@@ -52,7 +52,7 @@ type mockBlockState struct {
 
 type mockStorageState struct {
 	input     *common.Hash
-	trieState *storage.TrieState
+	trieState storage.TrieState
 	err       error
 }
 
@@ -62,7 +62,7 @@ type mockTxnState struct {
 }
 
 type mockSetContextStorage struct {
-	trieState *storage.TrieState
+	trieState storage.TrieState
 }
 
 type mockValidateTxn struct {
@@ -258,11 +258,11 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			},
 			mockStorageState: &mockStorageState{
 				input:     &common.Hash{},
-				trieState: &storage.TrieState{},
+				trieState: &storage.InMemoryTrieState{},
 			},
 			mockRuntime: &mockRuntime{
 				runtime:           runtimeMock2,
-				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
+				setContextStorage: &mockSetContextStorage{trieState: &storage.InMemoryTrieState{}},
 				validateTxn: &mockValidateTxn{
 					input: types.Extrinsic(bytes.Join([][]byte{
 						{byte(types.TxnExternal)},
@@ -302,7 +302,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			},
 			mockStorageState: &mockStorageState{
 				input:     &common.Hash{},
-				trieState: &storage.TrieState{},
+				trieState: &storage.InMemoryTrieState{},
 			},
 			mockTxnState: &mockTxnState{
 				input: transaction.NewValidTransaction(
@@ -314,7 +314,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			},
 			mockRuntime: &mockRuntime{
 				runtime:           runtimeMock3,
-				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
+				setContextStorage: &mockSetContextStorage{trieState: &storage.InMemoryTrieState{}},
 				validateTxn: &mockValidateTxn{
 					input: types.Extrinsic(bytes.Join([][]byte{
 						{byte(types.TxnExternal)},
