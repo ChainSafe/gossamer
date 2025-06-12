@@ -30,7 +30,7 @@ const inherentPreProposeTimeout = 2 * time.Second
 // NOTE:
 //   - Production value: 200,000.
 //   - Test value: 200
-const maxDisputesVotes = 200000 //nolint:unused
+const maxDisputesVotes = 200000
 
 // voteSelectionBatchSize controls how many dispute votes to fetch from the dispute-coordinator per iteration
 // in vote selection. Votes are fetched in batches until maxDisputesVotes is reached. This prevents
@@ -42,7 +42,7 @@ const maxDisputesVotes = 200000 //nolint:unused
 // NOTE:
 //   - Production value: 1100.
 //   - Test value: 11
-const voteSelectionBatchSize = 1100 //nolint:unused
+const voteSelectionBatchSize = 1100
 
 func New(overseerChan chan<- any, blockState BlockState) *Provisioner {
 	return &Provisioner{
@@ -150,7 +150,7 @@ func (p *Provisioner) processProvisionableData(provisionableData provisionermess
 	}
 }
 
-func (p *Provisioner) sendInherentData( //nolint:unused
+func (p *Provisioner) sendInherentData(
 	leaf *parachaintypes.ActivatedLeaf,
 	signedBitfields []parachaintypes.CheckedSignedAvailabilityBitfield,
 	responseSenders []chan provisionermessages.ProvisionerInherentData,
@@ -189,7 +189,7 @@ func (p *Provisioner) sendInherentData( //nolint:unused
 	return nil
 }
 
-func selectAvailabilityBitfields( //nolint:unused
+func selectAvailabilityBitfields(
 	cores []parachaintypes.CoreState,
 	bitfields []parachaintypes.CheckedSignedAvailabilityBitfield,
 ) ([]parachaintypes.CheckedSignedAvailabilityBitfield, error) {
@@ -225,7 +225,7 @@ func selectAvailabilityBitfields( //nolint:unused
 			}
 			_, isOccupied := coreValue.(parachaintypes.OccupiedCore)
 
-			currBit, err := bitfield.Payload.Get(uint(i)) //nolint:staticcheck
+			currBit, err := bitfield.Payload.Get(uint(i))
 			if err != nil {
 				return nil, fmt.Errorf("getting bit from bitfield: %w", err)
 			}
@@ -263,7 +263,7 @@ func selectAvailabilityBitfields( //nolint:unused
 	return result, nil
 }
 
-func (p *Provisioner) selectCandidates( //nolint:unused
+func (p *Provisioner) selectCandidates(
 	availabilityCores []parachaintypes.CoreState,
 	bitfields []parachaintypes.CheckedSignedAvailabilityBitfield,
 	leaf *parachaintypes.ActivatedLeaf,
@@ -310,7 +310,7 @@ func (p *Provisioner) selectCandidates( //nolint:unused
 	return mergedCandidates, nil
 }
 
-func (p *Provisioner) requestBackableCandidates( //nolint:unused
+func (p *Provisioner) requestBackableCandidates(
 	availabilityCores []parachaintypes.CoreState,
 	bitfields []parachaintypes.CheckedSignedAvailabilityBitfield,
 	relayParent *parachaintypes.ActivatedLeaf,
@@ -418,7 +418,7 @@ func (p *Provisioner) requestBackableCandidates( //nolint:unused
 	return selectedCandidate, nil
 }
 
-func bitfieldsIndicateAvailability( //nolint:unused
+func bitfieldsIndicateAvailability(
 	coreIndex int,
 	bitfields []parachaintypes.CheckedSignedAvailabilityBitfield,
 	availability parachaintypes.BitVec,
