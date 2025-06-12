@@ -19,6 +19,7 @@ import (
 type MockSyncAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockSyncAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockSyncAPIMockRecorder is the mock recorder for MockSyncAPI.

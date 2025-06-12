@@ -19,6 +19,7 @@ import (
 type MockephemeralService struct {
 	ctrl     *gomock.Controller
 	recorder *MockephemeralServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockephemeralServiceMockRecorder is the mock recorder for MockephemeralService.

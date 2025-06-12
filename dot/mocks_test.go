@@ -20,6 +20,7 @@ import (
 type MockServiceRegisterer struct {
 	ctrl     *gomock.Controller
 	recorder *MockServiceRegistererMockRecorder
+	isgomock struct{}
 }
 
 // MockServiceRegistererMockRecorder is the mock recorder for MockServiceRegisterer.
@@ -40,29 +41,29 @@ func (m *MockServiceRegisterer) EXPECT() *MockServiceRegistererMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockServiceRegisterer) Get(arg0 any) services.Service {
+func (m *MockServiceRegisterer) Get(srvc any) services.Service {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0)
+	ret := m.ctrl.Call(m, "Get", srvc)
 	ret0, _ := ret[0].(services.Service)
 	return ret0
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockServiceRegistererMockRecorder) Get(arg0 any) *gomock.Call {
+func (mr *MockServiceRegistererMockRecorder) Get(srvc any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockServiceRegisterer)(nil).Get), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockServiceRegisterer)(nil).Get), srvc)
 }
 
 // RegisterService mocks base method.
-func (m *MockServiceRegisterer) RegisterService(arg0 services.Service) {
+func (m *MockServiceRegisterer) RegisterService(service services.Service) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RegisterService", arg0)
+	m.ctrl.Call(m, "RegisterService", service)
 }
 
 // RegisterService indicates an expected call of RegisterService.
-func (mr *MockServiceRegistererMockRecorder) RegisterService(arg0 any) *gomock.Call {
+func (mr *MockServiceRegistererMockRecorder) RegisterService(service any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterService", reflect.TypeOf((*MockServiceRegisterer)(nil).RegisterService), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterService", reflect.TypeOf((*MockServiceRegisterer)(nil).RegisterService), service)
 }
 
 // StartAll mocks base method.
