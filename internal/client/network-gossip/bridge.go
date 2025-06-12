@@ -123,10 +123,7 @@ func (ge *GossipEngine[H, N, Hasher]) BroadcastTopic(topic H, force bool) {
 func (ge *GossipEngine[H, N, Hasher]) MessagesFor(topic H) chan TopicNotification {
 	pastMessages := ge.stateMachine.MessagesFor(topic)
 	// The channel length is not critical for correctness.
-	size := 10
-	if len(pastMessages) > size {
-		size = len(pastMessages)
-	}
+	size := max(len(pastMessages), 10)
 	ch := make(chan TopicNotification, size)
 
 	for _, notification := range pastMessages {
