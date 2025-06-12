@@ -643,6 +643,8 @@ func TestNumberIsFinalised(t *testing.T) {
 }
 
 func TestHasHeader(t *testing.T) {
+	t.Parallel()
+
 	t.Run("header_is_not_finalized", func(t *testing.T) {
 		t.Parallel()
 
@@ -660,6 +662,8 @@ func TestHasHeader(t *testing.T) {
 		require.True(t, has)
 	})
 	t.Run("header_is_finalized", func(t *testing.T) {
+		t.Parallel()
+
 		client, _, adapter := setupTest(t)
 
 		client.EXPECT().Info().Return(blockchainInfo)
@@ -672,6 +676,8 @@ func TestHasHeader(t *testing.T) {
 	})
 
 	t.Run("not_has_header", func(t *testing.T) {
+		t.Parallel()
+
 		client, _, adapter := setupTest(t)
 
 		client.EXPECT().Info().Return(blockchainInfo)
@@ -824,8 +830,8 @@ func TestGetStorage(t *testing.T) {
 		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
 		backend.EXPECT().Storage([]byte("key")).Return([]byte("value"), nil)
 
-		length := uint16(min(maxSearchDepth-1, 10))
-		_, genesisHeader := makeHeaderChain(t, client, length)
+		length := min(maxSearchDepth-1, 10)
+		genesisHeader := makeHeaderChain(t, client, uint16(length))
 		client.EXPECT().StateAt(genesisHeader.Hash()).Return(backend, nil)
 
 		root := common.NewHashFromGeneric(genesisHeader.StateRoot())
@@ -844,7 +850,7 @@ func TestGetStorage(t *testing.T) {
 			Maybe().
 			Return([]byte("value"), nil)
 
-		_, genesisHeader := makeHeaderChain(t, client, maxSearchDepth+1)
+		genesisHeader := makeHeaderChain(t, client, maxSearchDepth+1)
 		client.EXPECT().StateAt(genesisHeader.Hash()).Maybe().Return(backend, nil)
 
 		root := common.NewHashFromGeneric(genesisHeader.StateRoot())
@@ -855,21 +861,21 @@ func TestGetStorage(t *testing.T) {
 	})
 }
 
-// makeHeaderChain creates a chain of headers with the given header as the genesis block,
-// at chain[0] and the best & finalized block at the end of the slice.
+// makeHeaderChain creates a chain of headers and returns the header of the genesis block.
+//
 // The given client is configured to return them from Header() by their hash and to return
 // [blockchain.Info] with appropriate values from Info().
 func makeHeaderChain(
 	t *testing.T,
 	client *mocks.Client[Hash, Hasher, Number, Extrinsic, Header],
 	length uint16,
-) (chain []Header, genesisHeader Header) {
+) (genesisHeader Header) {
 	t.Helper()
 
 	genesisHeader = header.Clone().(Header)
 	genesisHeader.SetNumber(Number(0))
 	client.EXPECT().Header(genesisHeader.Hash()).Maybe().Return(&genesisHeader, nil)
-	chain = make([]Header, length)
+	chain := make([]Header, length)
 	chain[0] = genesisHeader
 	hasher := new(Hasher)
 
@@ -1065,7 +1071,7 @@ func Test_GetStorageFromChild_GetStorageChild(t *testing.T) {
 	client.EXPECT().Info().Return(info)
 
 	backend := statemachine.NewTrieBackend[Hash, Hasher](
-		statemachine.HashDBTrieBackendStorage[Hash]{mdb},
+		statemachine.HashDBTrieBackendStorage[Hash]{HashDB: mdb},
 		parentTrie.MustHash(),
 		nil,
 		nil,
