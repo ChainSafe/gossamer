@@ -202,6 +202,8 @@ func selectAvailabilityBitfields(
 	for _, bitfield := range bitfields {
 		// Check if bitfield has the correct length matching cores
 		if bitfield.Payload.Len() != coresLen {
+			logger.Warnf("bitfield has incorrect length %d, expected %d",
+				bitfield.Payload.Len(), coresLen)
 			continue
 		}
 
@@ -248,11 +250,7 @@ func selectAvailabilityBitfields(
 	// Convert a map to slice, ordered by validator index
 	result := make([]parachaintypes.CheckedSignedAvailabilityBitfield, 0, len(selected))
 
-	// Get sorted keys (validator indices)
-	keys := make([]parachaintypes.ValidatorIndex, 0, len(selected))
-	for k := range selected {
-		keys = append(keys, k)
-	}
+	keys := maps.Keys(selected)
 	slices.Sort(keys)
 
 	// Append values in order of sorted keys
