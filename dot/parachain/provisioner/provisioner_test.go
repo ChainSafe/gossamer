@@ -3,22 +3,23 @@ package provisioner
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
+	disputemessages "github.com/ChainSafe/gossamer/dot/parachain/disputes-coordinator/messages"
 	prospectiveparachain "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
-	"go.uber.org/mock/gomock"
-	"golang.org/x/exp/slices"
-
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 const blockUnderProduction = parachaintypes.BlockNumber(128)
@@ -768,7 +769,279 @@ func TestSelectCandidates(t *testing.T) {
 	})
 }
 
-func matchesAnyExpectedBacked(result []parachaintypes.BackedCandidate, expectedBackedFiltered [][]parachaintypes.CandidateReceiptV2, matchLen bool) bool {
+func TestSendInherentData(t *testing.T) {
+	t.Parallel()
+
+	bitVec, err := parachaintypes.NewBitVec([]bool{false})
+	require.NoError(t, err)
+
+	validationData := &parachaintypes.PersistedValidationData{
+		RelayParentNumber:      uint32(1),
+		RelayParentStorageRoot: common.Hash{0x03},
+		MaxPovSize:             uint32(1024),
+	}
+	validationHash, err := validationData.Hash()
+	require.NoError(t, err)
+
+	occupiedCore := parachaintypes.OccupiedCore{
+		NextUpOnAvailable: nil,
+		NextUpOnTimeOut:   nil,
+		Availability:      bitVec,
+		GroupResponsible:  parachaintypes.GroupIndex(0),
+		CandidateHash:     common.Hash{},
+		CandidateDescriptor: parachaintypes.CandidateDescriptorV2{
+			ParaID:                      parachaintypes.ParaID(1),
+			RelayParent:                 common.Hash{0x03},
+			PersistedValidationDataHash: validationHash,
+			PovHash:                     common.Hash{},
+		},
+	}
+
+	testCases := []struct {
+		name            string
+		leaf            *parachaintypes.ActivatedLeaf
+		signedBitfields []parachaintypes.CheckedSignedAvailabilityBitfield
+		mockCores       []parachaintypes.CoreState
+		expectError     bool
+		setupMocks      func(*gomock.Controller) (BlockState, runtime.Instance)
+	}{
+		{
+			name: "successful_inherent_data",
+			leaf: &parachaintypes.ActivatedLeaf{
+				Hash:   common.Hash{0x01},
+				Number: uint32(blockUnderProduction), // Convert to uint32
+			},
+			signedBitfields: []parachaintypes.CheckedSignedAvailabilityBitfield{
+				{
+					ValidatorIndex: parachaintypes.ValidatorIndex(0),
+					Signature:      [64]byte{0x02},             // Using 64-byte array for signature
+					Payload:        bitVector(t, []bool{true}), // Initialize BitVec with bool array - one bit for one core
+				},
+			},
+			mockCores: []parachaintypes.CoreState{
+				coreState(t, occupiedCore),
+			},
+			expectError: false,
+			setupMocks: func(ctrl *gomock.Controller) (BlockState, runtime.Instance) {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockRuntime := NewMockInstance(ctrl)
+
+				mockBlockState.EXPECT().
+					GetRuntime(gomock.Any()).
+					Return(mockRuntime, nil).AnyTimes()
+
+				mockRuntime.EXPECT().
+					ParachainHostAvailabilityCores().
+					Return([]parachaintypes.CoreState{
+						coreState(t, occupiedCore),
+					}, nil)
+
+				mockRuntime.EXPECT().
+					ParachainHostDisputes().
+					Return(map[parachaintypes.DisputeKey]parachaintypes.DisputeState{}, nil)
+
+				return mockBlockState, mockRuntime
+			},
+		},
+		{
+			name: "get_runtime_error",
+			leaf: &parachaintypes.ActivatedLeaf{
+				Hash:   common.Hash{0x02},
+				Number: uint32(blockUnderProduction),
+			},
+			signedBitfields: []parachaintypes.CheckedSignedAvailabilityBitfield{},
+			mockCores:       []parachaintypes.CoreState{},
+			expectError:     true,
+			setupMocks: func(ctrl *gomock.Controller) (BlockState, runtime.Instance) {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockRuntime := NewMockInstance(ctrl)
+
+				mockBlockState.EXPECT().
+					GetRuntime(gomock.Any()).
+					Return(nil, fmt.Errorf("runtime error"))
+
+				return mockBlockState, mockRuntime
+			},
+		},
+		{
+			name: "cores_error",
+			leaf: &parachaintypes.ActivatedLeaf{
+				Hash:   common.Hash{0x03},
+				Number: uint32(blockUnderProduction),
+			},
+			signedBitfields: []parachaintypes.CheckedSignedAvailabilityBitfield{},
+			mockCores:       []parachaintypes.CoreState{},
+			expectError:     true,
+			setupMocks: func(ctrl *gomock.Controller) (BlockState, runtime.Instance) {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockRuntime := NewMockInstance(ctrl)
+
+				mockBlockState.EXPECT().
+					GetRuntime(gomock.Any()).
+					Return(mockRuntime, nil).AnyTimes()
+
+				mockRuntime.EXPECT().
+					ParachainHostAvailabilityCores().
+					Return(nil, fmt.Errorf("cores error"))
+
+				return mockBlockState, mockRuntime
+			},
+		},
+		{
+			name: "empty_bitfields",
+			leaf: &parachaintypes.ActivatedLeaf{
+				Hash:   common.Hash{0x04},
+				Number: uint32(blockUnderProduction),
+			},
+			signedBitfields: []parachaintypes.CheckedSignedAvailabilityBitfield{},
+			mockCores: []parachaintypes.CoreState{
+				coreState(t, parachaintypes.Free{}),
+			},
+			expectError: false,
+			setupMocks: func(ctrl *gomock.Controller) (BlockState, runtime.Instance) {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockRuntime := NewMockInstance(ctrl)
+
+				mockBlockState.EXPECT().
+					GetRuntime(gomock.Any()).
+					Return(mockRuntime, nil).AnyTimes()
+
+				mockRuntime.EXPECT().
+					ParachainHostAvailabilityCores().
+					Return([]parachaintypes.CoreState{
+						coreState(t, parachaintypes.Free{}),
+					}, nil)
+
+				mockRuntime.EXPECT().
+					ParachainHostDisputes().
+					Return(map[parachaintypes.DisputeKey]parachaintypes.DisputeState{}, nil)
+
+				return mockBlockState, mockRuntime
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockBlockState, _ := tc.setupMocks(ctrl)
+
+			// Create channels for test coordination
+			overseerCh := make(chan any)
+			responseSender := make(chan provisionermessages.ProvisionerInherentData)
+			done := make(chan struct{})
+
+			p := &Provisioner{
+				blockState:          mockBlockState,
+				subSystemToOverseer: overseerCh,
+			}
+
+			inherentDataErr := make(chan error, 1)
+
+			// Handle overseer messages
+			go func() {
+				defer close(overseerCh)
+				for {
+					select {
+					case <-done:
+						return
+					case msg := <-overseerCh:
+						switch m := msg.(type) {
+						case disputemessages.GetRecentDisputes:
+							if m.Response != nil {
+								m.Response <- []disputemessages.RecentDispute{}
+								close(m.Response)
+							}
+						case backing.GetBackableCandidatesMessage:
+							if m.ResCh != nil {
+								// Return empty map of backed candidates
+								m.ResCh <- make(map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate)
+							}
+						case prospectiveparachain.GetBackableCandidates:
+							if m.Response != nil {
+								// Return empty array of candidates
+								m.Response <- []*parachaintypes.CandidateHashAndRelayParent{}
+							}
+						}
+					}
+				}
+			}()
+
+			// Create a goroutine to verify inherent data
+			go func() {
+				defer close(done)
+				defer close(inherentDataErr)
+				if !tc.expectError {
+					select {
+					case inherentData := <-responseSender:
+						var err error
+						// Verify bitfield data
+						if len(inherentData.Bitfield) != len(tc.signedBitfields) {
+							err = fmt.Errorf("expected %d bitfields, got %d", len(tc.signedBitfields), len(inherentData.Bitfield))
+						} else if len(tc.signedBitfields) > 0 {
+							if !reflect.DeepEqual(inherentData.Bitfield[0].ValidatorIndex, tc.signedBitfields[0].ValidatorIndex) {
+								err = fmt.Errorf("validator index mismatch: expected %v, got %v",
+									tc.signedBitfields[0].ValidatorIndex, inherentData.Bitfield[0].ValidatorIndex)
+							} else if !reflect.DeepEqual(inherentData.Bitfield[0].Signature, tc.signedBitfields[0].Signature) {
+								err = fmt.Errorf("signature mismatch: expected %v, got %v",
+									tc.signedBitfields[0].Signature, inherentData.Bitfield[0].Signature)
+							} else if !reflect.DeepEqual(inherentData.Bitfield[0].Payload, tc.signedBitfields[0].Payload) {
+								err = fmt.Errorf("payload mismatch: expected %v, got %v",
+									tc.signedBitfields[0].Payload, inherentData.Bitfield[0].Payload)
+							}
+						}
+
+						// Verify disputes field exists
+						if inherentData.Disputes == nil {
+							err = fmt.Errorf("disputes field is nil")
+						}
+						inherentDataErr <- err
+					case <-time.After(2 * time.Second):
+						inherentDataErr <- fmt.Errorf("timeout waiting for inherent data")
+					}
+				} else {
+					// For error cases, just verify that no data is received
+					select {
+					case <-responseSender:
+						inherentDataErr <- fmt.Errorf("received unexpected inherent data in error case")
+					case <-time.After(100 * time.Millisecond):
+						inherentDataErr <- nil // Expected timeout in error cases
+					}
+				}
+			}()
+
+			err := p.sendInherentData(
+				tc.leaf, tc.signedBitfields, []chan provisionermessages.ProvisionerInherentData{responseSender})
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			// Wait for the response goroutine to complete with reduced timeout
+			select {
+			case <-done:
+				// goroutine completed successfully
+				if err, ok := <-inherentDataErr; ok {
+					require.NoError(t, err)
+				}
+			case <-time.After(1 * time.Second):
+				t.Fatal("timeout waiting for response goroutine to complete")
+			}
+		})
+	}
+}
+
+func matchesAnyExpectedBacked(
+	result []parachaintypes.BackedCandidate,
+	expectedBackedFiltered [][]parachaintypes.CandidateReceiptV2,
+	matchLen bool,
+) bool {
 	for _, expectedBacked := range expectedBackedFiltered {
 		if matchLen && len(result) != len(expectedBacked) {
 			continue
