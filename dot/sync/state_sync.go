@@ -305,7 +305,7 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 	}
 
 	// Store downloaded trie state
-	storageTrie := storage.NewTrieState(trieState)
+	storageTrie := storage.NewInMemoryTrieState(trieState)
 	err = s.storage.StoreTrie(storageTrie, &s.targetHeader)
 	if err != nil {
 		return fmt.Errorf("storing new state trie, err: %w", err)
@@ -329,7 +329,7 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 
 	rtCfg := wazero_runtime.Config{
 		LogLvl:      genesisRuntime.LogLvl(),
-		Storage:     storage.NewTrieState(trieState),
+		Storage:     storage.NewInMemoryTrieState(trieState),
 		Keystore:    genesisRuntime.Keystore(),
 		NodeStorage: genesisRuntime.NodeStorage(),
 		Network:     genesisRuntime.NetworkService(),

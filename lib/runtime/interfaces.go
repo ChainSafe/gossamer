@@ -39,8 +39,8 @@ type ChildTrie interface {
 // Transactional storage interface.
 type Transactional interface {
 	StartTransaction()
-	CommitTransaction()
-	RollbackTransaction()
+	CommitTransaction() error
+	RollbackTransaction() error
 }
 
 // Runtime storage interface.

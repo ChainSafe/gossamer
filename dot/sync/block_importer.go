@@ -34,8 +34,8 @@ type (
 
 	// StorageState is the interface for the storage state
 	StorageState interface {
-		StoreTrie(ts *rtstorage.TrieState, header *types.Header) error
-		TrieState(root *common.Hash) (*rtstorage.TrieState, error)
+		StoreTrie(ts rtstorage.TrieState, header *types.Header) error
+		TrieState(root *common.Hash) (rtstorage.TrieState, error)
 		LoadCodeHash(hash *common.Hash) (common.Hash, error)
 		sync.Locker
 	}
@@ -57,7 +57,7 @@ type (
 
 	// BlockImportHandler is the interface for the handler of newly imported blocks
 	BlockImportHandler interface {
-		HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error
+		HandleBlockImport(block *types.Block, state rtstorage.TrieState, announce bool) error
 		HandleDigests(header *types.Header) error
 	}
 )
@@ -199,7 +199,11 @@ func (b *blockImporter) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	root := ts.Trie().MustHash()
+	root, err := ts.Root()
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(parent.StateRoot[:], root[:]) {
 		panic("parent state root does not match snapshot state root")
 	}

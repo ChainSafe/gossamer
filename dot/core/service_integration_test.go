@@ -625,7 +625,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	require.Equal(t, updatedSpecVersion, secondBlockRuntimeVersion.SpecVersion)
 }
 
-func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, trieState *rtstorage.TrieState,
+func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, trieState rtstorage.TrieState,
 	blockState state.BlockState) (blockHash common.Hash) {
 	parentRt, err := blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
@@ -656,7 +656,7 @@ func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, trieSta
 }
 
 func createBlockUsingNewRuntime(t *testing.T, bestBlockHash common.Hash, newRuntimePath string,
-	trieState *rtstorage.TrieState, blockState state.BlockState) (blockHash common.Hash) {
+	trieState rtstorage.TrieState, blockState state.BlockState) (blockHash common.Hash) {
 	parentRt, err := blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
@@ -711,7 +711,7 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 
 	s.blockState.StoreRuntime(blockHash, rt)
 
-	ts := rtstorage.NewTrieState(inmemory_trie.NewEmptyTrie())
+	ts := rtstorage.NewInMemoryTrieState(inmemory_trie.NewEmptyTrie())
 	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
 	codSub := s.codeSubstitutedState.(*state.BaseState).LoadCodeSubstitutedBlockHash()
@@ -739,7 +739,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 		Body: *body,
 	}
 
-	ts := rtstorage.NewTrieState(inmemory_trie.NewEmptyTrie())
+	ts := rtstorage.NewInMemoryTrieState(inmemory_trie.NewEmptyTrie())
 	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute
@@ -749,8 +749,9 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	testRuntime, err := os.ReadFile(runtimeFilepath)
 	require.NoError(t, err)
 
-	ts, err = s.storageState.TrieState(nil)
+	trieState, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
+	ts = trieState.(*rtstorage.InMemoryTrieState)
 
 	ts.Put(common.CodeKey, testRuntime)
 	rtUpdateBhash := newBlock.Header.Hash()

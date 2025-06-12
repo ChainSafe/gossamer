@@ -234,7 +234,7 @@ func (mr *MockStorageStateMockRecorder) StorageRoot() *gomock.Call {
 }
 
 // StoreTrie mocks base method.
-func (m *MockStorageState) StoreTrie(arg0 *storage.TrieState, arg1 *types.Header) error {
+func (m *MockStorageState) StoreTrie(arg0 storage.TrieState, arg1 *types.Header) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StoreTrie", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -248,10 +248,10 @@ func (mr *MockStorageStateMockRecorder) StoreTrie(arg0, arg1 any) *gomock.Call {
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(root *common.Hash) (*storage.TrieState, error) {
+func (m *MockStorageState) TrieState(root *common.Hash) (storage.TrieState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TrieState", root)
-	ret0, _ := ret[0].(*storage.TrieState)
+	ret0, _ := ret[0].(storage.TrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

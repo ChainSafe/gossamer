@@ -85,7 +85,7 @@ func newFullSyncService(t *testing.T) *SyncService {
 	require.NoError(t, err)
 
 	// initialise runtime
-	genState := rtstorage.NewTrieState(genTrie)
+	genState := rtstorage.NewInMemoryTrieState(genTrie)
 
 	rtCfg := wazero_runtime.Config{
 		Storage: genState,
@@ -110,8 +110,8 @@ func newFullSyncService(t *testing.T) *SyncService {
 
 	blockImportHandler := NewMockBlockImportHandler(ctrl)
 	blockImportHandler.EXPECT().HandleBlockImport(gomock.AssignableToTypeOf(&types.Block{}),
-		gomock.AssignableToTypeOf(&rtstorage.TrieState{}), false).DoAndReturn(
-		func(block *types.Block, ts *rtstorage.TrieState, _ bool) error {
+		gomock.AssignableToTypeOf(rtstorage.InMemoryTrieState{}), false).DoAndReturn(
+		func(block *types.Block, ts rtstorage.TrieState, _ bool) error {
 			// store updates state trie nodes in database
 			if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
 				logger.Warnf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err)
@@ -123,8 +123,12 @@ func newFullSyncService(t *testing.T) *SyncService {
 			require.NoError(t, err)
 
 			stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
+
+			tsRoot, err := ts.Root()
+			require.NoError(t, err)
+
 			logger.Debugf("imported block %s and stored state trie with root %s",
-				block.Header.Hash(), ts.Trie().MustHash())
+				block.Header.Hash(), tsRoot)
 			return nil
 		}).AnyTimes()
 

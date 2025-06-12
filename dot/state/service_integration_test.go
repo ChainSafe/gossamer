@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
@@ -291,7 +292,7 @@ func TestService_PruneStorage(t *testing.T) {
 		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.
-		copiedTrie := trieState.Trie().(*inmemory_trie.InMemoryTrie).DeepCopy()
+		copiedTrie := trieState.(*storage.InMemoryTrieState).Trie().(*inmemory_trie.InMemoryTrie).DeepCopy()
 
 		var rootHash common.Hash
 		rootHash, err = copiedTrie.Hash()
@@ -464,7 +465,7 @@ func TestService_Import(t *testing.T) {
 }
 
 func generateBlockWithRandomTrie(t *testing.T, serv *Service,
-	parent *common.Hash, bNum uint) (*types.Block, *runtime.TrieState) {
+	parent *common.Hash, bNum uint) (*types.Block, runtime.TrieState) {
 	trieState, err := serv.Storage.TrieState(nil)
 	require.NoError(t, err)
 
@@ -475,7 +476,7 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service,
 	err = trieState.Put(key, value)
 	require.NoError(t, err)
 
-	trieStateRoot, err := trieState.Trie().Hash()
+	trieStateRoot, err := trieState.Root()
 	require.NoError(t, err)
 
 	if parent == nil {
