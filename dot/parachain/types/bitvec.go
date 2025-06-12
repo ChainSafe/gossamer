@@ -238,6 +238,17 @@ func (bv *BitVec) CountOnes() int { // skipcq:GO-W1029
 	return count
 }
 
+// Ones returns the indices of all set bits (1s) in the BitVec following LSB0 ordering
+func (bv *BitVec) Ones() []int {
+	var ones []int
+	for i := 0; i < bv.len; i++ {
+		if bit, _ := bv.Get(uint(i)); bit {
+			ones = append(ones, i)
+		}
+	}
+	return ones
+}
+
 // Mask masks out bits according to the provided mask BitVec.
 // For each position, the bit is kept only if it was set and the mask bit is not set.
 // This implements the logic: (x, mask) => x && !mask

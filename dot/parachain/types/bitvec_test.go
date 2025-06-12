@@ -4,6 +4,7 @@
 package parachaintypes
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -824,5 +825,36 @@ func TestBitVec_Or(t *testing.T) {
 
 		expected := []bool{true, true, false, true, true, true, false}
 		require.Equal(t, expected, result.Bits())
+	})
+}
+
+func TestBitVec_Ones(t *testing.T) {
+	t.Run("no_ones", func(t *testing.T) {
+		bv, err := NewBitVec(make([]bool, 16))
+		require.NoError(t, err)
+		require.Empty(t, bv.Ones())
+	})
+
+	t.Run("upper_half_ones", func(t *testing.T) {
+		bits := make([]bool, 16)
+		for i := 8; i < 16; i++ {
+			bits[i] = true
+		}
+
+		bv, err := NewBitVec(bits)
+		require.NoError(t, err)
+		require.Equal(t, []int{8, 9, 10, 11, 12, 13, 14, 15}, bv.Ones())
+	})
+
+	t.Run("all_ones", func(t *testing.T) {
+		bits := slices.Repeat([]bool{true}, 16)
+		bv, err := NewBitVec(bits)
+		require.NoError(t, err)
+
+		expected := make([]int, 16)
+		for i := 0; i < 16; i++ {
+			expected[i] = i
+		}
+		require.Equal(t, expected, bv.Ones())
 	})
 }
