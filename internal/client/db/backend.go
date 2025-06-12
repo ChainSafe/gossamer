@@ -1157,10 +1157,7 @@ func (b *Backend[H, Hasher, N, E, Header]) pruneBlocks(
 	case BlocksPruningKeepAll:
 	case BlocksPruningSome:
 		// Always keep the last finalized block
-		keep := uint32(1)
-		if uint32(blocksPruning) > keep {
-			keep = uint32(blocksPruning)
-		}
+		keep := max(uint32(blocksPruning), uint32(1))
 		if finalizedNumber >= N(keep) {
 			number := saturating.Sub(finalizedNumber, N(keep))
 
