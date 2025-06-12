@@ -2,7 +2,6 @@ package statementdistribution
 
 import (
 	"errors"
-	"slices"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
@@ -30,9 +29,7 @@ type storedStatement struct {
 type fingerprintKind byte
 
 const (
-	// CompactSeconded is a fingerprint for a Seconded statement.
 	fingerprintKindCompactSeconded fingerprintKind = iota
-	// CompactValid is a fingerprint for a Valid statement.
 	fingerprintKindCompactValid
 )
 
@@ -54,12 +51,12 @@ type groupStatements struct {
 }
 
 func newGroupStatements(size int) (*groupStatements, error) {
-	seconded, err := parachaintypes.NewBitVec(slices.Repeat([]bool{false}, size))
+	seconded, err := parachaintypes.NewBitVec(make([]bool, size))
 	if err != nil {
 		return nil, err
 	}
 
-	valid, err := parachaintypes.NewBitVec(slices.Repeat([]bool{false}, size))
+	valid, err := parachaintypes.NewBitVec(make([]bool, size))
 	if err != nil {
 		return nil, err
 	}
@@ -158,13 +155,10 @@ func (s *statements) insert(
 
 	candidateHash := compact.CandidateHash()
 
-	_, seconded := compact.(*parachaintypes.CompactSeconded)
-
 	// cross-reference updates
 	groupIndex := validatorMeta.groupIdx
 	group := groups.get(groupIndex)
 	if len(group) == 0 {
-		// log error: groups passed into insert differ from those used at store creation
 		logger.Errorf("groups passed into `insert` differ "+
 			"from those used at store creation, group index: %d", groupIndex)
 		return false, errValidatorUnknown
@@ -184,7 +178,7 @@ func (s *statements) insert(
 		s.groupStmts[key] = groupStmts
 	}
 
-	if seconded {
+	if _, ok := compact.(*parachaintypes.CompactSeconded); ok {
 		validatorMeta.secondedCount++
 		err = groupStmts.noteSeconded(validatorMeta.withinGroupIdx)
 		if err != nil {
