@@ -19,6 +19,7 @@ import (
 type MockLogger struct {
 	ctrl     *gomock.Controller
 	recorder *MockLoggerMockRecorder
+	isgomock struct{}
 }
 
 // MockLoggerMockRecorder is the mock recorder for MockLogger.
@@ -39,37 +40,37 @@ func (m *MockLogger) EXPECT() *MockLoggerMockRecorder {
 }
 
 // Error mocks base method.
-func (m *MockLogger) Error(arg0 string) {
+func (m *MockLogger) Error(msg string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Error", arg0)
+	m.ctrl.Call(m, "Error", msg)
 }
 
 // Error indicates an expected call of Error.
-func (mr *MockLoggerMockRecorder) Error(arg0 any) *gomock.Call {
+func (mr *MockLoggerMockRecorder) Error(msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Error", reflect.TypeOf((*MockLogger)(nil).Error), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Error", reflect.TypeOf((*MockLogger)(nil).Error), msg)
 }
 
 // Info mocks base method.
-func (m *MockLogger) Info(arg0 string) {
+func (m *MockLogger) Info(msg string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Info", arg0)
+	m.ctrl.Call(m, "Info", msg)
 }
 
 // Info indicates an expected call of Info.
-func (mr *MockLoggerMockRecorder) Info(arg0 any) *gomock.Call {
+func (mr *MockLoggerMockRecorder) Info(msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Info", reflect.TypeOf((*MockLogger)(nil).Info), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Info", reflect.TypeOf((*MockLogger)(nil).Info), msg)
 }
 
 // Warn mocks base method.
-func (m *MockLogger) Warn(arg0 string) {
+func (m *MockLogger) Warn(msg string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Warn", arg0)
+	m.ctrl.Call(m, "Warn", msg)
 }
 
 // Warn indicates an expected call of Warn.
-func (mr *MockLoggerMockRecorder) Warn(arg0 any) *gomock.Call {
+func (mr *MockLoggerMockRecorder) Warn(msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Warn", reflect.TypeOf((*MockLogger)(nil).Warn), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Warn", reflect.TypeOf((*MockLogger)(nil).Warn), msg)
 }
