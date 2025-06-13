@@ -448,7 +448,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 	coreCandidate1 := parachaintypes.OccupiedCore{
 		CandidateHash:    candidate1.Value,
 		GroupResponsible: parachaintypes.GroupIndex(1),
-		CandidateDescriptor: parachaintypes.CandidateDescriptor{
+		CandidateDescriptor: parachaintypes.CandidateDescriptorV2{
 			RelayParent: activatedLeaf,
 		},
 	}
@@ -456,7 +456,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 	coreCandidate2 := parachaintypes.OccupiedCore{
 		CandidateHash:    candidate2.Value,
 		GroupResponsible: parachaintypes.GroupIndex(2),
-		CandidateDescriptor: parachaintypes.CandidateDescriptor{
+		CandidateDescriptor: parachaintypes.CandidateDescriptorV2{
 			RelayParent: activatedLeaf,
 		},
 	}
@@ -704,7 +704,7 @@ func TestGetOccupiedCoresFor(t *testing.T) {
 	relayParent := common.Hash{0x01}
 
 	occupiedCoreSameParent := parachaintypes.OccupiedCore{
-		CandidateDescriptor: parachaintypes.CandidateDescriptor{
+		CandidateDescriptor: parachaintypes.CandidateDescriptorV2{
 			RelayParent: relayParent,
 		},
 	}
@@ -713,7 +713,7 @@ func TestGetOccupiedCoresFor(t *testing.T) {
 	require.NoError(t, occupiedCoreStateSameParent.SetValue(occupiedCoreSameParent))
 
 	occupiedCoreDifferentParent := parachaintypes.OccupiedCore{
-		CandidateDescriptor: parachaintypes.CandidateDescriptor{
+		CandidateDescriptor: parachaintypes.CandidateDescriptorV2{
 			RelayParent: common.Hash{0x02},
 		},
 	}

@@ -11,10 +11,10 @@ import (
 	"time"
 
 	disputemessages "github.com/ChainSafe/gossamer/dot/parachain/disputes-coordinator/messages"
-	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/primitives"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 )
 
 type BlockState interface {
-	GetRuntime(blockHash common.Hash) (instance parachain.RuntimeInstance, err error)
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 }
 
 // Implements the `select_disputes` function which selects dispute votes which should

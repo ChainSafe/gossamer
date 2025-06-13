@@ -708,18 +708,13 @@ func (f *fragmentChain) getHeadDataByHash(
 	return f.unconnected.headDataByHash(headDataHash), nil
 }
 
-type candidateAndRelayParent struct {
-	candidateHash   parachaintypes.CandidateHash
-	realyParentHash common.Hash
-}
-
 // findBackableChain selects `count` candidates after the given `ancestors` which
 // can be backed on chain next. The intention of the `ancestors` is to allow queries
 // on the basis of one or more candidates which were previously pending availability
 // becoming available or candidates timing out
 func (f *fragmentChain) findBackableChain(
 	ancestors map[parachaintypes.CandidateHash]struct{}, count uint32,
-) []*candidateAndRelayParent {
+) []*parachaintypes.CandidateHashAndRelayParent {
 	if count == 0 {
 		return nil
 	}
@@ -727,15 +722,15 @@ func (f *fragmentChain) findBackableChain(
 	basePos := f.findAncestorPath(ancestors)
 
 	actualEndIdx := min(basePos+int(count), len(f.bestChain.chain))
-	res := make([]*candidateAndRelayParent, 0, actualEndIdx-basePos)
+	res := make([]*parachaintypes.CandidateHashAndRelayParent, 0, actualEndIdx-basePos)
 
 	for _, elem := range f.bestChain.chain[basePos:actualEndIdx] {
 		// only supply candidates which are not yet pending availability.
 		// `ancestors` should have already contained them, but check just in case
 		if pending := f.scope.getPendingAvailability(elem.candidateHash); pending == nil {
-			res = append(res, &candidateAndRelayParent{
-				candidateHash:   elem.candidateHash,
-				realyParentHash: elem.relayParent(),
+			res = append(res, &parachaintypes.CandidateHashAndRelayParent{
+				CandidateHash:        elem.candidateHash,
+				CandidateRelayParent: elem.relayParent(),
 			})
 		} else {
 			break

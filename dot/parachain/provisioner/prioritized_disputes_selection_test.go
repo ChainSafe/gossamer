@@ -38,50 +38,6 @@ func setEnumVariant[E Enum](variant any) E {
 }
 
 // TODO: this should be a common test function
-func makeValidCandidateDescriptorV2(
-	paraID parachaintypes.ParaID,
-	relayParent common.Hash,
-	coreIndex parachaintypes.CoreIndex,
-	sessionIndex parachaintypes.SessionIndex,
-	persistedValidationDataHash common.Hash,
-	povHash common.Hash,
-	erasureRoot common.Hash,
-	paraHead common.Hash,
-	validationCodeHash parachaintypes.ValidationCodeHash,
-) *parachaintypes.CandidateDescriptorV2 {
-	return &parachaintypes.CandidateDescriptorV2{
-		ParaID:                      paraID,
-		RelayParent:                 relayParent,
-		CurrentVersion:              0,
-		CoreIndex:                   uint16(coreIndex.Index),
-		SessionIndex:                sessionIndex,
-		Reserved1:                   [25]uint8{},
-		PersistedValidationDataHash: persistedValidationDataHash,
-		PovHash:                     povHash,
-		ErasureRoot:                 erasureRoot,
-		Reserved2:                   [64]uint8{},
-		ParaHead:                    paraHead,
-		ValidationCodeHash:          validationCodeHash,
-	}
-}
-
-// TODO: this should be a common test function
-func dummyCandidateDescriptorV2(relayParent common.Hash) *parachaintypes.CandidateDescriptorV2 {
-	invalid := common.Hash{}
-	return makeValidCandidateDescriptorV2(
-		parachaintypes.ParaID(1),
-		relayParent,
-		parachaintypes.CoreIndex{Index: 1},
-		parachaintypes.SessionIndex(1),
-		invalid,
-		invalid,
-		invalid,
-		invalid,
-		parachaintypes.ValidationCodeHash(invalid),
-	)
-}
-
-// TODO: this should be a common test function
 func dummyCandidateCommitment(hd parachaintypes.HeadData) *parachaintypes.CandidateCommitments {
 	return &parachaintypes.CandidateCommitments{
 		HeadData:                  hd,

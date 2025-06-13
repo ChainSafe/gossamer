@@ -67,6 +67,22 @@ type CandidateDescriptorV2 struct {
 	ValidationCodeHash ValidationCodeHash
 }
 
+// Equals returns true if two CandidateDescriptorV2 instances are equal
+func (cd CandidateDescriptorV2) Equals(other CandidateDescriptorV2) bool {
+	return cd.ParaID == other.ParaID &&
+		cd.RelayParent == other.RelayParent &&
+		cd.CurrentVersion == other.CurrentVersion &&
+		cd.CoreIndex == other.CoreIndex &&
+		cd.SessionIndex == other.SessionIndex &&
+		bytes.Equal(cd.Reserved1[:], other.Reserved1[:]) &&
+		cd.PersistedValidationDataHash == other.PersistedValidationDataHash &&
+		cd.PovHash == other.PovHash &&
+		cd.ErasureRoot == other.ErasureRoot &&
+		bytes.Equal(cd.Reserved2[:], other.Reserved2[:]) &&
+		cd.ParaHead == other.ParaHead &&
+		cd.ValidationCodeHash == other.ValidationCodeHash
+}
+
 func (cd CandidateDescriptorV2) Version() (CandidateDescriptorVersion, error) {
 	var zeroReserved1 [25]byte
 	var zeroReserved2 [64]byte
@@ -291,12 +307,12 @@ type CandidateReceiptV2 struct {
 }
 
 func (cr CandidateReceiptV2) Hash() (common.Hash, error) {
-	bytes, err := scale.Marshal(cr)
+	encodedCr, err := scale.Marshal(cr)
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("marshalling CandidateReceiptV2: %w", err)
 	}
 
-	return common.Blake2bHash(bytes)
+	return common.Blake2bHash(encodedCr)
 }
 
 // V2 converts a CandidateReceipt to a CandidateReceiptV2

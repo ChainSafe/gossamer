@@ -858,3 +858,56 @@ func TestBitVec_Ones(t *testing.T) {
 		require.Equal(t, expected, bv.Ones())
 	})
 }
+
+func TestBitVec_Not(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		input    []bool
+		expected []bool
+	}{
+		{
+			name:     "empty bitvec",
+			input:    []bool{},
+			expected: []bool{},
+		},
+		{
+			name:     "single bit",
+			input:    []bool{true},
+			expected: []bool{false},
+		},
+		{
+			name:     "multiple bits within byte",
+			input:    []bool{true, false, true, false, true},
+			expected: []bool{false, true, false, true, false},
+		},
+		{
+			name:     "complete byte",
+			input:    []bool{true, false, true, false, true, false, true, false},
+			expected: []bool{false, true, false, true, false, true, false, true},
+		},
+		{
+			name:     "multiple bytes with partial",
+			input:    []bool{true, true, true, false, false, false, true, false, true, true},
+			expected: []bool{false, false, false, true, true, true, false, true, false, false},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Create BitVec from input
+			bv, err := NewBitVec(tc.input)
+			require.NoError(t, err)
+
+			// Perform NOT operation
+			bv.Not()
+
+			// Verify each bits
+			require.Equal(t, tc.expected, bv.Bits())
+		})
+	}
+}
