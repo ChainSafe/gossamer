@@ -157,24 +157,24 @@ func (p *Provisioner) sendInherentData(
 ) error {
 	instance, err := p.blockState.GetRuntime(leaf.Hash)
 	if err != nil {
-		return fmt.Errorf("getting runtime for leaf %s: %s", leaf.Hash, err)
+		return fmt.Errorf("getting runtime for leaf %s: %w", leaf.Hash, err)
 	}
 
 	cores, err := instance.ParachainHostAvailabilityCores()
 	if err != nil {
-		return fmt.Errorf("getting cores for leaf %s: %s", leaf.Hash, err)
+		return fmt.Errorf("getting cores for leaf %s: %w", leaf.Hash, err)
 	}
 
 	disputes := SelectDisputes(p.subSystemToOverseer, p.blockState, leaf, maxDisputesVotes, voteSelectionBatchSize)
 
 	bitfields, err := selectAvailabilityBitfields(cores, signedBitfields)
 	if err != nil {
-		return fmt.Errorf("selecting availability bitfields for leaf %s: %s", leaf.Hash, err)
+		return fmt.Errorf("selecting availability bitfields for leaf %s: %w", leaf.Hash, err)
 	}
 
 	candidates, err := p.selectCandidates(cores, bitfields, leaf)
 	if err != nil {
-		return fmt.Errorf("selecting candidates for leaf %s: %s", leaf.Hash, err)
+		return fmt.Errorf("selecting candidates for leaf %s: %w", leaf.Hash, err)
 	}
 
 	inherentData := provisionermessages.ProvisionerInherentData{

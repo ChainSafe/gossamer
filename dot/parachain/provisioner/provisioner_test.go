@@ -1071,7 +1071,7 @@ func matchesAnyExpectedBacked(
 
 // correspondsTo checks if two candidate receipts correspond to each other
 func correspondsTo(c1 parachaintypes.CommittedCandidateReceiptV2, c2 parachaintypes.CandidateReceiptV2) bool {
-	return c1.Descriptor.Equal(c2.Descriptor) && c1.Commitments.Hash() == c2.CommitmentsHash
+	return c1.Descriptor.Equals(c2.Descriptor) && c1.Commitments.Hash() == c2.CommitmentsHash
 }
 
 func dummyPerRelayParentState() map[common.Hash]*perRelayParent {
