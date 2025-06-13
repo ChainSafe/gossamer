@@ -1167,10 +1167,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		backendMock.EXPECT().HaveStateAt(block.Header.ParentHash(), parentNumber).Return(true)
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-		runtimeConstructorMock := mocks.NewConstructRuntimeApi[
-		// uint64, runtime.OpaqueExtrinsic, hash.H256,
-		// runtime.BlakeTwo256, statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
-		primitives_api.ApiExt[
+		runtimeConstructorMock := mocks.NewConstructRuntimeApi[primitives_api.ApiExt[
 			uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
 			statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],

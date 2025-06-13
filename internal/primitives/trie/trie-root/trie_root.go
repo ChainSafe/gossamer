@@ -62,29 +62,20 @@ type TrieStream interface {
 }
 
 func sharedPrefixLength(first []byte, second []byte) uint {
-	length := min(first, second)
+	length := min(len(first), len(second))
 	var position int = -1
 	for i := 0; i < length; i++ {
 		var (
-			a byte
-			b byte
+			a byte = first[i]
+			b byte = second[i]
 		)
-		if i < len(first) {
-			a = first[i]
-		}
-		if i < len(second) {
-			b = second[i]
-		}
 		if a != b {
 			position = i
 			break
 		}
 	}
 	if position == -1 {
-		position = len(first)
-		if len(second) < position {
-			position = len(second)
-		}
+		position = length
 	}
 	return uint(position)
 }
@@ -146,7 +137,6 @@ func buildTrie[Hasher hashdb.Hasher[H], H hashdb.Hash](
 		value := NewValue[Hasher](input[0].Value, threshold)
 		stream.AppendLeaf(input[0].Key[cursor:], value)
 
-		// 	_ => {
 	default:
 		// We have multiple items in the input. Figure out if we should add an extension node or a branch node.
 		key := input[0].Key
