@@ -49,7 +49,7 @@ func (o originatorStatementPairSet) remove(
 	statement parachaintypes.CompactStatement,
 ) bool {
 	for pair := range o {
-		if pair.validatorIndex == validatorIndex && pair.statement.Equals(statement) {
+		if pair.validatorIndex == validatorIndex && pair.compactStmt.Equals(statement) {
 			delete(o, pair)
 			return true
 		}

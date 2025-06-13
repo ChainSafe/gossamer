@@ -53,10 +53,10 @@ func (mr *MockstatementStoreMockRecorder) fillStatementFilter(arg0, arg1, arg2 a
 }
 
 // freshStatementsForBacking mocks base method.
-func (m *MockstatementStore) freshStatementsForBacking(validators []parachaintypes.ValidatorIndex, candidateHash parachaintypes.CandidateHash) []parachaintypes.SignedStatement {
+func (m *MockstatementStore) freshStatementsForBacking(validators []parachaintypes.ValidatorIndex, candidateHash parachaintypes.CandidateHash) []*parachaintypes.SignedStatement {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "freshStatementsForBacking", validators, candidateHash)
-	ret0, _ := ret[0].([]parachaintypes.SignedStatement)
+	ret0, _ := ret[0].([]*parachaintypes.SignedStatement)
 	return ret0
 }
 
@@ -67,10 +67,10 @@ func (mr *MockstatementStoreMockRecorder) freshStatementsForBacking(validators, 
 }
 
 // groupStatements mocks base method.
-func (m *MockstatementStore) groupStatements(arg0 *groups, arg1 parachaintypes.GroupIndex, arg2 parachaintypes.CandidateHash, arg3 *parachaintypes.StatementFilter) []parachaintypes.SignedStatement {
+func (m *MockstatementStore) groupStatements(arg0 *groups, arg1 parachaintypes.GroupIndex, arg2 parachaintypes.CandidateHash, arg3 *parachaintypes.StatementFilter) []*parachaintypes.SignedStatement {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "groupStatements", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].([]parachaintypes.SignedStatement)
+	ret0, _ := ret[0].([]*parachaintypes.SignedStatement)
 	return ret0
 }
 
@@ -93,11 +93,12 @@ func (mr *MockstatementStoreMockRecorder) noteKnownByBacking(arg0, arg1 any) *go
 }
 
 // validatorStatement mocks base method.
-func (m *MockstatementStore) validatorStatement(stmt originatorStatementPair) *parachaintypes.SignedStatement {
+func (m *MockstatementStore) validatorStatement(stmt originatorStatementPair) (*parachaintypes.SignedStatement, bool) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "validatorStatement", stmt)
 	ret0, _ := ret[0].(*parachaintypes.SignedStatement)
-	return ret0
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
 }
 
 // validatorStatement indicates an expected call of validatorStatement.

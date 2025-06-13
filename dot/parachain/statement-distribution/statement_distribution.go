@@ -250,7 +250,7 @@ func (s *StatementDistribution) fragmentChainUpdateInner(rp *common.Hash,
 func (s *StatementDistribution) sendPendingClusterStatements(rp common.Hash,
 	peerID peer.ID, validationVersion validationprotocol.ValidationVersion,
 	peerValidatorIdx parachaintypes.ValidatorIndex,
-	clusterTracker clusterTracker,
+	clusterTracker *clusterTracker,
 	candidates candidatesTracker,
 	statementStore statementStore,
 ) {
@@ -262,7 +262,7 @@ func (s *StatementDistribution) sendPendingClusterStatements(rp common.Hash,
 
 		msg := pendingStatementNetworkMessage(statementStore, rp, peerID, validationVersion, stmt)
 		if msg != nil {
-			clusterTracker.noteSend(peerValidatorIdx, stmt.validatorIndex, stmt.compactStmt)
+			clusterTracker.noteSent(peerValidatorIdx, stmt.validatorIndex, stmt.compactStmt)
 			// TODO: create a SendValidationMessages to send a batch of messages
 			s.SubSystemToOverseer <- msg
 		}
@@ -445,7 +445,7 @@ func (s *StatementDistribution) sendBackingFreshStatements(
 			panic(fmt.Sprintf("unexpected error setting Statement VDT: %s", err.Error()))
 		}
 
-		signed, err := compareAndConvert(freshStmt, convertedStmt, withPVD)
+		signed, err := compareAndConvert(*freshStmt, convertedStmt, withPVD)
 		if err != nil {
 			return fmt.Errorf("comparing and converting stmt: %w", err)
 		}
@@ -614,7 +614,7 @@ func postAcknowledgementStatementMessages(
 			stmtMessage := validationprotocol.NewStatementDistributionMessage()
 			err := stmtMessage.SetValue(validationprotocol.Statement{
 				RelayParent: rp,
-				Compact:     parachaintypes.UncheckedSignedCompactStatement(stmt),
+				Compact:     parachaintypes.UncheckedSignedCompactStatement(*stmt),
 			})
 			if err != nil {
 				panic(fmt.Sprintf("failed while defining enum variant: %s", err.Error()))
@@ -643,8 +643,8 @@ func pendingStatementNetworkMessage(
 	pending originatorStatementPair,
 ) *networkbridgemessages.SendValidationMessage {
 	if validationVersion == validationprotocol.ValidationVersionV3 {
-		signed := stmtStore.validatorStatement(pending)
-		if signed == nil {
+		signed, ok := stmtStore.validatorStatement(pending)
+		if !ok {
 			return nil
 		}
 

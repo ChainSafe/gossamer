@@ -257,18 +257,17 @@ func (s *statements) groupStatements( //nolint:unused
 
 // validatorStatement returns the full statement of this kind issued by this validator, if it is known.
 func (s *statements) validatorStatement( //nolint:unused
-	validatorIndex parachaintypes.ValidatorIndex,
-	statement parachaintypes.CompactStatement,
+	pair originatorStatementPair,
 ) (*parachaintypes.SignedStatement, bool) {
 	kind := fingerprintKindCompactSeconded // default to Seconded
-	if _, ok := statement.(*parachaintypes.CompactValid); ok {
+	if _, ok := pair.compactStmt.(*parachaintypes.CompactValid); ok {
 		kind = fingerprintKindCompactValid
 	}
 
 	fp := fingerprint{
-		validator:     validatorIndex,
+		validator:     pair.validatorIndex,
 		kind:          kind,
-		candidateHash: statement.CandidateHash(),
+		candidateHash: pair.compactStmt.CandidateHash(),
 	}
 	sst, ok := s.knownStmts[fp]
 	return sst.stmt, ok

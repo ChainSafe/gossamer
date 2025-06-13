@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // accept signifies that an incoming statement was accepted.
@@ -407,4 +408,81 @@ func (c *clusterTracker) validatorSeconded(
 		}
 	}
 	return false
+}
+
+// Note that we sent an outgoing statement to a peer in the group.
+// This must be preceded by a successful `canSend` call.
+func (c *clusterTracker) noteSent(
+	target parachaintypes.ValidatorIndex,
+	originator parachaintypes.ValidatorIndex,
+	stmt parachaintypes.CompactStatement,
+) {
+	targetKnowledge, ok := c.knowledge[target]
+	if !ok {
+		targetKnowledge = make(map[taggedKnowledge]struct{})
+	}
+
+	targetKnowledge[outgoingP2P{specific{stmt, originator}}] = struct{}{}
+
+	if _, ok := stmt.(*parachaintypes.CompactSeconded); ok {
+		targetKnowledge[outgoingP2P{general{stmt.CandidateHash()}}] = struct{}{}
+
+		originatorKnowledge, ok := c.knowledge[originator]
+		if !ok {
+			originatorKnowledge = make(map[taggedKnowledge]struct{})
+		}
+
+		originatorKnowledge[seconded{stmt.CandidateHash()}] = struct{}{}
+		c.knowledge[originator] = originatorKnowledge
+	}
+
+	c.knowledge[target] = targetKnowledge
+
+	if pending, ok := c.pending[target]; ok {
+		delete(pending, originatorStatementPair{
+			validatorIndex: originator,
+			compactStmt:    stmt,
+		})
+	}
+}
+
+// pendingStatementsFor a slice of pending statements to be sent to a particular validator
+// index. `Seconded` statements are sorted to the front of the vector.
+// Pending statements have the form (originator, compact statement).
+func (c *clusterTracker) pendingStatementsFor(target parachaintypes.ValidatorIndex) []originatorStatementPair {
+	set := c.pending[target]
+	pairs := make([]originatorStatementPair, len(set))
+
+	sIdx := 0
+	vIdx := len(set) - 1
+
+	for k := range set {
+		if _, ok := k.compactStmt.(*parachaintypes.CompactSeconded); ok {
+			pairs[sIdx] = k
+			sIdx++
+		} else {
+			pairs[vIdx] = k
+			vIdx--
+		}
+	}
+
+	return pairs
+}
+
+func (c *clusterTracker) warningIfTooManyPendingStatements(parentHash common.Hash) {
+	setsCount := 0
+	for _, set := range c.pending {
+		if len(set) > 0 {
+			setsCount++
+		}
+	}
+
+	// No reason to warn if we are the only node in the cluster.
+	if setsCount > len(c.validators) && len(c.validators) > 1 {
+		logger.Warnf("Cluster has too many pending statements, "+
+			"something wrong with our connection to our group peers. "+
+			"Restart might be needed if validator gets 0 backing rewards "+
+			"for more than 3-4 consecutive sessions. pending statements: %d, parent hash: %s",
+			len(c.pending), parentHash.String())
+	}
 }

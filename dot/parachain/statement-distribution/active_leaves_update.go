@@ -160,7 +160,7 @@ func (s *StatementDistribution) handleActiveLeafUpdate(rp common.Hash) error {
 
 	s.state.perRelayParent[rp] = &perRelayParentState{
 		localValidator:       localValidator,
-		statementStore:       nil, // todo use statement store (#4719)
+		statementStore:       newStatementStore(perSession.groups),
 		session:              sessionIdx,
 		groupsPerPara:        groupsPerPara,
 		disabledValidators:   disableValidatorsSet,

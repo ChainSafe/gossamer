@@ -14,12 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 )
 
-type clusterTracker interface {
-	warningIfTooManyPendingStatements(rp common.Hash)
-	pendingStatementsFor(target parachaintypes.ValidatorIndex) []originatorStatementPair
-	noteSend(target, originator parachaintypes.ValidatorIndex, stmt parachaintypes.CompactStatement)
-}
-
 type candidatesTracker interface {
 	frontierHypotheticals(*common.Hash, *parachaintypes.ParaID) []parachaintypes.HypotheticalCandidate
 	onDeactivateLeaves(leaves []common.Hash, rpLiveFn func(common.Hash) bool)
@@ -35,19 +29,19 @@ type requestManager interface {
 }
 
 type statementStore interface {
-	validatorStatement(stmt originatorStatementPair) *parachaintypes.SignedStatement
+	validatorStatement(stmt originatorStatementPair) (*parachaintypes.SignedStatement, bool)
 
 	// freshStatementsForBacking provides a list of all statements marked as being
 	// unknown by the backing subsystem. This provides `Seconded` statements prior to `Valid` statements.
 	freshStatementsForBacking(validators []parachaintypes.ValidatorIndex,
-		candidateHash parachaintypes.CandidateHash) []parachaintypes.SignedStatement
+		candidateHash parachaintypes.CandidateHash) []*parachaintypes.SignedStatement
 	noteKnownByBacking(parachaintypes.ValidatorIndex, parachaintypes.CompactStatement)
 	fillStatementFilter(parachaintypes.GroupIndex, parachaintypes.CandidateHash, *parachaintypes.StatementFilter)
 	// Get an iterator over stored signed statements by the group conforming to the
 	// given filter.
 	// Seconded statements are provided first.
 	groupStatements(*groups, parachaintypes.GroupIndex, parachaintypes.CandidateHash,
-		*parachaintypes.StatementFilter) []parachaintypes.SignedStatement
+		*parachaintypes.StatementFilter) []*parachaintypes.SignedStatement
 }
 
 // skipcq:SCC-U1000
@@ -99,7 +93,7 @@ type activeValidatorState struct {
 	index          parachaintypes.ValidatorIndex
 	groupIndex     parachaintypes.GroupIndex
 	assignments    []parachaintypes.ParaID
-	clusterTracker clusterTracker // TODO: use cluster tracker implementation (#4713)
+	clusterTracker *clusterTracker // TODO: use cluster tracker implementation (#4713)
 }
 
 // skipcq:SCC-U1000
