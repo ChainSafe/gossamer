@@ -16,19 +16,25 @@ import (
 
 // A key-value database fulfilling the KeyValueDB interface, backed by pebbleDB.
 type PebbleKVDB struct {
-	db *database.PebbleDB
+	db         *database.PebbleDB
+	maxColumns uint32
 }
 
 var ErrInvalidColumn = errors.New("no such column family")
 
 // Create an pebbleDB backed database
-func New(db *database.PebbleDB) *PebbleKVDB {
+func New(db *database.PebbleDB, numCols uint32) *PebbleKVDB {
 	return &PebbleKVDB{
-		db: db,
+		db:         db,
+		maxColumns: numCols,
 	}
 }
 
 func (p *PebbleKVDB) Get(col uint32, key []byte) (kvdb.DBValue, error) {
+	if col >= p.maxColumns {
+		return nil, ErrInvalidColumn
+	}
+
 	compKey := compositeKey(col, key)
 
 	value, err := p.db.Get(compKey)

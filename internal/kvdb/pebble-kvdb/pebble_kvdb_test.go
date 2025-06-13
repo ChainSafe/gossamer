@@ -21,7 +21,7 @@ func Test_PebbleKVDB(t *testing.T) {
 		pebbleDB, err := database.NewPebble(t.TempDir(), true)
 		require.NoError(t, err)
 
-		db := New(pebbleDB)
+		db := New(pebbleDB, 1)
 		_, err = db.Get(1, []byte{})
 		require.Error(t, err)
 	})
@@ -30,7 +30,7 @@ func Test_PebbleKVDB(t *testing.T) {
 		pebbleDB, err := database.NewPebble(t.TempDir(), true)
 		require.NoError(t, err)
 
-		db := New(pebbleDB)
+		db := New(pebbleDB, 1)
 		key1 := []byte("key1")
 
 		var transaction kvdb.DBTransaction
@@ -46,7 +46,7 @@ func Test_PebbleKVDB(t *testing.T) {
 		pebbleDB, err := database.NewPebble(t.TempDir(), true)
 		require.NoError(t, err)
 
-		db := New(pebbleDB)
+		db := New(pebbleDB, DeletePrefixNumColumns)
 		key1 := []byte("key1")
 
 		var transaction kvdb.DBTransaction = kvdb.NewDBTransaction()
@@ -70,7 +70,7 @@ func Test_PebbleKVDB(t *testing.T) {
 		pebbleDB, err := database.NewPebble(t.TempDir(), true)
 		require.NoError(t, err)
 
-		db := New(pebbleDB)
+		db := New(pebbleDB, DeletePrefixNumColumns)
 		keys := [][]byte{
 			{},
 			{0},
@@ -162,7 +162,7 @@ func Test_PebbleKVDB(t *testing.T) {
 		pebbleDB, err := database.NewPebble(t.TempDir(), true)
 		require.NoError(t, err)
 
-		db := New(pebbleDB)
+		db := New(pebbleDB, 1)
 		key1 := []byte("key1")
 		key2 := []byte("key2")
 
@@ -188,7 +188,7 @@ func Test_PebbleKVDB(t *testing.T) {
 		pebbleDB, err := database.NewPebble(t.TempDir(), true)
 		require.NoError(t, err)
 
-		db := New(pebbleDB)
+		db := New(pebbleDB, 1)
 		key1 := []byte("0")
 		key2 := []byte("ab")
 		key3 := []byte("abc")
@@ -254,7 +254,7 @@ func Test_PebbleKVDB(t *testing.T) {
 		pebbleDB, err := database.NewPebble(t.TempDir(), true)
 		require.NoError(t, err)
 
-		db := New(pebbleDB)
+		db := New(pebbleDB, 1)
 		key1 := []byte("02c69be41d0b7e40352fc85be1cd65eb03d40ef8427a0ca4596b1ead9a00e9fc")
 		key2 := []byte("03c69be41d0b7e40352fc85be1cd65eb03d40ef8427a0ca4596b1ead9a00e9fc")
 		key3 := []byte("04c00000000b7e40352fc85be1cd65eb03d40ef8427a0ca4596b1ead9a00e9fc")
