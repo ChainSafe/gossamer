@@ -62,10 +62,7 @@ type TrieStream interface {
 }
 
 func sharedPrefixLength(first []byte, second []byte) uint {
-	length := len(first)
-	if len(second) < length {
-		length = len(second)
-	}
+	length := min(first, second)
 	var position int = -1
 	for i := 0; i < length; i++ {
 		var (
@@ -177,7 +174,7 @@ func buildTrie[Hasher hashdb.Hasher[H], H hashdb.Hash](
 		// We'll be adding a branch node because the path is as long as it gets.
 		// First we need to figure out what entries this branch node will have...
 
-		// We have a a value for exactly this key. Branch node will have a value attached to it.
+		// We have a value for exactly this key. Branch node will have a value attached to it.
 		var val []byte
 		if cursor == uint(len(key)) {
 			val = value
@@ -244,7 +241,6 @@ func buildTrie[Hasher hashdb.Hasher[H], H hashdb.Hash](
 			}
 		}
 
-		// 		stream.end_branch(value);
 		stream.EndBranch(v)
 	}
 }
