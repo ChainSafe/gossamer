@@ -1500,13 +1500,11 @@ func TestRequestInherentData(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name  string
-		perRP map[common.Hash]*perRelayParent
-		//msg                provisionermessages.RequestInherentData
-		mockBlockState        func(*gomock.Controller) BlockState
-		expectErr             bool
-		expectAwaitInherit    bool
-		expectAwaitInheritLen int
+		name               string
+		perRP              map[common.Hash]*perRelayParent
+		mockBlockState     func(*gomock.Controller) BlockState
+		expectErr          bool
+		expectAwaitInherit bool
 	}{
 		{
 			name:  "unknown_relay_parent",
@@ -1554,7 +1552,6 @@ func TestRequestInherentData(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
