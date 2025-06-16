@@ -56,25 +56,25 @@ type rejectOutgoing interface { //nolint:unused
 }
 
 // candidateUnknownOutgoing means the candidate was unknown. Only applies to `Valid` statements.
-type candidateUnknownOutgoing struct{} //nolint:unused
+type candidateUnknownOutgoing struct{}
 
-func (candidateUnknownOutgoing) isRejectOutgoing() {} //nolint:unused
+func (candidateUnknownOutgoing) isRejectOutgoing() {}
 
 // excessiveSecondedOutgoing means we attempted to send excessive `Seconded` statements.
 // Indicates a bug on the local node's code.
-type excessiveSecondedOutgoing struct{} //nolint:unused
+type excessiveSecondedOutgoing struct{}
 
-func (excessiveSecondedOutgoing) isRejectOutgoing() {} //nolint:unused
+func (excessiveSecondedOutgoing) isRejectOutgoing() {}
 
 // knownOutgoing means the statement was already known to the peer.
-type knownOutgoing struct{} //nolint:unused
+type knownOutgoing struct{}
 
-func (knownOutgoing) isRejectOutgoing() {} //nolint:unused
+func (knownOutgoing) isRejectOutgoing() {}
 
 // notInGroupOutgoing means the target or originator are not in the group.
-type notInGroupOutgoing struct{} //nolint:unused
+type notInGroupOutgoing struct{}
 
-func (notInGroupOutgoing) isRejectOutgoing() {} //nolint:unused
+func (notInGroupOutgoing) isRejectOutgoing() {}
 
 type acceptOrRejectIncoming interface {
 	isAcceptOrRejectIncoming()
@@ -87,16 +87,16 @@ func (notInGroupIncoming) isAcceptOrRejectIncoming()        {}
 func (candidateUnknownIncoming) isAcceptOrRejectIncoming()  {}
 func (duplicateIncoming) isAcceptOrRejectIncoming()         {}
 
-type acceptOrRejectOutgoing interface { //nolint:unused
+type acceptOrRejectOutgoing interface {
 	isAcceptOrRejectOutgoing()
 }
 
 func (ok) isAcceptOrRejectOutgoing()                        {}
 func (withPrejudice) isAcceptOrRejectOutgoing()             {}
-func (candidateUnknownOutgoing) isAcceptOrRejectOutgoing()  {} //nolint:unused
-func (excessiveSecondedOutgoing) isAcceptOrRejectOutgoing() {} //nolint:unused
-func (knownOutgoing) isAcceptOrRejectOutgoing()             {} //nolint:unused
-func (notInGroupOutgoing) isAcceptOrRejectOutgoing()        {} //nolint:unused
+func (candidateUnknownOutgoing) isAcceptOrRejectOutgoing()  {}
+func (excessiveSecondedOutgoing) isAcceptOrRejectOutgoing() {}
+func (knownOutgoing) isAcceptOrRejectOutgoing()             {}
+func (notInGroupOutgoing) isAcceptOrRejectOutgoing()        {}
 
 // knowledge about a candidate
 type knowledge interface {
@@ -272,7 +272,7 @@ func (c *clusterTracker) canReceive(
 //
 // Should only be called after a successful [canReceive] call.
 func (c *clusterTracker) noteReceived(
-	sender parachaintypes.ValidatorIndex, //nolint:unparam
+	sender parachaintypes.ValidatorIndex,
 	originator parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
 ) {
@@ -407,4 +407,68 @@ func (c *clusterTracker) validatorSeconded(
 		}
 	}
 	return false
+}
+
+// canSend queries whether we can send a statement to a given validator.
+func (c *clusterTracker) canSend(
+	target parachaintypes.ValidatorIndex,
+	originator parachaintypes.ValidatorIndex, //nolint:unparam
+	statement parachaintypes.CompactStatement,
+) acceptOrRejectOutgoing {
+	if !c.isInGroup(target) || !c.isInGroup(originator) {
+		return notInGroupOutgoing{}
+	}
+
+	if c.theyKnowStatement(target, originator, statement) {
+		return knownOutgoing{}
+	}
+
+	switch statement.(type) {
+	case *parachaintypes.CompactSeconded:
+		// we send the same `Seconded` statements to all our peers, and only the first `k`
+		// from each originator.
+		if !c.secondedAlreadyOrWithinLimit(originator, statement.CandidateHash()) {
+			return excessiveSecondedOutgoing{}
+		}
+		return ok{}
+	case *parachaintypes.CompactValid:
+		if !c.knowsCandidate(target, statement.CandidateHash()) {
+			return candidateUnknownOutgoing{}
+		}
+		return ok{}
+	default:
+		panic("unreachable")
+	}
+}
+
+// noteSent notes that we sent an outgoing statement to a peer in the group.
+// This must be preceded by a successful `can_send` call.
+func (c *clusterTracker) noteSent(
+	target parachaintypes.ValidatorIndex,
+	originator parachaintypes.ValidatorIndex,
+	statement parachaintypes.CompactStatement,
+) {
+	targetKnowledge, ok := c.knowledge[target]
+	if !ok {
+		targetKnowledge = map[taggedKnowledge]struct{}{
+			outgoingP2P{specific{statement, originator}}: {},
+		}
+		c.knowledge[target] = targetKnowledge
+	}
+
+	if _, ok := statement.(*parachaintypes.CompactSeconded); ok {
+		targetKnowledge[outgoingP2P{general{statement.CandidateHash()}}] = struct{}{}
+
+		originatorKnowledge, ok := c.knowledge[originator]
+		if !ok {
+			originatorKnowledge = make(map[taggedKnowledge]struct{})
+		}
+
+		originatorKnowledge[seconded{statement.CandidateHash()}] = struct{}{}
+		c.knowledge[originator] = originatorKnowledge
+	}
+
+	if pending, ok := c.pending[target]; ok {
+		pending.remove(originator, statement)
+	}
 }
