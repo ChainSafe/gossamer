@@ -59,11 +59,7 @@ type Provisioner struct {
 	subSystemToOverseer chan<- any
 	blockState          BlockState
 	perRelayParent      map[common.Hash]*perRelayParent
-
-	// TODO #4162
-	// This doesn't have to be a channel with buffer.
-	// The idea is to send a relay parent hash on this channel after INHERENT_TIMEOUT, open to design changes
-	availableInherent chan common.Hash
+	availableInherent   chan common.Hash
 }
 
 func (p *Provisioner) Run(ctx context.Context, overseerToSubSystem <-chan any) {
@@ -79,9 +75,12 @@ func (p *Provisioner) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 			if err != nil {
 				logger.Errorf("processing overseer message: %s", err)
 			}
-		case <-p.availableInherent:
-			// This inherentAfterDelay gets populated while handling active leaves update signal
-			// TODO #4162
+		case activatedLeafHash := <-p.availableInherent:
+			// we receive this hash from ProcessActiveLeavesUpdateSignal method.
+			err := p.processAvailableInherent(activatedLeafHash)
+			if err != nil {
+				logger.Errorf("processing available inherent for leaf %s: %s", activatedLeafHash, err)
+			}
 		}
 	}
 }
@@ -130,6 +129,22 @@ func (*Provisioner) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSig
 }
 
 func (*Provisioner) Stop() {}
+
+func (p *Provisioner) processAvailableInherent(relayParent common.Hash) error {
+	perRP, exists := p.perRelayParent[relayParent]
+	if !exists {
+		return nil
+	}
+
+	perRP.isInherentReady = true
+	responseSenders := perRP.awaitingInherent
+	perRP.awaitingInherent = nil
+
+	if len(responseSenders) > 0 {
+		return p.sendInherentData(perRP.leaf, perRP.signedBitfields, responseSenders)
+	}
+	return nil
+}
 
 func (p *Provisioner) processProvisionableData(provisionableData provisionermessages.ProvisionableData) {
 	state, exists := p.perRelayParent[provisionableData.RelayParent]

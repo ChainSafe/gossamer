@@ -1582,3 +1582,101 @@ func TestRequestInherentData(t *testing.T) {
 		})
 	}
 }
+
+func TestProcessAvailableInherent(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name           string
+		relayParent    common.Hash
+		perRP          map[common.Hash]*perRelayParent
+		mockBlockState func(*gomock.Controller) BlockState
+		expectErr      bool
+		validateState  func(*testing.T, *perRelayParent)
+	}{
+		{
+			name:        "relay_parent_not_exists",
+			relayParent: common.Hash{1},
+			perRP:       make(map[common.Hash]*perRelayParent),
+			mockBlockState: func(ctrl *gomock.Controller) BlockState {
+				return NewMockBlockState(ctrl)
+			},
+			expectErr: false,
+		},
+		{
+			name:        "no_awaiting_inherent",
+			relayParent: common.Hash{1},
+			perRP: map[common.Hash]*perRelayParent{
+				{1}: {
+					leaf:             &parachaintypes.ActivatedLeaf{Hash: common.Hash{1}},
+					signedBitfields:  []parachaintypes.CheckedSignedAvailabilityBitfield{},
+					isInherentReady:  false,
+					awaitingInherent: nil,
+				},
+			},
+			mockBlockState: func(ctrl *gomock.Controller) BlockState {
+				return NewMockBlockState(ctrl)
+			},
+			expectErr: false,
+			validateState: func(t *testing.T, perRP *perRelayParent) {
+				require.True(t, perRP.isInherentReady)
+				require.Empty(t, perRP.awaitingInherent)
+			},
+		},
+		{
+			// This case triggers the sendInherentData method which has its own unit test.
+			// To avoid redundant testing, we simulate a GetRuntime error here.
+			name:        "with_awaiting_inherent_get_runtime_error",
+			relayParent: common.Hash{1},
+			perRP: map[common.Hash]*perRelayParent{
+				{1}: {
+					leaf:            &parachaintypes.ActivatedLeaf{Hash: common.Hash{1}},
+					signedBitfields: []parachaintypes.CheckedSignedAvailabilityBitfield{},
+					isInherentReady: false,
+					awaitingInherent: []chan provisionermessages.ProvisionerInherentData{
+						make(chan provisionermessages.ProvisionerInherentData),
+					},
+				},
+			},
+			mockBlockState: func(ctrl *gomock.Controller) BlockState {
+				bs := NewMockBlockState(ctrl)
+				bs.EXPECT().
+					GetRuntime(gomock.Any()).
+					Return(nil, fmt.Errorf("mock runtime error"))
+				return bs
+			},
+			expectErr: true,
+			validateState: func(t *testing.T, perRP *perRelayParent) {
+				require.True(t, perRP.isInherentReady)
+				require.Empty(t, perRP.awaitingInherent)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			overseerChan := make(chan any)
+			bs := tc.mockBlockState(ctrl)
+			provisioner := New(overseerChan, bs)
+			provisioner.perRelayParent = tc.perRP
+
+			err := provisioner.processAvailableInherent(tc.relayParent)
+			if tc.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			if tc.validateState != nil {
+				perRP := provisioner.perRelayParent[tc.relayParent]
+				tc.validateState(t, perRP)
+			}
+		})
+	}
+}
