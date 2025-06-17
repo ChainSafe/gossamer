@@ -1554,7 +1554,6 @@ func TestRequestInherentData(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
 			msg := provisionermessages.RequestInherentData{
 				RelayParent:             common.Hash{1},
 				ProvisionerInherentData: make(chan provisionermessages.ProvisionerInherentData),
