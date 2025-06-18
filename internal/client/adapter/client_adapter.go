@@ -797,7 +797,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageKeys(
 	return stateAt.Keys(statemachine.IterArgs{
 		Prefix:           prefix,
 		StartAt:          startKey,
-		StartAtExclusive: false, // TODO: check that this is correct
+		StartAtExclusive: true,
 	})
 }
 
@@ -814,7 +814,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoragePairs(
 	return stateAt.Pairs(statemachine.IterArgs{
 		Prefix:           prefix,
 		StartAt:          startKey,
-		StartAtExclusive: false, // TODO: check that this is correct
+		StartAtExclusive: true,
 	})
 }
 
@@ -845,7 +845,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorageKeys(
 	return stateAt.Keys(statemachine.IterArgs{
 		Prefix:           prefix,
 		StartAt:          startKey,
-		StartAtExclusive: false, // TODO: check that this is correct
+		StartAtExclusive: true,
 		ChildInfo:        childInfo,
 	})
 }
