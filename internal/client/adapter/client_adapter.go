@@ -115,7 +115,6 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(
 		return err
 	}
 
-	// TODO: get right state version
 	storageChanges, err := changes.DrainStorageChanges(ca.backend, *storageVersion)
 	if err != nil {
 		return err
@@ -130,7 +129,6 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(
 		},
 	}
 
-	// TODO: should we check the result?
 	_, err = ca.client.ImportBlock(blockImportParams)
 	if err != nil {
 		return err
