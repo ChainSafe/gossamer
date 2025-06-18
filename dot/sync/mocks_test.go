@@ -113,7 +113,7 @@ func (mr *MockStorageStateMockRecorder) Lock() *gomock.Call {
 }
 
 // StoreTrie mocks base method.
-func (m *MockStorageState) StoreTrie(ts *storage.TrieState, header *types.Header) error {
+func (m *MockStorageState) StoreTrie(ts storage.TrieState, header *types.Header) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StoreTrie", ts, header)
 	ret0, _ := ret[0].(error)
@@ -127,10 +127,10 @@ func (mr *MockStorageStateMockRecorder) StoreTrie(ts, header any) *gomock.Call {
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(root *common.Hash) (*storage.TrieState, error) {
+func (m *MockStorageState) TrieState(root *common.Hash) (storage.TrieState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TrieState", root)
-	ret0, _ := ret[0].(*storage.TrieState)
+	ret0, _ := ret[0].(storage.TrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -292,7 +292,7 @@ func (m *MockBlockImportHandler) EXPECT() *MockBlockImportHandlerMockRecorder {
 }
 
 // HandleBlockImport mocks base method.
-func (m *MockBlockImportHandler) HandleBlockImport(block *types.Block, state *storage.TrieState, announce bool) error {
+func (m *MockBlockImportHandler) HandleBlockImport(block *types.Block, state storage.TrieState, announce bool) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleBlockImport", block, state, announce)
 	ret0, _ := ret[0].(error)

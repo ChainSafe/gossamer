@@ -13,8 +13,8 @@ import (
 )
 
 type StorageState interface {
-	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
-	StoreTrie(*rtstorage.TrieState, *types.Header) error
+	TrieState(root *common.Hash) (rtstorage.TrieState, error)
+	StoreTrie(rtstorage.TrieState, *types.Header) error
 
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)

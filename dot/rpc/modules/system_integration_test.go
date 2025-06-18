@@ -27,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -333,7 +334,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 		Header: types.Header{
 			Number:     3,
 			ParentHash: chain.Block.BestBlockHash(),
-			StateRoot:  ts.Trie().MustHash(),
+			StateRoot:  ts.(*storage.InMemoryTrieState).Trie().MustHash(),
 			Digest:     digest,
 		},
 		Body: types.Body{},

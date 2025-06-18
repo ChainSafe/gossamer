@@ -22,7 +22,7 @@ func createTestTrieState(t *testing.T) (trie.Trie, common.Hash) {
 	t.Helper()
 
 	_, genesisTrie, _ := newWestendLocalGenesisWithTrieAndHeader(t)
-	tr := rtstorage.NewTrieState(genesisTrie)
+	tr := rtstorage.NewInMemoryTrieState(genesisTrie)
 
 	err := tr.SetChildStorage([]byte(":child_storage_key"), []byte(":child_first"), []byte(":child_first_value"))
 	require.NoError(t, err)
@@ -33,10 +33,10 @@ func createTestTrieState(t *testing.T) (trie.Trie, common.Hash) {
 	err = tr.SetChildStorage([]byte(":child_storage_key"), []byte(":another_child"), []byte("value"))
 	require.NoError(t, err)
 
-	stateRoot, err := tr.Trie().Hash()
+	stateRoot, err := tr.Root()
 	require.NoError(t, err)
 
-	return tr.Trie(), stateRoot
+	return genesisTrie, stateRoot
 }
 
 func TestChildStateModule_GetKeys(t *testing.T) {

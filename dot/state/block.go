@@ -97,7 +97,7 @@ type BlockState interface {
 
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
-	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
+	HandleRuntimeChanges(newState rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
 
 	CompareAndSetBlockData(bd *types.BlockData) error
 
@@ -946,7 +946,7 @@ func (bs *DefaultBlockState) setArrivalTime(hash common.Hash, arrivalTime time.T
 }
 
 // HandleRuntimeChanges handles the update in runtime.
-func (bs *DefaultBlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
+func (bs *DefaultBlockState) HandleRuntimeChanges(newState rtstorage.TrieState,
 	parentRuntimeInstance runtime.Instance, bHash common.Hash) error {
 	currCodeHash, err := newState.LoadCodeHash()
 	if err != nil {
