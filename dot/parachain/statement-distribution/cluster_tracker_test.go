@@ -4,6 +4,8 @@
 package statementdistribution
 
 import (
+	"cmp"
+	"slices"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -360,6 +362,340 @@ func TestClusterTracker_send_statements(t *testing.T) {
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.NewCompactSeconded(hashA),
 			),
+		)
+	})
+}
+
+func TestClusterTracker_pendingStatementsFor(t *testing.T) {
+	group := []parachaintypes.ValidatorIndex{5, 200, 24, 146}
+	secondingLimit := uint(1)
+	hashA := parachaintypes.CandidateHash{Value: common.Hash{0x1}}
+	hashB := parachaintypes.CandidateHash{Value: common.Hash{0x2}}
+
+	// Test that the `pending_statements` are set whenever we receive a fresh statement.
+	//
+	// Also test that pending statements are sorted, with `Seconded` statements in the front.
+	t.Run("pending_statements_set_when_receiving_fresh_statements", func(t *testing.T) {
+		tracker := newClusterTracker(group, secondingLimit)
+
+		// Receive a 'Seconded' statement for candidate A.
+		require.Equal(
+			t,
+			ok{},
+			tracker.canReceive(
+				parachaintypes.ValidatorIndex(200),
+				parachaintypes.ValidatorIndex(5),
+				parachaintypes.NewCompactSeconded(hashA),
+			),
+		)
+
+		tracker.noteReceived(
+			parachaintypes.ValidatorIndex(200),
+			parachaintypes.ValidatorIndex(5),
+			parachaintypes.NewCompactSeconded(hashA),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(5)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair(nil),
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(200)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(24)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(24)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(146)),
+		)
+
+		// Receive a 'Valid' statement for candidate A.
+
+		// First, send a `Seconded` statement for the candidate.
+		require.Equal(
+			t,
+			ok{},
+			tracker.canSend(
+				parachaintypes.ValidatorIndex(24),
+				parachaintypes.ValidatorIndex(200),
+				parachaintypes.NewCompactSeconded(hashA),
+			),
+		)
+
+		tracker.noteSent(
+			parachaintypes.ValidatorIndex(24),
+			parachaintypes.ValidatorIndex(200),
+			parachaintypes.NewCompactSeconded(hashA),
+		)
+
+		// We have to see that the candidate is known by the sender, e.g. we sent them
+		// 'Seconded' above.
+		require.Equal(
+			t,
+			ok{},
+			tracker.canReceive(
+				parachaintypes.ValidatorIndex(24),
+				parachaintypes.ValidatorIndex(200),
+				parachaintypes.NewCompactValid(hashA),
+			),
+		)
+
+		tracker.noteReceived(
+			parachaintypes.ValidatorIndex(24),
+			parachaintypes.ValidatorIndex(200),
+			parachaintypes.NewCompactValid(hashA),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+				{parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactValid(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(5)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactValid(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(200)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(24)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+				{parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactValid(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(146)),
+		)
+
+		// Receive a 'Seconded' statement for candidate B.
+
+		require.Equal(
+			t,
+			ok{},
+			tracker.canReceive(
+				parachaintypes.ValidatorIndex(5),
+				parachaintypes.ValidatorIndex(146),
+				parachaintypes.NewCompactSeconded(hashB),
+			),
+		)
+
+		tracker.noteReceived(
+			parachaintypes.ValidatorIndex(5),
+			parachaintypes.ValidatorIndex(146),
+			parachaintypes.NewCompactSeconded(hashB),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+				{parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactValid(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(5)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(146), parachaintypes.NewCompactSeconded(hashB)},
+				{parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactValid(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(200)),
+		)
+
+		sorter := func(a, b originatorStatementPair) int { return cmp.Compare(a.validatorIndex, b.validatorIndex) }
+		{
+			pendingStatements := tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(24))
+			slices.SortFunc(pendingStatements, sorter)
+
+			require.Equal(
+				t,
+				[]originatorStatementPair{
+					{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+					{parachaintypes.ValidatorIndex(146), parachaintypes.NewCompactSeconded(hashB)},
+				},
+				pendingStatements,
+			)
+		}
+
+		{
+			pendingStatements := tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(146))
+			slices.SortFunc(pendingStatements, sorter)
+
+			require.Equal(
+				t,
+				[]originatorStatementPair{
+					{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+					{parachaintypes.ValidatorIndex(146), parachaintypes.NewCompactSeconded(hashB)},
+					{parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactValid(hashA)},
+				},
+				pendingStatements,
+			)
+		}
+	})
+
+	// Test that the `pending_statements` are updated when we send or receive statements from others
+	// in the cluster.
+	t.Run("pending_statements_updated_when_sending_statements", func(t *testing.T) {
+		tracker := newClusterTracker(group, secondingLimit)
+
+		// Receive a 'Seconded' statement for candidate A.
+
+		require.Equal(
+			t,
+			ok{},
+			tracker.canReceive(
+				parachaintypes.ValidatorIndex(200),
+				parachaintypes.ValidatorIndex(5),
+				parachaintypes.NewCompactSeconded(hashA),
+			),
+		)
+
+		tracker.noteReceived(
+			parachaintypes.ValidatorIndex(200),
+			parachaintypes.ValidatorIndex(5),
+			parachaintypes.NewCompactSeconded(hashA),
+		)
+
+		// Pending statements should be updated.
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(5)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair(nil),
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(200)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(24)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(146)),
+		)
+
+		// Receive a 'Valid' statement for candidate B.
+
+		// First, send a `Seconded` statement for the candidate.
+		require.Equal(
+			t,
+			ok{},
+			tracker.canSend(
+				parachaintypes.ValidatorIndex(24),
+				parachaintypes.ValidatorIndex(200),
+				parachaintypes.NewCompactSeconded(hashB),
+			),
+		)
+
+		tracker.noteSent(
+			parachaintypes.ValidatorIndex(24),
+			parachaintypes.ValidatorIndex(200),
+			parachaintypes.NewCompactSeconded(hashB),
+		)
+
+		// We have to see the candidate is known by the sender, e.g. we sent them 'Seconded'.
+		require.Equal(
+			t,
+			ok{},
+			tracker.canReceive(
+				parachaintypes.ValidatorIndex(24),
+				parachaintypes.ValidatorIndex(200),
+				parachaintypes.NewCompactValid(hashB),
+			),
+		)
+
+		tracker.noteReceived(
+			parachaintypes.ValidatorIndex(24),
+			parachaintypes.ValidatorIndex(200),
+			parachaintypes.NewCompactValid(hashB),
+		)
+
+		// Pending statements should be updated.
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+				{parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactValid(hashB)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(5)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactValid(hashB)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(200)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(24)),
+		)
+
+		require.Equal(
+			t,
+			[]originatorStatementPair{
+				{parachaintypes.ValidatorIndex(5), parachaintypes.NewCompactSeconded(hashA)},
+				{parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactValid(hashB)},
+			},
+			tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(146)),
 		)
 	})
 }

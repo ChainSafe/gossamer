@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // accept signifies that an incoming statement was accepted.
@@ -470,5 +471,58 @@ func (c *clusterTracker) noteSent(
 
 	if pending, ok := c.pending[target]; ok {
 		pending.remove(originator, statement)
+	}
+}
+
+// pendingStatementsFor returns a slice of pending statements to be sent to a particular validator.
+// `Seconded` statements are sorted to the front of the slice.
+func (c *clusterTracker) pendingStatementsFor(target parachaintypes.ValidatorIndex) []originatorStatementPair {
+	var seconded, valid []originatorStatementPair
+
+	pending, ok := c.pending[target]
+	if !ok {
+		return nil
+	}
+
+	for pair, _ := range pending {
+		switch pair.statement.(type) {
+		case *parachaintypes.CompactSeconded:
+			seconded = append(seconded, pair)
+		case *parachaintypes.CompactValid:
+			valid = append(valid, pair)
+		default:
+			panic("unreachable")
+		}
+	}
+
+	return append(seconded, valid...)
+}
+
+// warnIfTooManyStatements dumps pending statement for this cluster.
+//
+// Normally we should not have pending statements to validators in our cluster,
+// but if we do for all validators in our cluster, then we don't participate
+// in backing. Occasional pending statements are expected if two authorities
+// can't detect each other or after restart, where it takes a while to discover
+// the whole network.
+func (c *clusterTracker) warnIfTooManyStatements(parentHash common.Hash) {
+	count := 0
+	for _, set := range c.pending {
+		if len(set) > 0 {
+			count += 1
+		}
+	}
+
+	numValidators := len(c.validators)
+	if count >= numValidators &&
+		// No reason to warn if we are the only node in the cluster.
+		numValidators > 1 {
+		logger.Warnf(
+			"Cluster has too many pending statements, something wrong with our connection to our group peers "+
+				"Restart might be needed if validator gets 0 backing rewards for more than 3-4 consecutive sessions "+
+				"count=%d parentHash=%s",
+			count,
+			parentHash.String(),
+		)
 	}
 }
