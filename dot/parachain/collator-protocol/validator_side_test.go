@@ -6,6 +6,7 @@ package collatorprotocol
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
@@ -507,4 +508,126 @@ func TestPeerViewChange(t *testing.T) {
 	// advertisement for relay parent {0x01} should be removed
 	_, ok := cpvs.peerData[peer.ID("peer1")].state.CollatingPeerState.advertisements[common.Hash{0x01}]
 	require.False(t, ok)
+}
+
+type testRequestMaker struct {
+	delay time.Duration
+}
+
+func (s *testRequestMaker) Do(peerID peer.ID, message network.Message, responseMessage network.ResponseMessage) error {
+	time.Sleep(s.delay)
+	return nil
+}
+
+func TestRequestCollation_Timeout(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Use the existing MockNetwork
+	mockNet := NewMockNetwork(ctrl)
+
+	// Create a mock RequestMaker that delays
+	mockRequestMaker := &testRequestMaker{
+		delay: 2 * time.Second,
+	}
+
+	// Set up the mock to return our slow RequestMaker
+	mockNet.EXPECT().
+		GetRequestResponseProtocol(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(mockRequestMaker).
+		AnyTimes()
+
+	// Create the validator side with the mock
+	protocolID := "/test/collations/1"
+	subsystemToOverseer := make(chan any, 10)
+
+	cpvs := New(mockNet, protocol.ID(protocolID), subsystemToOverseer, nil, nil)
+
+	// Add a relay parent to pass the view check
+	cpvs.perRelayParent = map[common.Hash]PerRelayParent{
+		{0x01}: {},
+	}
+
+	relayParent := common.Hash{0x01}
+	paraID := parachaintypes.ParaID(123)
+	peerID := peer.ID("test-peer")
+
+	start := time.Now()
+
+	// This should timeout after ~1 second
+	collation, err := cpvs.requestCollation(relayParent, paraID, peerID)
+
+	elapsed := time.Since(start)
+
+	// Verify timeout behavior
+	require.Nil(t, collation)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "timed out")
+	require.Greater(t, elapsed, 900*time.Millisecond)
+	require.Less(t, elapsed, 1200*time.Millisecond)
+}
+
+func TestRequestCollation_Success(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Use the existing MockNetwork
+	mockNet := NewMockNetwork(ctrl)
+
+	// Create a mock RequestMaker that responds quickly
+	mockRequestMaker := &testRequestMaker{
+		delay: 100 * time.Millisecond, // Much less than 1 second
+	}
+
+	// Set up the mock to return our fast RequestMaker
+	mockNet.EXPECT().
+		GetRequestResponseProtocol(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(mockRequestMaker).
+		AnyTimes()
+
+	// Create the validator side with the mock
+	protocolID := "/test/collations/1"
+	subsystemToOverseer := make(chan any, 10)
+
+	cpvs := New(mockNet, protocol.ID(protocolID), subsystemToOverseer, nil, nil)
+
+	// Add a relay parent to pass the view check
+	cpvs.perRelayParent = map[common.Hash]PerRelayParent{
+		{0x01}: {},
+	}
+
+	relayParent := common.Hash{0x01}
+	paraID := parachaintypes.ParaID(123)
+	peerID := peer.ID("test-peer")
+
+	start := time.Now()
+	_, err := cpvs.requestCollation(relayParent, paraID, peerID)
+	elapsed := time.Since(start)
+
+	// Test that it completed quickly (didn't timeout)
+	require.Less(t, elapsed, 500*time.Millisecond, "should complete quickly")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "getting value of collation fetching response")
+	require.NotContains(t, err.Error(), "timed out", "should not be a timeout error")
+}
+
+func TestRequestCollation_OutOfView(t *testing.T) {
+	t.Parallel()
+
+	cpvs := &CollatorProtocolValidatorSide{
+		perRelayParent: map[common.Hash]PerRelayParent{}, // Empty - no relay parents
+	}
+
+	relayParent := common.Hash{0x01}
+	paraID := parachaintypes.ParaID(123)
+	peerID := peer.ID("test-peer")
+
+	collation, err := cpvs.requestCollation(relayParent, paraID, peerID)
+
+	require.Nil(t, collation)
+	require.Equal(t, ErrOutOfView, err)
 }

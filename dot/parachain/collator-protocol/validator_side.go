@@ -373,6 +373,9 @@ func (cpvs *CollatorProtocolValidatorSide) requestCollation(relayParent common.H
 		return nil, ErrOutOfView
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second) // MAX_UNSHARED_DOWNLOAD_TIME
+	defer cancel()
+
 	// make collation fetching request
 	collationFetchingRequest := CollationFetchingRequest{
 		RelayParent: relayParent,
@@ -380,9 +383,20 @@ func (cpvs *CollatorProtocolValidatorSide) requestCollation(relayParent common.H
 	}
 
 	collationFetchingResponse := NewCollationFetchingResponse()
-	err := cpvs.collationFetchingReqResProtocol.Do(peerID, collationFetchingRequest, &collationFetchingResponse)
-	if err != nil {
-		return nil, fmt.Errorf("collation fetching request failed: %w", err)
+
+	done := make(chan error, 1)
+	go func() {
+		err := cpvs.collationFetchingReqResProtocol.Do(peerID, collationFetchingRequest, &collationFetchingResponse)
+		done <- err
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			return nil, fmt.Errorf("collation fetching request failed: %w", err)
+		}
+	case <-ctx.Done():
+		return nil, fmt.Errorf("collation fetching request timed out after 1 second")
 	}
 
 	v, err := collationFetchingResponse.Value()
