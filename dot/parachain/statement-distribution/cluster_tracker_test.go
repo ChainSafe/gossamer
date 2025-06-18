@@ -699,3 +699,52 @@ func TestClusterTracker_pendingStatementsFor(t *testing.T) {
 		)
 	})
 }
+
+func TestClusterTracker_noteIssued(t *testing.T) {
+	group := []parachaintypes.ValidatorIndex{5, 200, 24, 146}
+	hashA := parachaintypes.CandidateHash{Value: common.Hash{0x1}}
+	tracker := newClusterTracker(group, 2)
+
+	// validator 24 knows the seconded statement from validator 200 about hashA
+	tracker.knowledge[parachaintypes.ValidatorIndex(24)] = map[taggedKnowledge]struct{}{
+		incomingP2P{
+			specific{
+				statement: parachaintypes.NewCompactSeconded(hashA),
+				validator: parachaintypes.ValidatorIndex(200),
+			},
+		}: {},
+	}
+
+	tracker.noteIssued(parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactSeconded(hashA))
+
+	require.Equal(
+		t,
+		[]originatorStatementPair{
+			{parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactSeconded(hashA)},
+		},
+		tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(5)),
+	)
+
+	require.Equal(
+		t,
+		[]originatorStatementPair{
+			{parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactSeconded(hashA)},
+		},
+		tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(200)),
+	)
+
+	// pending statement for validator 24 was not added because of preexisting knowledge
+	require.Equal(
+		t,
+		[]originatorStatementPair(nil),
+		tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(24)),
+	)
+
+	require.Equal(
+		t,
+		[]originatorStatementPair{
+			{parachaintypes.ValidatorIndex(200), parachaintypes.NewCompactSeconded(hashA)},
+		},
+		tracker.pendingStatementsFor(parachaintypes.ValidatorIndex(146)),
+	)
+}

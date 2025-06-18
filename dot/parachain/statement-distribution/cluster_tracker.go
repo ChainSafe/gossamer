@@ -375,7 +375,7 @@ func (c *clusterTracker) secondedAlreadyOrWithinLimit(
 
 // targets returns all targets as validator-indices. This doesn't attempt to filter
 // out the local validator index.
-func (c *clusterTracker) targets() []parachaintypes.ValidatorIndex {
+func (c *clusterTracker) targets() []parachaintypes.ValidatorIndex { //nolint:unused
 	return slices.Clone(c.validators)
 }
 
@@ -385,7 +385,7 @@ func (c *clusterTracker) targets() []parachaintypes.ValidatorIndex {
 // note: this API is future-proofing for a case where we may
 // extend clusters beyond just the assigned group, for optimization
 // purposes.
-func (c *clusterTracker) sendersForOriginator(
+func (c *clusterTracker) sendersForOriginator( //nolint:unused
 	originator parachaintypes.ValidatorIndex,
 ) []parachaintypes.ValidatorIndex {
 	if slices.Contains(c.validators, originator) {
@@ -403,6 +403,35 @@ func (c *clusterTracker) knowsCandidate(
 
 	return c.weSentSeconded(validator, candidateHash) || c.theySentSeconded(validator, candidateHash) ||
 		c.validatorSeconded(validator, candidateHash)
+}
+
+// canRequest queries whether a validator can request a candidate from us.
+func (c *clusterTracker) canRequest( //nolint:unused
+	target parachaintypes.ValidatorIndex,
+	candidateHash parachaintypes.CandidateHash,
+) bool {
+	return slices.Contains(c.validators, target) &&
+		c.weSentSeconded(target, candidateHash) &&
+		!c.theySentSeconded(target, candidateHash)
+}
+
+// noteIssued notes that we issued a statement. This updates internal structures.
+func (c *clusterTracker) noteIssued(
+	originator parachaintypes.ValidatorIndex,
+	statement parachaintypes.CompactStatement,
+) {
+	for _, clusterMember := range c.validators {
+		if !c.theyKnowStatement(clusterMember, originator, statement) {
+			// add the statement to pending knowledge for all peers
+			// which don't know the statement.
+			pending, ok := c.pending[clusterMember]
+			if !ok {
+				pending = make(originatorStatementPairSet)
+				c.pending[clusterMember] = pending
+			}
+			pending.insert(originator, statement)
+		}
+	}
 }
 
 func (c *clusterTracker) weSentSeconded(
@@ -434,7 +463,7 @@ func (c *clusterTracker) validatorSeconded(
 // canSend queries whether we can send a statement to a given validator.
 func (c *clusterTracker) canSend(
 	target parachaintypes.ValidatorIndex,
-	originator parachaintypes.ValidatorIndex, //nolint:unparam
+	originator parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
 ) acceptOrRejectOutgoing {
 	if !c.isInGroup(target) || !c.isInGroup(originator) {
@@ -505,7 +534,7 @@ func (c *clusterTracker) pendingStatementsFor(target parachaintypes.ValidatorInd
 		return nil
 	}
 
-	for pair, _ := range pending {
+	for pair := range pending {
 		switch pair.statement.(type) {
 		case *parachaintypes.CompactSeconded:
 			seconded = append(seconded, pair)
@@ -526,7 +555,7 @@ func (c *clusterTracker) pendingStatementsFor(target parachaintypes.ValidatorInd
 // in backing. Occasional pending statements are expected if two authorities
 // can't detect each other or after restart, where it takes a while to discover
 // the whole network.
-func (c *clusterTracker) warnIfTooManyStatements(parentHash common.Hash) {
+func (c *clusterTracker) warnIfTooManyStatements(parentHash common.Hash) { //nolint:unused
 	count := 0
 	for _, set := range c.pending {
 		if len(set) > 0 {
