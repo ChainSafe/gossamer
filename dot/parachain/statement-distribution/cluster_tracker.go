@@ -373,6 +373,27 @@ func (c *clusterTracker) secondedAlreadyOrWithinLimit(
 	return secondedOtherCandidates < c.secondingLimit
 }
 
+// targets returns all targets as validator-indices. This doesn't attempt to filter
+// out the local validator index.
+func (c *clusterTracker) targets() []parachaintypes.ValidatorIndex {
+	return slices.Clone(c.validators)
+}
+
+// sendersForOriginator returns all possible senders for the given originator.
+// Returns the empty slice in the case that the originator
+// is not part of the cluster.
+// note: this API is future-proofing for a case where we may
+// extend clusters beyond just the assigned group, for optimization
+// purposes.
+func (c *clusterTracker) sendersForOriginator(
+	originator parachaintypes.ValidatorIndex,
+) []parachaintypes.ValidatorIndex {
+	if slices.Contains(c.validators, originator) {
+		return slices.Clone(c.validators)
+	}
+	return nil
+}
+
 // knowsCandidate queries whether a validator knows the candidate is `Seconded`.
 func (c *clusterTracker) knowsCandidate(
 	validator parachaintypes.ValidatorIndex,
