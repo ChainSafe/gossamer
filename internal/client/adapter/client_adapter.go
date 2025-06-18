@@ -445,7 +445,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetHighestRoundAndSetID(round,
 
 // GetRoundAndSetID returns the finalised round and setID
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetRoundAndSetID() (uint64, uint64) {
-	round, setID, _ := ca.GetHighestRoundAndSetID() // TODO check this is correct
+	round, setID, _ := ca.GetHighestRoundAndSetID()
 	return round, setID
 }
 
@@ -543,6 +543,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoreTrie(rtstorage.TrieState,
 }
 
 // GetStateRootFromBlock returns the state root of the block with the given hash.
+// Uses the best block hash when called with `nil`.
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
 	var hash H
 
@@ -739,7 +740,10 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) LoadCodeHash(hash *common.Hash
 		return common.Hash{}, err
 	}
 
-	return common.Blake2bHash(code)
+	hasher := *new(Hasher)
+	codeHash := hasher.NewHash(code)
+
+	return common.NewHashFromGeneric(codeHash), nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) RegisterStorageObserver(o state.Observer) {
