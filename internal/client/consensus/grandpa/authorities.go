@@ -664,7 +664,7 @@ func (authSet *AuthoritySet[H, N]) EnactsStandardChange( //skipcq:  RVV-B0001
 	return applied, nil
 }
 
-// delayKind are the inds of delays for pending changes.
+// delayKind are the kinds of delays for pending changes.
 type delayKind interface {
 	isDelayKind()
 }
