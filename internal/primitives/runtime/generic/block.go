@@ -46,38 +46,50 @@ func (id BlockIDNumber[H]) String() string {
 }
 
 // Block is a block.
-type Block[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H], E runtime.Extrinsic] struct {
+type Block[
+	N runtime.Number,
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	E runtime.Extrinsic,
+	Header runtime.Header[N, H],
+] struct {
 	// The block header.
-	header runtime.Header[N, H]
+	header Header
 	// The accompanying extrinsics.
 	extrinsics []E
 }
 
 // Header returns the header.
-func (b Block[N, H, Hasher, E]) Header() runtime.Header[N, H] {
+func (b Block[N, H, Hasher, E, Header]) Header() Header {
 	return b.header
 }
 
 // Extrinsics returns the block extrinsics.
-func (b Block[N, H, Hasher, E]) Extrinsics() []E {
+func (b Block[N, H, Hasher, E, Header]) Extrinsics() []E {
 	return b.extrinsics
 }
 
 // Deconstruct returns both header and extrinsics.
-func (b Block[N, H, Hasher, E]) Deconstruct() (header runtime.Header[N, H], extrinsics []E) {
+func (b Block[N, H, Hasher, E, Header]) Deconstruct() (header Header, extrinsics []E) {
 	return b.Header(), b.Extrinsics()
 }
 
 // Hash returns the block hash.
-func (b Block[N, H, Hasher, E]) Hash() H {
+func (b Block[N, H, Hasher, E, Header]) Hash() H {
 	hasher := *new(Hasher)
 	return hasher.HashEncoded(b.header)
 }
 
 // NewBlock is the constructor for Block.
-func NewBlock[Hasher runtime.Hasher[H], E runtime.Extrinsic, N runtime.Number, H runtime.Hash](
-	header runtime.Header[N, H], extrinsics []E) Block[N, H, Hasher, E] {
-	return Block[N, H, Hasher, E]{
+func NewBlock[
+	Hasher runtime.Hasher[H],
+	E runtime.Extrinsic,
+	N runtime.Number,
+	H runtime.Hash,
+	Header runtime.Header[N, H],
+](
+	header Header, extrinsics []E) Block[N, H, Hasher, E, Header] {
+	return Block[N, H, Hasher, E, Header]{
 		header:     header,
 		extrinsics: extrinsics,
 	}
@@ -88,8 +100,9 @@ type SignedBlock[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
 	E runtime.Extrinsic,
+	Header runtime.Header[N, H],
 ] struct {
-	Block          Block[N, H, Hasher, E]
+	Block          Block[N, H, Hasher, E, Header]
 	Justifications runtime.Justifications
 }
 
@@ -98,15 +111,16 @@ func NewSignedBlock[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
 	E runtime.Extrinsic,
+	Header runtime.Header[N, H],
 ](
-	block Block[N, H, Hasher, E],
+	block Block[N, H, Hasher, E, Header],
 	justifications runtime.Justifications,
-) *SignedBlock[N, H, Hasher, E] {
-	return &SignedBlock[N, H, Hasher, E]{
+) *SignedBlock[N, H, Hasher, E, Header] {
+	return &SignedBlock[N, H, Hasher, E, Header]{
 		Block:          block,
 		Justifications: justifications,
 	}
 }
 
-var _ runtime.Block[uint, hash.H256, runtime.OpaqueExtrinsic] = Block[uint, hash.H256,
-	runtime.BlakeTwo256, runtime.OpaqueExtrinsic]{}
+var _ runtime.Block[hash.H256, uint, runtime.OpaqueExtrinsic, Header[uint, hash.H256, runtime.BlakeTwo256]] = Block[
+	uint, hash.H256, runtime.BlakeTwo256, runtime.OpaqueExtrinsic, Header[uint, hash.H256, runtime.BlakeTwo256]]{}

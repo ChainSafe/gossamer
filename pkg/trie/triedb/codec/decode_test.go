@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hasher"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +29,7 @@ func scaleEncodeByteSlice(t *testing.T, b []byte) (encoded []byte) {
 func Test_Decode(t *testing.T) {
 	t.Parallel()
 
-	hashedValue := runtime.BlakeTwo256{}.Hash([]byte("test"))
+	hashedValue := hasher.Blake2Hasher{}.Hash([]byte("test"))
 
 	testCases := map[string]struct {
 		reader     io.Reader
@@ -153,7 +153,7 @@ func Test_Decode(t *testing.T) {
 func Test_decodeBranch(t *testing.T) {
 	t.Parallel()
 
-	var childHash hash.H256 = runtime.BlakeTwo256{}.Hash([]byte{0})
+	childHash := hasher.Blake2Hasher{}.Hash([]byte{0})
 	scaleEncodedChildHash := scaleEncodeByteSlice(t, childHash.Bytes())
 
 	testCases := map[string]struct {

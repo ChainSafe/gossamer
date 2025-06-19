@@ -33,23 +33,23 @@ func (_m *Client[H, Hasher, N, E, Header]) EXPECT() *Client_Expecter[H, Hasher, 
 }
 
 // Block provides a mock function with given fields: hash
-func (_m *Client[H, Hasher, N, E, Header]) Block(hash H) (*generic.SignedBlock[N, H, Hasher, E], error) {
+func (_m *Client[H, Hasher, N, E, Header]) Block(hash H) (*generic.SignedBlock[N, H, Hasher, E, Header], error) {
 	ret := _m.Called(hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Block")
 	}
 
-	var r0 *generic.SignedBlock[N, H, Hasher, E]
+	var r0 *generic.SignedBlock[N, H, Hasher, E, Header]
 	var r1 error
-	if rf, ok := ret.Get(0).(func(H) (*generic.SignedBlock[N, H, Hasher, E], error)); ok {
+	if rf, ok := ret.Get(0).(func(H) (*generic.SignedBlock[N, H, Hasher, E, Header], error)); ok {
 		return rf(hash)
 	}
-	if rf, ok := ret.Get(0).(func(H) *generic.SignedBlock[N, H, Hasher, E]); ok {
+	if rf, ok := ret.Get(0).(func(H) *generic.SignedBlock[N, H, Hasher, E, Header]); ok {
 		r0 = rf(hash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*generic.SignedBlock[N, H, Hasher, E])
+			r0 = ret.Get(0).(*generic.SignedBlock[N, H, Hasher, E, Header])
 		}
 	}
 
@@ -80,12 +80,12 @@ func (_c *Client_Block_Call[H, Hasher, N, E, Header]) Run(run func(hash H)) *Cli
 	return _c
 }
 
-func (_c *Client_Block_Call[H, Hasher, N, E, Header]) Return(_a0 *generic.SignedBlock[N, H, Hasher, E], _a1 error) *Client_Block_Call[H, Hasher, N, E, Header] {
+func (_c *Client_Block_Call[H, Hasher, N, E, Header]) Return(_a0 *generic.SignedBlock[N, H, Hasher, E, Header], _a1 error) *Client_Block_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *Client_Block_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) (*generic.SignedBlock[N, H, Hasher, E], error)) *Client_Block_Call[H, Hasher, N, E, Header] {
+func (_c *Client_Block_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) (*generic.SignedBlock[N, H, Hasher, E, Header], error)) *Client_Block_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(run)
 	return _c
 }

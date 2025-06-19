@@ -182,7 +182,7 @@ func DecodeGrandpaJustificationVerifyFinalizes[
 	encoded []byte,
 	finalizedTarget HashNumber[Hash, N],
 	setID uint64,
-	voters grandpa.VoterSet[string],
+	voters grandpa.VoterSet[primitives.AuthorityID],
 ) (GrandpaJustification[Hash, N, Header], error) {
 	justification, err := DecodeJustification[Hash, N, Hasher, Header](encoded)
 	if err != nil {
@@ -203,16 +203,16 @@ func DecodeGrandpaJustificationVerifyFinalizes[
 
 // Verify will validate the commit and the votes' ancestry proofs.
 func (j *GrandpaJustification[Hash, N, Header]) Verify(setID uint64, authorities primitives.AuthorityList) error {
-	var weights []grandpa.IDWeight[string]
+	var weights []grandpa.IDWeight[primitives.AuthorityID]
 	for _, authority := range authorities {
-		weight := grandpa.IDWeight[string]{
-			ID:     string(authority.AuthorityID.Bytes()),
+		weight := grandpa.IDWeight[primitives.AuthorityID]{
+			ID:     authority.AuthorityID,
 			Weight: uint64(authority.AuthorityWeight),
 		}
 		weights = append(weights, weight)
 	}
 
-	voters := grandpa.NewVoterSet[string](weights)
+	voters := grandpa.NewVoterSet[primitives.AuthorityID](weights)
 	if voters != nil {
 		err := j.verifyWithVoterSet(setID, *voters)
 		return err
@@ -223,19 +223,19 @@ func (j *GrandpaJustification[Hash, N, Header]) Verify(setID uint64, authorities
 // Validate the commit and the votes' ancestry proofs.
 func (j *GrandpaJustification[Hash, N, Header]) verifyWithVoterSet(
 	setID uint64,
-	voters grandpa.VoterSet[string],
+	voters grandpa.VoterSet[primitives.AuthorityID],
 ) error {
 	ancestryChain := newAncestryChain[Hash, N](j.Justification.VoteAncestries)
-	signedPrecommits := make([]grandpa.SignedPrecommit[Hash, N, string, string], 0)
+	signedPrecommits := make([]grandpa.SignedPrecommit[Hash, N, string, primitives.AuthorityID], 0)
 	for _, pc := range j.Justification.Commit.Precommits {
-		signedPrecommits = append(signedPrecommits, grandpa.SignedPrecommit[Hash, N, string, string]{
+		signedPrecommits = append(signedPrecommits, grandpa.SignedPrecommit[Hash, N, string, primitives.AuthorityID]{
 			Precommit: pc.Precommit,
 			Signature: string(pc.Signature[:]),
-			ID:        string(pc.ID.Bytes()),
+			ID:        (pc.ID),
 		})
 	}
-	commitValidationResult, err := grandpa.ValidateCommit[Hash, N, string, string](
-		grandpa.Commit[Hash, N, string, string]{
+	commitValidationResult, err := grandpa.ValidateCommit[Hash, N, string, primitives.AuthorityID](
+		grandpa.Commit[Hash, N, string, primitives.AuthorityID]{
 			TargetHash:   j.Justification.Commit.TargetHash,
 			TargetNumber: j.Justification.Commit.TargetNumber,
 			Precommits:   signedPrecommits,

@@ -5,7 +5,6 @@ package trie
 
 import (
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/tidwall/btree"
 )
 
@@ -47,7 +46,7 @@ func (sp *StorageProof) Nodes() [][]byte {
 }
 
 // NewMemoryDBFromStorageProof constructs a [MemoryDB] from a [StorageProof]
-func NewMemoryDBFromStorageProof[H runtime.Hash, Hasher runtime.Hasher[H]](sp StorageProof) *MemoryDB[H, Hasher] {
+func NewMemoryDBFromStorageProof[H hashdb.Hash, Hasher hashdb.Hasher[H]](sp StorageProof) *MemoryDB[H, Hasher] {
 	db := NewMemoryDB[H, Hasher]()
 	sp.trieNodes.Scan(func(v string) bool {
 		db.Insert(hashdb.EmptyPrefix, []byte(v))

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hasher"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +16,7 @@ import (
 )
 
 func Test_ByteSize(t *testing.T) {
-	var childHash hash.H256 = runtime.BlakeTwo256{}.Hash([]byte{0})
+	var childHash hash.H256 = hasher.Blake2Hasher{}.Hash([]byte{0})
 	encodedBranch := codec.Branch{
 		PartialKey: nibbles.NewNibbles([]byte{1}),
 		Value:      codec.InlineValue([]byte{7, 8, 9}),
@@ -27,7 +27,7 @@ func Test_ByteSize(t *testing.T) {
 		},
 	}
 
-	cachedNode, err := NewCachedNodeFromNode[hash.H256, runtime.BlakeTwo256](encodedBranch)
+	cachedNode, err := NewCachedNodeFromNode[hash.H256, hasher.Blake2Hasher](encodedBranch)
 	require.NoError(t, err)
 	assert.Equal(t, 308, int(cachedNode.ByteSize()))
 
@@ -40,7 +40,7 @@ func Test_ByteSize(t *testing.T) {
 			codec.HashedNode[hash.H256]{Hash: childHash},
 		},
 	}
-	cachedNode, err = NewCachedNodeFromNode[hash.H256, runtime.BlakeTwo256](encodedBranch)
+	cachedNode, err = NewCachedNodeFromNode[hash.H256, hasher.Blake2Hasher](encodedBranch)
 	require.NoError(t, err)
 	assert.Equal(t, 308+30, int(cachedNode.ByteSize()))
 }

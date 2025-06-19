@@ -6,14 +6,14 @@ package triedb
 import (
 	memorydb "github.com/ChainSafe/gossamer/internal/memory-db"
 	chash "github.com/ChainSafe/gossamer/internal/primitives/core/hash"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hasher"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
 )
 
 func NewMemoryDB() *memorydb.MemoryDB[
-	chash.H256, runtime.BlakeTwo256, chash.H256, memorydb.HashKey[chash.H256]] {
+	chash.H256, hasher.Blake2Hasher, chash.H256, memorydb.HashKey[chash.H256]] {
 	db := memorydb.NewMemoryDB[
-		chash.H256, runtime.BlakeTwo256, chash.H256, memorydb.HashKey[chash.H256],
+		chash.H256, hasher.Blake2Hasher, chash.H256, memorydb.HashKey[chash.H256],
 	]([]byte{0})
 	return &db
 }
