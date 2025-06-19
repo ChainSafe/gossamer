@@ -1495,3 +1495,90 @@ func hashFromU64BE(val uint64) common.Hash {
 	copy(h[common.HashLength-8:], b)
 	return h
 }
+
+func TestRequestInherentData(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name               string
+		perRP              map[common.Hash]*perRelayParent
+		mockBlockState     func(*gomock.Controller) BlockState
+		expectErr          bool
+		expectAwaitInherit bool
+	}{
+		{
+			name:  "unknown_relay_parent",
+			perRP: map[common.Hash]*perRelayParent{},
+			mockBlockState: func(ctrl *gomock.Controller) BlockState {
+				return NewMockBlockState(ctrl)
+			},
+			expectErr: false,
+		},
+		{
+			name: "inherent_not_ready",
+			perRP: map[common.Hash]*perRelayParent{
+				{1}: {
+					leaf:            &parachaintypes.ActivatedLeaf{Hash: common.Hash{1}},
+					isInherentReady: false,
+				},
+			},
+			mockBlockState: func(ctrl *gomock.Controller) BlockState {
+				return NewMockBlockState(ctrl)
+			},
+			expectErr:          false,
+			expectAwaitInherit: true,
+		},
+		{
+			// This case triggers the sendInherentData method which has its own unit test.
+			// To avoid redundant testing, we simulate a GetRuntime error here.
+			name: "inherent_ready",
+			perRP: map[common.Hash]*perRelayParent{
+				{1}: {
+					leaf:            &parachaintypes.ActivatedLeaf{Hash: common.Hash{1}},
+					isInherentReady: true,
+					signedBitfields: []parachaintypes.CheckedSignedAvailabilityBitfield{},
+				},
+			},
+			mockBlockState: func(ctrl *gomock.Controller) BlockState {
+				bs := NewMockBlockState(ctrl)
+				bs.EXPECT().
+					GetRuntime(common.Hash{1}).
+					Return(nil, fmt.Errorf("mock runtime error")).
+					Times(1)
+				return bs
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			msg := provisionermessages.RequestInherentData{
+				RelayParent:             common.Hash{1},
+				ProvisionerInherentData: make(chan provisionermessages.ProvisionerInherentData),
+			}
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			overseerChan := make(chan any)
+			bs := tc.mockBlockState(ctrl)
+			provisioner := New(overseerChan, bs)
+			provisioner.perRelayParent = tc.perRP
+
+			err := provisioner.requestInherentData(msg)
+			if tc.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			if tc.expectAwaitInherit {
+				perRP := provisioner.perRelayParent[msg.RelayParent]
+				require.Len(t, perRP.awaitingInherent, 1)
+				require.Equal(t, msg.ProvisionerInherentData, perRP.awaitingInherent[0])
+			}
+		})
+	}
+}

@@ -94,7 +94,7 @@ func (p *Provisioner) processMessage(msg any) error {
 			logger.Errorf("processing active leaves update signal: %s", err)
 		}
 	case provisionermessages.RequestInherentData:
-		// TODO #4159
+		return p.requestInherentData(msg)
 	case provisionermessages.ProvisionableData:
 		p.processProvisionableData(msg)
 	default:
@@ -102,7 +102,6 @@ func (p *Provisioner) processMessage(msg any) error {
 	}
 
 	return nil
-
 }
 
 func (*Provisioner) Name() parachaintypes.SubSystemName {
@@ -148,6 +147,21 @@ func (p *Provisioner) processProvisionableData(provisionableData provisionermess
 		// via reputation changes. Punitive actions here may become desirable
 		// enough to dedicate time to in the future.
 	}
+}
+
+func (p *Provisioner) requestInherentData(msg provisionermessages.RequestInherentData) error {
+	perRP, exists := p.perRelayParent[msg.RelayParent]
+	if !exists {
+		return nil
+	}
+
+	if !perRP.isInherentReady {
+		perRP.awaitingInherent = append(perRP.awaitingInherent, msg.ProvisionerInherentData)
+		return nil
+	}
+
+	responseSenders := []chan provisionermessages.ProvisionerInherentData{msg.ProvisionerInherentData}
+	return p.sendInherentData(perRP.leaf, perRP.signedBitfields, responseSenders)
 }
 
 func (p *Provisioner) sendInherentData(
@@ -447,6 +461,6 @@ func bitfieldsIndicateAvailability(
 type perRelayParent struct {
 	leaf             *parachaintypes.ActivatedLeaf
 	signedBitfields  []parachaintypes.CheckedSignedAvailabilityBitfield
-	isInherentReady  bool                                               //nolint:unused
-	awaitingInherent []chan provisionermessages.ProvisionerInherentData //nolint:unused
+	isInherentReady  bool
+	awaitingInherent []chan provisionermessages.ProvisionerInherentData
 }
