@@ -30,7 +30,7 @@ type Header = generic.Header[Number, Hash, Hasher]
 
 var currentHasher = Hasher{}
 
-var header = generic.NewHeader[Number, Hash, Hasher](
+var header = *generic.NewHeader[Number, Hash, Hasher](
 	1,
 	hash.NewRandomH256(),
 	hash.NewRandomH256(),
@@ -46,7 +46,7 @@ var extrinsics = []Extrinsic{
 	runtime.OpaqueExtrinsic{Data: []byte("extrinsic2")},
 }
 
-var block = generic.NewBlock[Hasher](header, extrinsics)
+var block = generic.NewBlock[Hasher, Extrinsic, Number, Hash, Header](header, extrinsics)
 var signedBlock = generic.NewSignedBlock(block, runtime.Justifications{})
 
 var blockchainInfo = blockchain.Info[Hash, Number]{
@@ -223,7 +223,7 @@ func TestBlockOps(t *testing.T) {
 		})
 
 		t.Run("best_block_header_ok", func(t *testing.T) {
-			expectedHeader, err := types.NewHeaderFromGeneric[Number, Hash](header)
+			expectedHeader, err := types.NewHeaderFromGeneric(header)
 			require.NoError(t, err)
 
 			header, err := adapter.BestBlockHeader()
@@ -332,7 +332,7 @@ func TestGetBlockByNumber(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, block)
 
-		expectedBlock, err := types.NewBlockFromGeneric(block)
+		expectedBlock, err := types.NewBlockFromGeneric[Number, Hash, Extrinsic](block)
 		require.NoError(t, err)
 
 		require.Equal(t, expectedBlock, returnedBlock)
@@ -492,7 +492,7 @@ func TestGetHighestFinalizedHeader(t *testing.T) {
 		client, _, _, adapter := setupTest(t)
 
 		client.EXPECT().Info().Return(blockchainInfo)
-		client.EXPECT().Header(blockchainInfo.FinalizedHash).Return(header, nil)
+		client.EXPECT().Header(blockchainInfo.FinalizedHash).Return(&header, nil)
 
 		expectedHeader, err := types.NewHeaderFromGeneric(header)
 		require.NoError(t, err)

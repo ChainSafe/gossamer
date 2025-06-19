@@ -6,6 +6,8 @@ import (
 	api "github.com/ChainSafe/gossamer/internal/client/api"
 	blockchain "github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 
+	kv "github.com/ChainSafe/gossamer/internal/primitives/kv"
+
 	mock "github.com/stretchr/testify/mock"
 
 	offchain "github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
@@ -474,7 +476,7 @@ func (_c *Backend_HaveStateAt_Call[H, N, Hasher, Header, E]) RunAndReturn(run fu
 }
 
 // InsertAux provides a mock function with given fields: insert, delete
-func (_m *Backend[H, N, Hasher, Header, E]) InsertAux(insert []api.KeyValue, delete [][]byte) error {
+func (_m *Backend[H, N, Hasher, Header, E]) InsertAux(insert []kv.KeyValue, delete [][]byte) error {
 	ret := _m.Called(insert, delete)
 
 	if len(ret) == 0 {
@@ -482,7 +484,7 @@ func (_m *Backend[H, N, Hasher, Header, E]) InsertAux(insert []api.KeyValue, del
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func([]api.KeyValue, [][]byte) error); ok {
+	if rf, ok := ret.Get(0).(func([]kv.KeyValue, [][]byte) error); ok {
 		r0 = rf(insert, delete)
 	} else {
 		r0 = ret.Error(0)
@@ -497,15 +499,15 @@ type Backend_InsertAux_Call[H runtime.Hash, N runtime.Number, Hasher runtime.Has
 }
 
 // InsertAux is a helper method to define mock.On call
-//   - insert []api.KeyValue
+//   - insert []kv.KeyValue
 //   - delete [][]byte
 func (_e *Backend_Expecter[H, N, Hasher, Header, E]) InsertAux(insert interface{}, delete interface{}) *Backend_InsertAux_Call[H, N, Hasher, Header, E] {
 	return &Backend_InsertAux_Call[H, N, Hasher, Header, E]{Call: _e.mock.On("InsertAux", insert, delete)}
 }
 
-func (_c *Backend_InsertAux_Call[H, N, Hasher, Header, E]) Run(run func(insert []api.KeyValue, delete [][]byte)) *Backend_InsertAux_Call[H, N, Hasher, Header, E] {
+func (_c *Backend_InsertAux_Call[H, N, Hasher, Header, E]) Run(run func(insert []kv.KeyValue, delete [][]byte)) *Backend_InsertAux_Call[H, N, Hasher, Header, E] {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]api.KeyValue), args[1].([][]byte))
+		run(args[0].([]kv.KeyValue), args[1].([][]byte))
 	})
 	return _c
 }
@@ -515,7 +517,7 @@ func (_c *Backend_InsertAux_Call[H, N, Hasher, Header, E]) Return(_a0 error) *Ba
 	return _c
 }
 
-func (_c *Backend_InsertAux_Call[H, N, Hasher, Header, E]) RunAndReturn(run func([]api.KeyValue, [][]byte) error) *Backend_InsertAux_Call[H, N, Hasher, Header, E] {
+func (_c *Backend_InsertAux_Call[H, N, Hasher, Header, E]) RunAndReturn(run func([]kv.KeyValue, [][]byte) error) *Backend_InsertAux_Call[H, N, Hasher, Header, E] {
 	_c.Call.Return(run)
 	return _c
 }
