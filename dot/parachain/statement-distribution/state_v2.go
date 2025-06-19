@@ -18,26 +18,10 @@ type candidatesStore interface {
 	getConfirmed(candidateHash parachaintypes.CandidateHash) (*confirmedCandidate, bool)
 }
 
-type statementStore interface {
-	validatorStatement(stmt originatorStatementPair) *parachaintypes.SignedStatement
-
-	// freshStatementsForBacking provides a list of all statements marked as being
-	// unknown by the backing subsystem. This provides `Seconded` statements prior to `Valid` statements.
-	freshStatementsForBacking(validators []parachaintypes.ValidatorIndex,
-		candidateHash parachaintypes.CandidateHash) []parachaintypes.SignedStatement
-	noteKnownByBacking(parachaintypes.ValidatorIndex, parachaintypes.CompactStatement)
-	fillStatementFilter(parachaintypes.GroupIndex, parachaintypes.CandidateHash, *parachaintypes.StatementFilter)
-	// Get an iterator over stored signed statements by the group conforming to the
-	// given filter.
-	// Seconded statements are provided first.
-	groupStatements(*groups, parachaintypes.GroupIndex, parachaintypes.CandidateHash,
-		*parachaintypes.StatementFilter) []parachaintypes.SignedStatement
-}
-
 // skipcq:SCC-U1000
 type perRelayParentState struct {
 	localValidator       *localValidatorStore
-	statementStore       statementStore // TODO: Use statement store impl
+	statementStore       *statementStore
 	secondingLimit       uint
 	session              parachaintypes.SessionIndex
 	transposedClaimQueue parachaintypes.TransposedClaimQueue

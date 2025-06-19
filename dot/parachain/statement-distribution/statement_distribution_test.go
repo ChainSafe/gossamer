@@ -19,8 +19,6 @@ import (
 
 func TestSendBackingFreshStatements(t *testing.T) {
 	t.Run("should_send_3_statements_to_backing", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-
 		relayParent := common.Hash{0x01}
 		groupIndex := parachaintypes.GroupIndex(0)
 
@@ -35,14 +33,16 @@ func TestSendBackingFreshStatements(t *testing.T) {
 			validators,
 			{3, 4, 5},
 		}
+
+		groups := newGroups(initGroups, 1)
+
 		sessionState := &perSessionState{
-			groups: newGroups(initGroups, 1),
+			groups: groups,
 		}
 
-		stmtStore := NewMockstatementStore(ctrl)
-		stmtStore.EXPECT().
-			freshStatementsForBacking(validators, candidateHash).
-			Return([]parachaintypes.SignedStatement{
+		stmtStore := newStatementStore(groups)
+		{
+			stmts := []parachaintypes.SignedStatement{
 				parachaintypes.SignedStatement(
 					parachaintypes.UncheckedSignedCompactStatement{
 						ValidatorIndex: parachaintypes.ValidatorIndex(0),
@@ -64,17 +64,14 @@ func TestSendBackingFreshStatements(t *testing.T) {
 						Signature:      parachaintypes.ValidatorSignature{0x05, 0x05, 0x05},
 					},
 				),
-			})
+			}
 
-		stmtStore.EXPECT().
-			noteKnownByBacking(parachaintypes.ValidatorIndex(0),
-				parachaintypes.NewCompactSeconded(candidateHash))
-		stmtStore.EXPECT().
-			noteKnownByBacking(parachaintypes.ValidatorIndex(1),
-				parachaintypes.NewCompactValid(candidateHash))
-		stmtStore.EXPECT().
-			noteKnownByBacking(parachaintypes.ValidatorIndex(2),
-				parachaintypes.NewCompactValid(candidateHash))
+			for _, stmt := range stmts {
+				newStmt, err := stmtStore.insert(groups, &stmt, statementOriginRemote)
+				require.NoError(t, err)
+				require.True(t, newStmt)
+			}
+		}
 
 		relayParentState := &perRelayParentState{
 			statementStore: stmtStore,
@@ -152,8 +149,6 @@ func TestSendBackingFreshStatements(t *testing.T) {
 	})
 
 	t.Run("should_fail_when_confirmed_candidate_does_not_match", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-
 		relayParent := common.Hash{0x01}
 		groupIndex := parachaintypes.GroupIndex(0)
 
@@ -162,25 +157,33 @@ func TestSendBackingFreshStatements(t *testing.T) {
 		require.NoError(t, err)
 
 		candidateHash := parachaintypes.CandidateHash{Value: h}
+		groups := newGroups([][]parachaintypes.ValidatorIndex{{0, 1, 2}}, 1)
+
 		sessionState := &perSessionState{
-			groups: newGroups([][]parachaintypes.ValidatorIndex{{0, 1, 2}}, 1),
+			groups: groups,
 		}
 
-		stmtStore := NewMockstatementStore(ctrl)
+		stmtStore := newStatementStore(groups)
 		// returning a compact statement with a candidate hash
 		// that when encoded generates a different encoding from the
 		// confirmed candidate we passed to sendBackingFreshStatements
-		stmtStore.EXPECT().
-			freshStatementsForBacking([]parachaintypes.ValidatorIndex{0, 1, 2}, candidateHash).
-			Return([]parachaintypes.SignedStatement{
-				parachaintypes.SignedStatement(
-					parachaintypes.UncheckedSignedCompactStatement{
-						ValidatorIndex: parachaintypes.ValidatorIndex(0),
-						Payload: *parachaintypes.NewCompactSeconded(
-							parachaintypes.CandidateHash{Value: common.Hash{0xab, 0xab}}).ToEncodable(),
-					},
-				),
-			})
+		freshStmt := parachaintypes.SignedStatement(
+			parachaintypes.UncheckedSignedCompactStatement{
+				ValidatorIndex: parachaintypes.ValidatorIndex(0),
+				Payload: *parachaintypes.NewCompactSeconded(
+					parachaintypes.CandidateHash{Value: common.Hash{0xab, 0xab}}).ToEncodable(),
+			},
+		)
+
+		fp := fingerprint{
+			validator:     parachaintypes.ValidatorIndex(1),
+			kind:          fingerprintKindCompactSeconded,
+			candidateHash: candidateHash,
+		}
+		stmtStore.knownStmts[fp] = &storedStatement{
+			stmt:           &freshStmt,
+			knownByBacking: false,
+		}
 
 		relayParentState := &perRelayParentState{
 			statementStore: stmtStore,
@@ -316,24 +319,27 @@ func TestSendPendingGridMessages(t *testing.T) {
 		peerID := peer.ID("peer-ex")
 		v3 := validationprotocol.ValidationVersionV3
 
-		var f *parachaintypes.StatementFilter
-		stmtStoreMock := NewMockstatementStore(ctrl)
-		stmtStoreMock.EXPECT().
-			fillStatementFilter(
-				parachaintypes.GroupIndex(1),
-				parachaintypes.CandidateHash{Value: common.Hash{0x12}},
-				gomock.AssignableToTypeOf((*parachaintypes.StatementFilter)(nil)),
-			).
-			Do(func(_ parachaintypes.GroupIndex, _ parachaintypes.CandidateHash, filter *parachaintypes.StatementFilter) {
-				require.NoError(t, filter.SecondedInGroup.Set(1, true))
-				f = filter
-			})
+		stmtStore := newStatementStore(gps)
+
+		seconded, err := parachaintypes.NewBitVec([]bool{false, true, false})
+		require.NoError(t, err)
+
+		valid, err := parachaintypes.NewBitVec([]bool{false, false, false})
+		require.NoError(t, err)
+
+		stmtStore.groupStmts[groupAndCandidateHash{
+			groupIdx:      parachaintypes.GroupIndex(1),
+			candidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x12}},
+		}] = &groupStatements{
+			seconded,
+			valid,
+		}
 
 		rpState := &perRelayParentState{
 			localValidator: &localValidatorStore{
 				gridTracker: gt,
 			},
-			statementStore: stmtStoreMock,
+			statementStore: stmtStore,
 		}
 
 		overseer := make(chan any, 1)
@@ -341,7 +347,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 			SubSystemToOverseer: overseer,
 		}
 
-		err := sd.sendPendingGridMessages(rpHash, peerID,
+		err = sd.sendPendingGridMessages(rpHash, peerID,
 			v3, peerValidatorID, gps,
 			rpState, candidatesMock,
 		)
@@ -350,31 +356,27 @@ func TestSendPendingGridMessages(t *testing.T) {
 		require.Len(t, overseer, 1)
 		outgoingMessage := <-overseer
 
-		// building the validation protocol exepected message
-		manifest := validationprotocol.BackedCandidateManifest{
-			RelayParent:        rpHash,
-			CandidateHash:      parachaintypes.CandidateHash{Value: common.Hash{0x12}},
-			GroupIndex:         parachaintypes.GroupIndex(1),
-			ParaID:             parachaintypes.ParaID(10),
-			ParentHeadDataHash: common.Hash(bytes.Repeat([]byte{0xbc}, 32)),
-			StatementKnowledge: *f,
-		}
+		svm, ok := outgoingMessage.(networkbridgemessages.SendValidationMessages)
+		require.True(t, ok)
+		require.Len(t, svm.Messages, 1)
 
-		sdm := validationprotocol.NewStatementDistributionMessage()
-		require.NoError(t, sdm.SetValue(manifest))
+		svmVal, err := svm.Messages[0].ValidationProtocolMessage.Value()
+		require.NoError(t, err)
 
-		expectedMessage := validationprotocol.NewValidationProtocolVDT()
-		require.NoError(t, expectedMessage.SetValue(
-			validationprotocol.StatementDistribution{StatementDistributionMessage: sdm}))
+		sdm, ok := svmVal.(validationprotocol.StatementDistribution)
+		require.True(t, ok)
 
-		require.Equal(t, networkbridgemessages.SendValidationMessages{
-			Messages: []*networkbridgemessages.SendValidationMessage{
-				{
-					To:                        []peer.ID{peerID},
-					ValidationProtocolMessage: expectedMessage,
-				},
-			},
-		}, outgoingMessage)
+		sdmVal, err := sdm.StatementDistributionMessage.Value()
+		require.NoError(t, err)
+
+		bcm, ok := sdmVal.(validationprotocol.BackedCandidateManifest)
+		require.True(t, ok)
+
+		require.Equal(t, rpHash, bcm.RelayParent)
+		require.Equal(t, parachaintypes.CandidateHash{Value: common.Hash{0x12}}, bcm.CandidateHash)
+		require.Equal(t, parachaintypes.GroupIndex(1), bcm.GroupIndex)
+		require.Equal(t, parachaintypes.ParaID(10), bcm.ParaID)
+		require.Equal(t, common.Hash(bytes.Repeat([]byte{0xbc}, 32)), bcm.ParentHeadDataHash)
 	})
 
 	t.Run("pending_full_and_ack_manifest_confirmed", func(t *testing.T) {
@@ -422,37 +424,38 @@ func TestSendPendingGridMessages(t *testing.T) {
 		peerID := peer.ID("peer-ex")
 		v3 := validationprotocol.ValidationVersionV3
 
-		var fstKnowledge *parachaintypes.StatementFilter
-		var sndKnowledge *parachaintypes.StatementFilter
+		stmtStore := newStatementStore(gps)
 
-		stmtStoreMock := NewMockstatementStore(ctrl)
-		stmtStoreMock.EXPECT().
-			fillStatementFilter(
-				parachaintypes.GroupIndex(1),
-				parachaintypes.CandidateHash{Value: common.Hash{0x12}},
-				gomock.AssignableToTypeOf((*parachaintypes.StatementFilter)(nil)),
-			).
-			Do(func(_ parachaintypes.GroupIndex, _ parachaintypes.CandidateHash, filter *parachaintypes.StatementFilter) {
-				require.NoError(t, filter.SecondedInGroup.Set(1, true))
-				fstKnowledge = filter
-			})
+		seconded, err := parachaintypes.NewBitVec([]bool{false, true, false})
+		require.NoError(t, err)
 
-		stmtStoreMock.EXPECT().
-			fillStatementFilter(
-				parachaintypes.GroupIndex(0),
-				parachaintypes.CandidateHash{Value: common.Hash{0xab}},
-				gomock.AssignableToTypeOf((*parachaintypes.StatementFilter)(nil)),
-			).
-			Do(func(_ parachaintypes.GroupIndex, _ parachaintypes.CandidateHash, filter *parachaintypes.StatementFilter) {
-				require.NoError(t, filter.SecondedInGroup.Set(0, true))
-				sndKnowledge = filter
-			})
+		valid, err := parachaintypes.NewBitVec([]bool{false, false, false})
+		require.NoError(t, err)
+
+		stmtStore.groupStmts[groupAndCandidateHash{
+			groupIdx:      parachaintypes.GroupIndex(1),
+			candidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x12}},
+		}] = &groupStatements{
+			seconded,
+			valid,
+		}
+
+		seconded, err = parachaintypes.NewBitVec([]bool{true, false, false})
+		require.NoError(t, err)
+
+		stmtStore.groupStmts[groupAndCandidateHash{
+			groupIdx:      parachaintypes.GroupIndex(0),
+			candidateHash: parachaintypes.CandidateHash{Value: common.Hash{0xab}},
+		}] = &groupStatements{
+			seconded,
+			valid,
+		}
 
 		rpState := &perRelayParentState{
 			localValidator: &localValidatorStore{
 				gridTracker: gt,
 			},
-			statementStore: stmtStoreMock,
+			statementStore: stmtStore,
 		}
 
 		overseer := make(chan any, 1)
@@ -460,7 +463,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 			SubSystemToOverseer: overseer,
 		}
 
-		err := sd.sendPendingGridMessages(rpHash, peerID,
+		err = sd.sendPendingGridMessages(rpHash, peerID,
 			v3, peerValidatorID, gps,
 			rpState, candidatesMock,
 		)
@@ -469,47 +472,51 @@ func TestSendPendingGridMessages(t *testing.T) {
 		require.Equal(t, 1, len(overseer))
 		outgoingMessage := <-overseer
 
-		// building the validation protocol exepected message
-		manifest := validationprotocol.BackedCandidateManifest{
-			RelayParent:        rpHash,
-			CandidateHash:      parachaintypes.CandidateHash{Value: common.Hash{0x12}},
-			GroupIndex:         parachaintypes.GroupIndex(1),
-			ParaID:             parachaintypes.ParaID(10),
-			ParentHeadDataHash: common.Hash(bytes.Repeat([]byte{0xbc}, 32)),
-			StatementKnowledge: *fstKnowledge,
+		svm, ok := outgoingMessage.(networkbridgemessages.SendValidationMessages)
+		require.True(t, ok)
+		require.Len(t, svm.Messages, 2)
+
+		firstSvm, err := svm.Messages[0].ValidationProtocolMessage.Value()
+		require.NoError(t, err)
+
+		firstSdm, ok := firstSvm.(validationprotocol.StatementDistribution)
+		require.True(t, ok)
+
+		firstSdmVal, err := firstSdm.StatementDistributionMessage.Value()
+		require.NoError(t, err)
+
+		secondSvm, err := svm.Messages[1].ValidationProtocolMessage.Value()
+		require.NoError(t, err)
+
+		secondSdm, ok := secondSvm.(validationprotocol.StatementDistribution)
+		require.True(t, ok)
+
+		secondSdmVal, err := secondSdm.StatementDistributionMessage.Value()
+		require.NoError(t, err)
+
+		var bcm validationprotocol.BackedCandidateManifest
+		var bck validationprotocol.BackedCandidateKnown
+
+		// order in svm.Messages is random
+		bcm, ok = firstSdmVal.(validationprotocol.BackedCandidateManifest)
+		if ok {
+			bck, ok = secondSdmVal.(validationprotocol.BackedCandidateKnown)
+			require.True(t, ok)
+		} else {
+			bck, ok = firstSdmVal.(validationprotocol.BackedCandidateKnown)
+			require.True(t, ok)
+
+			bcm, ok = secondSdmVal.(validationprotocol.BackedCandidateManifest)
+			require.True(t, ok)
 		}
 
-		ack := validationprotocol.BackedCandidateKnown{
-			CandidateHash:      parachaintypes.CandidateHash{Value: common.Hash{0xab}},
-			StatementKnowledge: *sndKnowledge,
-		}
+		require.Equal(t, rpHash, bcm.RelayParent)
+		require.Equal(t, parachaintypes.CandidateHash{Value: common.Hash{0x12}}, bcm.CandidateHash)
+		require.Equal(t, parachaintypes.GroupIndex(1), bcm.GroupIndex)
+		require.Equal(t, parachaintypes.ParaID(10), bcm.ParaID)
+		require.Equal(t, common.Hash(bytes.Repeat([]byte{0xbc}, 32)), bcm.ParentHeadDataHash)
 
-		manifestSDM := validationprotocol.NewStatementDistributionMessage()
-		require.NoError(t, manifestSDM.SetValue(manifest))
-
-		ackSDM := validationprotocol.NewStatementDistributionMessage()
-		require.NoError(t, ackSDM.SetValue(ack))
-
-		manifestVPMessage := validationprotocol.NewValidationProtocolVDT()
-		require.NoError(t, manifestVPMessage.SetValue(
-			validationprotocol.StatementDistribution{StatementDistributionMessage: manifestSDM}))
-
-		ackVPMessage := validationprotocol.NewValidationProtocolVDT()
-		require.NoError(t, ackVPMessage.SetValue(
-			validationprotocol.StatementDistribution{StatementDistributionMessage: ackSDM}))
-
-		require.Equal(t, networkbridgemessages.SendValidationMessages{
-			Messages: []*networkbridgemessages.SendValidationMessage{
-				{
-					To:                        []peer.ID{peerID},
-					ValidationProtocolMessage: manifestVPMessage,
-				},
-				{
-					To:                        []peer.ID{peerID},
-					ValidationProtocolMessage: ackVPMessage,
-				},
-			},
-		}, outgoingMessage)
+		require.Equal(t, parachaintypes.CandidateHash{Value: common.Hash{0xab}}, bck.CandidateHash)
 	})
 
 	// TODO: include tests for postAcknowledgementStatementMessages that

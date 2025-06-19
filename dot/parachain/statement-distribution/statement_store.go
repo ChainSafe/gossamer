@@ -82,7 +82,7 @@ type groupAndCandidateHash struct {
 
 // Storage for statements. Intended to be used for statements signed under
 // the same relay-parent.
-type statements struct {
+type statementStore struct {
 	validatorMeta map[parachaintypes.ValidatorIndex]*validatorMeta
 
 	// we keep statements per-group because even though only one group _should_ be
@@ -92,7 +92,7 @@ type statements struct {
 	knownStmts map[fingerprint]*storedStatement
 }
 
-func newStatementStore(groups *groups) *statements {
+func newStatementStore(groups *groups) *statementStore {
 	meta := map[parachaintypes.ValidatorIndex]*validatorMeta{}
 
 	for gIdx, validators := range groups.all() {
@@ -105,7 +105,7 @@ func newStatementStore(groups *groups) *statements {
 		}
 	}
 
-	return &statements{
+	return &statementStore{
 		validatorMeta: meta,
 		groupStmts:    make(map[groupAndCandidateHash]*groupStatements),
 		knownStmts:    make(map[fingerprint]*storedStatement),
@@ -114,11 +114,11 @@ func newStatementStore(groups *groups) *statements {
 
 // Insert adds a statement. Returns true if it was not known already, false if it was.
 // Ignores statements by unknown validators and returns an error.
-func (s *statements) insert(
+func (s *statementStore) insert(
 	groups *groups,
 	statement *parachaintypes.SignedStatement,
 	origin statementOrigin,
-) (bool, error) { //nolint:unparam
+) (bool, error) {
 	validatorIndex := statement.ValidatorIndex
 	validatorMeta, ok := s.validatorMeta[validatorIndex]
 	if !ok {
@@ -195,7 +195,7 @@ func (s *statements) insert(
 }
 
 // fillStatementFilter fills a StatementFilter with all statements already known for the given group and candidate hash.
-func (s *statements) fillStatementFilter( //nolint:unused
+func (s *statementStore) fillStatementFilter(
 	groupIndex parachaintypes.GroupIndex,
 	candidateHash parachaintypes.CandidateHash,
 	statementFilter *parachaintypes.StatementFilter,
@@ -212,7 +212,7 @@ func (s *statements) fillStatementFilter( //nolint:unused
 
 // groupStatements returns all stored signed statements by the group conforming to the given filter.
 // Seconded statements are provided first.
-func (s *statements) groupStatements( //nolint:unused
+func (s *statementStore) groupStatements(
 	groups *groups,
 	groupIndex parachaintypes.GroupIndex,
 	candidateHash parachaintypes.CandidateHash,
@@ -256,7 +256,7 @@ func (s *statements) groupStatements( //nolint:unused
 }
 
 // validatorStatement returns the full statement of this kind issued by this validator, if it is known.
-func (s *statements) validatorStatement( //nolint:unused
+func (s *statementStore) validatorStatement(
 	validatorIndex parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
 ) (*parachaintypes.SignedStatement, bool) {
@@ -277,7 +277,7 @@ func (s *statements) validatorStatement( //nolint:unused
 // freshStatementsForBacking returns all statements for the given candidate hash
 // and validators that are not yet known by backing.
 // Seconded statements are provided before Valid statements.
-func (s *statements) freshStatementsForBacking(
+func (s *statementStore) freshStatementsForBacking(
 	validators []parachaintypes.ValidatorIndex,
 	candidateHash parachaintypes.CandidateHash,
 ) []*parachaintypes.SignedStatement {
@@ -303,7 +303,7 @@ func (s *statements) freshStatementsForBacking(
 }
 
 // secondedCount returns the amount of known Seconded statements by the given validator index.
-func (s *statements) secondedCount( //nolint:unused
+func (s *statementStore) secondedCount( //nolint:unused
 	validatorIndex parachaintypes.ValidatorIndex,
 ) uint {
 	if meta, ok := s.validatorMeta[validatorIndex]; ok {
@@ -313,7 +313,7 @@ func (s *statements) secondedCount( //nolint:unused
 }
 
 // noteKnownByBacking marks a statement as known by the backing subsystem.
-func (s *statements) noteKnownByBacking( //nolint:unused
+func (s *statementStore) noteKnownByBacking(
 	validatorIndex parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
 ) {

@@ -312,7 +312,7 @@ func (s *StatementDistribution) sendBackingFreshStatements(
 			panic(fmt.Sprintf("unexpected error setting Statement VDT: %s", err.Error()))
 		}
 
-		signed, err := compareAndConvert(freshStmt, convertedStmt, withPVD)
+		signed, err := compareAndConvert(*freshStmt, convertedStmt, withPVD)
 		if err != nil {
 			return fmt.Errorf("comparing and converting stmt: %w", err)
 		}
@@ -544,7 +544,7 @@ func localKnowledgeFilter(
 	groupSize int,
 	groupIndex parachaintypes.GroupIndex,
 	candidateHash parachaintypes.CandidateHash,
-	statementStore statementStore,
+	statementStore *statementStore, // Store,
 ) (*parachaintypes.StatementFilter, error) {
 	f, err := parachaintypes.NewStatementFilter(uint(groupSize), false)
 	if err != nil {
@@ -622,7 +622,7 @@ func postAcknowledgementStatementMessages(
 	recipient parachaintypes.ValidatorIndex,
 	rp common.Hash,
 	gridTracker *gridTracker,
-	stmtStore statementStore,
+	stmtStore *statementStore,
 	groups *groups,
 	groupIndex parachaintypes.GroupIndex,
 	candidateHash parachaintypes.CandidateHash,
@@ -648,7 +648,7 @@ func postAcknowledgementStatementMessages(
 			stmtMessage := validationprotocol.NewStatementDistributionMessage()
 			err := stmtMessage.SetValue(validationprotocol.Statement{
 				RelayParent: rp,
-				Compact:     parachaintypes.UncheckedSignedCompactStatement(stmt),
+				Compact:     parachaintypes.UncheckedSignedCompactStatement(*stmt),
 			})
 			if err != nil {
 				panic(fmt.Sprintf("failed while defining enum variant: %s", err.Error()))
@@ -671,14 +671,14 @@ func postAcknowledgementStatementMessages(
 }
 
 func pendingStatementNetworkMessage(
-	stmtStore statementStore,
+	stmtStore *statementStore,
 	rp common.Hash,
 	peerID peer.ID, validationVersion validationprotocol.ValidationVersion,
 	pending originatorStatementPair,
 ) *networkbridgemessages.SendValidationMessage {
 	if validationVersion == validationprotocol.ValidationVersionV3 {
-		signed := stmtStore.validatorStatement(pending)
-		if signed == nil {
+		signed, known := stmtStore.validatorStatement(pending.validatorIndex, pending.statement)
+		if !known || signed == nil {
 			return nil
 		}
 
