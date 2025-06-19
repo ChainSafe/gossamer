@@ -510,7 +510,7 @@ func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) currentSetID(hash H) (gr
 			id, _ := gbi.inner.Storage(hash, storage.StorageKey(k))
 			if id != nil {
 				var setID grandpa.SetID
-				err := scale.Unmarshal(*id, &setID)
+				err := scale.Unmarshal(id, &setID)
 				if err == nil {
 					return setID, nil
 				}
