@@ -94,7 +94,7 @@ func (n *NibbleSlice) Append(v NibbleSlice) {
 	n.len += v.len
 }
 
-// Append a [Partial]. Can be slow (alignement of partial).
+// Append a [Partial]. Can be slow (alignment of partial).
 func (n *NibbleSlice) AppendPartial(p Partial) {
 	if p.First == 1 {
 		n.Push(atLeft(1, p.PaddedNibble))

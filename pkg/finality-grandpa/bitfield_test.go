@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Generate is used by testing/quick to genereate
+// Generate is used by testing/quick to generate
 func (bitfield) Generate(rand *rand.Rand, size int) reflect.Value { //skipcq: GO-W1029
 	n := rand.Int() % size
 	bits := make([]uint64, n)
