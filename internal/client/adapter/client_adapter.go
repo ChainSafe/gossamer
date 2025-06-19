@@ -78,7 +78,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlock() (*types.Block, err
 		return nil, nil
 	}
 
-	return types.NewBlockFromGeneric[N, H, E](signedBlock.Block)
+	return types.NewBlockFromGeneric(signedBlock.Block)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlockHash() common.Hash {
@@ -144,7 +144,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByHash(bhash common.Ha
 		return nil, nil
 	}
 
-	return types.NewBlockFromGeneric[N, H, E](block.Block)
+	return types.NewBlockFromGeneric(block.Block)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByNumber(blockNumber uint) (*types.Block, error) {
@@ -166,7 +166,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByNumber(blockNumber u
 		return nil, nil
 	}
 
-	return types.NewBlockFromGeneric[N, H, E](signedBlock.Block)
+	return types.NewBlockFromGeneric(signedBlock.Block)
 }
 
 // GetFinalisedHeader is unimplemented

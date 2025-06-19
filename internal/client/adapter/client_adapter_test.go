@@ -203,7 +203,7 @@ func TestBlockOps(t *testing.T) {
 		client, _, adapter := setupTest(t)
 
 		t.Run("best_block_ok", func(t *testing.T) {
-			expectedBlock, err := types.NewBlockFromGeneric[Number, Hash, Extrinsic](signedBlock.Block)
+			expectedBlock, err := types.NewBlockFromGeneric(signedBlock.Block)
 			require.NoError(t, err)
 
 			client.EXPECT().Info().Return(blockchainInfo)
@@ -217,7 +217,7 @@ func TestBlockOps(t *testing.T) {
 		})
 
 		t.Run("best_block_header_ok", func(t *testing.T) {
-			expectedHeader, err := types.NewHeaderFromGeneric[Number, Hash](header)
+			expectedHeader, err := types.NewHeaderFromGeneric(header)
 			require.NoError(t, err)
 
 			header, err := adapter.BestBlockHeader()
