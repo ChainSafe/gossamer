@@ -1482,7 +1482,6 @@ func finalizeBlock[
 		}
 	}
 
-	// TODO: do I need to clone this?
 	oldAuthoritySet := authoritySet.Clone()
 
 	var vc voterCommand // closure specific variable checked after LockImportRun
