@@ -249,19 +249,19 @@ func TestSealDigest(t *testing.T) {
 func TestFromGenericDigest(t *testing.T) {
 	digest := runtime.Digest{
 		Logs: []runtime.DigestItem{
-			runtime.NewDigestItem(runtime.Consensus{
+			runtime.DigestItemConsensus{
 				ConsensusEngineID: runtime.ConsensusEngineID{'B', 'E', 'E', 'F'},
 				Bytes:             []byte("test"),
-			}),
-			runtime.NewDigestItem(runtime.Seal{
+			},
+			runtime.DigestItemSeal{
 				ConsensusEngineID: runtime.ConsensusEngineID{'S', 'E', 'A', 'L'},
 				Bytes:             []byte("test"),
-			}),
-			runtime.NewDigestItem(runtime.PreRuntime{
+			},
+			runtime.DigestItemPreRuntime{
 				ConsensusEngineID: runtime.ConsensusEngineID{'B', 'A', 'B', 'E'},
 				Bytes:             []byte("test"),
-			}),
-			runtime.NewDigestItem(runtime.RuntimeEnvironmentUpdated{}),
+			},
+			runtime.DigestItemRuntimeEnvironmentUpdated{},
 		},
 	}
 

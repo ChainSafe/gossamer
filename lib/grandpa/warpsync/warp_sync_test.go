@@ -5,7 +5,6 @@ package warpsync
 
 import (
 	"errors"
-	"log"
 	"math/rand"
 	"slices"
 	"testing"
@@ -43,7 +42,7 @@ func TestDecodeWarpSyncProof(t *testing.T) {
 	// Generated using substrate
 	expected := common.MustHexToBytes(warpSyncProofs.SubstrateWarpSyncProof1)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 
 	var proof WarpSyncProof
@@ -415,22 +414,22 @@ func mapDigest(t *testing.T, digest types.Digest) runtime.Digest {
 
 		switch v := value.(type) {
 		case types.PreRuntimeDigest:
-			newDigest.Push(runtime.NewDigestItem(runtime.PreRuntime{
+			newDigest.Push(runtime.DigestItemPreRuntime{
 				ConsensusEngineID: runtime.ConsensusEngineID(v.ConsensusEngineID),
 				Bytes:             v.Data,
-			}))
+			})
 		case types.ConsensusDigest:
-			newDigest.Push(runtime.NewDigestItem(runtime.Consensus{
+			runtime.NewDigestItemVDT(runtime.DigestItemConsensus{
 				ConsensusEngineID: runtime.ConsensusEngineID(v.ConsensusEngineID),
 				Bytes:             v.Data,
-			}))
+			})
 		case types.SealDigest:
-			newDigest.Push(runtime.NewDigestItem(runtime.Seal{
+			runtime.NewDigestItemVDT(runtime.DigestItemSeal{
 				ConsensusEngineID: runtime.ConsensusEngineID(v.ConsensusEngineID),
 				Bytes:             v.Data,
-			}))
+			})
 		case types.RuntimeEnvironmentUpdated:
-			newDigest.Push(runtime.NewDigestItem(runtime.RuntimeEnvironmentUpdated{}))
+			runtime.NewDigestItemVDT(runtime.DigestItemRuntimeEnvironmentUpdated{})
 		}
 	}
 

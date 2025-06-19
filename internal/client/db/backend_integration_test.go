@@ -22,7 +22,7 @@ func TestBackend_Integration(t *testing.T) {
 		// triggering the issue being eviction of a previously fetched record
 		// from the cache, therefore this test is dependent on the LRU cache
 		// size for header metadata, which is currently set to 5000 elements.
-		backend := NewTestBackend(t, BlocksPruningSome(10000), 10000)
+		backend := newTestBackend(t, BlocksPruningSome(10000), 10000)
 		blockchain := backend.blockchain
 
 		genesis := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))

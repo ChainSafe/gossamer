@@ -732,7 +732,7 @@ func (e *environment[H, N, Hasher, Header, E]) reportEquivocation(
 		currentSetLatestHash = bestBlockHash
 	}
 
-	runtimeAPI := e.Client.RuntimeApi()
+	runtimeAPI := e.Client.RuntimeAPI()
 
 	// generate key ownership proof at that block
 	keyOwnerProof := runtimeAPI.GenerateKeyOwnershipProof(

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
-	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/tidwall/btree"
 )
 
@@ -170,16 +169,4 @@ const (
 	StateVersionV0 StateVersion = iota
 	StateVersionV1
 )
-
 const DefaultStateVersion StateVersion = StateVersionV1
-
-func (svv StateVersion) TrieLayout() trie.TrieLayout {
-	switch svv {
-	case StateVersionV0:
-		return trie.V0
-	case StateVersionV1:
-		return trie.V1
-	default:
-		panic("unreachable")
-	}
-}
