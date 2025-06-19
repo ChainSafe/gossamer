@@ -237,13 +237,7 @@ func blockImportWithAuthoritySetHardForks[
 	chainInfo := client.Info()
 	genesisHash := chainInfo.GenesisHash
 
-	persistentData, err := loadPersistent[H, N](client, genesisHash, 0, func() (primitives.AuthorityList, error) {
-		authorities, err := genesisAuthoritySetProvider.Get()
-		if err != nil {
-			return nil, err
-		}
-		return authorities, nil
-	})
+	persistentData, err := loadPersistent[H, N](client, genesisHash, 0, genesisAuthoritySetProvider.Get)
 	if err != nil {
 		return nil, LinkHalf[H, N, Hasher, Header, E]{}, err
 	}

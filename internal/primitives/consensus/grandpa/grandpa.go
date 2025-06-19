@@ -116,7 +116,7 @@ type ConsensusLog interface {
 // This should be a pure function: i.e. as long as the runtime can interpret
 // the digest type it should return the same result regardless of the current
 // state.
-type ConensusLogScheduledChange[N runtime.Number] ScheduledChange[N]
+type ConsensusLogScheduledChange[N runtime.Number] ScheduledChange[N]
 
 // Force an authority set change.
 //
@@ -152,11 +152,11 @@ type ConsensusLogResume[N runtime.Number] struct {
 	Delay N
 }
 
-func (ConensusLogScheduledChange[N]) isConsensusLog() {}
-func (ConsensusLogForcedChange[N]) isConsensusLog()   {}
-func (ConsensusLogOnDisabled) isConsensusLog()        {}
-func (ConsensusLogPause[N]) isConsensusLog()          {}
-func (ConsensusLogResume[N]) isConsensusLog()         {}
+func (ConsensusLogScheduledChange[N]) isConsensusLog() {}
+func (ConsensusLogForcedChange[N]) isConsensusLog()    {}
+func (ConsensusLogOnDisabled) isConsensusLog()         {}
+func (ConsensusLogPause[N]) isConsensusLog()           {}
+func (ConsensusLogResume[N]) isConsensusLog()          {}
 
 type ConsensusLogVDT[N runtime.Number] struct {
 	inner ConsensusLog
@@ -164,7 +164,7 @@ type ConsensusLogVDT[N runtime.Number] struct {
 
 func (mvdt *ConsensusLogVDT[N]) SetValue(value any) (err error) {
 	switch value := value.(type) {
-	case ConensusLogScheduledChange[N]:
+	case ConsensusLogScheduledChange[N]:
 		mvdt.inner = value
 		return
 	case ConsensusLogForcedChange[N]:
@@ -186,7 +186,7 @@ func (mvdt *ConsensusLogVDT[N]) SetValue(value any) (err error) {
 
 func (mvdt ConsensusLogVDT[N]) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
-	case ConensusLogScheduledChange[N]:
+	case ConsensusLogScheduledChange[N]:
 		return 1, mvdt.inner, nil
 	case ConsensusLogForcedChange[N]:
 		return 2, mvdt.inner, nil
@@ -208,7 +208,7 @@ func (mvdt ConsensusLogVDT[N]) Value() (value any, err error) {
 func (mvdt ConsensusLogVDT[N]) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 1:
-		return ConensusLogScheduledChange[N]{}, nil
+		return ConsensusLogScheduledChange[N]{}, nil
 	case 2:
 		return ConsensusLogForcedChange[N]{}, nil
 	case 3:

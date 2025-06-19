@@ -129,9 +129,7 @@ func newGrandpaBlockImport[
 		setID := hardFork.SetID
 		if setID == SetID(sharedAuthoritySet.SetID()) {
 			authoritySet, unlock := sharedAuthoritySet.inner.DataMut()
-			// authoritySet.mtx.Lock()
 			authoritySet.CurrentAuthorities = hardFork.PendingChange.NextAuthorities
-			// authoritySet.mtx.Unlock()
 			unlock()
 		}
 	}
@@ -183,7 +181,7 @@ func FindScheduledChange[
 	id := runtime.OpaqueDigestItemIDConsensus(grandpa.GrandpaEngineID)
 
 	filterLog := func(log grandpa.ConsensusLog) *grandpa.ScheduledChange[N] {
-		scheduledChange, ok := log.(grandpa.ConensusLogScheduledChange[N])
+		scheduledChange, ok := log.(grandpa.ConsensusLogScheduledChange[N])
 		if !ok {
 			return nil
 		}
@@ -405,10 +403,7 @@ func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) makeAuthoritiesChanges(
 		// with. we use the minimum between the median and the local
 		// best finalized block.
 		bestFinalizedNumber := gbi.inner.Info().FinalizedNumber
-		canonNumber := bestFinalizedNumber
-		if medianLastFinalizedNumber < bestFinalizedNumber {
-			canonNumber = medianLastFinalizedNumber
-		}
+		canonNumber := min(medianLastFinalizedNumber, bestFinalizedNumber)
 		canonHash, err := gbi.inner.Hash(canonNumber)
 		if err != nil {
 			return nil, err
@@ -536,69 +531,66 @@ func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) importState(
 	// Force imported state finality.
 	block.Finalized = true
 	importResult, err := gbi.inner.ImportBlock(block)
-	if err == nil {
-		switch importResult := importResult.(type) {
-		case client_common.ImportResultImported:
-			aux := client_common.ImportedAux(importResult)
-			// We've just imported a new state. We trust the sync module has verified
-			// finality proofs and that the state is correct and final.
-			// So we can read the authority list and set id from the state.
-			gbi.authoritySetHardForksMtx.Lock()
-			gbi.authoritySetHardForks = make(map[H]PendingChange[H, N])
-			gbi.authoritySetHardForksMtx.Unlock()
-			authorities, err := gbi.inner.RuntimeAPI().GrandpaAuthorities(hash)
-			if err != nil {
-				return nil, err
-			}
-			setID, err := gbi.currentSetID(hash)
-			if err != nil {
-				return nil, err
-			}
-			authoritySet, err := NewAuthoritySet[H, N](
-				authorities,
-				uint64(setID),
-				forktree.NewForkTree[H, N, PendingChange[H, N]](),
-				[]PendingChange[H, N]{},
-				AuthoritySetChanges[N]{},
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			locked := gbi.authoritySet.inner.Locked()
-			*locked.MutRef() = authoritySet.Clone()
-			defer locked.Unlock()
-
-			err = updateAuthoritySet(
-				locked.Data(),
-				nil,
-				func(insertions []api.KeyValue) error {
-					return gbi.inner.InsertAux(insertions, nil)
-				},
-			)
-			if err != nil {
-				return nil, err
-			}
-			newSet := newAuthoritySet[H, N]{
-				CanonNumber: number,
-				CanonHash:   hash,
-				SetID:       setID,
-				Authorities: authorities,
-			}
-			gbi.sendVoterCommands <- voterCommandChangeAuthorities[H, N](newSet)
-			return client_common.ImportResultImported(aux), nil
-		case client_common.ImportResultAlreadyInChain,
-			client_common.ImportResultKnownBad,
-			client_common.ImportResultMissingState,
-			client_common.ImportResultUnknownParent:
-			//			Ok(r) => Ok(r),
-			return importResult, nil
-		default:
-			panic("unreachable")
+	if err != nil {
+		return nil, err
+	}
+	switch importResult := importResult.(type) {
+	case client_common.ImportResultImported:
+		aux := client_common.ImportedAux(importResult)
+		// We've just imported a new state. We trust the sync module has verified
+		// finality proofs and that the state is correct and final.
+		// So we can read the authority list and set id from the state.
+		gbi.authoritySetHardForksMtx.Lock()
+		gbi.authoritySetHardForks = make(map[H]PendingChange[H, N])
+		gbi.authoritySetHardForksMtx.Unlock()
+		authorities, err := gbi.inner.RuntimeAPI().GrandpaAuthorities(hash)
+		if err != nil {
+			return nil, err
+		}
+		setID, err := gbi.currentSetID(hash)
+		if err != nil {
+			return nil, err
+		}
+		authoritySet, err := NewAuthoritySet[H, N](
+			authorities,
+			uint64(setID),
+			forktree.NewForkTree[H, N, PendingChange[H, N]](),
+			[]PendingChange[H, N]{},
+			AuthoritySetChanges[N]{},
+		)
+		if err != nil {
+			return nil, err
 		}
 
-	} else {
-		return nil, err
+		locked := gbi.authoritySet.inner.Locked()
+		*locked.MutRef() = authoritySet.Clone()
+		defer locked.Unlock()
+
+		err = updateAuthoritySet(
+			locked.Data(),
+			nil,
+			func(insertions []api.KeyValue) error {
+				return gbi.inner.InsertAux(insertions, nil)
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		newSet := newAuthoritySet[H, N]{
+			CanonNumber: number,
+			CanonHash:   hash,
+			SetID:       setID,
+			Authorities: authorities,
+		}
+		gbi.sendVoterCommands <- voterCommandChangeAuthorities[H, N](newSet)
+		return client_common.ImportResultImported(aux), nil
+	case client_common.ImportResultAlreadyInChain,
+		client_common.ImportResultKnownBad,
+		client_common.ImportResultMissingState,
+		client_common.ImportResultUnknownParent:
+		return importResult, nil
+	default:
+		panic("unreachable")
 	}
 }
 
@@ -712,7 +704,6 @@ func (gbi *GrandpaBlockImport[H, N, Hasher, Header, E]) ImportBlock(
 		importedAux.ClearJustificationRequests = true
 
 	case importAppliedChangesStandard:
-		// this is a standard change, we don't apply it yet, but we will send a
 		// we can't apply this change yet since there are other dependent changes that we
 		// need to apply first, drop any justification that might have been provided with
 		// the block to make sure we request them from `sync` which will ensure they'll be

@@ -47,8 +47,7 @@ func (j Justifications) Get(engineID ConsensusEngineID) *EncodedJustification {
 	return nil
 }
 
-// Return a copy of the encoded justification for the given consensus
-// engine, if it exists.
+// IntoJustification returns the encoded justification for the given consensus engine, if it exists.
 func (j Justifications) IntoJustification(enginedID ConsensusEngineID) *EncodedJustification {
 	for _, justification := range j {
 		if justification.ConsensusEngineID == enginedID {
