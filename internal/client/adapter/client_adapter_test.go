@@ -787,3 +787,345 @@ func TestAddBlock_ImportBlockError(t *testing.T) {
 	err = adapter.AddBlock(block, changes, &storageVersion)
 	require.ErrorIs(t, err, expectedError)
 }
+
+func TestRangeAndRangeInMemory(t *testing.T) {
+	hasher := *new(Hasher)
+	fromHash := common.MustBlake2bHash([]byte("fromHash"))
+	toHash := common.MustBlake2bHash([]byte("toHash"))
+
+	t.Run("no_from_header_metadata", func(t *testing.T) {
+		client, _, _, adapter := setupTest(t)
+
+		expectedError := errors.New("error")
+
+		client.EXPECT().HeaderMetadata(hasher.NewHash(fromHash.ToBytes())).Return(
+			blockchain.CachedHeaderMetadata[Hash, Number]{},
+			expectedError,
+		)
+
+		resRange, errRange := adapter.Range(fromHash, toHash)
+		resRangeInMemory, errRangeInMemory := adapter.RangeInMemory(fromHash, toHash)
+
+		require.Equal(t, resRange, resRangeInMemory)
+		require.Equal(t, errRange, errRangeInMemory)
+		require.Error(t, errRange)
+		require.Equal(t, expectedError, errRange)
+	})
+
+	t.Run("no_to_header_metadata", func(t *testing.T) {
+		client, _, _, adapter := setupTest(t)
+
+		fromMeta := blockchain.CachedHeaderMetadata[Hash, Number]{
+			Hash:      hasher.NewHash(fromHash.ToBytes()),
+			Number:    Number(100),
+			Parent:    hasher.Hash([]byte("fromParent")),
+			StateRoot: hasher.Hash([]byte("fromStateRoot")),
+		}
+		client.EXPECT().HeaderMetadata(hasher.NewHash(fromHash.ToBytes())).Return(fromMeta, nil)
+
+		expectedError := errors.New("error")
+		client.EXPECT().HeaderMetadata(hasher.NewHash(toHash.ToBytes())).Return(
+			blockchain.CachedHeaderMetadata[Hash, Number]{},
+			expectedError,
+		)
+
+		resRange, errRange := adapter.Range(fromHash, toHash)
+		resRangeInMemory, errRangeInMemory := adapter.RangeInMemory(fromHash, toHash)
+
+		require.Equal(t, resRange, resRangeInMemory)
+		require.Equal(t, errRange, errRangeInMemory)
+		require.Error(t, errRange)
+		require.Equal(t, expectedError, errRange)
+	})
+
+	t.Run("ok_same_block", func(t *testing.T) {
+		client, _, _, adapter := setupTest(t)
+
+		sameMeta := blockchain.CachedHeaderMetadata[Hash, Number]{
+			Hash:      hasher.NewHash(fromHash.ToBytes()),
+			Number:    Number(100),
+			Parent:    hasher.Hash([]byte("parent")),
+			StateRoot: hasher.Hash([]byte("stateRoot")),
+		}
+
+		client.EXPECT().HeaderMetadata(hasher.NewHash(fromHash.ToBytes())).Return(sameMeta, nil)
+
+		resRange, errRange := adapter.Range(fromHash, fromHash)
+		resRangeInMemory, errRangeInMemory := adapter.RangeInMemory(fromHash, fromHash)
+
+		require.Equal(t, resRange, resRangeInMemory)
+		require.Equal(t, errRange, errRangeInMemory)
+		require.NoError(t, errRange)
+		require.Len(t, resRange, 1)
+		require.Equal(t, common.NewHashFromGeneric(hasher.NewHash(fromHash.ToBytes())), resRange[0])
+	})
+
+	t.Run("ok", func(t *testing.T) {
+		client, _, _, adapter := setupTest(t)
+
+		fromMeta := blockchain.CachedHeaderMetadata[Hash, Number]{
+			Hash:      hasher.NewHash(fromHash.ToBytes()),
+			Number:    Number(100),
+			Parent:    hasher.Hash([]byte("fromParent")),
+			StateRoot: hasher.Hash([]byte("fromStateRoot")),
+		}
+		client.EXPECT().HeaderMetadata(hasher.NewHash(fromHash.ToBytes())).Return(fromMeta, nil)
+
+		toMeta1 := blockchain.CachedHeaderMetadata[Hash, Number]{
+			Hash:      hasher.NewHash(toHash.ToBytes()),
+			Number:    Number(102),
+			Parent:    hasher.Hash([]byte("toParent")),
+			StateRoot: hasher.Hash([]byte("toStateRoot")),
+		}
+		client.EXPECT().HeaderMetadata(hasher.NewHash(toHash.ToBytes())).Return(toMeta1, nil)
+
+		toMeta2 := blockchain.CachedHeaderMetadata[Hash, Number]{
+			Hash:      hasher.Hash([]byte("toParent")),
+			Number:    Number(101),
+			Parent:    hasher.NewHash(fromHash.ToBytes()),
+			StateRoot: hasher.Hash([]byte("toParentStateRoot")),
+		}
+		client.EXPECT().HeaderMetadata(hasher.Hash([]byte("toParent"))).Return(toMeta2, nil)
+
+		resRange, errRange := adapter.Range(fromHash, toHash)
+		resRangeInMemory, errRangeInMemory := adapter.RangeInMemory(fromHash, toHash)
+
+		require.Equal(t, resRange, resRangeInMemory)
+		require.Equal(t, errRange, errRangeInMemory)
+		require.NoError(t, errRange)
+		require.Len(t, resRange, 3)
+
+		// from -> mid -> to
+		expectedHashes := []common.Hash{
+			common.NewHashFromGeneric(hasher.NewHash(fromHash.ToBytes())),
+			common.NewHashFromGeneric(hasher.Hash([]byte("toParent"))),
+			common.NewHashFromGeneric(hasher.NewHash(toHash.ToBytes())),
+		}
+		require.Equal(t, expectedHashes, resRange)
+	})
+}
+
+func TestLowestCommonAncestor(t *testing.T) {
+	hasher := *new(Hasher)
+	hashA := common.MustBlake2bHash([]byte("hashA"))
+	hashB := common.MustBlake2bHash([]byte("hashB"))
+
+	t.Run("no_header_A_metadata", func(t *testing.T) {
+		client, _, _, adapter := setupTest(t)
+
+		expectedError := errors.New("error")
+		client.EXPECT().HeaderMetadata(hasher.NewHash(hashA.ToBytes())).Return(
+			blockchain.CachedHeaderMetadata[Hash, Number]{},
+			expectedError,
+		)
+
+		_, err := adapter.LowestCommonAncestor(hashA, hashB)
+		require.Error(t, err)
+		require.Equal(t, expectedError, err)
+	})
+
+	t.Run("no_header_B_metadata", func(t *testing.T) {
+		client, _, _, adapter := setupTest(t)
+
+		header1 := blockchain.CachedHeaderMetadata[Hash, Number]{
+			Hash:      hasher.NewHash(hashA.ToBytes()),
+			Number:    Number(101),
+			Parent:    hasher.Hash([]byte("parentA")),
+			StateRoot: hasher.Hash([]byte("stateRoot1")),
+		}
+		client.EXPECT().HeaderMetadata(hasher.NewHash(hashA.ToBytes())).Return(header1, nil)
+
+		expectedError := errors.New("error")
+		client.EXPECT().HeaderMetadata(hasher.NewHash(hashB.ToBytes())).Return(
+			blockchain.CachedHeaderMetadata[Hash, Number]{},
+			expectedError,
+		)
+
+		_, err := adapter.LowestCommonAncestor(hashA, hashB)
+		require.Error(t, err)
+		require.Equal(t, expectedError, err)
+	})
+
+	t.Run("ok_same_block", func(t *testing.T) {
+		client, _, _, adapter := setupTest(t)
+
+		sameHeader := blockchain.CachedHeaderMetadata[Hash, Number]{
+			Hash:      hasher.NewHash(hashA.ToBytes()),
+			Number:    Number(100),
+			Parent:    hasher.Hash([]byte("parent")),
+			StateRoot: hasher.Hash([]byte("stateRoot")),
+		}
+
+		client.EXPECT().HeaderMetadata(hasher.NewHash(hashA.ToBytes())).Return(sameHeader, nil)
+
+		result, err := adapter.LowestCommonAncestor(hashA, hashA)
+		require.NoError(t, err)
+		require.Equal(t, hashA, result)
+	})
+
+	t.Run("ok_common_ancestor", func(t *testing.T) {
+		client, _, _, adapter := setupTest(t)
+
+		commonAncestorHash := hasher.Hash([]byte("commonAncestor"))
+
+		// left branch
+		headerA := blockchain.CachedHeaderMetadata[Hash, Number]{
+			Hash:      hasher.NewHash(hashA.ToBytes()),
+			Number:    Number(102),
+			Parent:    hasher.Hash([]byte("parentA")),
+			StateRoot: hasher.Hash([]byte("stateRootA")),
+		}
+		client.EXPECT().HeaderMetadata(hasher.NewHash(hashA.ToBytes())).Return(headerA, nil)
+
+		// right branch
+		headerB := blockchain.CachedHeaderMetadata[Hash, Number]{
+			Hash:      hasher.NewHash(hashB.ToBytes()),
+			Number:    Number(102),
+			Parent:    hasher.Hash([]byte("parentB")),
+			StateRoot: hasher.Hash([]byte("stateRootB")),
+		}
+		client.EXPECT().HeaderMetadata(hasher.NewHash(hashB.ToBytes())).Return(headerB, nil)
+
+		// common ancestor
+		commonAncestor := blockchain.CachedHeaderMetadata[Hash, Number]{
+			Hash:      commonAncestorHash,
+			Number:    Number(100),
+			Parent:    hasher.Hash([]byte("grandParent")),
+			StateRoot: hasher.Hash([]byte("commonStateRoot")),
+		}
+
+		client.EXPECT().HeaderMetadata(hasher.Hash([]byte("parentA"))).Return(commonAncestor, nil)
+		client.EXPECT().HeaderMetadata(hasher.Hash([]byte("parentB"))).Return(commonAncestor, nil)
+
+		client.EXPECT().InsertHeaderMetadata(mock.Anything, mock.Anything)
+
+		result, err := adapter.LowestCommonAncestor(hashA, hashB)
+		require.NoError(t, err)
+		require.Equal(t, common.NewHashFromGeneric(commonAncestorHash), result)
+	})
+}
+
+func TestIsDescendantOf(t *testing.T) {
+	hasher := *new(Hasher)
+	parentHash := common.MustBlake2bHash([]byte("parent"))
+	childHash := common.MustBlake2bHash([]byte("child"))
+
+	t.Run("same_hash_returns_false", func(t *testing.T) {
+		_, _, _, adapter := setupTest(t)
+
+		result, err := adapter.IsDescendantOf(parentHash, parentHash)
+		require.NoError(t, err)
+		require.False(t, result)
+	})
+
+	t.Run("ok", func(t *testing.T) {
+		client, _, _, adapter := setupTest(t)
+
+		parentHash := hasher.NewHash(parentHash.ToBytes())
+		childHash := hasher.NewHash(childHash.ToBytes())
+
+		childHeader := generic.NewHeader[Number, Hash, Hasher](
+			Number(101),
+			childHash,
+			hasher.Hash([]byte("childStateRoot")),
+			parentHash,
+			runtime.Digest{},
+		)
+
+		childCachedHeader := blockchain.NewCachedHeaderMetadata(childHeader)
+		client.EXPECT().HeaderMetadata(childHash).Return(childCachedHeader, nil)
+
+		result, err := adapter.IsDescendantOf(common.NewHashFromGeneric(parentHash), common.NewHashFromGeneric(childHash))
+		require.NoError(t, err)
+		require.True(t, result)
+	})
+
+	t.Run("ok_long_chain", func(t *testing.T) {
+		client, _, _, adapter := setupTest(t)
+
+		parentHash := hasher.NewHash(parentHash.ToBytes())
+		childHash := hasher.NewHash(childHash.ToBytes())
+
+		grandParentHeader := generic.NewHeader[Number, Hash, Hasher](
+			Number(99),
+			hasher.NewHash([]byte("grandParentHash")),
+			hasher.Hash([]byte("grandParentStateRoot")),
+			hasher.Hash([]byte("greatGrandParent")),
+			runtime.Digest{},
+		)
+
+		parentHeader := generic.NewHeader[Number, Hash, Hasher](
+			Number(100),
+			parentHash,
+			hasher.Hash([]byte("parentStateRoot")),
+			grandParentHeader.Hash(),
+			runtime.Digest{},
+		)
+		parentCachedHeader := blockchain.NewCachedHeaderMetadata(parentHeader)
+		client.EXPECT().HeaderMetadata(parentHeader.Hash()).Return(parentCachedHeader, nil)
+
+		intermediateHeader := generic.NewHeader[Number, Hash, Hasher](
+			Number(101),
+			hasher.NewHash([]byte("intermediateHash")),
+			hasher.Hash([]byte("intermediateStateRoot")),
+			parentHeader.Hash(),
+			runtime.Digest{},
+		)
+		intermediateCachedHeader := blockchain.NewCachedHeaderMetadata(intermediateHeader)
+		client.EXPECT().HeaderMetadata(intermediateHeader.Hash()).Return(intermediateCachedHeader, nil)
+
+		childHeader := generic.NewHeader[Number, Hash, Hasher](
+			Number(102),
+			childHash,
+			hasher.Hash([]byte("childStateRoot")),
+			intermediateHeader.Hash(),
+			runtime.Digest{},
+		)
+
+		childCachedHeader := blockchain.NewCachedHeaderMetadata(childHeader)
+		client.EXPECT().HeaderMetadata(childHeader.Hash()).Return(childCachedHeader, nil)
+
+		client.EXPECT().InsertHeaderMetadata(mock.Anything, mock.Anything)
+
+		result, err := adapter.IsDescendantOf(
+			common.NewHashFromGeneric(parentHeader.Hash()),
+			common.NewHashFromGeneric(childHeader.Hash()),
+		)
+		require.NoError(t, err)
+		require.True(t, result)
+	})
+
+	t.Run("child_is_not_ancestor_of_parent", func(t *testing.T) {
+		client, _, _, adapter := setupTest(t)
+
+		parentHash := hasher.NewHash(parentHash.ToBytes())
+		childHash := hasher.NewHash(childHash.ToBytes())
+
+		parentHeader := generic.NewHeader[Number, Hash, Hasher](
+			Number(100),
+			parentHash,
+			hasher.Hash([]byte("parentStateRoot")),
+			hasher.NewHash([]byte("grandParent")),
+			runtime.Digest{},
+		)
+		parentCachedHeader := blockchain.NewCachedHeaderMetadata(parentHeader)
+		client.EXPECT().HeaderMetadata(parentHeader.Hash()).Return(parentCachedHeader, nil)
+
+		childHeader := generic.NewHeader[Number, Hash, Hasher](
+			Number(101),
+			childHash,
+			hasher.Hash([]byte("childStateRoot")),
+			parentHeader.Hash(),
+			runtime.Digest{},
+		)
+		childCachedHeader := blockchain.NewCachedHeaderMetadata(childHeader)
+		client.EXPECT().HeaderMetadata(childHeader.Hash()).Return(childCachedHeader, nil)
+
+		result, err := adapter.IsDescendantOf(
+			common.NewHashFromGeneric(childHeader.Hash()),
+			common.NewHashFromGeneric(parentHeader.Hash()),
+		)
+		require.NoError(t, err)
+		require.False(t, result)
+	})
+}
