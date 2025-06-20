@@ -5,19 +5,29 @@ package adapter
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	client_consensus_common "github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	primitives_consensus_common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rt "github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
+
+var ErrMissingOverlayedChanges = errors.New("missing overlayed changes")
+var ErrMissingStorageVersion = errors.New("missing storage version")
 
 type ClientAdapterDB interface {
 	Get(key []byte) (value []byte, err error)
@@ -34,8 +44,13 @@ type Client[
 	blockchain.HeaderBackend[H, N, Header]
 	blockchain.BlockBackend[H, N, Header, Hasher, E]
 	blockchain.Backend[H, N, Header, E]
+	client_consensus_common.BlockImport[H, N, E, Header]
 
 	CompareAndSetBlockData(bd *types.BlockData) error
+}
+
+type Backend[H runtime.Hash, Hasher runtime.Hasher[H]] interface {
+	statemachine.Backend[H, Hasher]
 }
 
 type ClientAdapter[
@@ -45,8 +60,9 @@ type ClientAdapter[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 ] struct {
-	client Client[H, Hasher, N, E, Header]
-	db     ClientAdapterDB
+	backend Backend[H, Hasher]
+	client  Client[H, Hasher, N, E, Header]
+	db      ClientAdapterDB
 }
 
 func NewClientAdapter[
@@ -55,12 +71,68 @@ func NewClientAdapter[
 	N runtime.Number,
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
-](client Client[H, Hasher, N, E, Header], db ClientAdapterDB) *ClientAdapter[H, Hasher, N, E, Header] {
-	return &ClientAdapter[H, Hasher, N, E, Header]{client: client, db: db}
+](
+	client Client[H, Hasher, N, E, Header],
+	db ClientAdapterDB,
+	backend Backend[H, Hasher],
+) *ClientAdapter[H, Hasher, N, E, Header] {
+	return &ClientAdapter[H, Hasher, N, E, Header]{client: client, db: db, backend: backend}
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(*types.Block) error {
-	panic("unimplemented")
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(
+	block *types.Block,
+	changes *overlayedchanges.OverlayedChanges[H, Hasher],
+	storageVersion *storage.StateVersion,
+) error {
+	if changes == nil {
+		return ErrMissingOverlayedChanges
+	}
+	if storageVersion == nil {
+		return ErrMissingStorageVersion
+	}
+	// Convert old header into generic one
+	encodedHeader, err := scale.Marshal(block.Header)
+	if err != nil {
+		return err
+	}
+	genericHeader := *new(Header)
+	err = scale.Unmarshal(encodedHeader, &genericHeader)
+	if err != nil {
+		return err
+	}
+
+	// Convert old extrinsics into generic ones
+	encodedExtrinsics, err := scale.Marshal(block.Body)
+	if err != nil {
+		return err
+	}
+
+	var extrinsics []E
+	err = scale.Unmarshal(encodedExtrinsics, &extrinsics)
+	if err != nil {
+		return err
+	}
+
+	storageChanges, err := changes.DrainStorageChanges(ca.backend, *storageVersion)
+	if err != nil {
+		return err
+	}
+
+	blockImportParams := &client_consensus_common.BlockImportParams[H, N, E, Header]{
+		Origin: primitives_consensus_common.NetworkInitialSyncBlockOrigin,
+		Header: genericHeader,
+		Body:   extrinsics,
+		StateAction: client_consensus_common.StateActionApplyChanges{
+			StorageChanges: client_consensus_common.Changes[H, Hasher](storageChanges),
+		},
+	}
+
+	_, err = ca.client.ImportBlock(blockImportParams)
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlockWithArrivalTime(block *types.Block,

@@ -8,7 +8,7 @@ import (
 
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
-	"github.com/ChainSafe/gossamer/internal/primitives/core/hashing"
+	"github.com/ChainSafe/gossamer/internal/primitives/crypto/hashing"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +21,7 @@ var (
 type Keccak256 struct{}
 
 // Produce the hash of some byte-slice.
-func (k256 Keccak256) Hash(s []byte) hash.H256 {
+func (Keccak256) Hash(s []byte) hash.H256 {
 	h := hashing.Keccak256(s)
 	return hash.H256(h[:])
 }
@@ -67,9 +67,9 @@ func TestMemoryDB_Consolidate(t *testing.T) {
 
 	main.Consolidate(&other)
 
-	assert.Equal(t, &dataRC{[]byte("doggo"), 0}, main.raw(removeKey, hashdb.EmptyPrefix))
-	assert.Equal(t, &dataRC{[]byte("arf"), 2}, main.raw(insertKey, hashdb.EmptyPrefix))
-	assert.Equal(t, &dataRC{[]byte("negative"), -2}, main.raw(negativeRemoveKey, hashdb.EmptyPrefix))
+	assert.Equal(t, &DataRC{[]byte("doggo"), 0}, main.raw(removeKey, hashdb.EmptyPrefix))
+	assert.Equal(t, &DataRC{[]byte("arf"), 2}, main.raw(insertKey, hashdb.EmptyPrefix))
+	assert.Equal(t, &DataRC{[]byte("negative"), -2}, main.raw(negativeRemoveKey, hashdb.EmptyPrefix))
 }
 
 func TestMemoryDB_DefaultWorks(t *testing.T) {

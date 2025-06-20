@@ -50,7 +50,7 @@ func (ImportResultMissingState) isImportResult()   {}
 type BlockImport[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] interface {
 	// Check block preconditions.
 	CheckBlock(block BlockCheckParams[H, N]) (ImportResult, error)
-	/// Import a block.
+	// Import a block.
 	ImportBlock(block *BlockImportParams[H, N, E, Header]) (ImportResult, error)
 }
 
@@ -123,13 +123,13 @@ type ForkChoiceStrategy interface {
 
 type (
 	// Longest chain fork choice.
-	LongestChain struct{}
+	ForkChoiceStrategyLongestChain struct{}
 	// Custom fork choice rule, where true indicates the new block should be the best block.
-	Custom bool
+	ForkChoiceStrategyCustom bool
 )
 
-func (LongestChain) isForkChoiceStrategy() {}
-func (Custom) isForkChoiceStrategy()       {}
+func (ForkChoiceStrategyLongestChain) isForkChoiceStrategy() {}
+func (ForkChoiceStrategyCustom) isForkChoiceStrategy()       {}
 
 // Data required to import a Block.
 type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {

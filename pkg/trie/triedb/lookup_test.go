@@ -8,8 +8,7 @@ import (
 
 	memorydb "github.com/ChainSafe/gossamer/internal/memory-db"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hasher"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,10 +17,10 @@ import (
 func TestTrieDB_Lookup(t *testing.T) {
 	t.Run("root_not_exists_in_db", func(t *testing.T) {
 		db := memorydb.NewMemoryDB[
-			hash.H256, runtime.BlakeTwo256, hash.H256, memorydb.HashKey[hash.H256],
+			hash.H256, hasher.Blake2Hasher, hash.H256, memorydb.HashKey[hash.H256],
 		]([]byte("not0"))
-		empty := runtime.BlakeTwo256{}.Hash([]byte{0})
-		lookup := NewTrieLookup[hash.H256, runtime.BlakeTwo256, []byte](&db, empty, nil, nil, nil)
+		empty := hasher.Blake2Hasher{}.Hash([]byte{0})
+		lookup := NewTrieLookup[hash.H256, hasher.Blake2Hasher, []byte](&db, empty, nil, nil, layoutV0{}, nil)
 
 		value, err := lookup.Lookup([]byte("test"))
 		assert.Nil(t, value)
@@ -43,11 +42,10 @@ func (*trieCacheImpl) GetNode(hash hash.H256) CachedNode[hash.H256] { return nil
 func Test_TrieLookup_lookupValueWithCache(t *testing.T) {
 	cache := &trieCacheImpl{}
 	inmemoryDB := NewMemoryDB()
-	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
-		inmemoryDB,
-		WithCache[hash.H256, runtime.BlakeTwo256](cache),
+	trieDB := NewEmptyTrieDB[hash.H256, hasher.Blake2Hasher](
+		inmemoryDB, layoutV1{},
+		WithCache[hash.H256, hasher.Blake2Hasher](cache),
 	)
-	trieDB.SetVersion(trie.V1)
 
 	entries := map[string][]byte{
 		"no":           make([]byte, 1),
@@ -66,11 +64,12 @@ func Test_TrieLookup_lookupValueWithCache(t *testing.T) {
 	err := trieDB.commit()
 	require.NoError(t, err)
 
-	lookup := NewTrieLookup[hash.H256, runtime.BlakeTwo256](
+	lookup := NewTrieLookup[hash.H256, hasher.Blake2Hasher](
 		inmemoryDB,
 		trieDB.rootHash,
 		cache,
 		nil,
+		layoutV1{},
 		func(data []byte) []byte {
 			return data
 		},

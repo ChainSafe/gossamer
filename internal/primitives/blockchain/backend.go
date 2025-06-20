@@ -107,7 +107,7 @@ type BlockBackend[
 	BlockIndexedBody(hash H) ([][]byte, error)
 
 	// Block gets the full block by hash.
-	Block(hash H) (*generic.SignedBlock[N, H, Hasher, E], error)
+	Block(hash H) (*generic.SignedBlock[N, H, Hasher, E, Header], error)
 
 	// BlockStatus gets block status by block hash.
 	BlockStatus(hash H) (common.BlockStatus, error)

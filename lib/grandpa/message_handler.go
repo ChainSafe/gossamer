@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/database"
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
@@ -380,10 +381,10 @@ func (s *Service) VerifyBlockJustification(finalizedHash common.Hash, finalizedN
 
 	logger.Debugf("verifying justification within set id %d and authorities %d", setID, len(auths))
 
-	idsAndWeights := make([]finality_grandpa.IDWeight[string], len(auths))
+	idsAndWeights := make([]finality_grandpa.IDWeight[grandpa.AuthorityID], len(auths))
 	for idx, auth := range auths {
-		idsAndWeights[idx] = finality_grandpa.IDWeight[string]{
-			ID:     string(auth.Key.Encode()),
+		idsAndWeights[idx] = finality_grandpa.IDWeight[grandpa.AuthorityID]{
+			ID:     grandpa.AuthorityID(auth.Key.Encode()),
 			Weight: 1,
 		}
 	}

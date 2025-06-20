@@ -4,29 +4,26 @@
 package memorydb
 
 import (
+	"bytes"
 	"maps"
 
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	"golang.org/x/exp/constraints"
 )
 
-type dataRC struct {
+type DataRC struct {
 	Data []byte
 	RC   int32
 }
 
-type Hash interface {
-	constraints.Ordered
-	Bytes() []byte
-}
-
+type Hash = hashdb.Hash
 type Value interface {
 	~[]byte
 }
 
 // MemoryDB is a reference-counted memory-based [hashdb.HashDB] implementation.
 type MemoryDB[H Hash, Hasher hashdb.Hasher[H], Key constraints.Ordered, KF KeyFunction[H, Key]] struct {
-	data           map[Key]dataRC
+	data           map[Key]DataRC
 	hashedNullNode H
 	nullNodeData   []byte
 }
@@ -42,7 +39,7 @@ func newMemoryDBFromNullNode[H Hash, Hasher hashdb.Hasher[H], Key constraints.Or
 	nullNodeData T,
 ) MemoryDB[H, Hasher, Key, KF] {
 	return MemoryDB[H, Hasher, Key, KF]{
-		data:           make(map[Key]dataRC),
+		data:           make(map[Key]DataRC),
 		hashedNullNode: (*new(Hasher)).Hash(nullKey),
 		nullNodeData:   nullNodeData,
 	}
@@ -66,9 +63,9 @@ func (mdb *MemoryDB[H, Hasher, Key, KF]) Purge() {
 }
 
 // Drain returns the internal key-value Map, clearing the current state.
-func (mdb *MemoryDB[H, Hasher, Key, KF]) Drain() map[Key]dataRC {
+func (mdb *MemoryDB[H, Hasher, Key, KF]) Drain() map[Key]DataRC {
 	data := mdb.data
-	mdb.data = make(map[Key]dataRC)
+	mdb.data = make(map[Key]DataRC)
 	return data
 }
 
@@ -77,9 +74,9 @@ func (mdb *MemoryDB[H, Hasher, Key, KF]) Drain() map[Key]dataRC {
 //
 // Even when Some is returned, the data is only guaranteed to be useful
 // when the refs > 0.
-func (mdb *MemoryDB[H, Hasher, Key, KF]) raw(key H, prefix hashdb.Prefix) *dataRC {
+func (mdb *MemoryDB[H, Hasher, Key, KF]) raw(key H, prefix hashdb.Prefix) *DataRC {
 	if key == mdb.hashedNullNode {
-		return &dataRC{mdb.nullNodeData, 1}
+		return &DataRC{mdb.nullNodeData, 1}
 	}
 	kfKey := (*new(KF)).Key(key, prefix)
 	data, ok := mdb.data[kfKey]
@@ -101,7 +98,7 @@ func (mdb *MemoryDB[H, Hasher, Key, KF]) Consolidate(other *MemoryDB[H, Hasher, 
 			entry.RC += value.RC
 			mdb.data[key] = entry
 		} else {
-			mdb.data[key] = dataRC{
+			mdb.data[key] = DataRC{
 				Data: value.Data,
 				RC:   value.RC,
 			}
@@ -126,7 +123,7 @@ func (mdb *MemoryDB[H, Hasher, Key, KF]) removeAndPurge(key H, prefix hashdb.Pre
 		mdb.data[kfKey] = data
 		return nil
 	}
-	mdb.data[kfKey] = dataRC{RC: -1}
+	mdb.data[kfKey] = DataRC{RC: -1}
 	return nil
 }
 
@@ -161,7 +158,7 @@ func (mdb *MemoryDB[H, Hasher, Key, KF]) Contains(key H, prefix hashdb.Prefix) b
 }
 
 func (mdb *MemoryDB[H, Hasher, Key, KF]) Emplace(key H, prefix hashdb.Prefix, value []byte) {
-	if string(mdb.nullNodeData) == string(value) {
+	if bytes.Equal(value, mdb.nullNodeData) {
 		return
 	}
 
@@ -174,12 +171,12 @@ func (mdb *MemoryDB[H, Hasher, Key, KF]) Emplace(key H, prefix hashdb.Prefix, va
 		data.RC += 1
 		mdb.data[kfKey] = data
 	} else {
-		mdb.data[kfKey] = dataRC{value, 1}
+		mdb.data[kfKey] = DataRC{value, 1}
 	}
 }
 
 func (mdb *MemoryDB[H, Hasher, Key, KF]) Insert(prefix hashdb.Prefix, value []byte) H {
-	if string(mdb.nullNodeData) == string(value) {
+	if bytes.Equal(value, mdb.nullNodeData) {
 		return mdb.hashedNullNode
 	}
 
@@ -199,7 +196,7 @@ func (mdb *MemoryDB[H, Hasher, Key, KF]) Remove(key H, prefix hashdb.Prefix) {
 		data.RC -= 1
 		mdb.data[kfKey] = data
 	} else {
-		mdb.data[kfKey] = dataRC{RC: -1}
+		mdb.data[kfKey] = DataRC{RC: -1}
 	}
 }
 

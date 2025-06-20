@@ -89,7 +89,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	err = gs.blockState.AddBlock(&types.Block{
 		Header: *next,
 		Body:   types.Body{},
-	})
+	}, nil, nil)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
@@ -172,7 +172,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	err = gs.blockState.AddBlock(&types.Block{
 		Header: *next,
 		Body:   types.Body{},
-	})
+	}, nil, nil)
 	require.NoError(t, err)
 
 	// grandpa tracker check every second if the block

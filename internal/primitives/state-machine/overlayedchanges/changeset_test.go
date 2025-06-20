@@ -41,7 +41,7 @@ func assertChanges(t *testing.T, is overlayedChangeSet, expected Changes) {
 
 func assertDrainedChanges(t *testing.T, is overlayedChangeSet, expected Changes) {
 	var drained Drained
-	for k, v := range is.DrainCommited() {
+	for k, v := range is.DrainCommitted() {
 		drained = append(drained, DrainedValue{k, v.value()})
 	}
 
@@ -55,7 +55,7 @@ func assertDrainedChanges(t *testing.T, is overlayedChangeSet, expected Changes)
 
 func assertDrained(t *testing.T, is overlayedChangeSet, expected Drained) {
 	var drained Drained
-	for k, v := range is.DrainCommited() {
+	for k, v := range is.DrainCommitted() {
 		drained = append(drained, DrainedValue{k, v.value()})
 	}
 
@@ -482,7 +482,7 @@ func TestUnbalancedTransactionsError(t *testing.T) {
 func TestDrainWithOpenTransactionPanics(t *testing.T) {
 	changeSet := newOverlayedChangeSet()
 	changeSet.StartTransaction()
-	require.Panics(t, func() { changeSet.DrainCommited() })
+	require.Panics(t, func() { changeSet.DrainCommitted() })
 }
 
 func TestRuntimeCannotCloseClientTx(t *testing.T) {

@@ -6,6 +6,8 @@ import (
 	blockchain "github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 
+	consensuscommon "github.com/ChainSafe/gossamer/internal/client/consensus/common"
+
 	generic "github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 
 	mock "github.com/stretchr/testify/mock"
@@ -31,23 +33,23 @@ func (_m *Client[H, Hasher, N, E, Header]) EXPECT() *Client_Expecter[H, Hasher, 
 }
 
 // Block provides a mock function with given fields: hash
-func (_m *Client[H, Hasher, N, E, Header]) Block(hash H) (*generic.SignedBlock[N, H, Hasher, E], error) {
+func (_m *Client[H, Hasher, N, E, Header]) Block(hash H) (*generic.SignedBlock[N, H, Hasher, E, Header], error) {
 	ret := _m.Called(hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Block")
 	}
 
-	var r0 *generic.SignedBlock[N, H, Hasher, E]
+	var r0 *generic.SignedBlock[N, H, Hasher, E, Header]
 	var r1 error
-	if rf, ok := ret.Get(0).(func(H) (*generic.SignedBlock[N, H, Hasher, E], error)); ok {
+	if rf, ok := ret.Get(0).(func(H) (*generic.SignedBlock[N, H, Hasher, E, Header], error)); ok {
 		return rf(hash)
 	}
-	if rf, ok := ret.Get(0).(func(H) *generic.SignedBlock[N, H, Hasher, E]); ok {
+	if rf, ok := ret.Get(0).(func(H) *generic.SignedBlock[N, H, Hasher, E, Header]); ok {
 		r0 = rf(hash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*generic.SignedBlock[N, H, Hasher, E])
+			r0 = ret.Get(0).(*generic.SignedBlock[N, H, Hasher, E, Header])
 		}
 	}
 
@@ -78,12 +80,12 @@ func (_c *Client_Block_Call[H, Hasher, N, E, Header]) Run(run func(hash H)) *Cli
 	return _c
 }
 
-func (_c *Client_Block_Call[H, Hasher, N, E, Header]) Return(_a0 *generic.SignedBlock[N, H, Hasher, E], _a1 error) *Client_Block_Call[H, Hasher, N, E, Header] {
+func (_c *Client_Block_Call[H, Hasher, N, E, Header]) Return(_a0 *generic.SignedBlock[N, H, Hasher, E, Header], _a1 error) *Client_Block_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *Client_Block_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) (*generic.SignedBlock[N, H, Hasher, E], error)) *Client_Block_Call[H, Hasher, N, E, Header] {
+func (_c *Client_Block_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) (*generic.SignedBlock[N, H, Hasher, E, Header], error)) *Client_Block_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -492,6 +494,64 @@ func (_c *Client_Body_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) ([
 	return _c
 }
 
+// CheckBlock provides a mock function with given fields: block
+func (_m *Client[H, Hasher, N, E, Header]) CheckBlock(block consensuscommon.BlockCheckParams[H, N]) (consensuscommon.ImportResult, error) {
+	ret := _m.Called(block)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CheckBlock")
+	}
+
+	var r0 consensuscommon.ImportResult
+	var r1 error
+	if rf, ok := ret.Get(0).(func(consensuscommon.BlockCheckParams[H, N]) (consensuscommon.ImportResult, error)); ok {
+		return rf(block)
+	}
+	if rf, ok := ret.Get(0).(func(consensuscommon.BlockCheckParams[H, N]) consensuscommon.ImportResult); ok {
+		r0 = rf(block)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(consensuscommon.ImportResult)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(consensuscommon.BlockCheckParams[H, N]) error); ok {
+		r1 = rf(block)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_CheckBlock_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CheckBlock'
+type Client_CheckBlock_Call[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+	*mock.Call
+}
+
+// CheckBlock is a helper method to define mock.On call
+//   - block consensuscommon.BlockCheckParams[H,N]
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) CheckBlock(block interface{}) *Client_CheckBlock_Call[H, Hasher, N, E, Header] {
+	return &Client_CheckBlock_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("CheckBlock", block)}
+}
+
+func (_c *Client_CheckBlock_Call[H, Hasher, N, E, Header]) Run(run func(block consensuscommon.BlockCheckParams[H, N])) *Client_CheckBlock_Call[H, Hasher, N, E, Header] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(consensuscommon.BlockCheckParams[H, N]))
+	})
+	return _c
+}
+
+func (_c *Client_CheckBlock_Call[H, Hasher, N, E, Header]) Return(_a0 consensuscommon.ImportResult, _a1 error) *Client_CheckBlock_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_CheckBlock_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(consensuscommon.BlockCheckParams[H, N]) (consensuscommon.ImportResult, error)) *Client_CheckBlock_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Children provides a mock function with given fields: parentHash
 func (_m *Client[H, Hasher, N, E, Header]) Children(parentHash H) ([]H, error) {
 	ret := _m.Called(parentHash)
@@ -877,6 +937,64 @@ func (_c *Client_HeaderMetadata_Call[H, Hasher, N, E, Header]) Return(_a0 blockc
 }
 
 func (_c *Client_HeaderMetadata_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) (blockchain.CachedHeaderMetadata[H, N], error)) *Client_HeaderMetadata_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ImportBlock provides a mock function with given fields: block
+func (_m *Client[H, Hasher, N, E, Header]) ImportBlock(block *consensuscommon.BlockImportParams[H, N, E, Header]) (consensuscommon.ImportResult, error) {
+	ret := _m.Called(block)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ImportBlock")
+	}
+
+	var r0 consensuscommon.ImportResult
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*consensuscommon.BlockImportParams[H, N, E, Header]) (consensuscommon.ImportResult, error)); ok {
+		return rf(block)
+	}
+	if rf, ok := ret.Get(0).(func(*consensuscommon.BlockImportParams[H, N, E, Header]) consensuscommon.ImportResult); ok {
+		r0 = rf(block)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(consensuscommon.ImportResult)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*consensuscommon.BlockImportParams[H, N, E, Header]) error); ok {
+		r1 = rf(block)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_ImportBlock_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ImportBlock'
+type Client_ImportBlock_Call[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+	*mock.Call
+}
+
+// ImportBlock is a helper method to define mock.On call
+//   - block *consensuscommon.BlockImportParams[H,N,E,Header]
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) ImportBlock(block interface{}) *Client_ImportBlock_Call[H, Hasher, N, E, Header] {
+	return &Client_ImportBlock_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("ImportBlock", block)}
+}
+
+func (_c *Client_ImportBlock_Call[H, Hasher, N, E, Header]) Run(run func(block *consensuscommon.BlockImportParams[H, N, E, Header])) *Client_ImportBlock_Call[H, Hasher, N, E, Header] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*consensuscommon.BlockImportParams[H, N, E, Header]))
+	})
+	return _c
+}
+
+func (_c *Client_ImportBlock_Call[H, Hasher, N, E, Header]) Return(_a0 consensuscommon.ImportResult, _a1 error) *Client_ImportBlock_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_ImportBlock_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(*consensuscommon.BlockImportParams[H, N, E, Header]) (consensuscommon.ImportResult, error)) *Client_ImportBlock_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(run)
 	return _c
 }

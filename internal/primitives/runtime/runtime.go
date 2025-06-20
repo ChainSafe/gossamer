@@ -3,7 +3,11 @@
 
 package runtime
 
-import "slices"
+import (
+	"slices"
+
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+)
 
 // Justification is an abstraction over justification for a block's validity under a consensus algorithm.
 //
@@ -41,6 +45,12 @@ func (j Justifications) Get(engineID ConsensusEngineID) *EncodedJustification {
 		return &j[index].EncodedJustification
 	}
 	return nil
+}
+
+// Complex storage builder stuff.
+type BuildStorage interface {
+	// Build the storage out of this builder.
+	BuildStorage() (storage.Storage, error)
 }
 
 // EncodedJustification returns a copy of the encoded justification for the given consensus engine, if it exists

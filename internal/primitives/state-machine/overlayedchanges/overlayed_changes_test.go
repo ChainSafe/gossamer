@@ -4,7 +4,6 @@
 package overlayedchanges
 
 import (
-	"bytes"
 	"iter"
 	"testing"
 
@@ -317,6 +316,56 @@ func TestNextChildStorageKeyChangeWorks(t *testing.T) {
 	require.Equal(t, StorageValue([]byte{50}), nextTo40value.Value())
 }
 
+func TestDrainStorageChanges_EmptyOverlayedChanges(t *testing.T) {
+	b := statemachine.NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
+	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
+	storageChanges, err := overlay.DrainStorageChanges(b, storage.StateVersionV1)
+	require.NoError(t, err)
+
+	require.Equal(t, 0, len(storageChanges.MainStorageChanges))
+	require.Equal(t, 0, len(storageChanges.ChildStorageChanges))
+	require.Equal(t, 0, len(storageChanges.OffchainStorageChanges))
+	require.Equal(t, 0, len(storageChanges.TransactionIndexChanges))
+}
+
+func TestDrainStorageChanges_Works(t *testing.T) {
+	b := statemachine.NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
+	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
+
+	const valuesToInsert = 10
+	childs := []storage.ChildInfo{
+		storage.NewDefaultChildInfo([]byte("Child1")),
+		storage.NewDefaultChildInfo([]byte("Child2")),
+	}
+
+	for _, childInfo := range childs {
+		for i := range valuesToInsert {
+			overlay.SetChildStorage(childInfo, []byte{byte(i)}, []byte{byte(i)})
+		}
+	}
+
+	for i := range valuesToInsert {
+		overlay.SetStorage(StorageKey([]byte{byte(i)}), []byte{byte(i)})
+		overlay.SetOffchainStorage([]byte{byte(i)}, []byte{byte(i)})
+	}
+
+	overlay.AddTransactionIndex(IndexOperationInsert{
+		Extrinsic: 1,
+		Hash:      []byte{},
+		Size:      1,
+	})
+
+	storageChanges, err := overlay.DrainStorageChanges(b, storage.StateVersionV1)
+	require.NoError(t, err)
+
+	require.Equal(t, valuesToInsert, len(storageChanges.MainStorageChanges))
+	require.Equal(t, len(childs), len(storageChanges.ChildStorageChanges))
+	require.Equal(t, valuesToInsert, len(storageChanges.OffchainStorageChanges))
+	require.Equal(t, 1, len(storageChanges.TransactionIndexChanges))
+	require.NotNil(t, storageChanges.Transaction)
+	require.NotNil(t, storageChanges.TransactionStorageRoot)
+}
+
 type keyValue struct {
 	key   string
 	value []byte
@@ -340,8 +389,8 @@ func checkOffchainContent(
 	}
 
 	var offchainData []offchainKeyValue
-	for k, v := range cloned.offchainDrainCommited() {
-		offchainData = append(offchainData, offchainKeyValue{key: k, value: v})
+	for k, v := range cloned.offchainDrainCommitted() {
+		offchainData = append(offchainData, offchainKeyValue{key: StorageKey(prefixKey(k.Prefix, k.Key)), value: v})
 	}
 
 	var toCheck []offchainKeyValue
@@ -352,7 +401,7 @@ func checkOffchainContent(
 		} else {
 			change = offchain.OffchainOverlayedChangeRemove{}
 		}
-		key := bytes.Join([][]byte{offchain.StoragePrefix, []byte(kv.key)}, []byte{})
+		key := StorageKey(prefixKey(offchain.StoragePrefix, []byte(kv.key)))
 		toCheck = append(toCheck, offchainKeyValue{key: key, value: change})
 	}
 

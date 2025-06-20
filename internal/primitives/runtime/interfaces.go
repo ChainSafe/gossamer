@@ -5,7 +5,11 @@ package runtime
 
 import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
-	"github.com/ChainSafe/gossamer/internal/primitives/core/hashing"
+	"github.com/ChainSafe/gossamer/internal/primitives/crypto/hashing"
+	"github.com/ChainSafe/gossamer/internal/primitives/io/trie"
+
+	"github.com/ChainSafe/gossamer/internal/primitives/kv"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
 )
@@ -26,6 +30,8 @@ type Hash interface {
 	Length() int
 }
 
+type KeyValue = kv.KeyValue
+
 // Hasher is an interface around hashing
 type Hasher[H Hash] interface {
 	// Produce the hash of some byte-slice.
@@ -36,6 +42,9 @@ type Hasher[H Hash] interface {
 
 	// Construct new hash from source data
 	NewHash(data []byte) H
+
+	// The Patricia tree root of the given mapping.
+	TrieRoot(input []KeyValue, stateVersion storage.StateVersion) H
 }
 
 // Blake2-256 Hash implementation.
@@ -53,8 +62,12 @@ func (bt256 BlakeTwo256) HashEncoded(s any) hash.H256 {
 	return bt256.Hash(bytes)
 }
 
-func (bt256 BlakeTwo256) NewHash(data []byte) hash.H256 {
+func (BlakeTwo256) NewHash(data []byte) hash.H256 {
 	return hash.H256(data)
+}
+
+func (BlakeTwo256) TrieRoot(input []KeyValue, stateVersion storage.StateVersion) hash.H256 {
+	return trie.BlakeTwo256Root(input, stateVersion)
 }
 
 var _ Hasher[hash.H256] = BlakeTwo256{}
@@ -98,13 +111,13 @@ type Header[N Number, H Hash] interface {
 // Block represents a block. It has types for Extrinsic pieces of information as well as a Header.
 //
 // You can iterate over each of the Extrinsics and retrieve the Header.
-type Block[N Number, H Hash, E Extrinsic] interface {
+type Block[H Hash, N Number, E Extrinsic, Head Header[N, H]] interface {
 	// Returns a reference to the header.
-	Header() Header[N, H]
+	Header() Head
 	// Returns a reference to the list of extrinsics.
 	Extrinsics() []E
 	// Split the block into header and list of extrinsics.
-	Deconstruct() (header Header[N, H], extrinsics []E)
+	Deconstruct() (header Head, extrinsics []E)
 	// Returns the hash of the block.
 	Hash() H
 }
