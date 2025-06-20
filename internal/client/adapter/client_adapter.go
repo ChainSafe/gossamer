@@ -325,30 +325,6 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetTries() *state.Tries {
 	panic("unimplemented")
 }
 
-// GetBlockHashesBySlot gets all block hashes that were produced in the given slot.
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error) {
-	children, err := ca.client.Children(ca.client.Info().FinalizedHash)
-	if err != nil {
-		return nil, err
-	}
-
-	var blockHashes []common.Hash
-	for _, child := range children {
-		hash := common.NewHashFromGeneric(child)
-
-		slot, err := ca.GetSlotForBlock(hash)
-		if err != nil {
-			return nil, fmt.Errorf("getting slot for block %s: %w", child.String(), err)
-		}
-
-		if slot == slotNum {
-			blockHashes = append(blockHashes, hash)
-		}
-	}
-
-	return blockHashes, nil
-}
-
 // GetAllBlocksAtNumber returns all unfinalised blocks with the given number
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetAllBlocksAtNumber(num uint) ([]common.Hash, error) {
 	return ca.GetHashesByNumber(num)
@@ -442,12 +418,6 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetJustification(hash common.H
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetHighestRoundAndSetID(round, setID uint64) error {
 	panic("unimplemented")
-}
-
-// GetRoundAndSetID returns the finalised round and setID
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetRoundAndSetID() (uint64, uint64) {
-	round, setID, _ := ca.GetHighestRoundAndSetID()
-	return round, setID
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetRuntime(blockHash common.Hash) (instance rt.Instance, err error) {

@@ -75,7 +75,6 @@ type BlockState interface {
 	GetReceipt(hash common.Hash) ([]byte, error)
 	GetMessageQueue(hash common.Hash) ([]byte, error)
 	GetTries() *Tries
-	GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error)
 	GetAllBlocksAtNumber(num uint) ([]common.Hash, error)
 
 	GetNonFinalisedBlocks() []common.Hash
@@ -93,7 +92,6 @@ type BlockState interface {
 	SetHeader(header *types.Header) error
 	SetJustification(hash common.Hash, data []byte) error
 	SetHighestRoundAndSetID(round, setID uint64) error
-	GetRoundAndSetID() (uint64, uint64)
 
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	UnregisterRuntimeUpdatedChannel(id uint32) bool
