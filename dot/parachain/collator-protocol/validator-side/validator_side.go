@@ -83,6 +83,7 @@ func New(net Network, protocolID protocol.ID, overseerChan chan<- any,
 		implicitView:                    util.NewBackingImplicitView(blockState, nil),
 		activeLeaves:                    make(map[common.Hash]parachaintypes.ProspectiveParachainsMode),
 		fetchedCandidates:               make(map[string]CollationEvent),
+		requestCompletions:              make(chan string, 100),
 	}
 }
 
@@ -121,11 +122,17 @@ func (cpvs *CollatorProtocolValidatorSide) Run(
 			for requestID, requestInfo := range activeRequests {
 				// Check if request is older than maxUnsharedDownloadTime
 				if now.Sub(requestInfo.RequestTime) > maxUnsharedDownloadTime {
-					logger.Debugf("Request %s expired after %v, cleaning up",
+					logger.Debugf("Request %s expired after %v, cancelling network request",
 						requestID, now.Sub(requestInfo.RequestTime))
+					requestInfo.Cancel()
 					delete(activeRequests, requestID)
 				}
 			}
+
+		case requestID := <-cpvs.requestCompletions:
+			// Remove completed request from tracking
+			delete(activeRequests, requestID)
+			logger.Debugf("Request %s completed successfully", requestID)
 
 		case unfetchedCollation := <-cpvs.unfetchedCollation:
 			// check if this peer id has advertised this relay parent
@@ -381,7 +388,7 @@ func (cpvs *CollatorProtocolValidatorSide) requestCollation(relayParent common.H
 		return nil, ErrOutOfView
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second) // MAX_UNSHARED_DOWNLOAD_TIME
+	ctx, cancel := context.WithTimeout(context.Background(), maxUnsharedDownloadTime) // MAX_UNSHARED_DOWNLOAD_TIME
 	defer cancel()
 
 	requestInfo := CollationRequestInfo{
@@ -390,6 +397,7 @@ func (cpvs *CollatorProtocolValidatorSide) requestCollation(relayParent common.H
 		ParaID:      paraID,
 		RequestTime: time.Now(),
 		RequestID:   fmt.Sprintf("%s-%d-%s", relayParent.String(), paraID, peerID.String()),
+		Cancel:      cancel,
 	}
 
 	// Try to send to channel (non-blocking)
@@ -397,7 +405,9 @@ func (cpvs *CollatorProtocolValidatorSide) requestCollation(relayParent common.H
 	case cpvs.collationRequests <- requestInfo:
 		//Successfully sent
 	default:
-		logger.Debugf("collation requests channel is full, continuing anyway")
+		// Channel full - cancel and return error
+		cancel()
+		return nil, fmt.Errorf("collation requests channel is full")
 	}
 
 	// make collation fetching request
@@ -420,7 +430,7 @@ func (cpvs *CollatorProtocolValidatorSide) requestCollation(relayParent common.H
 			return nil, fmt.Errorf("collation fetching request failed: %w", err)
 		}
 	case <-ctx.Done():
-		return nil, fmt.Errorf("collation fetching request timed out after 1 second")
+		return nil, fmt.Errorf("collation fetching request timed out after %v", maxUnsharedDownloadTime)
 	}
 
 	v, err := collationFetchingResponse.Value()
@@ -430,6 +440,13 @@ func (cpvs *CollatorProtocolValidatorSide) requestCollation(relayParent common.H
 	collation, ok := v.(parachaintypes.Collation)
 	if !ok {
 		return nil, fmt.Errorf("collation fetching response value expected: CollationVDT, got: %T", v)
+	}
+
+	// Try to notify completion (non-blocking)
+	select {
+	case cpvs.requestCompletions <- requestInfo.RequestID:
+	default:
+		// Channel full, but that's ok - cleanup will handle it
 	}
 
 	return &collation, nil
@@ -633,6 +650,8 @@ type CollatorProtocolValidatorSide struct {
 	// Channel that gets populated when new collation requests are sent
 	collationRequests chan CollationRequestInfo
 
+	requestCompletions chan string
+
 	// Parachains we're currently assigned to. With async backing enabled
 	// this includes assignments from the implicit view.
 	currentAssignments map[parachaintypes.ParaID]uint
@@ -675,6 +694,7 @@ type CollationRequestInfo struct {
 	ParaID      parachaintypes.ParaID
 	RequestTime time.Time
 	RequestID   string
+	Cancel      context.CancelFunc
 }
 
 // Identifier of a fetched collation
