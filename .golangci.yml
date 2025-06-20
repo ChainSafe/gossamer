@@ -59,6 +59,7 @@ linters-settings:
       - intialized
       - initialized
       - initializes
+      - initializing
       - prioritizing
 
 linters:

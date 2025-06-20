@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/cache"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/recorder"
-	ptrie "github.com/ChainSafe/gossamer/pkg/trie"
 	triedb "github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"golang.org/x/exp/constraints"
 )
@@ -266,8 +265,7 @@ func withTrieDB[H runtime.Hash, Hasher runtime.Hasher[H]](
 
 	withRecorderAndCache(tbe, &root, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
 		trieDB := triedb.NewTrieDB(
-			root, db, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-		trieDB.SetVersion(ptrie.V1)
+			root, db, trie.LayoutV1[Hasher, H]{}, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 		callback(trieDB)
 	})
 }
@@ -357,7 +355,7 @@ func (tbe *trieBackendEssence[H, Hasher]) NextStorageKeyFromRoot(
 // Get the value of storage at given key.
 func (tbe *trieBackendEssence[H, Hasher]) Storage(key []byte) (val StorageValue, err error) {
 	withRecorderAndCache(tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
-		val, err = trie.ReadTrieValue[H, Hasher](tbe, tbe.root, key, recorder, cache, triedb.V1)
+		val, err = trie.ReadTrieValue[H, Hasher](tbe, tbe.root, key, recorder, cache, trie.LayoutV1[Hasher, H]{})
 	})
 	return
 }
@@ -366,8 +364,12 @@ func (tbe *trieBackendEssence[H, Hasher]) Storage(key []byte) (val StorageValue,
 func (tbe *trieBackendEssence[H, Hasher]) StorageHash(key []byte) (hash *H, err error) {
 	withRecorderAndCache[H, Hasher](tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
 		trieDB := triedb.NewTrieDB(
-			tbe.root, tbe, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-		trieDB.SetVersion(ptrie.V1)
+			tbe.root,
+			tbe,
+			trie.LayoutV1[Hasher, H]{},
+			triedb.WithCache[H, Hasher](cache),
+			triedb.WithRecorder[H, Hasher](recorder),
+		)
 		hash, err = trieDB.GetHash(key)
 	})
 	return
@@ -395,7 +397,7 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildStorage(childInfo storage.ChildIn
 			key,
 			recorder,
 			cache,
-			triedb.V1,
+			trie.LayoutV1[Hasher, H]{},
 		)
 	})
 	return val, err
@@ -422,7 +424,7 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildStorageHash(childInfo storage.Chi
 			key,
 			recorder,
 			cache,
-			triedb.V1,
+			trie.LayoutV1[Hasher, H]{},
 		)
 	})
 	return hash, err
@@ -431,7 +433,14 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildStorageHash(childInfo storage.Chi
 // Get the closest merkle value at given key.
 func (tbe *trieBackendEssence[H, Hasher]) ClosestMerkleValue(key []byte) (val triedb.MerkleValue[H], err error) {
 	withRecorderAndCache(tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
-		val, err = trie.ReadTrieFirstDescendantValue[H, Hasher](tbe, tbe.root, key, recorder, cache, triedb.V1)
+		val, err = trie.ReadTrieFirstDescendantValue[H, Hasher](
+			tbe,
+			tbe.root,
+			key,
+			recorder,
+			cache,
+			trie.LayoutV1[Hasher, H]{},
+		)
 	})
 	return
 }
@@ -452,14 +461,14 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildClosestMerkleValue(
 
 	withRecorderAndCache(tbe, &childRoot, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
 		val, err = trie.ReadChildTrieFirstDescendantValue[H, Hasher](
-			childInfo.Keyspace(), tbe, tbe.root, key, recorder, cache, triedb.V1)
+			childInfo.Keyspace(), tbe, tbe.root, key, recorder, cache, trie.LayoutV1[Hasher, H]{})
 	})
 	return
 }
 
 // Create a raw iterator over the storage.
 func (tbe *trieBackendEssence[H, Hasher]) RawIter(args IterArgs) (*rawIter[H, Hasher], error) {
-	var root H = tbe.root
+	root := tbe.root
 	if args.ChildInfo != nil {
 		childRoot, err := tbe.childRoot(args.ChildInfo)
 		if err != nil {
@@ -525,7 +534,14 @@ func (tbe *trieBackendEssence[H, Hasher]) StorageRoot(
 	root := withRecorderAndCacheForStorageRoot(
 		tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) (*H, H) {
 			eph := newEphemeral[H, Hasher](tbe.BackendStorage(), writeOverlay)
-			root, err := trie.DeltaTrieRoot[H, Hasher](eph, tbe.root, delta, recorder, cache, stateVersion.TrieLayout())
+			var layout triedb.TrieLayout
+			switch stateVersion {
+			case storage.StateVersionV1:
+				layout = trie.LayoutV1[Hasher, H]{}
+			case storage.StateVersionV0:
+				layout = trie.LayoutV0[Hasher, H]{}
+			}
+			root, err := trie.DeltaTrieRoot[H, Hasher](eph, tbe.root, delta, recorder, cache, layout)
 			if err != nil {
 				log.Printf("WARN: failed to write to trie: %v", err)
 				return nil, tbe.root
@@ -558,8 +574,15 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildStorageRoot(
 	newChildRoot := withRecorderAndCacheForStorageRoot(
 		tbe, &childRoot, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) (*H, H) {
 			eph := newEphemeral(tbe.BackendStorage(), writeOverlay)
+			var layout triedb.TrieLayout
+			switch stateVersion {
+			case storage.StateVersionV1:
+				layout = trie.LayoutV1[Hasher, H]{}
+			case storage.StateVersionV0:
+				layout = trie.LayoutV0[Hasher, H]{}
+			}
 			root, err := trie.ChildDeltaTrieRoot[H, Hasher](
-				childInfo.Keyspace(), eph, childRoot, delta, recorder, cache, stateVersion.TrieLayout())
+				childInfo.Keyspace(), eph, childRoot, delta, recorder, cache, layout)
 			if err != nil {
 				log.Printf("WARN: Failed to write to trie: %v", err)
 				return nil, childRoot
@@ -588,15 +611,15 @@ func (tbe *trieBackendEssence[H, Hasher]) Contains(key H, prefix hashdb.Prefix) 
 	return tbe.Get(key, prefix) != nil
 }
 
-func (tbe *trieBackendEssence[H, Hasher]) Insert(prefix hashdb.Prefix, value []byte) H {
+func (*trieBackendEssence[H, Hasher]) Insert(prefix hashdb.Prefix, value []byte) H {
 	panic("unimplemented")
 }
 
-func (tbe *trieBackendEssence[H, Hasher]) Emplace(key H, prefix hashdb.Prefix, value []byte) {
+func (*trieBackendEssence[H, Hasher]) Emplace(key H, prefix hashdb.Prefix, value []byte) {
 	panic("unimplemented")
 }
 
-func (tbe *trieBackendEssence[H, Hasher]) Remove(key H, prefix hashdb.Prefix) {
+func (*trieBackendEssence[H, Hasher]) Remove(key H, prefix hashdb.Prefix) {
 	panic("unimplemented")
 }
 

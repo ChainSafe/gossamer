@@ -3,7 +3,10 @@
 
 package client
 
-import "github.com/ChainSafe/gossamer/internal/primitives/runtime"
+import (
+	"github.com/ChainSafe/gossamer/internal/client/api"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+)
 
 // Chain specification rules lookup result.
 type LookupResult interface {
@@ -31,14 +34,14 @@ type BadBlockData[H runtime.Hash, N runtime.Number] struct {
 }
 
 type BlockRules[H runtime.Hash, N runtime.Number] struct {
-	bad   BadBlocks[H] // Set with bad blocks
+	bad   api.BadBlocks[H] // Set with bad blocks
 	forks map[N]H
 }
 
 func NewBlockRules[
 	H runtime.Hash,
 	N runtime.Number,
-](forkBlocks []BadBlockData[H, N], badBlocks BadBlocks[H]) *BlockRules[H, N] {
+](forkBlocks api.ForkBlocks[H, N], badBlocks api.BadBlocks[H]) *BlockRules[H, N] {
 	forks := make(map[N]H)
 	for _, block := range forkBlocks {
 		forks[block.Number] = block.Hash

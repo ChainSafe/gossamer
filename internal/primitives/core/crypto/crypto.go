@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/internal/primitives/core/hashing"
+	"github.com/ChainSafe/gossamer/internal/primitives/crypto/hashing"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 

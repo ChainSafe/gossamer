@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
+	"github.com/ChainSafe/gossamer/internal/primitives/kv"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
@@ -238,10 +239,7 @@ type Finalizer[
 }
 
 // KeyValue is used in [AuxStore.InsertAux].  Key and Value should not be nil.
-type KeyValue struct {
-	Key   []byte
-	Value []byte
-}
+type KeyValue = kv.KeyValue
 
 // AuxStore provides access to an auxiliary database.
 //

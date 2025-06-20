@@ -5,8 +5,8 @@ package statemachine
 
 // A key value state at any storage level.
 type KeyValueStorageLevel struct {
-	/// State root of the level, for
-	/// top trie it is as an empty byte array.
+	// State root of the level, for
+	// top trie it is as an empty byte array.
 	StateRoot []byte
 	// Storage of parents, empty for top root or
 	// when exporting (building proof).

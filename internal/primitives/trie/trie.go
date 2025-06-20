@@ -4,22 +4,53 @@
 package trie
 
 import (
+	"bytes"
+	"math"
 	"slices"
 
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	memorydb "github.com/ChainSafe/gossamer/internal/memory-db"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/kv"
+	trieroot "github.com/ChainSafe/gossamer/internal/primitives/trie/trie-root"
 	triedb "github.com/ChainSafe/gossamer/pkg/trie/triedb"
 )
 
+type Layout[H hashdb.Hash] interface {
+	MaxInlineValue() int
+	TrieRoot(input []kv.KeyValue) H
+}
+
+type (
+	// substrate trie layout
+	LayoutV0[Hasher hashdb.Hasher[H], H hashdb.Hash] struct{}
+	// substrate trie layout, with external value nodes.
+	LayoutV1[Hasher hashdb.Hasher[H], H hashdb.Hash] struct{}
+)
+
+func (LayoutV0[Hasher, H]) MaxInlineValue() int {
+	return math.MaxInt
+}
+func (LayoutV1[Hasher, H]) MaxInlineValue() int {
+	return 32
+}
+
+func (LayoutV0[Hasher, H]) TrieRoot(input []kv.KeyValue) H {
+	return trieroot.TrieRoot[Hasher, H](input, nil, NewTrieStream[Hasher, H]())
+}
+
+func (LayoutV1[Hasher, H]) TrieRoot(input []kv.KeyValue) H {
+	threshold := uint32(32)
+	return trieroot.TrieRoot[Hasher, H](input, &threshold, NewTrieStream[Hasher, H]())
+}
+
 // PrefixedMemoryDB is reexport from [memorydb.MemoryDB] where supplied [memorydb.KeyFunction] is [memorydb.PrefixedKey]
 // for prefixing keys internally (avoiding key conflict for non random keys).
-type PrefixedMemoryDB[Hash runtime.Hash, Hasher hashdb.Hasher[Hash]] struct {
+type PrefixedMemoryDB[Hash hashdb.Hash, Hasher hashdb.Hasher[Hash]] struct {
 	memorydb.MemoryDB[Hash, Hasher, string, memorydb.PrefixedKey[Hash]]
 }
 
 // NewPrefixedMemoryDB is constructor for [PrefixedMemoryDB]
-func NewPrefixedMemoryDB[Hash runtime.Hash, Hasher hashdb.Hasher[Hash]]() *PrefixedMemoryDB[Hash, Hasher] {
+func NewPrefixedMemoryDB[Hash hashdb.Hash, Hasher hashdb.Hasher[Hash]]() *PrefixedMemoryDB[Hash, Hasher] {
 	return &PrefixedMemoryDB[Hash, Hasher]{
 		memorydb.NewMemoryDB[Hash, Hasher, string, memorydb.PrefixedKey[Hash]]([]byte{0}),
 	}
@@ -27,25 +58,22 @@ func NewPrefixedMemoryDB[Hash runtime.Hash, Hasher hashdb.Hasher[Hash]]() *Prefi
 
 // MemoryDB is reexport from [memorydb.MemoryDB] where supplied [memorydb.KeyFunction] is [memorydb.HashKey] which is
 // a noop operation on the supplied prefix, and only uses the hash.
-type MemoryDB[Hash runtime.Hash, Hasher runtime.Hasher[Hash]] struct {
+type MemoryDB[Hash hashdb.Hash, Hasher hashdb.Hasher[Hash]] struct {
 	memorydb.MemoryDB[Hash, Hasher, Hash, memorydb.HashKey[Hash]]
 }
 
 // NewMemoryDB is constructor for [MemoryDB].
-func NewMemoryDB[Hash runtime.Hash, Hasher runtime.Hasher[Hash]]() *MemoryDB[Hash, Hasher] {
+func NewMemoryDB[Hash hashdb.Hash, Hasher hashdb.Hasher[Hash]]() *MemoryDB[Hash, Hasher] {
 	return &MemoryDB[Hash, Hasher]{
 		MemoryDB: memorydb.NewMemoryDB[Hash, Hasher, Hash, memorydb.HashKey[Hash]]([]byte{0}),
 	}
 }
 
 // KeyValue is a byte slice for key and value, where the value can be optional (nil).
-type KeyValue struct {
-	Key   []byte
-	Value []byte
-}
+type KeyValue = kv.KeyValue
 
 // DeltaTrieRoot determines a trie root given a hash DB and delta values.
-func DeltaTrieRoot[H runtime.Hash, Hasher runtime.Hasher[H]](
+func DeltaTrieRoot[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	db hashdb.HashDB[H],
 	root H,
 	delta []KeyValue,
@@ -53,13 +81,18 @@ func DeltaTrieRoot[H runtime.Hash, Hasher runtime.Hasher[H]](
 	cache triedb.TrieCache[H],
 	stateVersion triedb.TrieLayout,
 ) (H, error) {
-	trieDB := triedb.NewTrieDB(root, db, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+	trieDB := triedb.NewTrieDB(
+		root,
+		db,
+		stateVersion,
+		triedb.WithCache[H, Hasher](cache),
+		triedb.WithRecorder[H, Hasher](recorder),
+	)
 
 	slices.SortStableFunc(delta, func(a KeyValue, b KeyValue) int {
 		if string(a.Key) < string(b.Key) {
 			return -1
-		} else if string(a.Key) == string(b.Key) {
+		} else if bytes.Equal(a.Key, b.Key) {
 			return 0
 		} else {
 			return 1
@@ -86,7 +119,7 @@ func DeltaTrieRoot[H runtime.Hash, Hasher runtime.Hasher[H]](
 }
 
 // ReadTrieValue reads a value from the trie.
-func ReadTrieValue[H runtime.Hash, Hasher runtime.Hasher[H]](
+func ReadTrieValue[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	db hashdb.HashDB[H],
 	root H,
 	key []byte,
@@ -94,8 +127,11 @@ func ReadTrieValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 	cache triedb.TrieCache[H],
 	stateVersion triedb.TrieLayout,
 ) ([]byte, error) {
-	trieDB := triedb.NewTrieDB(root, db, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+	trieDB := triedb.NewTrieDB(
+		root, db, stateVersion,
+		triedb.WithCache[H, Hasher](cache),
+		triedb.WithRecorder[H, Hasher](recorder),
+	)
 	b, err := triedb.GetWith(trieDB, key, func(data []byte) []byte { return data })
 	if err != nil {
 		return nil, err
@@ -107,7 +143,7 @@ func ReadTrieValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 }
 
 // ReadTrieValueWith reads a value from the trie with given [triedb.Query].
-func ReadTrieValueWith[H runtime.Hash, Hasher runtime.Hasher[H]](
+func ReadTrieValueWith[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	db hashdb.HashDB[H],
 	root H,
 	key []byte,
@@ -116,8 +152,11 @@ func ReadTrieValueWith[H runtime.Hash, Hasher runtime.Hasher[H]](
 	stateVersion triedb.TrieLayout,
 	query triedb.Query[[]byte],
 ) ([]byte, error) {
-	trieDB := triedb.NewTrieDB(root, db, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+	trieDB := triedb.NewTrieDB(
+		root, db, stateVersion,
+		triedb.WithCache[H, Hasher](cache),
+		triedb.WithRecorder[H, Hasher](recorder),
+	)
 	b, err := triedb.GetWith(trieDB, key, query)
 	if err != nil {
 		return nil, err
@@ -130,7 +169,7 @@ func ReadTrieValueWith[H runtime.Hash, Hasher runtime.Hasher[H]](
 
 // ReadTrieFirstDescendantValue reads the [triedb.MerkleValue] of the node that is the closest descendant for
 // the provided key.
-func ReadTrieFirstDescendantValue[H runtime.Hash, Hasher runtime.Hasher[H]](
+func ReadTrieFirstDescendantValue[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	db hashdb.HashDB[H],
 	root H,
 	key []byte,
@@ -138,26 +177,29 @@ func ReadTrieFirstDescendantValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 	cache triedb.TrieCache[H],
 	stateVersion triedb.TrieLayout,
 ) (triedb.MerkleValue[H], error) {
-	trieDB := triedb.NewTrieDB(root, db, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+	trieDB := triedb.NewTrieDB(
+		root, db, stateVersion,
+		triedb.WithCache[H, Hasher](cache),
+		triedb.WithRecorder[H, Hasher](recorder),
+	)
 
 	return trieDB.LookupFirstDescendant(key)
 }
 
 // EmptyTrieRoot returns the empty trie root.
-func EmptyTrieRoot[H runtime.Hash, Hasher runtime.Hasher[H]]() H {
+func EmptyTrieRoot[H hashdb.Hash, Hasher hashdb.Hasher[H]]() H {
 	hasher := *new(Hasher)
 	root := hasher.Hash([]byte{0})
 	return root
 }
 
 // EmptyChildTrieRoot returns the empty child trie root.
-func EmptyChildTrieRoot[H runtime.Hash, Hasher runtime.Hasher[H]]() H {
+func EmptyChildTrieRoot[H hashdb.Hash, Hasher hashdb.Hasher[H]]() H {
 	return EmptyTrieRoot[H, Hasher]()
 }
 
 // ChildDeltaTrieRoot determines a child trie root given a hash DB and delta values.
-func ChildDeltaTrieRoot[H runtime.Hash, Hasher runtime.Hasher[H]](
+func ChildDeltaTrieRoot[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	keyspace []byte,
 	db hashdb.HashDB[H],
 	root H,
@@ -171,7 +213,7 @@ func ChildDeltaTrieRoot[H runtime.Hash, Hasher runtime.Hasher[H]](
 }
 
 // ReadChildTrieValue reads a value from the child trie.
-func ReadChildTrieValue[H runtime.Hash, Hasher runtime.Hasher[H]](
+func ReadChildTrieValue[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	keyspace []byte,
 	db hashdb.HashDB[H],
 	root H,
@@ -182,8 +224,7 @@ func ReadChildTrieValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 ) ([]byte, error) {
 	ksdb := NewKeyspacedDB(db, keyspace)
 	trieDB := triedb.NewTrieDB(
-		root, ksdb, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+		root, ksdb, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 	val, err := triedb.GetWith(trieDB, key, func(data []byte) []byte { return data })
 	if err != nil {
 		return nil, err
@@ -195,7 +236,7 @@ func ReadChildTrieValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 }
 
 // ReadChildTrieHash reads a hash from the child trie.
-func ReadChildTrieHash[H runtime.Hash, Hasher runtime.Hasher[H]](
+func ReadChildTrieHash[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	keyspace []byte,
 	db hashdb.HashDB[H],
 	root H,
@@ -206,14 +247,13 @@ func ReadChildTrieHash[H runtime.Hash, Hasher runtime.Hasher[H]](
 ) (*H, error) {
 	ksdb := NewKeyspacedDB(db, keyspace)
 	trieDB := triedb.NewTrieDB(
-		root, ksdb, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+		root, ksdb, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 	return trieDB.GetHash(key)
 }
 
 // ReadChildTrieFirstDescendantValue reads the [triedb.MerkleValue] of the node that is the closest descendant for
 // the provided child key.
-func ReadChildTrieFirstDescendantValue[H runtime.Hash, Hasher runtime.Hasher[H]](
+func ReadChildTrieFirstDescendantValue[H hashdb.Hash, Hasher hashdb.Hasher[H]](
 	keyspace []byte,
 	db hashdb.HashDB[H],
 	root H,
@@ -224,8 +264,7 @@ func ReadChildTrieFirstDescendantValue[H runtime.Hash, Hasher runtime.Hasher[H]]
 ) (triedb.MerkleValue[H], error) {
 	ksdb := NewKeyspacedDB(db, keyspace)
 	trieDB := triedb.NewTrieDB(
-		root, ksdb, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
-	trieDB.SetVersion(stateVersion)
+		root, ksdb, stateVersion, triedb.WithCache[H, Hasher](cache), triedb.WithRecorder[H, Hasher](recorder))
 	return trieDB.LookupFirstDescendant(key)
 }
 
@@ -280,3 +319,14 @@ func (tbe *KeyspacedDB[H]) Remove(key H, prefix hashdb.Prefix) {
 	derivedPrefix := keyspaceAsPrefix(tbe.keySpace, prefix)
 	tbe.db.Remove(key, derivedPrefix)
 }
+
+const (
+	firstPrefix              uint8 = 0b_00 << 6
+	leafPrefixMask           uint8 = 0b_01 << 6
+	branchWithoutMask        uint8 = 0b_10 << 6
+	branchWithMask           uint8 = 0b_11 << 6
+	emptyTrie                uint8 = firstPrefix | (0b_00 << 4)
+	altHashingLeafPrefixMask uint8 = firstPrefix | (0b_1 << 5)
+	altHashingBranchWithMask uint8 = firstPrefix | (0b_01 << 4)
+	escapeCompactHeader      uint8 = emptyTrie | 0b_00_01
+)

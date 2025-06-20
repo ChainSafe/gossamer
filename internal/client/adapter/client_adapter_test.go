@@ -223,7 +223,7 @@ func TestBlockOps(t *testing.T) {
 		})
 
 		t.Run("best_block_header_ok", func(t *testing.T) {
-			expectedHeader, err := types.NewHeaderFromGeneric[Number, Hash](header)
+			expectedHeader, err := types.NewHeaderFromGeneric(header)
 			require.NoError(t, err)
 
 			header, err := adapter.BestBlockHeader()
@@ -332,7 +332,7 @@ func TestGetBlockByNumber(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, block)
 
-		expectedBlock, err := types.NewBlockFromGeneric(block)
+		expectedBlock, err := types.NewBlockFromGeneric[Number, Hash, Extrinsic](block)
 		require.NoError(t, err)
 
 		require.Equal(t, expectedBlock, returnedBlock)

@@ -10,7 +10,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	backend "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
@@ -19,11 +18,11 @@ import (
 )
 
 // Re-exported types from backend package for simplicity.
-type StorageKey = backend.StorageKey
-type StorageValue = backend.StorageValue
-type StorageKeyValue = backend.StorageKeyValue
-type StorageCollection = backend.StorageCollection
-type ChildStorageCollection = backend.ChildStorageCollection
+type StorageKey = statemachine.StorageKey
+type StorageValue = statemachine.StorageValue
+type StorageKeyValue = statemachine.StorageKeyValue
+type StorageCollection = statemachine.StorageCollection
+type ChildStorageCollection = statemachine.ChildStorageCollection
 
 var NoExtrinsicIndex uint32 = 0xffffffff
 
@@ -450,7 +449,7 @@ func (oc *OverlayedChanges[H, Hasher]) offchainDrainCommited() iter.Seq2[Storage
 	return oc.offchain.DrainCommited()
 }
 
-// / Get an iterator over all child changes as seen by the current transaction.
+// Get an iterator over all child changes as seen by the current transaction.
 func (oc *OverlayedChanges[H, Hasher]) Children() iter.Seq2[
 	iter.Seq2[StorageKey, *OverlayedStorageEntry],
 	storage.ChildInfo,
@@ -517,26 +516,26 @@ func (oc *OverlayedChanges[H, Hasher]) extrinsicIndex() *uint32 {
 //
 // Returns the storage root and whether it was already cached.
 func (oc *OverlayedChanges[H, Hasher]) StorageRoot(
-	b backend.Backend[H, Hasher],
+	b statemachine.Backend[H, Hasher],
 	stateVersion storage.StateVersion,
 ) (H, bool) {
 	if oc.storageTransactionCache != nil {
 		return oc.storageTransactionCache.transactionStorageRoot, true
 	}
 
-	delta := make([]backend.Delta, 0)
+	delta := make([]statemachine.Delta, 0)
 	for key, value := range oc.top.Changes() {
-		delta = append(delta, backend.Delta{Key: []byte(key), Value: value.Value()})
+		delta = append(delta, statemachine.Delta{Key: []byte(key), Value: value.Value()})
 	}
 
-	childDeltas := make([]backend.ChildDelta, 0)
+	childDeltas := make([]statemachine.ChildDelta, 0)
 	for _, child := range oc.children {
-		deltas := make([]backend.Delta, 0)
+		deltas := make([]statemachine.Delta, 0)
 		for key, value := range child.Changes() {
-			deltas = append(deltas, backend.Delta{Key: []byte(key), Value: value.Value()})
+			deltas = append(deltas, statemachine.Delta{Key: []byte(key), Value: value.Value()})
 		}
 
-		childDeltas = append(childDeltas, backend.ChildDelta{
+		childDeltas = append(childDeltas, statemachine.ChildDelta{
 			ChildInfo: child.ChildInfo,
 			Deltas:    deltas,
 		})
@@ -553,7 +552,7 @@ func (oc *OverlayedChanges[H, Hasher]) StorageRoot(
 
 func (oc *OverlayedChanges[H, Hasher]) ChildStorageRoot(
 	childInfo storage.ChildInfo,
-	b backend.Backend[H, Hasher],
+	b statemachine.Backend[H, Hasher],
 	stateVersion storage.StateVersion,
 ) (H, bool, error) {
 	storageKey := StorageKey(childInfo.StorageKey())
@@ -587,9 +586,9 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorageRoot(
 	if changes == nil || info == nil {
 		root = trie.EmptyChildTrieRoot[H, Hasher]()
 	} else {
-		delta := make([]backend.Delta, 0)
+		delta := make([]statemachine.Delta, 0)
 		for k, v := range changes {
-			delta = append(delta, backend.Delta{Key: []byte(k), Value: v.Value()})
+			delta = append(delta, statemachine.Delta{Key: []byte(k), Value: v.Value()})
 		}
 		calculatedRoot, isEmpty, _ = b.ChildStorageRoot(info, delta, stateVersion)
 	}
