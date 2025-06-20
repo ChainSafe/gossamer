@@ -26,11 +26,12 @@ type PvFPrepData struct {
 type ValidationTask struct {
 	PersistedValidationData parachaintypes.PersistedValidationData
 	WorkerID                *parachaintypes.ValidationCodeHash
-	CandidateReceipt        *parachaintypes.CandidateReceipt
+	CandidateReceipt        *parachaintypes.CandidateReceiptV2
 	PoV                     parachaintypes.PoV
 	ExecutorParams          parachaintypes.ExecutorParams
 	PvfExecTimeoutKind      parachaintypes.PvfExecTimeoutKind
 	ValidationCode          *parachaintypes.ValidationCode
+	ClaimQueue              parachaintypes.ClaimQueue
 }
 
 // ValidationResult represents the result coming from the candidate validation subsystem.
@@ -54,6 +55,12 @@ type Valid struct {
 }
 
 type ReasonForInvalidity byte
+
+// Ptr returns a pointer to the ReasonForInvalidity value.
+func (ri ReasonForInvalidity) Ptr() *ReasonForInvalidity {
+	reason := ri
+	return &reason
+}
 
 const (
 	// ExecutionError Failed to execute `validate_block`. This includes function panicking.
@@ -82,6 +89,10 @@ const (
 	CodeHashMismatch
 	// CommitmentsHashMismatch Validation has generated different candidate commitments.
 	CommitmentsHashMismatch
+	// InvalidSessionIndex The candidate receipt contains an invalid session index.
+	InvalidSessionIndex
+	// The candidate receipt contains an invalid core index.
+	InvalidCoreIndex
 )
 
 func (ci ReasonForInvalidity) Error() string {
@@ -112,6 +123,10 @@ func (ci ReasonForInvalidity) Error() string {
 		return "validation code hash does not match"
 	case CommitmentsHashMismatch:
 		return "validation has generated different candidate commitments"
+	case InvalidSessionIndex:
+		return "candidate receipt contains an invalid session index"
+	case InvalidCoreIndex:
+		return "candidate receipt contains an invalid core index"
 	default:
 		return "unknown invalidity reason"
 	}
@@ -173,6 +188,7 @@ func (v *workerPool) executeRequest(msg *ValidationTask) (*ValidationResult, err
 		maxPoVSize:       msg.PersistedValidationData.MaxPovSize,
 		candidateReceipt: msg.CandidateReceipt,
 		timeoutKind:      msg.PvfExecTimeoutKind,
+		ClaimQueue:       msg.ClaimQueue,
 	}
 	return worker.executeRequest(workTask)
 

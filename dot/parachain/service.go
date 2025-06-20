@@ -7,23 +7,25 @@ import (
 	"fmt"
 	"time"
 
+	bitfielddistribution "github.com/ChainSafe/gossamer/dot/parachain/bitfield-distribution"
+	gossipsupport "github.com/ChainSafe/gossamer/dot/parachain/gossip-support"
+	"github.com/ChainSafe/gossamer/dot/parachain/provisioner"
+
+	availabilitydistribution "github.com/ChainSafe/gossamer/dot/parachain/availability-distribution"
+
 	bitfieldsigning "github.com/ChainSafe/gossamer/dot/parachain/bitfield-signing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
-	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
-	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	validatorside "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/validator-side"
+	disputescoordinator "github.com/ChainSafe/gossamer/dot/parachain/disputes-coordinator"
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains"
-	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -38,8 +40,6 @@ type Service struct {
 	Network  Network
 	overseer overseer.Overseer
 }
-
-var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
 func NewService(net Network, forkID string, st *state.Service, ks keystore.Keystore, syncer Sync) (*Service, error) {
 	overseer := overseer.NewOverseer(st.Block)
@@ -77,10 +77,12 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	overseer.RegisterSubsystem(availabilityStore)
 
 	// register collation protocol
-	cpvs := collatorprotocol.New(net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel())
-	cpvs.BlockState = st.Block
-	cpvs.Keystore = ks
+	cpvs := validatorside.New(
+		net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel(), st.Block, ks)
 	overseer.RegisterSubsystem(cpvs)
+
+	candidateBacking := backing.New(overseer.GetSubsystemToOverseerChannel(), ks, st.Block)
+	overseer.RegisterSubsystem(candidateBacking)
 
 	// register candidate validation subsystem
 	candidateValidationSubsystem := candidatevalidation.NewCandidateValidation(overseer.SubsystemsToOverseer, st.Block)
@@ -88,19 +90,42 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	overseer.RegisterSubsystem(candidateValidationSubsystem)
 
 	// register prospective parachains subsystem
-	prospectiveParachainsSubsystem := prospectiveparachains.NewProspectiveParachains(overseer.SubsystemsToOverseer)
+	prospectiveParachainsSubsystem := prospectiveparachains.NewProspectiveParachains(
+		overseer.SubsystemsToOverseer, st.Block)
 	overseer.RegisterSubsystem(prospectiveParachainsSubsystem)
+
+	provisionerSubsystem := provisioner.New(overseer.SubsystemsToOverseer, st.Block)
+	overseer.RegisterSubsystem(provisionerSubsystem)
 
 	// register bitfield signing subsystem
 	bitfieldSigningsSubsystem := bitfieldsigning.NewBitfieldSigning(overseer.SubsystemsToOverseer, ks, st.Block)
 	overseer.RegisterSubsystem(bitfieldSigningsSubsystem)
 
+	// register bitfield distribution subsystem
+	bitfieldDistributionSubsystem := bitfielddistribution.NewBitfieldDistribution(overseer.SubsystemsToOverseer, st.Block)
+	overseer.RegisterSubsystem(bitfieldDistributionSubsystem)
+
+	// register availability distribution subsystem
+	availabilityDistributionSubsystem := availabilitydistribution.NewAvailabilityDistribution(
+		overseer.GetSubsystemToOverseerChannel(),
+		net,
+		st.Block,
+		availabilitydistribution.NewLRUSessionCache(ks),
+	)
+	overseer.RegisterSubsystem(availabilityDistributionSubsystem)
+
+	// register disputes coordinator subsystem
+	disputesCoordinatorSubsystem := disputescoordinator.New(overseer.SubsystemsToOverseer)
+	overseer.RegisterSubsystem(disputesCoordinatorSubsystem)
+
+	// register gossip support subsystem
+	gossipSupportSubsystem := gossipsupport.NewGossipSupport(ks, overseer.SubsystemsToOverseer, st.Block)
+	overseer.RegisterSubsystem(gossipSupportSubsystem)
+
 	parachainService := &Service{
 		Network:  net,
 		overseer: overseer,
 	}
-
-	go parachainService.run(st.Block)
 
 	return parachainService, nil
 }
@@ -113,50 +138,6 @@ func (Service) Start() error {
 // Stop stops the Handler
 func (Service) Stop() error {
 	return nil
-}
-
-// main loop of parachain service
-func (s Service) run(blockState *state.BlockState) {
-	overseer := s.overseer
-
-	candidateBacking := backing.New(overseer.GetSubsystemToOverseerChannel())
-	candidateBacking.BlockState = blockState
-	overseer.RegisterSubsystem(candidateBacking)
-
-	// TODO: Add `Prospective Parachains` Subsystem. create an issue.
-
-	// NOTE: this is a temporary test, just to show that we can send messages to peers
-	//
-	time.Sleep(time.Second * 15)
-	// let's try sending a collation message  and validation message to a peer and see what happens
-	collatorProtocolMessage := collatorprotocolmessages.NewCollatorProtocolMessage()
-	// NOTE: This is just to test. We should not be sending declare messages, since we are not a collator, just a validator
-	_ = collatorProtocolMessage.SetValue(collatorprotocolmessages.Declare{})
-	collationMessage := collatorprotocolmessages.NewCollationProtocol()
-
-	_ = collationMessage.SetValue(collatorProtocolMessage)
-	s.Network.GossipMessage(&collationMessage)
-
-	statementDistributionLargeStatement := validationprotocol.StatementDistribution{
-		StatementDistributionMessage: validationprotocol.NewStatementDistributionMessage(),
-	}
-	err := statementDistributionLargeStatement.SetValue(validationprotocol.LargePayload{
-		RelayParent:   common.Hash{},
-		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{}},
-		SignedBy:      5,
-		Signature:     parachaintypes.ValidatorSignature{},
-	})
-	if err != nil {
-		logger.Errorf("creating test statement message: %w\n", err)
-	}
-
-	validationMessage := validationprotocol.NewValidationProtocolVDT()
-	err = validationMessage.SetValue(statementDistributionLargeStatement)
-	if err != nil {
-		logger.Errorf("creating test validation message: %w\n", err)
-	}
-	s.Network.GossipMessage(&validationMessage)
-
 }
 
 // Network is the interface required by parachain service for the network
@@ -173,6 +154,7 @@ type Network interface {
 		batchHandler network.NotificationsMessageBatchHandler,
 		maxSize uint64,
 	) error
+	RegisterRequestHandler(subprotocolID protocol.ID, handler network.RequestHandler)
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) network.RequestMaker
 	ReportPeer(change peerset.ReputationChange, p peer.ID)

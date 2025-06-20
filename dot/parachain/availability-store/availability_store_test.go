@@ -33,12 +33,12 @@ var (
 	testChunk1 = ErasureChunk{
 		Chunk: []byte("chunk1"),
 		Index: 0,
-		Proof: []byte("proof1"),
+		Proof: [][]byte{[]byte("proof1")},
 	}
 	testChunk2 = ErasureChunk{
 		Chunk: []byte("chunk2"),
 		Index: 1,
-		Proof: []byte("proof2"),
+		Proof: [][]byte{[]byte("proof2")},
 	}
 	testAvailableData1 = AvailableData{
 		PoV: parachaintypes.PoV{BlockData: []byte("blockdata")},
@@ -836,10 +836,10 @@ func TestAvailabilityStoreSubsystem_noteBlockBacked(t *testing.T) {
 			expected: map[string][]byte{
 				string([]byte{99, 104, 117, 110, 107, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110,
 					209, 237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245, 0, 0,
-					0, 0}): {24, 99, 104, 117, 110, 107, 49, 0, 0, 0, 0, 24, 112, 114, 111, 111, 102, 49},
+					0, 0}): {24, 99, 104, 117, 110, 107, 49, 0, 0, 0, 0, 4, 24, 112, 114, 111, 111, 102, 49},
 				string([]byte{99, 104, 117, 110, 107, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110,
 					209, 237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245, 0, 0,
-					0, 1}): {24, 99, 104, 117, 110, 107, 50, 1, 0, 0, 0, 24,
+					0, 1}): {24, 99, 104, 117, 110, 107, 50, 1, 0, 0, 0, 4, 24,
 					112, 114, 111, 111, 102, 50},
 				string([]byte{109, 101, 116, 97, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0, 0, 0, 0}): {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0},
@@ -907,10 +907,10 @@ func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
 			expected: map[string][]byte{
 				string([]byte{99, 104, 117, 110, 107, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110,
 					209, 237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245, 0, 0,
-					0, 0}): {24, 99, 104, 117, 110, 107, 49, 0, 0, 0, 0, 24, 112, 114, 111, 111, 102, 49},
+					0, 0}): {24, 99, 104, 117, 110, 107, 49, 0, 0, 0, 0, 4, 24, 112, 114, 111, 111, 102, 49},
 				string([]byte{99, 104, 117, 110, 107, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110,
 					209, 237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245, 0, 0,
-					0, 1}): {24, 99, 104, 117, 110, 107, 50, 1, 0, 0, 0, 24,
+					0, 1}): {24, 99, 104, 117, 110, 107, 50, 1, 0, 0, 0, 4, 24,
 					112, 114, 111, 111, 102, 50},
 				string([]byte{109, 101, 116, 97, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0, 0, 0, 0}): {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0},
@@ -1067,7 +1067,7 @@ func (h *testHarness) hasAllChunks(candidateHash parachaintypes.CandidateHash, n
 		msgQueryChan := make(chan ErasureChunk)
 		queryChunk := QueryChunk{
 			CandidateHash:  candidateHash,
-			ValidatorIndex: i,
+			ValidatorIndex: parachaintypes.ValidatorIndex(i),
 			Sender:         msgQueryChan,
 		}
 		h.broadcastMessages = append(h.broadcastMessages, queryChunk)
@@ -1393,7 +1393,7 @@ func TestStorePOVandQueryChunkWorks(t *testing.T) {
 		msgSenderQueryChan := make(chan ErasureChunk)
 		harness.broadcastMessages = append(harness.broadcastMessages, QueryChunk{
 			CandidateHash:  candidateHash,
-			ValidatorIndex: i,
+			ValidatorIndex: parachaintypes.ValidatorIndex(i),
 			Sender:         msgSenderQueryChan,
 		})
 		harness.triggerBroadcast()
@@ -1569,7 +1569,7 @@ func TestStoreBlockWorks(t *testing.T) {
 	expectedChunk := ErasureChunk{
 		Chunk: chunksExpected[5],
 		Index: 5,
-		Proof: []byte{},
+		Proof: nil,
 	}
 	require.Equal(t, expectedChunk, msgSenderErasureChanResult)
 

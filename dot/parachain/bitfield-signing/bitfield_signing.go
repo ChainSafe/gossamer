@@ -209,44 +209,44 @@ func constructAvailabilityBitfield(
 
 	var wg sync.WaitGroup
 	for coreOrderIndex, core := range cores {
-		coreValueIndex, value, err := core.IndexValue()
+		v, err := core.Value()
 		if err != nil {
 			return parachaintypes.BitVec{}, err
 		}
-		// 0 is type of parachaintypes.OccupiedCore
-		if coreValueIndex == 0 {
-			wg.Add(1)
-			go func(oi int, v parachaintypes.OccupiedCore) {
-				defer wg.Done()
-
-				receivingChan := make(chan bool)
-				queryPayload := availabilitystore.QueryChunkAvailability{
-					CandidateHash:  parachaintypes.CandidateHash{Value: v.CandidateHash},
-					ValidatorIndex: uint32(validatorIdx),
-					Sender:         receivingChan,
-				}
-
-				// send QueryChunkAvailability to availability store via overseer
-				subSystemToOverseer <- queryPayload
-
-				// check if cancel signal is coming
-				// we can't cancel the process anytime during the spawned goroutines
-				// instead we block the process here so that either cancel or receivingChan responses
-				var data bool
-				select {
-				case <-ctx.Done():
-					logger.Infof("process for handleActiveLeavesUpdate is abort due to deactivated leaves")
-					return
-				case res := <-receivingChan:
-					data = res
-				}
-				bitfield[oi] = data
-			}(coreOrderIndex, value.(parachaintypes.OccupiedCore))
-		} else {
+		value, ok := v.(parachaintypes.OccupiedCore)
+		if !ok {
 			bitfield[coreOrderIndex] = false
+			continue
 		}
+		wg.Add(1)
+		go func(oi int, v parachaintypes.OccupiedCore) {
+			defer wg.Done()
+
+			receivingChan := make(chan bool)
+			queryPayload := availabilitystore.QueryChunkAvailability{
+				CandidateHash:  parachaintypes.CandidateHash{Value: v.CandidateHash},
+				ValidatorIndex: uint32(validatorIdx),
+				Sender:         receivingChan,
+			}
+
+			// send QueryChunkAvailability to availability store via overseer
+			subSystemToOverseer <- queryPayload
+
+			// check if cancel signal is coming
+			// we can't cancel the process anytime during the spawned goroutines
+			// instead we block the process here so that either cancel or receivingChan responses
+			var data bool
+			select {
+			case <-ctx.Done():
+				logger.Infof("process for handleActiveLeavesUpdate is abort due to deactivated leaves")
+				return
+			case res := <-receivingChan:
+				data = res
+			}
+			bitfield[oi] = data
+		}(coreOrderIndex, value)
 	}
 	wg.Wait()
 
-	return parachaintypes.NewBitVec(bitfield), nil
+	return parachaintypes.NewBitVec(bitfield)
 }

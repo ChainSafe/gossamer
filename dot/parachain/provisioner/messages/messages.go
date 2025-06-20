@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	_ Data = (*ProvisionableDataBackedCandidate)(nil)
+	_ Data = (*ProvisionableDataBitfield)(nil)
 	_ Data = (*ProvisionableDataMisbehaviorReport)(nil)
 )
 
@@ -19,6 +19,9 @@ type RequestInherentData struct {
 }
 
 type ProvisionerInherentData struct {
+	Bitfield         []parachaintypes.CheckedSignedAvailabilityBitfield
+	BackedCandidates []parachaintypes.BackedCandidate
+	Disputes         []parachaintypes.DisputeStatementSet
 }
 
 // ProvisionableData is a provisioner message.
@@ -33,12 +36,6 @@ type Data interface {
 	IsData()
 }
 
-// ProvisionableDataBackedCandidate is a provisionable data.
-// The Candidate Backing subsystem believes that this candidate is valid, pending availability.
-type ProvisionableDataBackedCandidate parachaintypes.CandidateReceipt
-
-func (ProvisionableDataBackedCandidate) IsData() {}
-
 // ProvisionableDataMisbehaviorReport represents self-contained proofs of validator misbehaviour.
 type ProvisionableDataMisbehaviorReport struct {
 	ValidatorIndex parachaintypes.ValidatorIndex
@@ -46,3 +43,11 @@ type ProvisionableDataMisbehaviorReport struct {
 }
 
 func (ProvisionableDataMisbehaviorReport) IsData() {}
+
+// ProvisionableDataBitfield indicates the availability of various candidate blocks.
+type ProvisionableDataBitfield struct {
+	RelayParent common.Hash
+	Bitfield    parachaintypes.CheckedSignedAvailabilityBitfield
+}
+
+func (ProvisionableDataBitfield) IsData() {}

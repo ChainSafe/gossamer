@@ -20,6 +20,7 @@ import (
 type MockRunner struct {
 	ctrl     *gomock.Controller
 	recorder *MockRunnerMockRecorder
+	isgomock struct{}
 }
 
 // MockRunnerMockRecorder is the mock recorder for MockRunner.
@@ -40,13 +41,13 @@ func (m *MockRunner) EXPECT() *MockRunnerMockRecorder {
 }
 
 // Run mocks base method.
-func (m *MockRunner) Run(arg0 context.Context, arg1 chan<- struct{}, arg2 chan<- error) {
+func (m *MockRunner) Run(ctx context.Context, ready chan<- struct{}, done chan<- error) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Run", arg0, arg1, arg2)
+	m.ctrl.Call(m, "Run", ctx, ready, done)
 }
 
 // Run indicates an expected call of Run.
-func (mr *MockRunnerMockRecorder) Run(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockRunnerMockRecorder) Run(ctx, ready, done any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockRunner)(nil).Run), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockRunner)(nil).Run), ctx, ready, done)
 }

@@ -10,10 +10,12 @@ import (
 	"slices"
 	"sort"
 
+	"github.com/multiformats/go-multiaddr"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
-	events "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
+	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -59,10 +61,12 @@ type NetworkBridgeReceiver struct {
 
 	authorityDiscoveryService AuthorityDiscoveryService
 
-	peerData map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}
+	peerData map[peer.ID]PeerDataViewWithVersion
+}
+
+type PeerDataViewWithVersion struct {
+	View            parachaintypes.View
+	ProtocolVersion uint32
 }
 
 type CollationStatus int
@@ -152,7 +156,7 @@ func (nbr *NetworkBridgeReceiver) handleNetworkEvents(event network.NetworkEvent
 	}
 }
 
-func (nbr *NetworkBridgeReceiver) Name() parachaintypes.SubSystemName {
+func (*NetworkBridgeReceiver) Name() parachaintypes.SubSystemName {
 	return parachaintypes.NetworkBridgeReceiver
 }
 
@@ -164,7 +168,7 @@ func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
 		Number: signal.Activated.Number,
 	})
 
-	newLiveHeads := []parachaintypes.ActivatedLeaf{}
+	var newLiveHeads []parachaintypes.ActivatedLeaf
 
 	for _, head := range nbr.liveHeads {
 		if slices.Contains(signal.Deactivated, head.Hash) {
@@ -200,7 +204,7 @@ func (s SortableActivatedLeaves) Swap(i, j int) {
 }
 
 func (nbr *NetworkBridgeReceiver) updateOurView() error { //nolint
-	headHashes := []common.Hash{}
+	var headHashes []common.Hash
 	for _, head := range nbr.liveHeads {
 		headHashes = append(headHashes, head.Hash)
 	}
@@ -309,12 +313,12 @@ func (nbr *NetworkBridgeReceiver) handleValidationMessage(
 }
 
 func (nbr *NetworkBridgeReceiver) handleViewUpdate(peer peer.ID, view ViewUpdate) error {
-
+	v := parachaintypes.View(view)
 	peerData, ok := nbr.peerData[peer]
 	if !ok {
 		return errors.New("peer not found")
 	}
-	if len(view.Heads) > newMaxHeads || view.FinalizedNumber < peerData.view.FinalizedNumber {
+	if len(view.Heads) > newMaxHeads || view.FinalizedNumber < peerData.View.FinalizedNumber {
 		nbr.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.CostMajor,
 			Reason: "malformed view",
@@ -324,10 +328,10 @@ func (nbr *NetworkBridgeReceiver) handleViewUpdate(peer peer.ID, view ViewUpdate
 			Value:  peerset.CostMinor,
 			Reason: "peer sent us empty view",
 		}, peer)
-	} else if parachaintypes.View(view).CheckHeadsEqual(peerData.view) {
+	} else if v.CheckHeadsEqual(peerData.View) {
 		// nothing
 	} else {
-		peerData.view = parachaintypes.View(view)
+		peerData.View = parachaintypes.View(view)
 		nbr.peerData[peer] = peerData
 
 		nbr.SubsystemsToOverseer <- events.Event[collatorprotocolmessages.CollationProtocol]{
@@ -369,7 +373,7 @@ func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 
 		newGossipTopology := events.NewGossipTopology{
 			Session: msg.Session,
-			Topotogy: events.SessionGridTopology{
+			Topology: events.SessionGridTopology{
 				ShuffledIndices:    msg.ShuffledIndices,
 				CanonicalShuffling: peerTopologies,
 			},
@@ -409,6 +413,8 @@ func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService,
 
 type AuthorityDiscoveryService interface {
 	GetPeerIDByAuthorityID(authorityID parachaintypes.AuthorityDiscoveryID) peer.ID
+	GetAddressesByAuthorityID(authority parachaintypes.AuthorityDiscoveryID) map[multiaddr.Multiaddr]struct{}
+	GetAuthorityIDsByPeerID(peerID peer.ID) map[parachaintypes.AuthorityDiscoveryID]struct{}
 }
 
 type Sync interface {

@@ -19,6 +19,8 @@ type RequestMaker interface {
 	Do(to peer.ID, req Message, res ResponseMessage) error
 }
 
+type RequestHandler func(who peer.ID, payload []byte) (ResponseMessage, error)
+
 type RequestResponseProtocol struct {
 	ctx             context.Context
 	host            *host

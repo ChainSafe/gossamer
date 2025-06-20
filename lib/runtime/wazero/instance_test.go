@@ -42,11 +42,11 @@ var parachainTestDataRaw string
 //go:embed testdata/parachains_configuration_v190.yaml
 var parachainsConfigV190TestDataRaw string
 
-//go:embed testdata/parachains_host_para_backing_state.yaml
-var parachainsHostParaBackingState string
-
 //go:embed testdata/parachains_configuration_v1171.yaml
 var parachainsConfigV1171TestDataRaw string
+
+//go:embed testdata/parachains_configuration_stable2503.yaml
+var parachainsConfigStable2503 string
 
 //go:embed testdata/parachains_host_disputes.yaml
 var parachainHostDisputes string
@@ -64,6 +64,7 @@ type Data struct {
 }
 
 var parachainTestData, parachainsConfigV190TestData, parachainsConfigV1171TestData Data
+var parachainsConfigStable2503Data Data
 
 func init() {
 	err := yaml.Unmarshal([]byte(parachainTestDataRaw), &parachainTestData)
@@ -102,6 +103,19 @@ func init() {
 	for _, s := range parachainsConfigV1171TestData.Storage {
 		if s.Name != "" {
 			parachainsConfigV1171TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
+		}
+	}
+
+	err = yaml.Unmarshal([]byte(parachainsConfigStable2503), &parachainsConfigStable2503Data)
+	if err != nil {
+		fmt.Println("Error unmarshalling test data:", err)
+		return
+	}
+	parachainsConfigStable2503Data.Lookups = make(map[string]any)
+
+	for _, s := range parachainsConfigStable2503Data.Storage {
+		if s.Name != "" {
+			parachainsConfigStable2503Data.Lookups[s.Name] = common.MustHexToBytes(s.Value)
 		}
 	}
 }
@@ -1738,11 +1752,48 @@ func TestInstance_ParachainHostNodeFeatures(t *testing.T) {
 	tt := getParachainHostTrie(t, parachainsConfigV1171TestData.Storage)
 	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
 
-	expectedNodeFeatures := parachaintypes.NewBitVec([]bool{false, true, false, true})
+	expectedNodeFeatures := bitVector(t, []bool{false, true, false, true})
 
 	actualNodeFeatures, err := rt.ParachainHostNodeFeatures()
 	require.NoError(t, err)
 	require.Equal(t, expectedNodeFeatures, actualNodeFeatures)
+}
+
+func TestInstance_ParachainHostSchedulingLookAhead(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name              string
+		targetRuntime     string
+		testDataStorage   []Storage
+		expectedLookahead uint32
+	}{
+		{
+			name:              "not_supported_by_runtime_version",
+			targetRuntime:     runtime.WESTEND_RUNTIME_v1017001,
+			testDataStorage:   parachainsConfigV1171TestData.Storage,
+			expectedLookahead: DefaultSchedulingLookahead,
+		},
+		{
+			name:              "supported_by_runtime_version",
+			targetRuntime:     runtime.WESTEND_RUNTIME_STABLE_2503,
+			testDataStorage:   parachainsConfigStable2503Data.Storage,
+			expectedLookahead: 10,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			tt := getParachainHostTrie(t, tc.testDataStorage)
+			rt := NewTestInstance(t, tc.targetRuntime, TestWithTrie(tt))
+
+			schedulingLookahead, err := rt.ParachainHostSchedulingLookAhead()
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedLookahead, schedulingLookahead)
+		})
+	}
 }
 
 func TestInstance_ParachainHostClaimQueue(t *testing.T) {
@@ -1775,85 +1826,6 @@ func TestInstance_ParachainHostDisabledValidators(t *testing.T) {
 	require.Empty(t, disabledValidators)
 }
 
-func TestInstance_ParachainHostParaBackingState(t *testing.T) {
-	t.Parallel()
-	var backingStateData Data
-	err := yaml.Unmarshal([]byte(parachainsHostParaBackingState), &backingStateData)
-	require.NoError(t, err)
-
-	paraID := parachaintypes.ParaID(1001)
-	tt := getParachainHostTrie(t, backingStateData.Storage)
-	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
-
-	backingState, err := rt.ParachainHostParaBackingState(paraID)
-	require.NoError(t, err)
-
-	expectedBackingState := &parachaintypes.BackingState{
-		Constraints: parachaintypes.Constraints{
-			MinRelayParentNumber:   23920837,
-			MaxPoVSize:             5242880,
-			MaxCodeSize:            3145728,
-			UMPRemaining:           1398101,
-			UMPRemainingBytes:      8388608,
-			MaxNumUMPPerCandidate:  512,
-			MaxNumHRMPPerCandidate: 10,
-			RequiredParent: parachaintypes.HeadData{
-				Data: common.MustHexToBytes("0x1b5270c5d767d30a43a1d3f66e4c8414bd9b9bd502d3620601a00b" +
-					"2d3484bf042a84aa0138b82ea524764ca4b2e88c7069dc898d23d1997e212b490a2349853161a7de" +
-					"0931ff60595b16ed500e749c3c145ec9ce1ef7dd81b6a1d266d791a65665917ccb0c066175726120" +
-					"24f53a11000000000452505352905fe786d355e3b806965ee4d2757e536d593a90530606cb6bc632" +
-					"bf72137c66653603b40505617572610101268a2683d59ea42fb24cf323c46e7b39374591ad61fa03" +
-					"ad0102fa65c32b5e292491eb6c32cc9d88fbf13bcda19231688079ba2759e263acc25fd4b8dc60938f"),
-			},
-			UpgradeRestriction: nil,
-			ValidationCodeHash: parachaintypes.ValidationCodeHash(
-				common.MustHexToBytes(
-					"0x59558a80dfcf74536b9f6fcba7416490211b22f29cc750a8bcb4993ea53cf347")),
-		},
-		PendingAvailability: []parachaintypes.CandidatePendingAvailability{
-			{
-				RelayParentNumber: 23920925,
-				MaxPoVSize:        5242880,
-				CandidateHash: parachaintypes.CandidateHash{
-					Value: common.Hash(
-						common.MustHexToBytes("0x44f58a0b350c80250427227f0c7e81dabc3b85e33c1864ed115bb8759f60874f")),
-				},
-				Descriptor: parachaintypes.CandidateDescriptorV2{
-					ParaID: 1001,
-					RelayParent: common.MustHexToHash(
-						"0x40b834a772284d4e27a66564bd63e2a03f0711f67d7751bcad172dac4f73b11f"),
-					Version:      240,
-					CoreIndex:    57316,
-					SessionIndex: 1906958206,
-					Reserved1:    [25]uint8(common.MustHexToBytes("0x27de1f4ef0afe2b4837f42aaf29690236b6bdb60c85b1d5b32")),
-					PersistedValidationDataHash: common.MustHexToHash(
-						"0x0157d5bc5c7d6a6bccf367fd61ef2151c58bf4b401e1fa00db83f55387658a7e"),
-					PovHash:     common.MustHexToHash("0xf831bcc17aa290dad89ac3ca6a0a5370baf95937728cfac4a089474ca1229cc7"),
-					ErasureRoot: common.MustHexToHash("0x082963b364af8ee0a645f291bf8836ed7e8ed8e393c3aad44ad9c79b9506b578"),
-					Reserved2: [64]uint8(common.MustHexToBytes("0x64c84d5afd3da75a717f9689a299cb8aed9159db136440fe221c440" +
-						"0a15fb16bab9133fffe4364c80fd4035024e42a6d2f0aca23cd50028ee8a24397967f338e")),
-					ParaHead: common.MustHexToHash("0xbece074cebf86b95ea2ccab3ce28d1e90d89fca774d95b9ac9540b283484474d"),
-					ValidationCodeHash: parachaintypes.ValidationCodeHash(
-						common.MustHexToBytes("0x59558a80dfcf74536b9f6fcba7416490211b22f29cc750a8bcb4993ea53cf347")),
-				},
-				Commitments: parachaintypes.CandidateCommitments{
-					HeadData: parachaintypes.HeadData{
-						Data: common.MustHexToBytes("0xce21d522a334adb0a09f4b755409b17a85a67e8152fb76952e51bd61268e73b63a" +
-							"85aa011ebf7dad71dbf3579be222072c0587dc6c7c829a7319f8780b1ec8bca21f509d5582f701d2adaac9efbb6c" +
-							"696a7d5e20080988a20a3a68f25d6d7830d68b47ad0c06617572612074f53a110000000004525053529035f969d2" +
-							"20c83086d53d64c94d8bd0914d549eb02a48f2f5e841b1bf63a2aadc7604b40505617572610101a625c2ce9ec9b4" +
-							"3ddd7b97c328827b3e8b05dd6f28cec160f6fa3d08c756e038b14f63752c754463d510763e4702cb37c0660ab103" +
-							"7777091c97deb6004f8e8b"),
-					},
-					HrmpWatermark: 23920925,
-				},
-			},
-		},
-	}
-
-	require.Equal(t, expectedBackingState, backingState)
-}
-
 func TestInstance_ParachainHostDisputes(t *testing.T) {
 	t.Parallel()
 	var disputesStateData Data
@@ -1861,7 +1833,7 @@ func TestInstance_ParachainHostDisputes(t *testing.T) {
 	require.NoError(t, err)
 
 	tt := getParachainHostTrie(t, disputesStateData.Storage)
-	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_STABLE_2503, TestWithTrie(tt))
 
 	disputes, err := rt.ParachainHostDisputes()
 	require.NoError(t, err)
@@ -1874,9 +1846,9 @@ func TestInstance_ParachainHostDisputes(t *testing.T) {
 				Value: common.MustHexToHash("0x59558a80dfcf74536b9f6fcba7416490211b22f29cc750a8bcb4993ea53cf347"),
 			},
 		}: {
-			ValidatorsFor: parachaintypes.NewBitVec(
+			ValidatorsFor: bitVector(t,
 				[]bool{false, true, false, true, false, true, false, true, false, false, false, false}),
-			ValidatorsAgainst: parachaintypes.NewBitVec(
+			ValidatorsAgainst: bitVector(t,
 				[]bool{false, true, false, true, false, true, false, true, false, false, false, false}),
 			Start:       parachaintypes.BlockNumber(10),
 			ConcludedAt: nil,
@@ -1887,14 +1859,118 @@ func TestInstance_ParachainHostDisputes(t *testing.T) {
 				Value: common.MustHexToHash("0x59558a80dfcf74536b9f6fcba7416490211b22f29cc750a8bcb4993ea53cf388"),
 			},
 		}: {
-			ValidatorsFor:     parachaintypes.NewBitVec([]bool{false}),
-			ValidatorsAgainst: parachaintypes.NewBitVec([]bool{true}),
+			ValidatorsFor:     bitVector(t, []bool{false}),
+			ValidatorsAgainst: bitVector(t, []bool{true}),
 			Start:             parachaintypes.BlockNumber(15),
 			ConcludedAt:       &concludedAt,
 		},
 	}
 
 	require.Equal(t, expected, disputes)
+}
+
+func TestInstance_ParachainHostBackingConstraints(t *testing.T) {
+	t.Parallel()
+	var disputesStateData Data
+	err := yaml.Unmarshal([]byte(parachainsConfigStable2503), &disputesStateData)
+	require.NoError(t, err)
+
+	tt := getParachainHostTrie(t, disputesStateData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_STABLE_2503, TestWithTrie(tt))
+
+	constraints, err := rt.ParachainHostBackingConstraints(parachaintypes.ParaID(1001))
+	require.NoError(t, err)
+
+	expectedConstraint := &parachaintypes.VStagingConstraints{
+		MinRelayParentNumber:  25605480,
+		MaxPoVSize:            10485760,
+		MaxCodeSize:           3145728,
+		MaxHeadDataSize:       20480,
+		UMPRemaining:          174762,
+		UMPRemainingBytes:     1048576,
+		MaxNumUMPPerCandidate: 16,
+		HRMPInbound: parachaintypes.InboundHRMPLimitations{
+			ValidWatermarks: nil,
+		},
+		HRMPChannelsOut:        nil,
+		MaxNumHRMPPerCandidate: 10,
+		RequiredParent: parachaintypes.HeadData{
+			Data: []uint8{0xf1, 0x16, 0x2a, 0x33, 0x39, 0xa7, 0x24, 0xe, 0x19, 0xf1, 0x24, 0xa9, 0xbd,
+				0x44, 0xc, 0x7d, 0xf3, 0xae, 0xfd, 0xec, 0x9d, 0xb1, 0x7d, 0xf8, 0xb3, 0x5f, 0x45, 0x5a,
+				0xdd, 0x48, 0x93, 0xe6, 0x26, 0x84, 0x78, 0x1, 0x94, 0xbd, 0xa2, 0xeb, 0xff, 0xad, 0x9d,
+				0xa5, 0xbc, 0xed, 0xed, 0x3d, 0x5, 0x16, 0x8f, 0xf5, 0x3f, 0x22, 0x0, 0x58, 0x4d, 0x90,
+				0x9a, 0x5d, 0x7c, 0xfd, 0x95, 0xc7, 0xea, 0xd4, 0xa3, 0xb3, 0x53, 0xa0, 0xa7, 0xc1, 0x74,
+				0x8e, 0xb5, 0xae, 0x81, 0xe8, 0x9, 0xa1, 0x3a, 0xfe, 0x7, 0x97, 0x24, 0x91, 0x29, 0xa1,
+				0x49, 0x58, 0xb, 0x5f, 0x33, 0x8d, 0x5e, 0x79, 0xbc, 0xb, 0xd8, 0x21, 0xc, 0x6, 0x61,
+				0x75, 0x72, 0x61, 0x20, 0xa2, 0xa9, 0xaa, 0x8, 0x0, 0x0, 0x0, 0x0, 0x4, 0x52, 0x50, 0x53,
+				0x52, 0x90, 0xfd, 0xc9, 0xaf, 0xc3, 0x3a, 0xf1, 0x76, 0xd4, 0x88, 0x1, 0x38, 0x16, 0x32,
+				0x9b, 0x28, 0x3e, 0xac, 0xca, 0x3, 0xb1, 0x90, 0xef, 0x3e, 0x66, 0x5d, 0xf5, 0xab, 0x79,
+				0xa6, 0xf3, 0xe2, 0x1f, 0xb2, 0xd5, 0x1a, 0x6, 0x5, 0x61, 0x75, 0x72, 0x61, 0x1, 0x1, 0x60,
+				0xbf, 0xc1, 0x14, 0x92, 0xfa, 0x73, 0x96, 0x17, 0x85, 0x16, 0xb7, 0x85, 0xfe, 0xf, 0xa0,
+				0x99, 0x27, 0x62, 0x4b, 0x69, 0x7, 0x58, 0x31, 0xb9, 0x75, 0x4a, 0xd9, 0x72, 0x2f, 0x1b,
+				0x71, 0x29, 0x16, 0x90, 0xbf, 0x30, 0x27, 0x80, 0xfb, 0xd4, 0xa5, 0xb7, 0x38, 0xb, 0x47,
+				0x81, 0x1f, 0x8c, 0xde, 0xf4, 0x1a, 0xe, 0x4c, 0x90, 0x9e, 0xe1, 0x8, 0xca, 0xdf, 0xf2,
+				0xc8, 0x59, 0x84,
+			},
+		},
+		FutureValidationCode: nil,
+		UpgradeRestriction:   nil,
+		ValidationCodeHash: parachaintypes.ValidationCodeHash([]byte{
+			0x18, 0xc4, 0x73, 0x8d, 0xfa, 0x5f, 0x3d, 0x43, 0xb7, 0xe4, 0xda, 0x14, 0x4, 0xf0, 0x9f, 0x3e,
+			0x13, 0x99, 0x85, 0xbf, 0x4f, 0x5d, 0xa1, 0x11, 0xab, 0x46, 0x4b, 0x6c, 0x5d, 0x75, 0xb7, 0xb2,
+		}),
+	}
+
+	require.Equal(t, expectedConstraint, constraints)
+}
+
+func TestInstance_ParachainHostCandidatesPendingAvailability(t *testing.T) {
+	t.Parallel()
+	var disputesStateData Data
+	err := yaml.Unmarshal([]byte(parachainsConfigStable2503), &disputesStateData)
+	require.NoError(t, err)
+
+	tt := getParachainHostTrie(t, disputesStateData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_STABLE_2503, TestWithTrie(tt))
+
+	committedCandidateReceiptsV2, err := rt.ParachainHostCandidatesPendingAvailability(parachaintypes.ParaID(1001))
+	require.NoError(t, err)
+
+	expectedCommittedCandidateReceipt := []parachaintypes.CommittedCandidateReceiptV2{
+		{
+			Descriptor: parachaintypes.CandidateDescriptorV2{
+				ParaID: 1001,
+				RelayParent: common.MustHexToHash(
+					"0x40b834a772284d4e27a66564bd63e2a03f0711f67d7751bcad172dac4f73b11f"),
+				CurrentVersion: 240,
+				CoreIndex:      57316,
+				SessionIndex:   1906958206,
+				Reserved1:      [25]uint8(common.MustHexToBytes("0x27de1f4ef0afe2b4837f42aaf29690236b6bdb60c85b1d5b32")),
+				PersistedValidationDataHash: common.MustHexToHash(
+					"0x0157d5bc5c7d6a6bccf367fd61ef2151c58bf4b401e1fa00db83f55387658a7e"),
+				PovHash:     common.MustHexToHash("0xf831bcc17aa290dad89ac3ca6a0a5370baf95937728cfac4a089474ca1229cc7"),
+				ErasureRoot: common.MustHexToHash("0x082963b364af8ee0a645f291bf8836ed7e8ed8e393c3aad44ad9c79b9506b578"),
+				Reserved2: [64]uint8(common.MustHexToBytes("0x64c84d5afd3da75a717f9689a299cb8aed9159db136440fe221c440" +
+					"0a15fb16bab9133fffe4364c80fd4035024e42a6d2f0aca23cd50028ee8a24397967f338e")),
+				ParaHead: common.MustHexToHash("0xbece074cebf86b95ea2ccab3ce28d1e90d89fca774d95b9ac9540b283484474d"),
+				ValidationCodeHash: parachaintypes.ValidationCodeHash(
+					common.MustHexToBytes("0x59558a80dfcf74536b9f6fcba7416490211b22f29cc750a8bcb4993ea53cf347")),
+			},
+			Commitments: parachaintypes.CandidateCommitments{
+				HeadData: parachaintypes.HeadData{
+					Data: common.MustHexToBytes("0xce21d522a334adb0a09f4b755409b17a85a67e8152fb76952e51bd61268e73b63a" +
+						"85aa011ebf7dad71dbf3579be222072c0587dc6c7c829a7319f8780b1ec8bca21f509d5582f701d2adaac9efbb6c" +
+						"696a7d5e20080988a20a3a68f25d6d7830d68b47ad0c06617572612074f53a110000000004525053529035f969d2" +
+						"20c83086d53d64c94d8bd0914d549eb02a48f2f5e841b1bf63a2aadc7604b40505617572610101a625c2ce9ec9b4" +
+						"3ddd7b97c328827b3e8b05dd6f28cec160f6fa3d08c756e038b14f63752c754463d510763e4702cb37c0660ab103" +
+						"7777091c97deb6004f8e8b"),
+				},
+				HrmpWatermark: 23920925,
+			},
+		},
+	}
+
+	require.Equal(t, expectedCommittedCandidateReceipt, committedCandidateReceiptsV2)
 }
 
 func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *inmemory_trie.InMemoryTrie {
@@ -1908,4 +1984,13 @@ func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *inmemory_tri
 	}
 
 	return tt
+}
+
+func bitVector(t *testing.T, bits []bool) parachaintypes.BitVec {
+	t.Helper()
+
+	bv, err := parachaintypes.NewBitVec(bits)
+	require.NoError(t, err)
+
+	return bv
 }

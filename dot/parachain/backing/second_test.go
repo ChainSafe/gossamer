@@ -17,14 +17,14 @@ func TestHandleSecondMessage(t *testing.T) {
 	testCases := []struct {
 		description      string
 		cb               *CandidateBacking
-		candidateReceipt parachaintypes.CandidateReceipt
+		candidateReceipt parachaintypes.CandidateReceiptV2
 		pvd              parachaintypes.PersistedValidationData
 		err              error
 	}{
 		{
 			description:      "wrong_persisted_validation_data_for_seconding_candidate",
 			cb:               &CandidateBacking{},
-			candidateReceipt: parachaintypes.CandidateReceipt{},
+			candidateReceipt: parachaintypes.CandidateReceiptV2{},
 			pvd:              parachaintypes.PersistedValidationData{},
 			err:              errWrongPVDForSecondingCandidate,
 		},
@@ -134,7 +134,7 @@ func dummyPVD(t *testing.T) parachaintypes.PersistedValidationData {
 	}
 }
 
-func dummyCandidateReceipt(t *testing.T) parachaintypes.CandidateReceipt {
+func dummyCandidateReceipt(t *testing.T) parachaintypes.CandidateReceiptV2 {
 	t.Helper()
 
 	cr := getDummyCommittedCandidateReceipt(t).ToPlain()

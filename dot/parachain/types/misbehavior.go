@@ -30,7 +30,7 @@ func (ValidityDoubleVoteIssuedAndValidity) IsMisbehaviour() {}
 
 // CommittedCandidateReceiptAndSign combines a committed candidate receipt and its associated signature.
 type CommittedCandidateReceiptAndSign struct {
-	CommittedCandidateReceipt CommittedCandidateReceipt
+	CommittedCandidateReceipt CommittedCandidateReceiptV2
 	Signature                 ValidatorSignature
 }
 
@@ -56,7 +56,7 @@ func (UnauthorizedStatement) IsMisbehaviour() {}
 
 // DoubleSignOnSeconded represents a double sign on a candidate.
 type DoubleSignOnSeconded struct {
-	Candidate CommittedCandidateReceipt
+	Candidate CommittedCandidateReceiptV2
 	Sign1     ValidatorSignature
 	Sign2     ValidatorSignature
 }

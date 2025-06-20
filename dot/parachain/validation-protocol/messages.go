@@ -14,14 +14,36 @@ import (
 
 const MaxValidationMessageSize uint64 = 100 * 1024
 
-// Bitfield avalibility bitfield for given relay-parent hash
-type Bitfield struct {
+type ValidationVersion byte
+
+const (
+	ValidationVersionV3 ValidationVersion = iota + 3
+)
+
+type ValidationProtocols interface {
+	isValidationProtocols()
+}
+
+type ValidationProtocolV3 struct {
+	Protocol ValidationProtocol
+}
+
+func (v *ValidationProtocolV3) isValidationProtocols() {}
+
+// UncheckedBitfield availability bitfield for given relay-parent hash
+type UncheckedBitfield struct {
 	Hash                                common.Hash                                        `scale:"1"`
 	UncheckedSignedAvailabilityBitfield parachaintypes.UncheckedSignedAvailabilityBitfield `scale:"2"`
 }
 
+// CheckedBitfield availability bitfield for given relay-parent hash
+type CheckedBitfield struct {
+	Hash                              common.Hash                                      `scale:"1"`
+	CheckedSignedAvailabilityBitfield parachaintypes.CheckedSignedAvailabilityBitfield `scale:"2"`
+}
+
 type BitfieldDistributionMessageValues interface {
-	Bitfield
+	UncheckedBitfield | CheckedBitfield
 }
 
 // BitfieldDistributionMessage Network messages used by bitfield distribution subsystem
@@ -37,10 +59,12 @@ func setBitfieldDistributionMessage[Value BitfieldDistributionMessageValues](
 
 func (mvdt *BitfieldDistributionMessage) SetValue(value any) (err error) {
 	switch value := value.(type) {
-	case Bitfield:
+	case UncheckedBitfield:
 		setBitfieldDistributionMessage(mvdt, value)
 		return
-
+	case CheckedBitfield:
+		setBitfieldDistributionMessage(mvdt, value)
+		return
 	default:
 		return fmt.Errorf("unsupported type")
 	}
@@ -48,9 +72,10 @@ func (mvdt *BitfieldDistributionMessage) SetValue(value any) (err error) {
 
 func (mvdt BitfieldDistributionMessage) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
-	case Bitfield:
+	case UncheckedBitfield:
 		return 0, mvdt.inner, nil
-
+	case CheckedBitfield:
+		return 1, mvdt.inner, nil
 	}
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
@@ -63,8 +88,9 @@ func (mvdt BitfieldDistributionMessage) Value() (value any, err error) {
 func (mvdt BitfieldDistributionMessage) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 0:
-		return *new(Bitfield), nil
-
+		return *new(UncheckedBitfield), nil
+	case 1:
+		return *new(CheckedBitfield), nil
 	}
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }

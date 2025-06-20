@@ -63,7 +63,7 @@ func TestStatementVDT(t *testing.T) {
 			Signature:                   collatorSignature,
 			ParaHead:                    hash5,
 			ValidationCodeHash:          ValidationCodeHash(hash5),
-		},
+		}.V2(),
 		Commitments: CandidateCommitments{
 			UpwardMessages:    []UpwardMessage{{1, 2, 3}},
 			NewValidationCode: &ValidationCode{1, 2, 3},
@@ -180,25 +180,19 @@ func TestCompactStatement(t *testing.T) {
 
 	testCases := []struct {
 		name             string
-		compactStatement any
+		compactStatement CompactStatement
 		encodingValue    []byte
-		expectedErr      error
 	}{
 		{
-			name: "SecondedCandidateHash",
-			compactStatement: CompactStatement[SecondedCandidateHash]{
-				Value: SecondedCandidateHash{Value: getDummyHash(6)},
-			},
+			name:             "SecondedCandidateHash",
+			compactStatement: &CompactSeconded{Value: getDummyHash(6)},
 			encodingValue: []byte{66, 75, 78, 71, 1,
 				6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6},
 		},
 		{
-			name: "Valid",
-			compactStatement: CompactStatement[Valid]{
-				Value: Valid{Value: getDummyHash(7)},
-			},
-			encodingValue: []byte{
-				66, 75, 78, 71, 2,
+			name:             "Valid",
+			compactStatement: &CompactValid{Value: getDummyHash(7)},
+			encodingValue: []byte{66, 75, 78, 71, 2,
 				7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7},
 		},
 	}
@@ -211,7 +205,7 @@ func TestCompactStatement(t *testing.T) {
 			t.Run("marshal", func(t *testing.T) {
 				t.Parallel()
 
-				compactStatementBytes, err := scale.Marshal(c.compactStatement)
+				compactStatementBytes, err := scale.Marshal(c.compactStatement.ToEncodable())
 				require.NoError(t, err)
 				require.Equal(t, c.encodingValue, compactStatementBytes)
 			})
@@ -220,19 +214,26 @@ func TestCompactStatement(t *testing.T) {
 				t.Parallel()
 
 				switch expectedSatetement := c.compactStatement.(type) {
-				case CompactStatement[Valid]:
-					var actualStatement CompactStatement[Valid]
+				case *CompactValid:
+					var actualStatement EncodableCompactStatement
 					err := scale.Unmarshal(c.encodingValue, &actualStatement)
 					require.NoError(t, err)
-					require.EqualValues(t, expectedSatetement, actualStatement)
-				case CompactStatement[SecondedCandidateHash]:
-					var actualStatement CompactStatement[SecondedCandidateHash]
+
+					stmt, err := actualStatement.ToCompact()
+					require.NoError(t, err)
+
+					require.EqualValues(t, expectedSatetement, stmt)
+				case *CompactSeconded:
+					var actualStatement EncodableCompactStatement
 					err := scale.Unmarshal(c.encodingValue, &actualStatement)
 					require.NoError(t, err)
-					require.EqualValues(t, expectedSatetement, actualStatement)
+
+					stmt, err := actualStatement.ToCompact()
+					require.NoError(t, err)
+
+					require.EqualValues(t, expectedSatetement, stmt)
 				}
 			})
-
 		})
 	}
 }

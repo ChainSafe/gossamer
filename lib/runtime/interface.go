@@ -66,7 +66,7 @@ type Instance interface {
 	ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error)
 	ParachainHostCandidatePendingAvailability(
 		parachainID parachaintypes.ParaID,
-	) (*parachaintypes.CommittedCandidateReceipt, error)
+	) (*parachaintypes.CommittedCandidateReceiptV2, error)
 	ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error)
 	ParachainHostSessionInfo(sessionIndex parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error)
 	ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBackingParams, error)
@@ -77,4 +77,8 @@ type Instance interface {
 	ParachainHostNodeFeatures() (parachaintypes.BitVec, error)
 	ParachainHostDisabledValidators() ([]parachaintypes.ValidatorIndex, error)
 	ParachainHostDisputes() (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error)
+	ParachainHostSchedulingLookAhead() (uint32, error)
+	ParachainHostBackingConstraints(paraID parachaintypes.ParaID) (*parachaintypes.VStagingConstraints, error)
+	ParachainHostCandidatesPendingAvailability(paraID parachaintypes.ParaID,
+	) ([]parachaintypes.CommittedCandidateReceiptV2, error)
 }

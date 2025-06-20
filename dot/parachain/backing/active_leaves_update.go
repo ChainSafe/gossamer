@@ -18,13 +18,13 @@ import (
 func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) error {
 	var implicitViewFetchError error
 	activatedLeaf := update.Activated
-	// activate in implicit view before deactivate, per the docs on ImplicitView, this is more efficient.
+	// activate in implicit view before deactivate, per the docs on implicitView, this is more efficient.
 	if activatedLeaf != nil {
-		_, implicitViewFetchError = cb.ImplicitView.ActiveLeaf(activatedLeaf.Hash)
+		implicitViewFetchError = cb.implicitView.ActivateLeaf(activatedLeaf.Hash, cb.SubSystemToOverseer)
 	}
 
 	for _, deactivated := range update.Deactivated {
-		cb.ImplicitView.deactivateLeaf(deactivated)
+		cb.implicitView.DeactivateLeaf(deactivated)
 	}
 
 	// clean up `perRelayParent` according to ancestry of leaves.
@@ -44,7 +44,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 
 	// Get relay parents which might be fresh but might be known already
 	// that are explicit or implicit from the new active leaf.
-	freshRelayParents := cb.ImplicitView.KnownAllowedRelayParentsUnder(activatedLeaf.Hash, nil)
+	freshRelayParents := cb.implicitView.KnownAllowedRelayParentsUnder(activatedLeaf.Hash, nil)
 	if len(freshRelayParents) == 0 {
 		logger.Warnf("implicit view gave no relay-parents under leaf-hash %s", activatedLeaf.Hash)
 		freshRelayParents = []common.Hash{activatedLeaf.Hash}
@@ -70,7 +70,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 }
 
 func (cb *CandidateBacking) cleanUpPerRelayParentByLeafAncestry() {
-	allowedRelayParents := cb.ImplicitView.AllAllowedRelayParents()
+	allowedRelayParents := cb.implicitView.AllAllowedRelayParents()
 
 	uniqueAllowedRelayParents := make(map[common.Hash]struct{})
 	for _, relayParent := range allowedRelayParents {

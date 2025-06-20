@@ -4,9 +4,7 @@
 package parachaintypes
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -78,30 +76,30 @@ func NewStatementVDT() StatementVDT {
 }
 
 // Seconded represents a statement that a validator seconds a candidate.
-type Seconded CommittedCandidateReceipt
+type Seconded CommittedCandidateReceiptV2
+
+// SecondedCandidateHash represents just the seconded candidate hash
+type SecondedCandidateHash CandidateHash
 
 // Valid represents a statement that a validator has deemed a candidate valid.
 type Valid CandidateHash
 
 // CompactStatement returns a compact representation of the statement.
-func (s StatementVDT) CompactStatement() (any, error) {
+func (s StatementVDT) CompactStatement() (CompactStatement, error) {
 	switch s := s.inner.(type) {
 	case Valid:
-		return CompactStatement[Valid]{Value: s}, nil
+		return NewCompactValid(CandidateHash(s)), nil
 	case Seconded:
-		hash, err := GetCandidateHash(CommittedCandidateReceipt(s))
+		hash, err := GetCandidateHash(CommittedCandidateReceiptV2(s))
 		if err != nil {
 			return nil, fmt.Errorf("getting candidate hash: %w", err)
 		}
-		return CompactStatement[SecondedCandidateHash]{Value: SecondedCandidateHash(hash)}, nil
+		return NewCompactSeconded(hash), nil
 	}
 	return nil, fmt.Errorf("unsupported type")
 }
 
-func (s *StatementVDT) Sign(
-	validator Validator,
-	keystore keystore.Keystore,
-) (*SignedFullStatement, error) {
+func (s *StatementVDT) Sign(validator Validator, keystore keystore.Keystore) (*SignedFullStatement, error) {
 	compact, err := s.CompactStatement()
 	if err != nil {
 		return nil, fmt.Errorf("getting compact statement: %w", err)
@@ -125,10 +123,7 @@ func (s *StatementVDT) Sign(
 }
 
 // VerifySignature verifies the validator signature for the statement.
-func (s *StatementVDT) VerifySignature(
-	validator Validator,
-	validatorSignature ValidatorSignature,
-) (bool, error) {
+func (s *StatementVDT) VerifySignature(validator Validator, validatorSignature ValidatorSignature) (bool, error) {
 	compact, err := s.CompactStatement()
 	if err != nil {
 		return false, fmt.Errorf("getting compact statement: %w", err)
@@ -179,107 +174,17 @@ type SignedFullStatementWithPVD struct {
 	PersistedValidationData *PersistedValidationData
 }
 
-type SecondedCandidateHash CandidateHash
+type UncheckedSignedCompactStatement struct {
+	// The payload is part of the signed data. The rest is the signing context,
+	// which is known both at signing and at validation.
+	Payload EncodableCompactStatement `scale:"1"`
 
-type CompactStatementValues interface {
-	Valid | SecondedCandidateHash
+	// The index of the validator signing this statement.
+	ValidatorIndex ValidatorIndex `scale:"2"`
+
+	// The signature by the validator of the signed payload.
+	Signature ValidatorSignature `scale:"3"`
 }
 
-// compactStatementInner is a helper struct that is used to encode/decode CompactStatement.
-type compactStatementInner struct {
-	inner any
-}
-
-func setCompactStatement[Value CompactStatementValues](mvdt *compactStatementInner, value Value) {
-	mvdt.inner = value
-}
-
-func (mvdt *compactStatementInner) SetValue(value any) (err error) {
-	switch value := value.(type) {
-	case Valid:
-		setCompactStatement(mvdt, value)
-		return
-	case SecondedCandidateHash:
-		setCompactStatement(mvdt, value)
-		return
-	default:
-		return fmt.Errorf("unsupported type")
-	}
-}
-
-func (mvdt compactStatementInner) IndexValue() (index uint, value any, err error) {
-	switch mvdt.inner.(type) {
-	case Valid:
-		return 2, mvdt.inner, nil
-	case SecondedCandidateHash:
-		return 1, mvdt.inner, nil
-	}
-	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
-}
-
-func (mvdt compactStatementInner) Value() (value any, err error) {
-	_, value, err = mvdt.IndexValue()
-	return
-}
-
-func (mvdt compactStatementInner) ValueAt(index uint) (value any, err error) {
-	switch index {
-	case 2:
-		return Valid{}, nil
-	case 1:
-		return SecondedCandidateHash{}, nil
-	}
-	return nil, scale.ErrUnknownVaryingDataTypeValue
-}
-
-// CompactStatement is a compact representation of a statement that can be made about parachain candidates.
-// this is the actual value that is signed.
-type CompactStatement[T CompactStatementValues] struct {
-	Value T
-}
-
-func (c CompactStatement[CompactStatementValues]) MarshalSCALE() ([]byte, error) {
-	inner := compactStatementInner{}
-	err := inner.SetValue(c.Value)
-	if err != nil {
-		return nil, fmt.Errorf("setting value: %w", err)
-	}
-
-	buffer := bytes.NewBuffer(backingStatementMagic[:])
-	encoder := scale.NewEncoder(buffer)
-
-	err = encoder.Encode(inner)
-	if err != nil {
-		return nil, err
-	}
-
-	return buffer.Bytes(), nil
-}
-
-func (c *CompactStatement[CompactStatementValues]) UnmarshalSCALE(reader io.Reader) error {
-	decoder := scale.NewDecoder(reader)
-
-	var magicBytes [4]byte
-	err := decoder.Decode(&magicBytes)
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(magicBytes[:], backingStatementMagic[:]) {
-		return fmt.Errorf("invalid magic bytes")
-	}
-
-	var inner compactStatementInner
-	err = decoder.Decode(&inner)
-	if err != nil {
-		return fmt.Errorf("decoding compactStatementInner: %w", err)
-	}
-
-	value, err := inner.Value()
-	if err != nil {
-		return fmt.Errorf("getting value: %w", err)
-	}
-
-	c.Value = value.(CompactStatementValues)
-	return nil
-}
+// SignedStatement represents a signed compact statement, suitable to be sent to the chain.
+type SignedStatement UncheckedSignedCompactStatement

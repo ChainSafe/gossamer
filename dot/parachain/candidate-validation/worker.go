@@ -22,8 +22,9 @@ type worker struct {
 type workerTask struct {
 	work             parachainruntime.ValidationParameters
 	maxPoVSize       uint32
-	candidateReceipt *parachaintypes.CandidateReceipt
+	candidateReceipt *parachaintypes.CandidateReceiptV2
 	timeoutKind      parachaintypes.PvfExecTimeoutKind
+	ClaimQueue       parachaintypes.ClaimQueue
 }
 
 var ErrorPreCheckTimeout = errors.New("precheck timed out")
@@ -106,27 +107,23 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 	case validationResultWErr := <-validationResultCh:
 		if validationResultWErr.err != nil {
 			logger.Errorf("executing validate_block: %w", err)
-			reasonForInvalidity := ExecutionError
-			return &ValidationResult{Invalid: &reasonForInvalidity}, nil //nolint
+			return &ValidationResult{Invalid: ExecutionError.Ptr()}, nil //nolint
 		}
 		validationResult = validationResultWErr.result.(*parachainruntime.ValidationResult)
 
 	case <-time.After(timeoutDuration):
 		logger.Errorf("validation timed out")
-		reasonForInvalidity := Timeout
-		return &ValidationResult{Invalid: &reasonForInvalidity}, nil
+		return &ValidationResult{Invalid: Timeout.Ptr()}, nil
 	}
 
 	headDataHash, err := validationResult.HeadData.Hash()
 	if err != nil {
 		logger.Errorf("hashing head data: %w", err)
-		reasonForInvalidity := ExecutionError
-		return &ValidationResult{Invalid: &reasonForInvalidity}, nil
+		return &ValidationResult{Invalid: ExecutionError.Ptr()}, nil
 	}
 
 	if headDataHash != task.candidateReceipt.Descriptor.ParaHead {
-		reasonForInvalidity := ParaHeadHashMismatch
-		return &ValidationResult{Invalid: &reasonForInvalidity}, nil
+		return &ValidationResult{Invalid: ParaHeadHashMismatch.Ptr()}, nil
 	}
 	candidateCommitments := parachaintypes.CandidateCommitments{
 		UpwardMessages:            validationResult.UpwardMessages,
@@ -139,9 +136,21 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 
 	// if validation produced a new set of commitments, we treat the candidate as invalid
 	if task.candidateReceipt.CommitmentsHash != candidateCommitments.Hash() {
-		reasonForInvalidity := CommitmentsHashMismatch
-		return &ValidationResult{Invalid: &reasonForInvalidity}, nil
+		return &ValidationResult{Invalid: CommitmentsHashMismatch.Ptr()}, nil
 	}
+
+	committedCandidateReceipt := parachaintypes.CommittedCandidateReceiptV2{
+		Descriptor:  task.candidateReceipt.Descriptor,
+		Commitments: candidateCommitments,
+	}
+
+	// check if the core index is valid
+	err = committedCandidateReceipt.CheckCoreIndex(task.ClaimQueue.ToTransposed())
+	if err != nil {
+		logger.Warnf("checking core index: %s", err)
+		return &ValidationResult{Invalid: InvalidCoreIndex.Ptr()}, nil
+	}
+
 	pvd := parachaintypes.PersistedValidationData{
 		ParentHead:             task.work.ParentHeadData,
 		RelayParentNumber:      task.work.RelayParentNumber,

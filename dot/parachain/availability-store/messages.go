@@ -35,13 +35,16 @@ type QueryDataAvailability struct {
 type ErasureChunk struct {
 	Chunk []byte
 	Index uint32
-	Proof []byte
+
+	// TODO: ensure constraints on the size
+	// https://github.com/paritytech/polkadot-sdk/blob/017cd2a0687438cfd802af9e3703d9f69bcc03c6/polkadot/node/primitives/src/lib.rs#L585
+	Proof [][]byte
 }
 
 // QueryChunk query an `ErasureChunk` from the AV store by candidate hash and validator index
 type QueryChunk struct {
 	CandidateHash  parachaintypes.CandidateHash
-	ValidatorIndex uint32
+	ValidatorIndex parachaintypes.ValidatorIndex
 	Sender         chan ErasureChunk
 }
 

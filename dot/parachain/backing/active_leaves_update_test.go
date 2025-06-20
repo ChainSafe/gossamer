@@ -1,15 +1,18 @@
 package backing
 
 import (
-	"fmt"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+
+	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/stretchr/testify/require"
-	gomock "go.uber.org/mock/gomock"
+	"go.uber.org/mock/gomock"
 )
 
 func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
@@ -29,14 +32,33 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 				Deactivated: []common.Hash{{1}},
 			},
 			getCandidateBackig: func(ctrl *gomock.Controller) *CandidateBacking {
-				mockImplicitView := NewMockImplicitView(ctrl)
-				mockImplicitView.EXPECT().deactivateLeaf(common.Hash{1})
-				mockImplicitView.EXPECT().AllAllowedRelayParents().Return([]common.Hash{})
+				ch := make(chan any)
+				go func() {
+					getMin := (<-ch).(messages.GetMinimumRelayParents)
+					getMin.Sender <- []messages.ParaIDBlockNumber{{
+						ParaId:      100,
+						BlockNumber: 2,
+					}}
+					close(ch)
+				}()
+
+				chain := []common.Hash{{3}, {2}, {1}}
+				bs := NewMockBlockState(ctrl)
+				gomock.InOrder(
+					bs.EXPECT().GetHeader(common.Hash{1}).Return(util.GetBlockHeader(t, chain, common.Hash{1}), nil),
+					bs.EXPECT().GetHeader(common.Hash{2}).Return(util.GetBlockHeader(t, chain, common.Hash{2}), nil),
+				)
+
+				view := util.NewBackingImplicitView(bs, nil)
+				err := view.ActivateLeaf(common.Hash{1}, ch)
+				require.NoError(t, err)
 
 				backing := CandidateBacking{
-					ImplicitView:   mockImplicitView,
-					perRelayParent: map[common.Hash]*perRelayParentState{},
-					perCandidate:   map[parachaintypes.CandidateHash]*perCandidateState{},
+					implicitView: view,
+					perRelayParent: map[common.Hash]*perRelayParentState{
+						{1}: {},
+					},
+					perCandidate: map[parachaintypes.CandidateHash]*perCandidateState{},
 				}
 
 				return &backing
@@ -50,12 +72,29 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 				Activated: &parachaintypes.ActivatedLeaf{Hash: common.Hash{1}},
 			},
 			getCandidateBackig: func(ctrl *gomock.Controller) *CandidateBacking {
-				mockImplicitView := NewMockImplicitView(ctrl)
-				mockImplicitView.EXPECT().ActiveLeaf(common.Hash{1}).Return(nil, fmt.Errorf("mock error"))
-				mockImplicitView.EXPECT().AllAllowedRelayParents().Return([]common.Hash{{1}})
+				ch := make(chan any)
+				go func() {
+					getMin := (<-ch).(messages.GetMinimumRelayParents)
+					getMin.Sender <- []messages.ParaIDBlockNumber{{
+						ParaId:      100,
+						BlockNumber: 2,
+					}}
+					close(ch)
+				}()
+
+				chain := []common.Hash{{3}, {2}, {1}}
+				bs := NewMockBlockState(ctrl)
+				gomock.InOrder(
+					bs.EXPECT().GetHeader(common.Hash{1}).Return(util.GetBlockHeader(t, chain, common.Hash{1}), nil),
+					bs.EXPECT().GetHeader(common.Hash{2}).Return(util.GetBlockHeader(t, chain, common.Hash{2}), nil),
+				)
+
+				view := util.NewBackingImplicitView(bs, nil)
+				err := view.ActivateLeaf(common.Hash{1}, ch)
+				require.NoError(t, err)
 
 				backing := CandidateBacking{
-					ImplicitView: mockImplicitView,
+					implicitView: view,
 				}
 
 				return &backing
@@ -70,19 +109,15 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 				Deactivated: []common.Hash{{2}},
 			},
 			getCandidateBackig: func(ctrl *gomock.Controller) *CandidateBacking {
-				mockImplicitView := NewMockImplicitView(ctrl)
-
-				mockImplicitView.EXPECT().ActiveLeaf(common.Hash{1}).Return(nil, nil)
-				mockImplicitView.EXPECT().deactivateLeaf(common.Hash{2})
-				mockImplicitView.EXPECT().AllAllowedRelayParents().Return([]common.Hash{{1}})
-				mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(common.Hash{1}, nil).Return([]common.Hash{{1}})
+				bv, err := parachaintypes.NewBitVec([]bool{false, true})
+				require.NoError(t, err)
 
 				mockBlockState := NewMockBlockState(ctrl)
 				mockRuntime := NewMockInstance(ctrl)
 				mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
 				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil)
 				mockRuntime.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorID{{1}, {2}, {3}}, nil)
-				mockRuntime.EXPECT().ParachainHostNodeFeatures().Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
+				mockRuntime.EXPECT().ParachainHostNodeFeatures().Return(bv, nil)
 				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
 					Return(&parachaintypes.ExecutorParams{}, nil)
 				mockRuntime.EXPECT().ParachainHostValidatorGroups().Return(&parachaintypes.ValidatorGroups{}, nil)
@@ -90,8 +125,36 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 				mockRuntime.EXPECT().ParachainHostClaimQueue().Return(parachaintypes.ClaimQueue{}, nil)
 				mockRuntime.EXPECT().ParachainHostDisabledValidators().Return([]parachaintypes.ValidatorIndex{}, nil)
 
+				subsystemToOverseer := make(chan any)
+				go func() {
+					getMin := (<-subsystemToOverseer).(messages.GetMinimumRelayParents)
+					getMin.Sender <- []messages.ParaIDBlockNumber{{
+						ParaId:      100,
+						BlockNumber: 2,
+					}}
+
+					getMin = (<-subsystemToOverseer).(messages.GetMinimumRelayParents)
+					getMin.Sender <- []messages.ParaIDBlockNumber{{
+						ParaId:      100,
+						BlockNumber: 3,
+					}}
+					close(subsystemToOverseer)
+				}()
+
+				chain := []common.Hash{{3}, {2}, {1}}
+
+				bs := NewMockBlockState(ctrl)
+				bs.EXPECT().GetHeader(common.Hash{2}).Return(util.GetBlockHeader(t, chain, common.Hash{2}), nil)
+				bs.EXPECT().GetHeader(common.Hash{1}).Return(util.GetBlockHeader(t, chain, common.Hash{1}), nil)
+
+				view := util.NewBackingImplicitView(bs, nil)
+				// Activate leaf Hash{2}, which will be deactivated later
+				err = view.ActivateLeaf(common.Hash{2}, subsystemToOverseer)
+				require.NoError(t, err)
+
 				backing := CandidateBacking{
-					ImplicitView: mockImplicitView,
+					SubSystemToOverseer: subsystemToOverseer,
+					implicitView:        view,
 					perRelayParent: map[common.Hash]*perRelayParentState{
 						{2}: {},
 						{3}: {},
@@ -108,7 +171,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 				return &backing
 			},
 			expectedErr:        "",
-			expectedLenOfPerRP: 1,
+			expectedLenOfPerRP: 2,
 		},
 	}
 

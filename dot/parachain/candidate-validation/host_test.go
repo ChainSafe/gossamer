@@ -26,15 +26,6 @@ func TestHost_validate(t *testing.T) {
 	candidateReceiptCommitmentsMismatch.CommitmentsHash = common.MustHexToHash(
 		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
 
-	povHashMismatch := PoVHashMismatch
-	paramsTooLarge := ParamsTooLarge
-	codeHashMismatch := CodeHashMismatch
-	paraHedHashMismatch := ParaHeadHashMismatch
-	commitmentsHashMismatch := CommitmentsHashMismatch
-	executionError := ExecutionError
-
-	pvfHost := newValidationHost()
-
 	bd, err := scale.Marshal(BlockDataInAdderParachain{
 		State: uint64(1),
 		Add:   uint64(1),
@@ -77,7 +68,7 @@ func TestHost_validate(t *testing.T) {
 				ValidationCode:     &validationCode,
 			},
 			want: &ValidationResult{
-				Invalid: &povHashMismatch,
+				Invalid: PoVHashMismatch.Ptr(),
 			},
 			isValid: false,
 		},
@@ -94,7 +85,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &paramsTooLarge,
+				Invalid: ParamsTooLarge.Ptr(),
 			},
 		},
 		"code_mismatch": {
@@ -110,7 +101,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &codeHashMismatch,
+				Invalid: CodeHashMismatch.Ptr(),
 			},
 			isValid: false,
 		},
@@ -124,7 +115,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &executionError,
+				Invalid: ExecutionError.Ptr(),
 			},
 		},
 		"para_head_hash_mismatch": {
@@ -140,7 +131,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &paraHedHashMismatch,
+				Invalid: ParaHeadHashMismatch.Ptr(),
 			},
 			isValid: false,
 		},
@@ -157,7 +148,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &commitmentsHashMismatch,
+				Invalid: CommitmentsHashMismatch.Ptr(),
 			},
 			isValid: false,
 		},
@@ -207,6 +198,7 @@ func TestHost_validate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
+			pvfHost := newValidationHost()
 			taskResult, err := pvfHost.validate(tt.validationTask)
 
 			require.NoError(t, err)
@@ -218,10 +210,6 @@ func TestHost_validate(t *testing.T) {
 
 func TestHost_performBasicChecks(t *testing.T) {
 	t.Parallel()
-	paramsTooLarge := ParamsTooLarge
-	povHashMismatch := PoVHashMismatch
-	codeHashMismatch := CodeHashMismatch
-	badSignature := BadSignature
 
 	pov := parachaintypes.PoV{
 		BlockData: []byte{1, 2, 3, 4, 5, 6, 7, 8},
@@ -239,14 +227,14 @@ func TestHost_performBasicChecks(t *testing.T) {
 	collatorID, err := sr25519.NewPublicKey(collatorKeypair.Public().Encode())
 	require.NoError(t, err)
 
-	candidate := parachaintypes.CandidateDescriptor{
+	firstCandidateV1 := parachaintypes.CandidateDescriptor{
 		Collator:           collatorID.AsBytes(),
 		PovHash:            povHash,
 		ValidationCodeHash: validationCodeHash,
 	}
-	candidate2 := candidate
+	secondCandidateV1 := firstCandidateV1
 
-	payload, err := candidate.CreateSignaturePayload()
+	payload, err := firstCandidateV1.CreateSignaturePayload()
 	require.NoError(t, err)
 
 	signatureBytes, err := collatorKeypair.Sign(payload)
@@ -260,11 +248,15 @@ func TestHost_performBasicChecks(t *testing.T) {
 	signature2 := [sr25519.SignatureLength]byte{}
 	copy(signature2[:], signature2Bytes)
 
-	candidate.Signature = parachaintypes.CollatorSignature(signature)
-	candidate2.Signature = parachaintypes.CollatorSignature(signature2)
+	firstCandidateV1.Signature = parachaintypes.CollatorSignature(signature)
+	secondCandidateV1.Signature = parachaintypes.CollatorSignature(signature2)
+
+	// convert to candidate descriptor v2
+	candidate := firstCandidateV1.V2()
+	candidate2 := secondCandidateV1.V2()
 
 	type args struct {
-		candidate          *parachaintypes.CandidateDescriptor
+		candidate          *parachaintypes.CandidateDescriptorV2
 		maxPoVSize         uint32
 		pov                parachaintypes.PoV
 		validationCodeHash parachaintypes.ValidationCodeHash
@@ -279,7 +271,7 @@ func TestHost_performBasicChecks(t *testing.T) {
 				maxPoVSize: 2,
 				pov:        pov,
 			},
-			expectedError: &paramsTooLarge,
+			expectedError: ParamsTooLarge.Ptr(),
 		},
 		"invalid_pov_hash": {
 			args: args{
@@ -287,7 +279,7 @@ func TestHost_performBasicChecks(t *testing.T) {
 				maxPoVSize: 1024,
 				pov:        pov2,
 			},
-			expectedError: &povHashMismatch,
+			expectedError: PoVHashMismatch.Ptr(),
 		},
 		"invalid_code_hash": {
 			args: args{
@@ -296,7 +288,7 @@ func TestHost_performBasicChecks(t *testing.T) {
 				pov:                pov,
 				validationCodeHash: parachaintypes.ValidationCodeHash{1, 2, 3},
 			},
-			expectedError: &codeHashMismatch,
+			expectedError: CodeHashMismatch.Ptr(),
 		},
 		"invalid_signature": {
 			args: args{
@@ -305,7 +297,7 @@ func TestHost_performBasicChecks(t *testing.T) {
 				pov:                pov,
 				validationCodeHash: validationCodeHash,
 			},
-			expectedError: &badSignature,
+			expectedError: BadSignature.Ptr(),
 		},
 		"happy_path": {
 			args: args{

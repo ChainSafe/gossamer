@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/stretchr/testify/assert"
+
 	"gopkg.in/yaml.v3"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -503,4 +506,170 @@ func TestValidator_SignAndVerify(t *testing.T) {
 	ok, err := validator.VerifySignature(payloadBytes, *valSign)
 	require.NoError(t, err)
 	require.True(t, ok)
+}
+
+func TestToCheck(t *testing.T) {
+	bitfield, err := NewBitVec([]bool{true, true, false})
+	assert.Nil(t, err)
+	data, err := bitfield.MarshalSCALE()
+	assert.Nil(t, err)
+
+	keyring, err := keystore.NewSr25519Keyring()
+	assert.Nil(t, err)
+	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
+	bobKeypair := keyring.Bob().(*sr25519.Keypair)
+
+	// invalid signature and invalid message
+	invalidMessage := UncheckedSignedAvailabilityBitfield{
+		Payload:        bitfield,
+		ValidatorIndex: 10,
+		Signature:      [64]byte{1},
+	}
+	_, err = invalidMessage.ToCheck(aliceKeypair.Public())
+	assert.NotNil(t, err)
+
+	// valid message verifying against the wrong key
+	signature2, err := aliceKeypair.Sign(data)
+	assert.Nil(t, err)
+	validMessage2 := UncheckedSignedAvailabilityBitfield{
+		Payload:        bitfield,
+		ValidatorIndex: 10,
+		Signature:      ValidatorSignature(signature2),
+	}
+	_, err = validMessage2.ToCheck(bobKeypair.Public()) // bob is trying to verify
+	assert.NotNil(t, err)
+
+	// valid message verifying against the matched signature and key
+	signature, err := aliceKeypair.Sign(data)
+	assert.Nil(t, err)
+	validMessage := UncheckedSignedAvailabilityBitfield{
+		Payload:        bitfield,
+		ValidatorIndex: 10,
+		Signature:      ValidatorSignature(signature),
+	}
+	checkedMessage, err := validMessage.ToCheck(aliceKeypair.Public())
+	assert.Nil(t, err)
+	assert.EqualValues(t, bitfield, checkedMessage.Payload)
+	assert.EqualValues(t, ValidatorSignature(signature), checkedMessage.Signature)
+
+}
+
+func TestNewBackedCandidate(t *testing.T) {
+	t.Parallel()
+
+	receipt := CommittedCandidateReceiptV2{}
+	attestations := []ValidityAttestation{}
+	validatorIndices := []bool{true, false, true}
+	coreIndex := &CoreIndex{Index: 10}
+
+	// Test with nil core index
+	backedCandidate, err := NewBackedCandidate(receipt, attestations, validatorIndices, nil)
+
+	require.NoError(t, err)
+	require.Equal(t, validatorIndices, backedCandidate.ValidatorIndices.Bits())
+
+	// Test with core index
+	backedCandidate, err = NewBackedCandidate(receipt, attestations, validatorIndices, coreIndex)
+
+	require.NoError(t, err)
+	require.Equal(t, []bool{true, false, true, false, true, false, true, false, false, false, false},
+		backedCandidate.ValidatorIndices.Bits())
+}
+
+func TestCandidateCommitments_CoreSelector(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		cc      CandidateCommitments
+		want    *SelectCore
+		wantErr bool
+	}{
+		{
+			name: "empty_upward_messages",
+			cc: CandidateCommitments{
+				UpwardMessages: []UpwardMessage{},
+			},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "no_separator",
+			cc: CandidateCommitments{
+				UpwardMessages: []UpwardMessage{
+					[]byte("msg1"),
+					[]byte("msg2"),
+				},
+			},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "too_many_signals_after_separator",
+			cc: CandidateCommitments{
+				UpwardMessages: []UpwardMessage{
+					[]byte{}, // separator
+					[]byte("signal1"),
+					[]byte("signal2"),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "valid_core_selector",
+			cc: CandidateCommitments{
+				UpwardMessages: []UpwardMessage{
+					[]byte("msg1"),
+					[]byte{}, // separator
+					func() UpwardMessage {
+						signal := UMPSignal{}
+						selectCore := SelectCore{
+							CoreSelector:     1,
+							ClaimQueueOffset: 2,
+						}
+						err := signal.SetValue(selectCore)
+						require.NoError(t, err)
+
+						encoded, err := scale.Marshal(signal)
+						require.NoError(t, err)
+
+						return encoded
+					}(),
+				},
+			},
+			want: &SelectCore{
+				CoreSelector:     1,
+				ClaimQueueOffset: 2,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid_ump_signal_encoding",
+			cc: CandidateCommitments{
+				UpwardMessages: []UpwardMessage{
+					[]byte{}, // separator
+					[]byte("invalid signal"),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := tt.cc.CoreSelector()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }

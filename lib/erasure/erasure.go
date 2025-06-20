@@ -13,6 +13,9 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
@@ -20,9 +23,31 @@ import (
 )
 
 var (
-	ErrZeroSizedData   = errors.New("data can't be zero sized")
-	ErrZeroSizedChunks = errors.New("chunks can't be zero sized")
+	ErrZeroSizedData      = errors.New("data can't be zero sized")
+	ErrZeroSizedChunks    = errors.New("chunks can't be zero sized")
+	ErrBranchOutOfBounds  = errors.New("branch out of bounds")
+	ErrInvalidBranchProof = errors.New("invalid branch proof")
 )
+
+// SystematicRecoveryThreshold returns the threshold of systematic chunks that should be enough to recover the data.
+//
+// If the regular `recovery_threshold` is a power of two, then it returns the same value.
+// Otherwise, it returns the next lower power of two.
+func SystematicRecoveryThreshold(nValidators uint) (uint32, error) {
+	var threshold C.size_t
+
+	cnValidators := C.size_t(nValidators)
+
+	cErr := C.systematic_recovery_threshold(cnValidators, &threshold)
+	errStr := C.GoString(cErr)
+	C.free(unsafe.Pointer(cErr))
+
+	if len(errStr) > 0 {
+		return 0, errors.New(errStr)
+	}
+
+	return uint32(threshold), nil
+}
 
 // ObtainChunks obtains erasure-coded chunks, one for each validator.
 // This works only up to 65536 validators, and `n_validators` must be non-zero and accepts
@@ -125,4 +150,38 @@ func ChunksToTrie(chunks [][]byte) (trie.Trie, error) {
 		}
 	}
 	return chunkTrie, nil
+}
+
+func BranchHash(root common.Hash, branchNodes [][]byte, chunkIndex uint32) (common.Hash, error) {
+	memDB := db.NewEmptyMemoryDB()
+
+	for _, node := range branchNodes {
+		key, err := common.Blake2bHash(node)
+		if err != nil {
+			return common.EmptyHash, fmt.Errorf("hashing branch node: %w", err)
+		}
+
+		err = memDB.Put(key.ToBytes(), node)
+		if err != nil {
+			return common.EmptyHash, fmt.Errorf("putting branch node into trie: %w", err)
+		}
+	}
+
+	key, err := scale.Marshal(chunkIndex)
+	if err != nil {
+		return common.EmptyHash, fmt.Errorf("marshalling chunk index: %w", err)
+	}
+
+	tdb := triedb.NewTrieDB(root, memDB, nil)
+	value := tdb.Get(key)
+
+	if value == nil {
+		return common.EmptyHash, ErrBranchOutOfBounds
+	}
+
+	if len(value) != common.HashLength {
+		return common.EmptyHash, ErrInvalidBranchProof
+	}
+
+	return common.NewHash(value), nil
 }

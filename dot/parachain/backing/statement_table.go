@@ -7,6 +7,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -32,7 +33,7 @@ type proposal struct {
 
 type candidateData struct {
 	groupID       parachaintypes.GroupIndex
-	candidate     parachaintypes.CommittedCandidateReceipt
+	candidate     parachaintypes.CommittedCandidateReceiptV2
 	validityVotes map[parachaintypes.ValidatorIndex]validityVoteWithSign
 }
 
@@ -110,10 +111,10 @@ const (
 
 // getCommittedCandidateReceipt returns the committed candidate receipt for the given candidate hash.
 func (table *statementTable) getCommittedCandidateReceipt(candidateHash parachaintypes.CandidateHash,
-) (parachaintypes.CommittedCandidateReceipt, error) {
+) (parachaintypes.CommittedCandidateReceiptV2, error) {
 	data, ok := table.candidateVotes[candidateHash]
 	if !ok {
-		return parachaintypes.CommittedCandidateReceipt{},
+		return parachaintypes.CommittedCandidateReceiptV2{},
 			fmt.Errorf("%w for candidate-hash: %s", errCandidateDataNotFound, candidateHash)
 	}
 	return data.candidate, nil
@@ -136,7 +137,7 @@ func (table *statementTable) importStatement(
 	case parachaintypes.Seconded:
 		summary, misbehaviour, err = table.importCandidate(
 			signedStatement.ValidatorIndex,
-			parachaintypes.CommittedCandidateReceipt(statementVDT),
+			parachaintypes.CommittedCandidateReceiptV2(statementVDT),
 			signedStatement.Signature,
 			tableCtx,
 			groupID,
@@ -177,7 +178,7 @@ func isCandidateAlreadyProposed(proposals []proposal, candidateHash parachaintyp
 
 func (table *statementTable) importCandidate(
 	authority parachaintypes.ValidatorIndex,
-	candidate parachaintypes.CommittedCandidateReceipt,
+	candidate parachaintypes.CommittedCandidateReceiptV2,
 	signature parachaintypes.ValidatorSignature,
 	tableCtx *tableContext,
 	group parachaintypes.GroupIndex,
@@ -230,7 +231,7 @@ func (table *statementTable) importCandidate(
 func (table *statementTable) addCandidateVote(
 	candidateHash parachaintypes.CandidateHash,
 	groupID parachaintypes.GroupIndex,
-	candidate parachaintypes.CommittedCandidateReceipt,
+	candidate parachaintypes.CommittedCandidateReceiptV2,
 ) {
 	table.candidateVotes[candidateHash] = &candidateData{
 		groupID:       groupID,
@@ -334,22 +335,19 @@ func (table *statementTable) attestedCandidate(
 	}
 
 	var validityThreshold uint
-	group, ok := tableCtx.groups[parachaintypes.CoreIndex{Index: uint32(data.groupID)}]
-	if ok {
-		// size of the backing group.
-		groupLen := uint(len(group))
-		validityThreshold = effectiveMinimumBackingVotes(groupLen, minimumBackingVotes)
+	if group, ok := tableCtx.groups[parachaintypes.CoreIndex{Index: uint32(data.groupID)}]; ok {
+		validityThreshold = EffectiveMinimumBackingVotes(uint(len(group)), minimumBackingVotes)
 	} else {
-		validityThreshold = uint(minimumBackingVotes)
+		validityThreshold = math.MaxUint
 	}
 
 	return data.attested(validityThreshold)
 }
 
-// effectiveMinimumBackingVotes adjusts the configured needed backing votes with the size of the backing group.
+// EffectiveMinimumBackingVotes adjusts the configured needed backing votes with the size of the backing group.
 //
 // groupLen is the size of the backing group.
-func effectiveMinimumBackingVotes(groupLen uint, configuredMinimumBackingVotes uint32) uint {
+func EffectiveMinimumBackingVotes(groupLen uint, configuredMinimumBackingVotes uint32) uint {
 	return min(groupLen, uint(configuredMinimumBackingVotes))
 }
 
@@ -361,7 +359,7 @@ func (table *statementTable) drainMisbehaviors() map[parachaintypes.ValidatorInd
 }
 
 type Table interface {
-	getCommittedCandidateReceipt(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error)
+	getCommittedCandidateReceipt(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceiptV2, error)
 	importStatement(*tableContext, parachaintypes.GroupIndex, parachaintypes.SignedFullStatement) (*Summary, error)
 	attestedCandidate(parachaintypes.CandidateHash, *tableContext, uint32) (*attestedCandidate, error)
 	drainMisbehaviors() map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour
@@ -390,57 +388,67 @@ type attestedCandidate struct {
 	// The group ID that the candidate is in.
 	groupID parachaintypes.GroupIndex
 	// The committedCandidateReceipt data.
-	committedCandidateReceipt parachaintypes.CommittedCandidateReceipt
+	committedCandidateReceipt parachaintypes.CommittedCandidateReceiptV2
 	// Validity attestations.
 	validityAttestations []validatorIndexWithAttestation
 }
 
-func (attested *attestedCandidate) toBackedCandidate(tableCtx *tableContext) (*parachaintypes.BackedCandidate, error) {
+func (attested *attestedCandidate) toBackedCandidate(
+	tableCtx *tableContext,
+	injectCoreIndex bool,
+) (*parachaintypes.BackedCandidate, error) {
 	if tableCtx == nil {
 		return nil, errors.New("table context is nil")
 	}
 
-	// Retrieve the group from tableContext
-	group, ok := tableCtx.groups[parachaintypes.CoreIndex{Index: uint32(attested.groupID)}]
+	// Get validator group for this candidate
+	coreIndex := parachaintypes.CoreIndex{Index: uint32(attested.groupID)}
+	group, ok := tableCtx.groups[coreIndex]
 	if !ok {
-		return nil, fmt.Errorf("validator group not found for the group-id: %d", attested.groupID)
+		return nil, fmt.Errorf("validator group not found for group ID %d", attested.groupID)
 	}
 
-	// Create maps for validator index positions and validity votes
-	groupIndexMap := make(map[parachaintypes.ValidatorIndex]int)
+	// Create map of validator indices to their positions in the group
+	validatorPositions := make(map[parachaintypes.ValidatorIndex]int, len(group))
 	for i, validator := range group {
-		groupIndexMap[validator] = i
+		validatorPositions[validator] = i
 	}
 
 	validatorIndices := make([]bool, len(group))
-	validityVotes := make(map[int]parachaintypes.ValidityAttestation) // Map position in group to validity vote
+	attestationsByPosition := make(map[int]parachaintypes.ValidityAttestation)
 
-	// Separate ids and validity votes, and fill the map with the votes
-	for _, va := range attested.validityAttestations {
-		if pos, found := groupIndexMap[va.validatorIndex]; found {
-			validatorIndices[pos] = true
-			validityVotes[pos] = va.validityAttestation
-		} else {
-			return nil, errors.New("validity vote from unknown validator")
+	for _, attestation := range attested.validityAttestations {
+		pos, exists := validatorPositions[attestation.validatorIndex]
+		if !exists {
+			return nil, fmt.Errorf("validator %d not found in backing group", attestation.validatorIndex)
+		}
+
+		validatorIndices[pos] = true
+		attestationsByPosition[pos] = attestation.validityAttestation
+	}
+
+	// Build sorted attestations list matching order of validator indices
+	sortedAttestations := make([]parachaintypes.ValidityAttestation, 0, len(attested.validityAttestations))
+	for i := range group {
+		if validatorIndices[i] {
+			sortedAttestations = append(sortedAttestations, attestationsByPosition[i])
 		}
 	}
 
-	// Collect sorted validity votes
-	sortedValidityVotes := make([]parachaintypes.ValidityAttestation, 0, len(group))
-	for i := 0; i < len(group); i++ {
-		if vote, exists := validityVotes[i]; exists {
-			sortedValidityVotes = append(sortedValidityVotes, vote)
-		}
+	var coreIndexToInject *parachaintypes.CoreIndex
+	if injectCoreIndex {
+		coreIndexToInject = &coreIndex
 	}
 
 	// The order of the validity votes in the backed candidate must match
-	// the order of bits set in the bitfield, which is not necessarily
+	// the order of bits set in the validatorIndices, which is not necessarily
 	// the order of the `validityAttestations` we got from the statement table.
-	return &parachaintypes.BackedCandidate{
-		Candidate:        attested.committedCandidateReceipt,
-		ValidityVotes:    sortedValidityVotes,
-		ValidatorIndices: parachaintypes.NewBitVec(validatorIndices),
-	}, nil
+	return parachaintypes.NewBackedCandidate(
+		attested.committedCandidateReceipt,
+		sortedAttestations,
+		validatorIndices,
+		coreIndexToInject,
+	)
 }
 
 // validatorIndexWithAttestation represents a validity attestation for a candidate.

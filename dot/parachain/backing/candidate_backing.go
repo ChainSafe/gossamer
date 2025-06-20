@@ -27,13 +27,15 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
-	"github.com/tidwall/btree"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backing"))
@@ -58,11 +60,9 @@ type CandidateBacking struct {
 	// This is guaranteed to have an entry for each candidate with a relay parent in the implicit
 	// or explicit view for which a `Seconded` statement has been successfully imported.
 	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
-	// State tracked for all active leaves, whether or not they have prospective parachains enabled.
-	perLeaf map[common.Hash]*activeLeafState
 	// The utility for managing the implicit and explicit views in a consistent way.
 	// We only feed leaves which have prospective parachains enabled to this view.
-	ImplicitView ImplicitView
+	implicitView *util.BackingImplicitView
 	// The handle to the Keystore used for signing.
 	Keystore   keystore.Keystore
 	BlockState BlockState
@@ -73,11 +73,7 @@ type CandidateBacking struct {
 
 type BlockState interface {
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
-}
-
-type activeLeafState struct {
-	prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
-	secondedAtDepth           map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]
+	GetHeader(hash common.Hash) (*types.Header, error)
 }
 
 // perCandidateState represents the state information for a candidate in the subsystem.
@@ -91,7 +87,7 @@ type perCandidateState struct {
 // in case a validator does not provide a PoV.
 type attestingData struct {
 	// The candidate to attest.
-	candidate parachaintypes.CandidateReceipt
+	candidate parachaintypes.CandidateReceiptV2
 	// Hash of the PoV we need to fetch.
 	povHash common.Hash
 	// Validator we are currently trying to get the PoV from.
@@ -129,10 +125,12 @@ type GetBackableCandidatesMessage struct {
 	ResCh      chan map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate
 }
 
-// CanSecondMessage is a request made to the candidate backing subsystem to determine whether it is permissible
-// to second a given candidate.
-// The rule for seconding candidates is: Collations must either be built on top of the root of a fragment tree
-// or have a parent node that represents the backed candidate.
+// CanSecondMessage Request the candidate backing subsystem to check whether it's
+// allowed to second given candidate.
+// The rule is to only fetch collations that can either be directly chained to any
+// FragmentChain in the view or there is at least one FragmentChain where this candidate is a
+// potentially unconnected candidate (we predict that it may become connected to a
+// FragmentChain in the future).
 type CanSecondMessage struct {
 	CandidateParaID      parachaintypes.ParaID
 	CandidateRelayParent common.Hash
@@ -145,7 +143,7 @@ type CanSecondMessage struct {
 // candidate in the context of the given relay parent. This candidate must be validated.
 type SecondMessage struct {
 	RelayParent             common.Hash
-	CandidateReceipt        parachaintypes.CandidateReceipt
+	CandidateReceipt        parachaintypes.CandidateReceiptV2
 	PersistedValidationData parachaintypes.PersistedValidationData
 	PoV                     parachaintypes.PoV
 }
@@ -160,12 +158,14 @@ type StatementMessage struct {
 }
 
 // New creates a new CandidateBacking instance and initialises it with the provided overseer channel.
-func New(overseerChan chan<- any) *CandidateBacking {
+func New(overseerChan chan<- any, ks keystore.Keystore, blockState BlockState) *CandidateBacking {
 	return &CandidateBacking{
 		SubSystemToOverseer: overseerChan,
 		perRelayParent:      map[common.Hash]*perRelayParentState{},
 		perCandidate:        map[parachaintypes.CandidateHash]*perCandidateState{},
-		perLeaf:             map[common.Hash]*activeLeafState{},
+		implicitView:        util.NewBackingImplicitView(blockState, nil),
+		Keystore:            ks,
+		BlockState:          blockState,
 		perSessionCache:     newPerSessionCache(2),
 	}
 }
@@ -196,7 +196,7 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem <-chan 
 	}
 }
 
-func (cb *CandidateBacking) Stop() {}
+func (*CandidateBacking) Stop() {}
 
 func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CandidateBacking
@@ -229,7 +229,7 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	return nil
 }
 
-func (cb *CandidateBacking) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) error {
+func (*CandidateBacking) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) error {
 	// Nothing to do here
 	return nil
 }
@@ -249,6 +249,15 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return errNilRelayParentState
 	}
 
+	senderValidatorIndex := signedStatementWithPVD.SignedFullStatement.ValidatorIndex
+
+	// Don't import statement if the sender is disabled
+	if slices.Contains(rpState.tableContext.disabledValidators, senderValidatorIndex) {
+		logger.Debugf("sender validator is disabled; validator index: %d",
+			senderValidatorIndex)
+		return nil
+	}
+
 	summary, err := rpState.importStatement(cb.SubSystemToOverseer, signedStatementWithPVD, cb.perCandidate)
 	if err != nil {
 		return fmt.Errorf("importing statement: %w", err)
@@ -260,6 +269,9 @@ func (cb *CandidateBacking) handleStatementMessage(
 		logger.Debug("summary is nil")
 		return nil
 	}
+
+	// importStatement already takes care of communicating with the prospective parachains subsystem.
+	// At this point, the candidate has already been accepted by the subsystem.
 
 	if uint32(summary.GroupID) != rpState.assignedCore.Index {
 		logger.Debugf("The GroupID: %d is not assigned to the local validator at relay parent: %s",
@@ -282,7 +294,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		attesting = attestingData{
 			candidate:     commitedCandidateReceipt.ToPlain(),
 			povHash:       statementVDT.Descriptor.PovHash,
-			fromValidator: signedStatementWithPVD.SignedFullStatement.ValidatorIndex,
+			fromValidator: senderValidatorIndex,
 			backing:       []parachaintypes.ValidatorIndex{},
 		}
 	case parachaintypes.Valid:
@@ -294,20 +306,22 @@ func (cb *CandidateBacking) handleStatementMessage(
 		}
 
 		ourIndex := rpState.tableContext.validator.Index
-		if signedStatementWithPVD.SignedFullStatement.ValidatorIndex == ourIndex {
+		if senderValidatorIndex == ourIndex {
 			return nil
 		}
 
 		if rpState.awaitingValidation[candidateHash] {
 			logger.Debug("Job already running")
-			attesting.backing = append(attesting.backing, signedStatementWithPVD.SignedFullStatement.ValidatorIndex)
+			attesting.backing = append(attesting.backing, senderValidatorIndex)
 			return nil
 		}
 
 		logger.Debug("No job, so start another with current validator")
-		attesting.fromValidator = signedStatementWithPVD.SignedFullStatement.ValidatorIndex
+		attesting.fromValidator = senderValidatorIndex
 	}
 
+	// in case of `Seconded` statement we add new fallback
+	// in case of `Valid` statement we update existing fallback
 	rpState.fallbacks[summary.Candidate] = attesting
 
 	// After `import_statement` succeeds, the candidate entry is guaranteed to exist.

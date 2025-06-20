@@ -16,80 +16,6 @@ type OverseerFuncRes[T any] struct {
 	Data T
 }
 
-// ProspectiveParachainsMessageGetTreeMembership is a prospective parachains message.
-// It is intended for retrieving the membership of a candidate in all fragment trees
-type ProspectiveParachainsMessageGetTreeMembership struct {
-	ParaID        ParaID
-	CandidateHash CandidateHash
-	ResponseCh    chan []FragmentTreeMembership
-}
-
-// ProspectiveParachainsMessageCandidateBacked is a prospective parachains message.
-// it informs the Prospective Parachains Subsystem that
-// a previously introduced candidate has been successfully backed.
-type ProspectiveParachainsMessageCandidateBacked struct {
-	ParaID        ParaID
-	CandidateHash CandidateHash
-}
-
-// ProspectiveParachainsMessageIntroduceCandidate is a prospective parachains message.
-// it inform the Prospective Parachains Subsystem about a new candidate.
-type ProspectiveParachainsMessageIntroduceCandidate struct {
-	IntroduceCandidateRequest IntroduceCandidateRequest
-	Ch                        chan error
-}
-
-// IntroduceCandidateRequest is a request to introduce a candidate into the Prospective Parachains Subsystem.
-type IntroduceCandidateRequest struct {
-	// The para-id of the candidate.
-	CandidateParaID ParaID
-	// The candidate receipt itself.
-	CommittedCandidateReceipt CommittedCandidateReceipt
-	// The persisted validation data of the candidate.
-	PersistedValidationData PersistedValidationData
-}
-
-// ProspectiveParachainsMessageGetHypotheticalFrontier is a prospective parachains message.
-// Get the hypothetical frontier membership of candidates with the given properties
-// under the specified active leaves fragment trees.
-//
-// For any candidate which is already known, this returns the depths the candidate
-// occupies.
-type ProspectiveParachainsMessageGetHypotheticalFrontier struct {
-	HypotheticalFrontierRequest HypotheticalFrontierRequest
-	ResponseCh                  chan HypotheticalFrontierResponses
-}
-
-// HypotheticalFrontierRequest specifies which candidates are either already included
-// or might be included in the hypothetical frontier of fragment trees
-// under a given active leaf.
-type HypotheticalFrontierRequest struct {
-	// Candidates, in arbitrary order, which should be checked for possible membership in fragment trees
-	Candidates []HypotheticalCandidate
-	// Either a specific fragment tree to check, otherwise all.
-	FragmentTreeRelayParent *common.Hash
-	// Only return membership if all candidates in the path from the root are backed.
-	BackedInPathOnly bool
-}
-
-// HypotheticalFrontierResponses contains information about the hypothetical frontier
-// membership of multiple candidates under active leaf fragment trees.
-type HypotheticalFrontierResponses []HypotheticalFrontierResponse
-
-// HypotheticalFrontierResponse contains information about the hypothetical frontier
-// membership of a specific candidate under active leaf fragment trees.
-type HypotheticalFrontierResponse struct {
-	HypotheticalCandidate HypotheticalCandidate
-	Memberships           []FragmentTreeMembership
-}
-
-// FragmentTreeMembership indicates the relay-parents whose fragment tree a candidate
-// is present in, along with the depths of that tree the candidate is present in.
-type FragmentTreeMembership struct {
-	RelayParent common.Hash
-	Depths      []uint
-}
-
 // HypotheticalCandidate represents a candidate to be evaluated for membership
 // in the prospective parachains subsystem.
 //
@@ -101,14 +27,25 @@ type FragmentTreeMembership struct {
 //   - Incomplete candidates are simply claims about properties that a fetched candidate
 //     would have and are evaluated less strictly.
 type HypotheticalCandidate interface {
-	isHypotheticalCandidate()
+	ParaID() ParaID
+	CandidateHash() CandidateHash
+	GetParentHeadDataHash() (common.Hash, error)
+	RelayParentHash() common.Hash
+	GetOutputHeadDataHash() *common.Hash
+	Commitments() *CandidateCommitments
+	GetPersistedValidationData() *PersistedValidationData
+	ValidationCodeHash() *ValidationCodeHash
 }
 
+var (
+	_ HypotheticalCandidate = (*HypotheticalCandidateIncomplete)(nil)
+	_ HypotheticalCandidate = (*HypotheticalCandidateComplete)(nil)
+)
+
 // HypotheticalCandidateIncomplete represents an incomplete hypothetical candidate.
-// this
 type HypotheticalCandidateIncomplete struct {
-	// CandidateHash is the claimed hash of the candidate.
-	CandidateHash CandidateHash
+	// ClaimedCandidateHash is the claimed hash of the candidate.
+	ClaimedCandidateHash CandidateHash
 	// ParaID is the claimed para-ID of the candidate.
 	CandidateParaID ParaID
 	// ParentHeadDataHash is the claimed head-data hash of the candidate.
@@ -117,17 +54,80 @@ type HypotheticalCandidateIncomplete struct {
 	RelayParent common.Hash
 }
 
-func (HypotheticalCandidateIncomplete) isHypotheticalCandidate() {}
+func (h HypotheticalCandidateIncomplete) ParaID() ParaID {
+	return h.CandidateParaID
+}
+
+func (h HypotheticalCandidateIncomplete) CandidateHash() CandidateHash {
+	return h.ClaimedCandidateHash
+}
+
+func (h HypotheticalCandidateIncomplete) RelayParentHash() common.Hash {
+	return h.RelayParent
+}
+
+func (h HypotheticalCandidateIncomplete) GetParentHeadDataHash() (common.Hash, error) {
+	return h.ParentHeadDataHash, nil
+}
+
+func (h HypotheticalCandidateIncomplete) GetOutputHeadDataHash() *common.Hash {
+	return nil
+}
+
+func (h HypotheticalCandidateIncomplete) Commitments() *CandidateCommitments {
+	return nil
+}
+
+func (h HypotheticalCandidateIncomplete) GetPersistedValidationData() *PersistedValidationData {
+	return nil
+}
+
+func (h HypotheticalCandidateIncomplete) ValidationCodeHash() *ValidationCodeHash {
+	return nil
+}
 
 // HypotheticalCandidateComplete represents a complete candidate, including its hash, committed candidate receipt,
 // and persisted validation data.
 type HypotheticalCandidateComplete struct {
-	CandidateHash             CandidateHash
-	CommittedCandidateReceipt CommittedCandidateReceipt
-	PersistedValidationData   PersistedValidationData
+	// The hash of the candidate.
+	ClaimedCandidateHash CandidateHash
+	// The receipt of the candidate.
+	CommittedCandidateReceipt CommittedCandidateReceiptV2
+	// The persisted validation data of the candidate.
+	PersistedValidationData PersistedValidationData
 }
 
-func (HypotheticalCandidateComplete) isHypotheticalCandidate() {}
+func (h HypotheticalCandidateComplete) ParaID() ParaID {
+	return h.CommittedCandidateReceipt.Descriptor.ParaID
+}
+
+func (h HypotheticalCandidateComplete) CandidateHash() CandidateHash {
+	return h.ClaimedCandidateHash
+}
+
+func (h HypotheticalCandidateComplete) RelayParentHash() common.Hash {
+	return h.CommittedCandidateReceipt.Descriptor.RelayParent
+}
+
+func (h HypotheticalCandidateComplete) GetParentHeadDataHash() (common.Hash, error) {
+	return h.PersistedValidationData.ParentHead.Hash()
+}
+
+func (h HypotheticalCandidateComplete) GetOutputHeadDataHash() *common.Hash {
+	return &h.CommittedCandidateReceipt.Descriptor.ParaHead
+}
+
+func (h HypotheticalCandidateComplete) Commitments() *CandidateCommitments {
+	return &h.CommittedCandidateReceipt.Commitments
+}
+
+func (h HypotheticalCandidateComplete) GetPersistedValidationData() *PersistedValidationData {
+	return &h.PersistedValidationData
+}
+
+func (h HypotheticalCandidateComplete) ValidationCodeHash() *ValidationCodeHash {
+	return &h.CommittedCandidateReceipt.Descriptor.ValidationCodeHash
+}
 
 // AvailabilityDistributionMessageFetchPoV represents a message instructing
 // availability distribution to fetch a remote Proof of Validity (PoV).

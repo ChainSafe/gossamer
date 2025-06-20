@@ -8,8 +8,8 @@ import (
 	reflect "reflect"
 
 	network "github.com/ChainSafe/gossamer/dot/network"
-	gomock "go.uber.org/mock/gomock"
 	peer "github.com/libp2p/go-libp2p/core/peer"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockTransactionHandler is a mock of TransactionHandler interface.

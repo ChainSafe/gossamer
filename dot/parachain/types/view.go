@@ -5,6 +5,7 @@ package parachaintypes
 
 import (
 	"reflect"
+	"slices"
 	"sort"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -22,7 +23,7 @@ type View struct {
 }
 
 // Difference returns hashes present in v View but not in v2 View.
-func (v View) Difference(v2 View) []common.Hash {
+func (v *View) Difference(v2 View) []common.Hash {
 
 	vHeads := SortableHeads(v.Heads)
 	v2Heads := SortableHeads(v2.Heads)
@@ -52,8 +53,23 @@ func (v View) Difference(v2 View) []common.Hash {
 	return diff
 }
 
+// ReplaceDifference replaces self with new.
+// Returns a slice of Hash with all elements of new that were not part of old.
+func (v *View) ReplaceDifference(new View) []common.Hash {
+	old := *v
+	*v = new
+
+	re := make([]common.Hash, 0)
+	for _, h := range v.Heads {
+		if !slices.Contains(old.Heads, h) {
+			re = append(re, h)
+		}
+	}
+	return re
+}
+
 // CheckHeadsEqual checks if the heads of the view are equal to the heads of the other view.
-func (v View) CheckHeadsEqual(other View) bool {
+func (v *View) CheckHeadsEqual(other View) bool {
 	if len(v.Heads) != len(other.Heads) {
 		return false
 	}
@@ -64,6 +80,10 @@ func (v View) CheckHeadsEqual(other View) bool {
 	sort.Sort(SortableHeads(otherHeads))
 
 	return reflect.DeepEqual(localHeads, otherHeads)
+}
+
+func (v *View) Contains(hash common.Hash) bool {
+	return slices.Contains(v.Heads, hash)
 }
 
 type SortableHeads []common.Hash

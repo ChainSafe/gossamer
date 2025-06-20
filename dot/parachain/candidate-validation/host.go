@@ -47,7 +47,7 @@ func (v *host) validate(msg *ValidationTask) (*ValidationResult, error) {
 
 // performBasicChecks does basic checks of a candidate. Provided the encoded PoV-block it returns ReasonForInvalidity
 // and internal error if any.
-func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSize uint32,
+func performBasicChecks(candidate *parachaintypes.CandidateDescriptorV2, maxPoVSize uint32,
 	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) (
 	validationError *ReasonForInvalidity, internalError error) {
 	povHash, err := pov.Hash()
@@ -62,24 +62,21 @@ func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSiz
 	encodedPoVSize := uint32(len(encodedPoV))
 
 	if encodedPoVSize > maxPoVSize {
-		ci := ParamsTooLarge
-		return &ci, nil
+		return ParamsTooLarge.Ptr(), nil
 	}
 
 	if povHash != candidate.PovHash {
-		ci := PoVHashMismatch
-		return &ci, nil
+		return PoVHashMismatch.Ptr(), nil
 	}
 
 	if validationCodeHash != candidate.ValidationCodeHash {
-		ci := CodeHashMismatch
-		return &ci, nil
+		return CodeHashMismatch.Ptr(), nil
 	}
 
+	// No-op for descriptor v2.
 	err = candidate.CheckCollatorSignature()
 	if err != nil {
-		ci := BadSignature
-		return &ci, nil
+		return BadSignature.Ptr(), nil
 	}
 
 	return nil, nil

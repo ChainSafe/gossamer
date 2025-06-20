@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/libp2p/go-libp2p/core/peer"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -42,21 +44,21 @@ func (nbs *NetworkBridgeSender) Run(ctx context.Context, overseerToSubSystem <-c
 	}
 }
 
-func (nbs *NetworkBridgeSender) Name() parachaintypes.SubSystemName {
+func (*NetworkBridgeSender) Name() parachaintypes.SubSystemName {
 	return parachaintypes.NetworkBridgeSender
 }
 
-func (nbs *NetworkBridgeSender) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
+func (*NetworkBridgeSender) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
 	// nothing to do here
 	return nil
 }
 
-func (nbs *NetworkBridgeSender) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
+func (*NetworkBridgeSender) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
 	// nothing to do here
 	return nil
 }
 
-func (nbs *NetworkBridgeSender) Stop() {}
+func (*NetworkBridgeSender) Stop() {}
 
 func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 	// run this function as a goroutine, ideally
@@ -95,7 +97,7 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 		}
 	case networkbridgemessages.SendRequests:
 		nbs.sendRequests(msg.Requests, msg.IfDisconnected)
-		// TODO: add ConnectTOResolvedValidators
+		// TODO: add ConnectToResolvedValidators
 	case networkbridgemessages.ConnectToValidators:
 		// TODO
 	case networkbridgemessages.ReportPeer:
@@ -143,7 +145,17 @@ func (nbs *NetworkBridgeSender) sendRequest(
 	response := request.Payload.Response()
 	result := networkbridgemessages.ReqRespResult{}
 
-	err := protocol.Do(request.Recipient, request.Payload, response)
+	var peerID peer.ID
+	switch request.Recipient.(type) {
+	case parachaintypes.PeerID:
+		peerID = peer.ID(request.Recipient.(parachaintypes.PeerID))
+	case parachaintypes.AuthorityDiscoveryID:
+		peerID = "unknown" // TODO: perform authority discovery (#4500)
+	default:
+		panic("unreachable")
+	}
+
+	err := protocol.Do(peerID, request.Payload, response)
 	if err != nil {
 		result.Error = err
 	} else {

@@ -6,14 +6,16 @@ package messages
 import (
 	"context"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type ReqProtocolName uint
 
 const (
 	ChunkFetchingV1 ReqProtocolName = iota
+	ChunkFetchingV2
 	CollationFetchingV1
 	PoVFetchingV1
 	AvailableDataFetchingV1
@@ -25,6 +27,8 @@ func (n ReqProtocolName) String() string {
 	switch n {
 	case ChunkFetchingV1:
 		return "req_chunk/1"
+	case ChunkFetchingV2:
+		return "req_chunk/2"
 	case CollationFetchingV1:
 		return "req_collation/1"
 	case PoVFetchingV1:
@@ -57,7 +61,7 @@ type ReqRespResult struct {
 
 // OutgoingRequest contains all data required to send a request over a request response protocol and receive the result.
 type OutgoingRequest struct {
-	Recipient peer.ID // TODO use a type that can contain either a peer ID or an authority ID
+	Recipient parachaintypes.RecipientID
 	Payload   ReqProtocolMessage
 	Result    chan ReqRespResult
 
@@ -81,7 +85,7 @@ func (or *OutgoingRequest) IsCancelled() bool {
 }
 
 // NewOutgoingRequest creates a new outgoing request.
-func NewOutgoingRequest(recipient peer.ID, payload ReqProtocolMessage) *OutgoingRequest {
+func NewOutgoingRequest(recipient parachaintypes.RecipientID, payload ReqProtocolMessage) *OutgoingRequest {
 	result := make(chan ReqRespResult, 1)
 	ctx, cancel := context.WithCancel(context.Background())
 

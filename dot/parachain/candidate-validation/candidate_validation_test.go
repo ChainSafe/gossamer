@@ -18,17 +18,8 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-var (
-	povHashMismatch  = PoVHashMismatch
-	paramsTooLarge   = ParamsTooLarge
-	codeHashMismatch = CodeHashMismatch
-	badSignature     = BadSignature
-	invalidOutputs   = InvalidOutputs
-	badParent        = BadParent
-)
-
 func createTestCandidateReceiptAndValidationCodeWParaId(t *testing.T, id parachaintypes.ParaID) (
-	parachaintypes.CandidateReceipt, parachaintypes.ValidationCode) {
+	parachaintypes.CandidateReceiptV2, parachaintypes.ValidationCode) {
 	t.Helper()
 	// this wasm was achieved by building polkadot's adder test parachain
 	runtimeFilePath := "./testdata/test_parachain_adder.wasm"
@@ -55,7 +46,7 @@ func createTestCandidateReceiptAndValidationCodeWParaId(t *testing.T, id paracha
 		CommitmentsHash: common.MustHexToHash("0x4ddce2e9ed80f386cdbba4b42f5de76957d5fbf9f093258d6048e9218d1fe98d"),
 	}
 
-	return candidateReceipt, validationCode
+	return candidateReceipt.V2(), validationCode
 }
 
 func makeValidCandidateDescriptor(t *testing.T, paraID parachaintypes.ParaID, relayParent common.Hash,
@@ -138,21 +129,49 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	})
 	require.NoError(t, err)
 
-	overseerToSubsystem := make(chan any)
-	sender := make(chan parachaintypes.OverseerFuncRes[ValidationResult])
-	candidateValidationSubsystem := CandidateValidation{
-		pvfHost: newValidationHost(),
+	execKindBacking := parachaintypes.PvfExecTimeoutKind{}
+	err = execKindBacking.SetValue(parachaintypes.Backing{})
+	require.NoError(t, err)
+
+	setup := func(
+		t *testing.T,
+		configMockInstance func(*MockInstance),
+	) *CandidateValidation {
+		ctrl := gomock.NewController(t)
+		mockInstance := NewMockInstance(ctrl)
+		configMockInstance(mockInstance)
+
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockInstance, nil)
+
+		cv := NewCandidateValidation(nil, mockBlockState)
+
+		t.Cleanup(cv.Stop)
+		return cv
 	}
 
-	t.Cleanup(candidateValidationSubsystem.Stop)
-
-	ctx := context.Background()
-	go candidateValidationSubsystem.Run(ctx, overseerToSubsystem)
-
 	tests := map[string]struct {
-		msg  ValidateFromExhaustive
-		want parachaintypes.OverseerFuncRes[ValidationResult]
+		msg                ValidateFromExhaustive
+		configMockInstance func(*MockInstance)
+		expectedResult     ValidationResult
 	}{
+		"invalid_session_index": {
+			msg: ValidateFromExhaustive{
+				CandidateReceipt: parachaintypes.CandidateReceiptV2{
+					Descriptor: parachaintypes.CandidateDescriptorV2{
+						SessionIndex: parachaintypes.SessionIndex(10),
+					},
+				},
+				PvfExecTimeoutKind: execKindBacking,
+			},
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().ParachainHostSessionIndexForChild().
+					Return(parachaintypes.SessionIndex(5), nil) // different session index than the one in receipt
+			},
+			expectedResult: ValidationResult{
+				Invalid: InvalidSessionIndex.Ptr(),
+			},
+		},
 		"invalid_pov_hash": {
 			msg: ValidateFromExhaustive{
 				PersistedValidationData: parachaintypes.PersistedValidationData{
@@ -161,16 +180,18 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
 					MaxPovSize:             uint32(2048),
 				},
-				ValidationCode:   validationCode,
-				CandidateReceipt: candidateReceipt2,
-				PoV:              pov,
-				Ch:               sender,
+				ValidationCode:     validationCode,
+				CandidateReceipt:   candidateReceipt2,
+				PoV:                pov,
+				PvfExecTimeoutKind: execKindBacking,
 			},
-			want: parachaintypes.OverseerFuncRes[ValidationResult]{
-				Data: ValidationResult{
-					Invalid: &povHashMismatch,
-				},
-				Err: nil,
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().ParachainHostClaimQueue().Return(make(parachaintypes.ClaimQueue), nil)
+				mi.EXPECT().ParachainHostSessionIndexForChild().
+					Return(candidateReceipt2.Descriptor.SessionIndex, nil)
+			},
+			expectedResult: ValidationResult{
+				Invalid: PoVHashMismatch.Ptr(),
 			},
 		},
 		"invalid_pov_size": {
@@ -181,15 +202,18 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
 					MaxPovSize:             uint32(10),
 				},
-				ValidationCode:   validationCode,
-				CandidateReceipt: candidateReceipt,
-				PoV:              pov,
-				Ch:               sender,
+				ValidationCode:     validationCode,
+				CandidateReceipt:   candidateReceipt,
+				PoV:                pov,
+				PvfExecTimeoutKind: execKindBacking,
 			},
-			want: parachaintypes.OverseerFuncRes[ValidationResult]{
-				Data: ValidationResult{
-					Invalid: &paramsTooLarge,
-				},
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().ParachainHostClaimQueue().Return(make(parachaintypes.ClaimQueue), nil)
+				mi.EXPECT().ParachainHostSessionIndexForChild().
+					Return(candidateReceipt2.Descriptor.SessionIndex, nil)
+			},
+			expectedResult: ValidationResult{
+				Invalid: ParamsTooLarge.Ptr(),
 			},
 		},
 		"code_mismatch": {
@@ -200,18 +224,21 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
 					MaxPovSize:             uint32(2048),
 				},
-				ValidationCode:   []byte{1, 2, 3, 4, 5, 6, 7, 8},
-				CandidateReceipt: candidateReceipt,
-				PoV:              pov,
-				Ch:               sender,
+				ValidationCode:     []byte{1, 2, 3, 4, 5, 6, 7, 8},
+				CandidateReceipt:   candidateReceipt,
+				PoV:                pov,
+				PvfExecTimeoutKind: execKindBacking,
 			},
-			want: parachaintypes.OverseerFuncRes[ValidationResult]{
-				Data: ValidationResult{
-					Invalid: &codeHashMismatch,
-				},
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().ParachainHostClaimQueue().Return(make(parachaintypes.ClaimQueue), nil)
+				mi.EXPECT().ParachainHostSessionIndexForChild().
+					Return(candidateReceipt2.Descriptor.SessionIndex, nil)
+			},
+			expectedResult: ValidationResult{
+				Invalid: CodeHashMismatch.Ptr(),
 			},
 		},
-		"happy_path": {
+		"happy_path_descriptor_v1": {
 			msg: ValidateFromExhaustive{
 				PersistedValidationData: parachaintypes.PersistedValidationData{
 					ParentHead:             parachaintypes.HeadData{Data: hd},
@@ -219,33 +246,100 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
 					MaxPovSize:             uint32(2048),
 				},
-				ValidationCode:   validationCode,
-				CandidateReceipt: candidateReceipt,
-				PoV:              pov,
-				Ch:               sender,
+				ValidationCode:     validationCode,
+				CandidateReceipt:   candidateReceipt,
+				PoV:                pov,
+				PvfExecTimeoutKind: execKindBacking,
 			},
-			want: parachaintypes.OverseerFuncRes[ValidationResult]{
-				Data: ValidationResult{
-					Valid: &Valid{
-						CandidateCommitments: parachaintypes.CandidateCommitments{
-							HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
-								207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
-								59, 106, 76, 168, 122, 109, 164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64,
-								24, 194, 129, 162, 128, 1, 77, 147, 200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19,
-								245, 113, 233, 138, 210}},
-							HrmpWatermark: 1,
-						},
-						PersistedValidationData: parachaintypes.PersistedValidationData{
-							ParentHead: parachaintypes.HeadData{Data: []byte{1, 0, 0, 0, 0, 0, 0, 0, 1,
-								2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7,
-								8, 9, 0, 1, 2, 48, 246, 146, 178, 86, 226, 64, 9,
-								188, 179, 77, 14, 232, 77, 167, 60, 41, 138, 250, 204, 9, 36, 224, 17, 5, 226, 235,
-								15, 1, 168, 127, 226}},
-							RelayParentNumber: 1,
-							RelayParentStorageRoot: common.MustHexToHash(
-								"0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
-							MaxPovSize: 2048,
-						},
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().ParachainHostClaimQueue().Return(make(parachaintypes.ClaimQueue), nil)
+				mi.EXPECT().ParachainHostSessionIndexForChild().
+					Return(candidateReceipt2.Descriptor.SessionIndex, nil)
+			},
+			expectedResult: ValidationResult{
+				Valid: &Valid{
+					CandidateCommitments: parachaintypes.CandidateCommitments{
+						HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
+							207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
+							59, 106, 76, 168, 122, 109, 164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64,
+							24, 194, 129, 162, 128, 1, 77, 147, 200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19,
+							245, 113, 233, 138, 210}},
+						HrmpWatermark: 1,
+					},
+					PersistedValidationData: parachaintypes.PersistedValidationData{
+						ParentHead: parachaintypes.HeadData{Data: []byte{1, 0, 0, 0, 0, 0, 0, 0, 1,
+							2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7,
+							8, 9, 0, 1, 2, 48, 246, 146, 178, 86, 226, 64, 9,
+							188, 179, 77, 14, 232, 77, 167, 60, 41, 138, 250, 204, 9, 36, 224, 17, 5, 226, 235,
+							15, 1, 168, 127, 226}},
+						RelayParentNumber: 1,
+						RelayParentStorageRoot: common.MustHexToHash(
+							"0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+						MaxPovSize: 2048,
+					},
+				},
+			},
+		},
+		"invalid_core_index_descriptor_v2": {
+			msg: ValidateFromExhaustive{
+				PersistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead:             parachaintypes.HeadData{Data: hd},
+					RelayParentNumber:      uint32(1),
+					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize:             uint32(2048),
+				},
+				ValidationCode:     validationCode,
+				CandidateReceipt:   dummyCandidateReceiptV2(t),
+				PoV:                pov,
+				PvfExecTimeoutKind: execKindBacking,
+			},
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().ParachainHostClaimQueue().Return(make(parachaintypes.ClaimQueue), nil)
+				mi.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(2), nil)
+			},
+			expectedResult: ValidationResult{
+				Invalid: InvalidCoreIndex.Ptr(),
+			},
+		},
+		"happy_path_descriptor_v2": {
+			msg: ValidateFromExhaustive{
+				PersistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead:             parachaintypes.HeadData{Data: hd},
+					RelayParentNumber:      uint32(1),
+					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize:             uint32(2048),
+				},
+				ValidationCode:     validationCode,
+				CandidateReceipt:   dummyCandidateReceiptV2(t),
+				PoV:                pov,
+				PvfExecTimeoutKind: execKindBacking,
+			},
+			configMockInstance: func(mi *MockInstance) {
+				claimQueue := make(parachaintypes.ClaimQueue)
+				claimQueue[parachaintypes.CoreIndex{Index: 2}] = []parachaintypes.ParaID{1000} // Core 2 is valid
+				mi.EXPECT().ParachainHostClaimQueue().Return(claimQueue, nil)
+				mi.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(2), nil)
+			},
+			expectedResult: ValidationResult{
+				Valid: &Valid{
+					CandidateCommitments: parachaintypes.CandidateCommitments{
+						HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
+							207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
+							59, 106, 76, 168, 122, 109, 164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64,
+							24, 194, 129, 162, 128, 1, 77, 147, 200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19,
+							245, 113, 233, 138, 210}},
+						HrmpWatermark: 1,
+					},
+					PersistedValidationData: parachaintypes.PersistedValidationData{
+						ParentHead: parachaintypes.HeadData{Data: []byte{1, 0, 0, 0, 0, 0, 0, 0, 1,
+							2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7,
+							8, 9, 0, 1, 2, 48, 246, 146, 178, 86, 226, 64, 9,
+							188, 179, 77, 14, 232, 77, 167, 60, 41, 138, 250, 204, 9, 36, 224, 17, 5, 226, 235,
+							15, 1, 168, 127, 226}},
+						RelayParentNumber: 1,
+						RelayParentStorageRoot: common.MustHexToHash(
+							"0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+						MaxPovSize: 2048,
 					},
 				},
 			},
@@ -255,9 +349,13 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			overseerToSubsystem <- tt.msg
-			result := <-sender
-			require.Equal(t, tt.want, result)
+
+			candidateValidationSubsystem := setup(t, tt.configMockInstance)
+
+			validationResult, err := candidateValidationSubsystem.validateFromExhaustive(tt.msg)
+			require.NoError(t, err)
+			require.Equal(t, tt.expectedResult, *validationResult)
+
 		})
 	}
 }
@@ -371,7 +469,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &povHashMismatch,
+				Invalid: PoVHashMismatch.Ptr(),
 			},
 			configMockInstance: func(mi *MockInstance) {
 				mi.EXPECT().
@@ -391,7 +489,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &paramsTooLarge,
+				Invalid: ParamsTooLarge.Ptr(),
 			},
 			configMockInstance: func(mi *MockInstance) {
 				mi.EXPECT().
@@ -411,7 +509,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &codeHashMismatch,
+				Invalid: CodeHashMismatch.Ptr(),
 			},
 			configMockInstance: func(mi *MockInstance) {
 				mi.EXPECT().
@@ -431,7 +529,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &badSignature,
+				Invalid: BadSignature.Ptr(),
 			},
 			configMockInstance: func(mi *MockInstance) {
 				mi.EXPECT().
@@ -451,7 +549,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &invalidOutputs,
+				Invalid: InvalidOutputs.Ptr(),
 			},
 			configMockInstance: func(mi *MockInstance) {
 				mi.EXPECT().
@@ -472,7 +570,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &badParent,
+				Invalid: BadParent.Ptr(),
 			},
 			configMockInstance: func(mi *MockInstance) {
 				mi.EXPECT().
@@ -657,5 +755,34 @@ func Test_precheckPvF(t *testing.T) {
 				require.NoError(t, err)
 			}
 		})
+	}
+}
+
+// dummyCandidateReceiptV2 creates a dummy CandidateReceiptV2 for testing purposes.
+func dummyCandidateReceiptV2(t *testing.T) parachaintypes.CandidateReceiptV2 {
+	t.Helper()
+
+	descriptor := parachaintypes.CandidateDescriptorV2{
+		ParaID:         1000,
+		RelayParent:    common.MustHexToHash("0xded542bacb3ca6c033a57676f94ae7c8f36834511deb44e3164256fd3b1c0de0"),
+		CurrentVersion: 0, // Version 2 indicator
+		CoreIndex:      2,
+		SessionIndex:   2,
+		PersistedValidationDataHash: common.MustHexToHash(
+			"0x690d8f252ef66ab0f969c3f518f90012b849aa5ac94e1752c5e5ae5a8996de37"),
+		PovHash: common.MustHexToHash(
+			"0xb608991ffc48dd405fd4b10e92eaebe2b5a2eedf44d0c3efb8997fdee8bebed9"),
+		ErasureRoot: common.MustHexToHash(
+			"0xc07f658163e93c45a6f0288d229698f09c1252e41076f4caa71c8cbc12f118a1"),
+		ParaHead: common.MustHexToHash(
+			"0x657a011336002a7f2acd5db97d34b9b703c04cadcb63ad82c7658b04fb42f3de"),
+		ValidationCodeHash: parachaintypes.ValidationCodeHash(common.MustHexToHash(
+			"0xd7d82e716d8ca4366ab441c2625878dd148ed961d0ae8bf9f71af2b2f6583f24")),
+		// Reserved1 and Reserved2 are zero by default = Version 2
+	}
+
+	return parachaintypes.CandidateReceiptV2{
+		Descriptor:      descriptor,
+		CommitmentsHash: common.MustHexToHash("0x4ddce2e9ed80f386cdbba4b42f5de76957d5fbf9f093258d6048e9218d1fe98d"),
 	}
 }
