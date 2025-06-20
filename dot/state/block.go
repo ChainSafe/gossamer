@@ -13,9 +13,14 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	primitives_runtime "github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -49,7 +54,11 @@ var (
 )
 
 type BlockState interface {
-	AddBlock(*types.Block) error
+	AddBlock(
+		*types.Block,
+		*overlayedchanges.OverlayedChanges[hash.H256, primitives_runtime.BlakeTwo256],
+		*storage.StateVersion,
+	) error
 	AddBlockWithArrivalTime(block *types.Block, arrivalTime time.Time) error
 
 	BestBlock() (*types.Block, error)
@@ -618,7 +627,11 @@ func (bs *DefaultBlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 }
 
 // AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
-func (bs *DefaultBlockState) AddBlock(block *types.Block) error {
+func (bs *DefaultBlockState) AddBlock(
+	block *types.Block,
+	_ *overlayedchanges.OverlayedChanges[hash.H256, primitives_runtime.BlakeTwo256],
+	_ *storage.StateVersion,
+) error {
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 	return bs.AddBlockWithArrivalTime(block, time.Now())

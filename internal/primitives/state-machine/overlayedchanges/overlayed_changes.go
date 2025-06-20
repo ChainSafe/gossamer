@@ -23,6 +23,7 @@ type StorageValue = statemachine.StorageValue
 type StorageKeyValue = statemachine.StorageKeyValue
 type StorageCollection = statemachine.StorageCollection
 type ChildStorageCollection = statemachine.ChildStorageCollection
+type ChildStorageCollectionItem = statemachine.ChildStorageCollectionItem
 
 var NoExtrinsicIndex uint32 = 0xffffffff
 
@@ -445,8 +446,8 @@ func (oc *OverlayedChanges[H, Hasher]) ExitRuntime() error {
 //
 // Panics:
 // Panics if `transaction_depth() > 0`
-func (oc *OverlayedChanges[H, Hasher]) offchainDrainCommited() iter.Seq2[StorageKey, offchain.OffchainOverlayedChange] {
-	return oc.offchain.DrainCommited()
+func (oc *OverlayedChanges[H, Hasher]) offchainDrainCommitted() iter.Seq2[PrefixKey, offchain.OffchainOverlayedChange] {
+	return oc.offchain.Drain()
 }
 
 // Get an iterator over all child changes as seen by the current transaction.
@@ -644,4 +645,67 @@ func (oc *OverlayedChanges[H, Hasher]) SetOffchainStorage(key []byte, value []by
 
 func (oc *OverlayedChanges[H, Hasher]) AddTransactionIndex(op IndexOperation) {
 	oc.transactionIndexOps = append(oc.transactionIndexOps, op)
+}
+
+func (oc *OverlayedChanges[H, Hasher]) DrainStorageChanges(
+	backend statemachine.Backend[H, Hasher],
+	stateVersion storage.StateVersion) (StorageChanges[H, Hasher], error) {
+
+	if oc.storageTransactionCache == nil {
+		// If the transaction does not exist, we generate it.
+		oc.StorageRoot(backend, stateVersion)
+	}
+
+	transaction := oc.storageTransactionCache.transaction
+	transactionStorageRoot := oc.storageTransactionCache.transactionStorageRoot
+
+	// Take main storage changes
+	var mainStorageChanges StorageCollection
+	for k, v := range oc.top.DrainCommitted() {
+		mainStorageChanges = append(mainStorageChanges, StorageKeyValue{
+			StorageKey:   k,
+			StorageValue: v.value(),
+		})
+	}
+	oc.top = newOverlayedChangeSet()
+
+	// Take child storage changes
+	var childStorageChanges ChildStorageCollection
+	for k, val := range oc.children {
+		storageCollection := make(StorageCollection, 0)
+		for k, v := range val.DrainCommitted() {
+			storageCollection = append(storageCollection, StorageKeyValue{
+				StorageKey:   k,
+				StorageValue: v.value(),
+			})
+		}
+		childStorageChanges = append(childStorageChanges, statemachine.ChildStorageCollectionItem{
+			StorageKey:        StorageKey(k),
+			StorageCollection: storageCollection,
+		})
+	}
+	oc.children = make(map[string]childStorageValue)
+
+	// Take offchainStorageChanges
+	var offchainStorageChanges OffchainChangesCollection
+	for k, v := range oc.offchainDrainCommitted() {
+		offchainStorageChanges = append(offchainStorageChanges, OffchainChange{
+			PrefixKey:      k,
+			ValueOperation: v,
+		})
+	}
+	oc.offchain = OffchainOverlayedChanges{}
+
+	// Take transactionIndexChanges
+	transactionIndexChanges := oc.transactionIndexOps
+	oc.transactionIndexOps = make([]IndexOperation, 0)
+
+	return StorageChanges[H, Hasher]{
+		MainStorageChanges:      mainStorageChanges,
+		ChildStorageChanges:     childStorageChanges,
+		OffchainStorageChanges:  offchainStorageChanges,
+		Transaction:             transaction,
+		TransactionStorageRoot:  transactionStorageRoot,
+		TransactionIndexChanges: transactionIndexChanges,
+	}, nil
 }

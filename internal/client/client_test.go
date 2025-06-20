@@ -334,10 +334,7 @@ func TestBlockchainEvents(t *testing.T) {
 				StorageCollection: overlayedchanges.StorageCollection{
 					{StorageKey: overlayedchanges.StorageKey("top0"), StorageValue: overlayedchanges.StorageValue("top0")},
 				},
-				ChildStorageCollection: []struct {
-					overlayedchanges.StorageKey
-					overlayedchanges.StorageCollection
-				}{
+				ChildStorageCollection: []overlayedchanges.ChildStorageCollectionItem{
 					{
 						StorageKey: overlayedchanges.StorageKey("child0"),
 						StorageCollection: overlayedchanges.StorageCollection{

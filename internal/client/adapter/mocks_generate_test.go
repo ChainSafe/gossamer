@@ -4,4 +4,5 @@
 package adapter
 
 //go:generate mockery --name=Client --case=snake --with-expecter=true
+//go:generate mockery --name=Backend --case=snake --with-expecter=true
 //go:generate mockery --name=ClientAdapterDB --case=snake --with-expecter=true
