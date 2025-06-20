@@ -3,13 +3,14 @@
 package mocks
 
 import (
-	runtime "github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	kv "github.com/ChainSafe/gossamer/internal/primitives/kv"
 	mock "github.com/stretchr/testify/mock"
 
-	storage "github.com/ChainSafe/gossamer/internal/primitives/storage"
+	runtime "github.com/ChainSafe/gossamer/internal/primitives/runtime"
 
-	trie "github.com/ChainSafe/gossamer/internal/primitives/trie"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+
+	storage "github.com/ChainSafe/gossamer/internal/primitives/storage"
 
 	triedb "github.com/ChainSafe/gossamer/pkg/trie/triedb"
 )
@@ -205,7 +206,7 @@ func (_c *StatemachineBackend_ChildStorageHash_Call[Hash, H]) RunAndReturn(run f
 }
 
 // ChildStorageRoot provides a mock function with given fields: childInfo, delta, stateVersion
-func (_m *StatemachineBackend[Hash, H]) ChildStorageRoot(childInfo storage.ChildInfo, delta []trie.KeyValue, stateVersion storage.StateVersion) (Hash, bool, statemachine.BackendTransaction[Hash, H]) {
+func (_m *StatemachineBackend[Hash, H]) ChildStorageRoot(childInfo storage.ChildInfo, delta []kv.KeyValue, stateVersion storage.StateVersion) (Hash, bool, statemachine.BackendTransaction[Hash, H]) {
 	ret := _m.Called(childInfo, delta, stateVersion)
 
 	if len(ret) == 0 {
@@ -215,10 +216,10 @@ func (_m *StatemachineBackend[Hash, H]) ChildStorageRoot(childInfo storage.Child
 	var r0 Hash
 	var r1 bool
 	var r2 statemachine.BackendTransaction[Hash, H]
-	if rf, ok := ret.Get(0).(func(storage.ChildInfo, []trie.KeyValue, storage.StateVersion) (Hash, bool, statemachine.BackendTransaction[Hash, H])); ok {
+	if rf, ok := ret.Get(0).(func(storage.ChildInfo, []kv.KeyValue, storage.StateVersion) (Hash, bool, statemachine.BackendTransaction[Hash, H])); ok {
 		return rf(childInfo, delta, stateVersion)
 	}
-	if rf, ok := ret.Get(0).(func(storage.ChildInfo, []trie.KeyValue, storage.StateVersion) Hash); ok {
+	if rf, ok := ret.Get(0).(func(storage.ChildInfo, []kv.KeyValue, storage.StateVersion) Hash); ok {
 		r0 = rf(childInfo, delta, stateVersion)
 	} else {
 		if ret.Get(0) != nil {
@@ -226,13 +227,13 @@ func (_m *StatemachineBackend[Hash, H]) ChildStorageRoot(childInfo storage.Child
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(storage.ChildInfo, []trie.KeyValue, storage.StateVersion) bool); ok {
+	if rf, ok := ret.Get(1).(func(storage.ChildInfo, []kv.KeyValue, storage.StateVersion) bool); ok {
 		r1 = rf(childInfo, delta, stateVersion)
 	} else {
 		r1 = ret.Get(1).(bool)
 	}
 
-	if rf, ok := ret.Get(2).(func(storage.ChildInfo, []trie.KeyValue, storage.StateVersion) statemachine.BackendTransaction[Hash, H]); ok {
+	if rf, ok := ret.Get(2).(func(storage.ChildInfo, []kv.KeyValue, storage.StateVersion) statemachine.BackendTransaction[Hash, H]); ok {
 		r2 = rf(childInfo, delta, stateVersion)
 	} else {
 		r2 = ret.Get(2).(statemachine.BackendTransaction[Hash, H])
@@ -248,15 +249,15 @@ type StatemachineBackend_ChildStorageRoot_Call[Hash runtime.Hash, H runtime.Hash
 
 // ChildStorageRoot is a helper method to define mock.On call
 //   - childInfo storage.ChildInfo
-//   - delta []trie.KeyValue
+//   - delta []kv.KeyValue
 //   - stateVersion storage.StateVersion
 func (_e *StatemachineBackend_Expecter[Hash, H]) ChildStorageRoot(childInfo interface{}, delta interface{}, stateVersion interface{}) *StatemachineBackend_ChildStorageRoot_Call[Hash, H] {
 	return &StatemachineBackend_ChildStorageRoot_Call[Hash, H]{Call: _e.mock.On("ChildStorageRoot", childInfo, delta, stateVersion)}
 }
 
-func (_c *StatemachineBackend_ChildStorageRoot_Call[Hash, H]) Run(run func(childInfo storage.ChildInfo, delta []trie.KeyValue, stateVersion storage.StateVersion)) *StatemachineBackend_ChildStorageRoot_Call[Hash, H] {
+func (_c *StatemachineBackend_ChildStorageRoot_Call[Hash, H]) Run(run func(childInfo storage.ChildInfo, delta []kv.KeyValue, stateVersion storage.StateVersion)) *StatemachineBackend_ChildStorageRoot_Call[Hash, H] {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(storage.ChildInfo), args[1].([]trie.KeyValue), args[2].(storage.StateVersion))
+		run(args[0].(storage.ChildInfo), args[1].([]kv.KeyValue), args[2].(storage.StateVersion))
 	})
 	return _c
 }
@@ -266,7 +267,7 @@ func (_c *StatemachineBackend_ChildStorageRoot_Call[Hash, H]) Return(_a0 Hash, _
 	return _c
 }
 
-func (_c *StatemachineBackend_ChildStorageRoot_Call[Hash, H]) RunAndReturn(run func(storage.ChildInfo, []trie.KeyValue, storage.StateVersion) (Hash, bool, statemachine.BackendTransaction[Hash, H])) *StatemachineBackend_ChildStorageRoot_Call[Hash, H] {
+func (_c *StatemachineBackend_ChildStorageRoot_Call[Hash, H]) RunAndReturn(run func(storage.ChildInfo, []kv.KeyValue, storage.StateVersion) (Hash, bool, statemachine.BackendTransaction[Hash, H])) *StatemachineBackend_ChildStorageRoot_Call[Hash, H] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -443,7 +444,7 @@ func (_c *StatemachineBackend_ExistsStorage_Call[Hash, H]) RunAndReturn(run func
 }
 
 // FullStorageRoot provides a mock function with given fields: delta, childDeltas, stateVersion
-func (_m *StatemachineBackend[Hash, H]) FullStorageRoot(delta []trie.KeyValue, childDeltas []statemachine.ChildDelta, stateVersion storage.StateVersion) (Hash, statemachine.BackendTransaction[Hash, H]) {
+func (_m *StatemachineBackend[Hash, H]) FullStorageRoot(delta []kv.KeyValue, childDeltas []statemachine.ChildDelta, stateVersion storage.StateVersion) (Hash, statemachine.BackendTransaction[Hash, H]) {
 	ret := _m.Called(delta, childDeltas, stateVersion)
 
 	if len(ret) == 0 {
@@ -452,10 +453,10 @@ func (_m *StatemachineBackend[Hash, H]) FullStorageRoot(delta []trie.KeyValue, c
 
 	var r0 Hash
 	var r1 statemachine.BackendTransaction[Hash, H]
-	if rf, ok := ret.Get(0).(func([]trie.KeyValue, []statemachine.ChildDelta, storage.StateVersion) (Hash, statemachine.BackendTransaction[Hash, H])); ok {
+	if rf, ok := ret.Get(0).(func([]kv.KeyValue, []statemachine.ChildDelta, storage.StateVersion) (Hash, statemachine.BackendTransaction[Hash, H])); ok {
 		return rf(delta, childDeltas, stateVersion)
 	}
-	if rf, ok := ret.Get(0).(func([]trie.KeyValue, []statemachine.ChildDelta, storage.StateVersion) Hash); ok {
+	if rf, ok := ret.Get(0).(func([]kv.KeyValue, []statemachine.ChildDelta, storage.StateVersion) Hash); ok {
 		r0 = rf(delta, childDeltas, stateVersion)
 	} else {
 		if ret.Get(0) != nil {
@@ -463,7 +464,7 @@ func (_m *StatemachineBackend[Hash, H]) FullStorageRoot(delta []trie.KeyValue, c
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func([]trie.KeyValue, []statemachine.ChildDelta, storage.StateVersion) statemachine.BackendTransaction[Hash, H]); ok {
+	if rf, ok := ret.Get(1).(func([]kv.KeyValue, []statemachine.ChildDelta, storage.StateVersion) statemachine.BackendTransaction[Hash, H]); ok {
 		r1 = rf(delta, childDeltas, stateVersion)
 	} else {
 		r1 = ret.Get(1).(statemachine.BackendTransaction[Hash, H])
@@ -478,16 +479,16 @@ type StatemachineBackend_FullStorageRoot_Call[Hash runtime.Hash, H runtime.Hashe
 }
 
 // FullStorageRoot is a helper method to define mock.On call
-//   - delta []trie.KeyValue
+//   - delta []kv.KeyValue
 //   - childDeltas []statemachine.ChildDelta
 //   - stateVersion storage.StateVersion
 func (_e *StatemachineBackend_Expecter[Hash, H]) FullStorageRoot(delta interface{}, childDeltas interface{}, stateVersion interface{}) *StatemachineBackend_FullStorageRoot_Call[Hash, H] {
 	return &StatemachineBackend_FullStorageRoot_Call[Hash, H]{Call: _e.mock.On("FullStorageRoot", delta, childDeltas, stateVersion)}
 }
 
-func (_c *StatemachineBackend_FullStorageRoot_Call[Hash, H]) Run(run func(delta []trie.KeyValue, childDeltas []statemachine.ChildDelta, stateVersion storage.StateVersion)) *StatemachineBackend_FullStorageRoot_Call[Hash, H] {
+func (_c *StatemachineBackend_FullStorageRoot_Call[Hash, H]) Run(run func(delta []kv.KeyValue, childDeltas []statemachine.ChildDelta, stateVersion storage.StateVersion)) *StatemachineBackend_FullStorageRoot_Call[Hash, H] {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]trie.KeyValue), args[1].([]statemachine.ChildDelta), args[2].(storage.StateVersion))
+		run(args[0].([]kv.KeyValue), args[1].([]statemachine.ChildDelta), args[2].(storage.StateVersion))
 	})
 	return _c
 }
@@ -497,7 +498,7 @@ func (_c *StatemachineBackend_FullStorageRoot_Call[Hash, H]) Return(_a0 Hash, _a
 	return _c
 }
 
-func (_c *StatemachineBackend_FullStorageRoot_Call[Hash, H]) RunAndReturn(run func([]trie.KeyValue, []statemachine.ChildDelta, storage.StateVersion) (Hash, statemachine.BackendTransaction[Hash, H])) *StatemachineBackend_FullStorageRoot_Call[Hash, H] {
+func (_c *StatemachineBackend_FullStorageRoot_Call[Hash, H]) RunAndReturn(run func([]kv.KeyValue, []statemachine.ChildDelta, storage.StateVersion) (Hash, statemachine.BackendTransaction[Hash, H])) *StatemachineBackend_FullStorageRoot_Call[Hash, H] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -906,7 +907,7 @@ func (_c *StatemachineBackend_StorageHash_Call[Hash, H]) RunAndReturn(run func([
 }
 
 // StorageRoot provides a mock function with given fields: delta, stateVersion
-func (_m *StatemachineBackend[Hash, H]) StorageRoot(delta []trie.KeyValue, stateVersion storage.StateVersion) (Hash, statemachine.BackendTransaction[Hash, H]) {
+func (_m *StatemachineBackend[Hash, H]) StorageRoot(delta []kv.KeyValue, stateVersion storage.StateVersion) (Hash, statemachine.BackendTransaction[Hash, H]) {
 	ret := _m.Called(delta, stateVersion)
 
 	if len(ret) == 0 {
@@ -915,10 +916,10 @@ func (_m *StatemachineBackend[Hash, H]) StorageRoot(delta []trie.KeyValue, state
 
 	var r0 Hash
 	var r1 statemachine.BackendTransaction[Hash, H]
-	if rf, ok := ret.Get(0).(func([]trie.KeyValue, storage.StateVersion) (Hash, statemachine.BackendTransaction[Hash, H])); ok {
+	if rf, ok := ret.Get(0).(func([]kv.KeyValue, storage.StateVersion) (Hash, statemachine.BackendTransaction[Hash, H])); ok {
 		return rf(delta, stateVersion)
 	}
-	if rf, ok := ret.Get(0).(func([]trie.KeyValue, storage.StateVersion) Hash); ok {
+	if rf, ok := ret.Get(0).(func([]kv.KeyValue, storage.StateVersion) Hash); ok {
 		r0 = rf(delta, stateVersion)
 	} else {
 		if ret.Get(0) != nil {
@@ -926,7 +927,7 @@ func (_m *StatemachineBackend[Hash, H]) StorageRoot(delta []trie.KeyValue, state
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func([]trie.KeyValue, storage.StateVersion) statemachine.BackendTransaction[Hash, H]); ok {
+	if rf, ok := ret.Get(1).(func([]kv.KeyValue, storage.StateVersion) statemachine.BackendTransaction[Hash, H]); ok {
 		r1 = rf(delta, stateVersion)
 	} else {
 		r1 = ret.Get(1).(statemachine.BackendTransaction[Hash, H])
@@ -941,15 +942,15 @@ type StatemachineBackend_StorageRoot_Call[Hash runtime.Hash, H runtime.Hasher[Ha
 }
 
 // StorageRoot is a helper method to define mock.On call
-//   - delta []trie.KeyValue
+//   - delta []kv.KeyValue
 //   - stateVersion storage.StateVersion
 func (_e *StatemachineBackend_Expecter[Hash, H]) StorageRoot(delta interface{}, stateVersion interface{}) *StatemachineBackend_StorageRoot_Call[Hash, H] {
 	return &StatemachineBackend_StorageRoot_Call[Hash, H]{Call: _e.mock.On("StorageRoot", delta, stateVersion)}
 }
 
-func (_c *StatemachineBackend_StorageRoot_Call[Hash, H]) Run(run func(delta []trie.KeyValue, stateVersion storage.StateVersion)) *StatemachineBackend_StorageRoot_Call[Hash, H] {
+func (_c *StatemachineBackend_StorageRoot_Call[Hash, H]) Run(run func(delta []kv.KeyValue, stateVersion storage.StateVersion)) *StatemachineBackend_StorageRoot_Call[Hash, H] {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]trie.KeyValue), args[1].(storage.StateVersion))
+		run(args[0].([]kv.KeyValue), args[1].(storage.StateVersion))
 	})
 	return _c
 }
@@ -959,7 +960,7 @@ func (_c *StatemachineBackend_StorageRoot_Call[Hash, H]) Return(_a0 Hash, _a1 st
 	return _c
 }
 
-func (_c *StatemachineBackend_StorageRoot_Call[Hash, H]) RunAndReturn(run func([]trie.KeyValue, storage.StateVersion) (Hash, statemachine.BackendTransaction[Hash, H])) *StatemachineBackend_StorageRoot_Call[Hash, H] {
+func (_c *StatemachineBackend_StorageRoot_Call[Hash, H]) RunAndReturn(run func([]kv.KeyValue, storage.StateVersion) (Hash, statemachine.BackendTransaction[Hash, H])) *StatemachineBackend_StorageRoot_Call[Hash, H] {
 	_c.Call.Return(run)
 	return _c
 }

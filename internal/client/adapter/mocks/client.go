@@ -3,7 +3,9 @@
 package mocks
 
 import (
+	api "github.com/ChainSafe/gossamer/internal/client/api"
 	blockchain "github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+
 	common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 
 	generic "github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
@@ -14,7 +16,11 @@ import (
 
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 
+	storage "github.com/ChainSafe/gossamer/internal/primitives/storage"
+
 	sync "sync"
+
+	triedb "github.com/ChainSafe/gossamer/pkg/trie/triedb"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
 )
@@ -494,6 +500,245 @@ func (_c *Client_Body_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) ([
 	return _c
 }
 
+// ChildClosestMerkleValue provides a mock function with given fields: hash, childInfo, key
+func (_m *Client[H, Hasher, N, E, Header]) ChildClosestMerkleValue(hash H, childInfo storage.ChildInfo, key storage.StorageKey) (triedb.MerkleValue[H], error) {
+	ret := _m.Called(hash, childInfo, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ChildClosestMerkleValue")
+	}
+
+	var r0 triedb.MerkleValue[H]
+	var r1 error
+	if rf, ok := ret.Get(0).(func(H, storage.ChildInfo, storage.StorageKey) (triedb.MerkleValue[H], error)); ok {
+		return rf(hash, childInfo, key)
+	}
+	if rf, ok := ret.Get(0).(func(H, storage.ChildInfo, storage.StorageKey) triedb.MerkleValue[H]); ok {
+		r0 = rf(hash, childInfo, key)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(triedb.MerkleValue[H])
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(H, storage.ChildInfo, storage.StorageKey) error); ok {
+		r1 = rf(hash, childInfo, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_ChildClosestMerkleValue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ChildClosestMerkleValue'
+type Client_ChildClosestMerkleValue_Call[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+	*mock.Call
+}
+
+// ChildClosestMerkleValue is a helper method to define mock.On call
+//   - hash H
+//   - childInfo storage.ChildInfo
+//   - key storage.StorageKey
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) ChildClosestMerkleValue(hash interface{}, childInfo interface{}, key interface{}) *Client_ChildClosestMerkleValue_Call[H, Hasher, N, E, Header] {
+	return &Client_ChildClosestMerkleValue_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("ChildClosestMerkleValue", hash, childInfo, key)}
+}
+
+func (_c *Client_ChildClosestMerkleValue_Call[H, Hasher, N, E, Header]) Run(run func(hash H, childInfo storage.ChildInfo, key storage.StorageKey)) *Client_ChildClosestMerkleValue_Call[H, Hasher, N, E, Header] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(H), args[1].(storage.ChildInfo), args[2].(storage.StorageKey))
+	})
+	return _c
+}
+
+func (_c *Client_ChildClosestMerkleValue_Call[H, Hasher, N, E, Header]) Return(_a0 triedb.MerkleValue[H], _a1 error) *Client_ChildClosestMerkleValue_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_ChildClosestMerkleValue_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.ChildInfo, storage.StorageKey) (triedb.MerkleValue[H], error)) *Client_ChildClosestMerkleValue_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ChildStorage provides a mock function with given fields: hash, childInfo, key
+func (_m *Client[H, Hasher, N, E, Header]) ChildStorage(hash H, childInfo storage.ChildInfo, key storage.StorageKey) (storage.StorageData, error) {
+	ret := _m.Called(hash, childInfo, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ChildStorage")
+	}
+
+	var r0 storage.StorageData
+	var r1 error
+	if rf, ok := ret.Get(0).(func(H, storage.ChildInfo, storage.StorageKey) (storage.StorageData, error)); ok {
+		return rf(hash, childInfo, key)
+	}
+	if rf, ok := ret.Get(0).(func(H, storage.ChildInfo, storage.StorageKey) storage.StorageData); ok {
+		r0 = rf(hash, childInfo, key)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(storage.StorageData)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(H, storage.ChildInfo, storage.StorageKey) error); ok {
+		r1 = rf(hash, childInfo, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_ChildStorage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ChildStorage'
+type Client_ChildStorage_Call[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+	*mock.Call
+}
+
+// ChildStorage is a helper method to define mock.On call
+//   - hash H
+//   - childInfo storage.ChildInfo
+//   - key storage.StorageKey
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) ChildStorage(hash interface{}, childInfo interface{}, key interface{}) *Client_ChildStorage_Call[H, Hasher, N, E, Header] {
+	return &Client_ChildStorage_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("ChildStorage", hash, childInfo, key)}
+}
+
+func (_c *Client_ChildStorage_Call[H, Hasher, N, E, Header]) Run(run func(hash H, childInfo storage.ChildInfo, key storage.StorageKey)) *Client_ChildStorage_Call[H, Hasher, N, E, Header] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(H), args[1].(storage.ChildInfo), args[2].(storage.StorageKey))
+	})
+	return _c
+}
+
+func (_c *Client_ChildStorage_Call[H, Hasher, N, E, Header]) Return(_a0 storage.StorageData, _a1 error) *Client_ChildStorage_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_ChildStorage_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.ChildInfo, storage.StorageKey) (storage.StorageData, error)) *Client_ChildStorage_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ChildStorageHash provides a mock function with given fields: hash, childInfo, key
+func (_m *Client[H, Hasher, N, E, Header]) ChildStorageHash(hash H, childInfo storage.ChildInfo, key storage.StorageKey) (*H, error) {
+	ret := _m.Called(hash, childInfo, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ChildStorageHash")
+	}
+
+	var r0 *H
+	var r1 error
+	if rf, ok := ret.Get(0).(func(H, storage.ChildInfo, storage.StorageKey) (*H, error)); ok {
+		return rf(hash, childInfo, key)
+	}
+	if rf, ok := ret.Get(0).(func(H, storage.ChildInfo, storage.StorageKey) *H); ok {
+		r0 = rf(hash, childInfo, key)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*H)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(H, storage.ChildInfo, storage.StorageKey) error); ok {
+		r1 = rf(hash, childInfo, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_ChildStorageHash_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ChildStorageHash'
+type Client_ChildStorageHash_Call[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+	*mock.Call
+}
+
+// ChildStorageHash is a helper method to define mock.On call
+//   - hash H
+//   - childInfo storage.ChildInfo
+//   - key storage.StorageKey
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) ChildStorageHash(hash interface{}, childInfo interface{}, key interface{}) *Client_ChildStorageHash_Call[H, Hasher, N, E, Header] {
+	return &Client_ChildStorageHash_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("ChildStorageHash", hash, childInfo, key)}
+}
+
+func (_c *Client_ChildStorageHash_Call[H, Hasher, N, E, Header]) Run(run func(hash H, childInfo storage.ChildInfo, key storage.StorageKey)) *Client_ChildStorageHash_Call[H, Hasher, N, E, Header] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(H), args[1].(storage.ChildInfo), args[2].(storage.StorageKey))
+	})
+	return _c
+}
+
+func (_c *Client_ChildStorageHash_Call[H, Hasher, N, E, Header]) Return(_a0 *H, _a1 error) *Client_ChildStorageHash_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_ChildStorageHash_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.ChildInfo, storage.StorageKey) (*H, error)) *Client_ChildStorageHash_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ChildStorageKeys provides a mock function with given fields: hash, childInfo, prefix, startKey
+func (_m *Client[H, Hasher, N, E, Header]) ChildStorageKeys(hash H, childInfo storage.ChildInfo, prefix storage.StorageKey, startKey storage.StorageKey) (api.KeysIter[H, Hasher], error) {
+	ret := _m.Called(hash, childInfo, prefix, startKey)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ChildStorageKeys")
+	}
+
+	var r0 api.KeysIter[H, Hasher]
+	var r1 error
+	if rf, ok := ret.Get(0).(func(H, storage.ChildInfo, storage.StorageKey, storage.StorageKey) (api.KeysIter[H, Hasher], error)); ok {
+		return rf(hash, childInfo, prefix, startKey)
+	}
+	if rf, ok := ret.Get(0).(func(H, storage.ChildInfo, storage.StorageKey, storage.StorageKey) api.KeysIter[H, Hasher]); ok {
+		r0 = rf(hash, childInfo, prefix, startKey)
+	} else {
+		r0 = ret.Get(0).(api.KeysIter[H, Hasher])
+	}
+
+	if rf, ok := ret.Get(1).(func(H, storage.ChildInfo, storage.StorageKey, storage.StorageKey) error); ok {
+		r1 = rf(hash, childInfo, prefix, startKey)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_ChildStorageKeys_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ChildStorageKeys'
+type Client_ChildStorageKeys_Call[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+	*mock.Call
+}
+
+// ChildStorageKeys is a helper method to define mock.On call
+//   - hash H
+//   - childInfo storage.ChildInfo
+//   - prefix storage.StorageKey
+//   - startKey storage.StorageKey
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) ChildStorageKeys(hash interface{}, childInfo interface{}, prefix interface{}, startKey interface{}) *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header] {
+	return &Client_ChildStorageKeys_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("ChildStorageKeys", hash, childInfo, prefix, startKey)}
+}
+
+func (_c *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header]) Run(run func(hash H, childInfo storage.ChildInfo, prefix storage.StorageKey, startKey storage.StorageKey)) *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(H), args[1].(storage.ChildInfo), args[2].(storage.StorageKey), args[3].(storage.StorageKey))
+	})
+	return _c
+}
+
+func (_c *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header]) Return(_a0 api.KeysIter[H, Hasher], _a1 error) *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.ChildInfo, storage.StorageKey, storage.StorageKey) (api.KeysIter[H, Hasher], error)) *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Children provides a mock function with given fields: parentHash
 func (_m *Client[H, Hasher, N, E, Header]) Children(parentHash H) ([]H, error) {
 	ret := _m.Called(parentHash)
@@ -548,6 +793,65 @@ func (_c *Client_Children_Call[H, Hasher, N, E, Header]) Return(_a0 []H, _a1 err
 }
 
 func (_c *Client_Children_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) ([]H, error)) *Client_Children_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ClosestMerkleValue provides a mock function with given fields: hash, key
+func (_m *Client[H, Hasher, N, E, Header]) ClosestMerkleValue(hash H, key storage.StorageKey) (triedb.MerkleValue[H], error) {
+	ret := _m.Called(hash, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ClosestMerkleValue")
+	}
+
+	var r0 triedb.MerkleValue[H]
+	var r1 error
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey) (triedb.MerkleValue[H], error)); ok {
+		return rf(hash, key)
+	}
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey) triedb.MerkleValue[H]); ok {
+		r0 = rf(hash, key)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(triedb.MerkleValue[H])
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(H, storage.StorageKey) error); ok {
+		r1 = rf(hash, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_ClosestMerkleValue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ClosestMerkleValue'
+type Client_ClosestMerkleValue_Call[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+	*mock.Call
+}
+
+// ClosestMerkleValue is a helper method to define mock.On call
+//   - hash H
+//   - key storage.StorageKey
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) ClosestMerkleValue(hash interface{}, key interface{}) *Client_ClosestMerkleValue_Call[H, Hasher, N, E, Header] {
+	return &Client_ClosestMerkleValue_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("ClosestMerkleValue", hash, key)}
+}
+
+func (_c *Client_ClosestMerkleValue_Call[H, Hasher, N, E, Header]) Run(run func(hash H, key storage.StorageKey)) *Client_ClosestMerkleValue_Call[H, Hasher, N, E, Header] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(H), args[1].(storage.StorageKey))
+	})
+	return _c
+}
+
+func (_c *Client_ClosestMerkleValue_Call[H, Hasher, N, E, Header]) Return(_a0 triedb.MerkleValue[H], _a1 error) *Client_ClosestMerkleValue_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_ClosestMerkleValue_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.StorageKey) (triedb.MerkleValue[H], error)) *Client_ClosestMerkleValue_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1497,6 +1801,240 @@ func (_c *Client_Status_Call[H, Hasher, N, E, Header]) Return(_a0 blockchain.Blo
 }
 
 func (_c *Client_Status_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) (blockchain.BlockStatus, error)) *Client_Status_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Storage provides a mock function with given fields: hash, key
+func (_m *Client[H, Hasher, N, E, Header]) Storage(hash H, key storage.StorageKey) (storage.StorageData, error) {
+	ret := _m.Called(hash, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Storage")
+	}
+
+	var r0 storage.StorageData
+	var r1 error
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey) (storage.StorageData, error)); ok {
+		return rf(hash, key)
+	}
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey) storage.StorageData); ok {
+		r0 = rf(hash, key)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(storage.StorageData)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(H, storage.StorageKey) error); ok {
+		r1 = rf(hash, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_Storage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Storage'
+type Client_Storage_Call[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+	*mock.Call
+}
+
+// Storage is a helper method to define mock.On call
+//   - hash H
+//   - key storage.StorageKey
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) Storage(hash interface{}, key interface{}) *Client_Storage_Call[H, Hasher, N, E, Header] {
+	return &Client_Storage_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("Storage", hash, key)}
+}
+
+func (_c *Client_Storage_Call[H, Hasher, N, E, Header]) Run(run func(hash H, key storage.StorageKey)) *Client_Storage_Call[H, Hasher, N, E, Header] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(H), args[1].(storage.StorageKey))
+	})
+	return _c
+}
+
+func (_c *Client_Storage_Call[H, Hasher, N, E, Header]) Return(_a0 storage.StorageData, _a1 error) *Client_Storage_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_Storage_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.StorageKey) (storage.StorageData, error)) *Client_Storage_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(run)
+	return _c
+}
+
+// StorageHash provides a mock function with given fields: hash, key
+func (_m *Client[H, Hasher, N, E, Header]) StorageHash(hash H, key storage.StorageKey) (*H, error) {
+	ret := _m.Called(hash, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StorageHash")
+	}
+
+	var r0 *H
+	var r1 error
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey) (*H, error)); ok {
+		return rf(hash, key)
+	}
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey) *H); ok {
+		r0 = rf(hash, key)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*H)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(H, storage.StorageKey) error); ok {
+		r1 = rf(hash, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_StorageHash_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StorageHash'
+type Client_StorageHash_Call[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+	*mock.Call
+}
+
+// StorageHash is a helper method to define mock.On call
+//   - hash H
+//   - key storage.StorageKey
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) StorageHash(hash interface{}, key interface{}) *Client_StorageHash_Call[H, Hasher, N, E, Header] {
+	return &Client_StorageHash_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("StorageHash", hash, key)}
+}
+
+func (_c *Client_StorageHash_Call[H, Hasher, N, E, Header]) Run(run func(hash H, key storage.StorageKey)) *Client_StorageHash_Call[H, Hasher, N, E, Header] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(H), args[1].(storage.StorageKey))
+	})
+	return _c
+}
+
+func (_c *Client_StorageHash_Call[H, Hasher, N, E, Header]) Return(_a0 *H, _a1 error) *Client_StorageHash_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_StorageHash_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.StorageKey) (*H, error)) *Client_StorageHash_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(run)
+	return _c
+}
+
+// StorageKeys provides a mock function with given fields: hash, prefix, startKey
+func (_m *Client[H, Hasher, N, E, Header]) StorageKeys(hash H, prefix storage.StorageKey, startKey storage.StorageKey) (api.KeysIter[H, Hasher], error) {
+	ret := _m.Called(hash, prefix, startKey)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StorageKeys")
+	}
+
+	var r0 api.KeysIter[H, Hasher]
+	var r1 error
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey, storage.StorageKey) (api.KeysIter[H, Hasher], error)); ok {
+		return rf(hash, prefix, startKey)
+	}
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey, storage.StorageKey) api.KeysIter[H, Hasher]); ok {
+		r0 = rf(hash, prefix, startKey)
+	} else {
+		r0 = ret.Get(0).(api.KeysIter[H, Hasher])
+	}
+
+	if rf, ok := ret.Get(1).(func(H, storage.StorageKey, storage.StorageKey) error); ok {
+		r1 = rf(hash, prefix, startKey)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_StorageKeys_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StorageKeys'
+type Client_StorageKeys_Call[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+	*mock.Call
+}
+
+// StorageKeys is a helper method to define mock.On call
+//   - hash H
+//   - prefix storage.StorageKey
+//   - startKey storage.StorageKey
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) StorageKeys(hash interface{}, prefix interface{}, startKey interface{}) *Client_StorageKeys_Call[H, Hasher, N, E, Header] {
+	return &Client_StorageKeys_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("StorageKeys", hash, prefix, startKey)}
+}
+
+func (_c *Client_StorageKeys_Call[H, Hasher, N, E, Header]) Run(run func(hash H, prefix storage.StorageKey, startKey storage.StorageKey)) *Client_StorageKeys_Call[H, Hasher, N, E, Header] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(H), args[1].(storage.StorageKey), args[2].(storage.StorageKey))
+	})
+	return _c
+}
+
+func (_c *Client_StorageKeys_Call[H, Hasher, N, E, Header]) Return(_a0 api.KeysIter[H, Hasher], _a1 error) *Client_StorageKeys_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_StorageKeys_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.StorageKey, storage.StorageKey) (api.KeysIter[H, Hasher], error)) *Client_StorageKeys_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(run)
+	return _c
+}
+
+// StoragePairs provides a mock function with given fields: hash, prefix, startKey
+func (_m *Client[H, Hasher, N, E, Header]) StoragePairs(hash H, prefix storage.StorageKey, startKey storage.StorageKey) (api.PairsIter[H, Hasher], error) {
+	ret := _m.Called(hash, prefix, startKey)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StoragePairs")
+	}
+
+	var r0 api.PairsIter[H, Hasher]
+	var r1 error
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey, storage.StorageKey) (api.PairsIter[H, Hasher], error)); ok {
+		return rf(hash, prefix, startKey)
+	}
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey, storage.StorageKey) api.PairsIter[H, Hasher]); ok {
+		r0 = rf(hash, prefix, startKey)
+	} else {
+		r0 = ret.Get(0).(api.PairsIter[H, Hasher])
+	}
+
+	if rf, ok := ret.Get(1).(func(H, storage.StorageKey, storage.StorageKey) error); ok {
+		r1 = rf(hash, prefix, startKey)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_StoragePairs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StoragePairs'
+type Client_StoragePairs_Call[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+	*mock.Call
+}
+
+// StoragePairs is a helper method to define mock.On call
+//   - hash H
+//   - prefix storage.StorageKey
+//   - startKey storage.StorageKey
+func (_e *Client_Expecter[H, Hasher, N, E, Header]) StoragePairs(hash interface{}, prefix interface{}, startKey interface{}) *Client_StoragePairs_Call[H, Hasher, N, E, Header] {
+	return &Client_StoragePairs_Call[H, Hasher, N, E, Header]{Call: _e.mock.On("StoragePairs", hash, prefix, startKey)}
+}
+
+func (_c *Client_StoragePairs_Call[H, Hasher, N, E, Header]) Run(run func(hash H, prefix storage.StorageKey, startKey storage.StorageKey)) *Client_StoragePairs_Call[H, Hasher, N, E, Header] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(H), args[1].(storage.StorageKey), args[2].(storage.StorageKey))
+	})
+	return _c
+}
+
+func (_c *Client_StoragePairs_Call[H, Hasher, N, E, Header]) Return(_a0 api.PairsIter[H, Hasher], _a1 error) *Client_StoragePairs_Call[H, Hasher, N, E, Header] {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_StoragePairs_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.StorageKey, storage.StorageKey) (api.PairsIter[H, Hasher], error)) *Client_StoragePairs_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(run)
 	return _c
 }

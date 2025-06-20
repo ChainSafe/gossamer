@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/client/adapter/mocks"
-	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
@@ -58,10 +57,6 @@ var blockchainInfo = blockchain.Info[Hash, Number]{
 	BestNumber:      blockNumber,
 	FinalizedHash:   blockHash,
 	FinalizedNumber: blockNumber,
-}
-
-func TestStorageProviderImplemented(t *testing.T) {
-	var _ api.StorageProvider[Hash, Hasher] = &ClientAdapter[Hash, Hasher, Number, Extrinsic, Header]{}
 }
 
 func TestBlockStateImplemented(t *testing.T) {
@@ -915,7 +910,16 @@ func TestGetStorageByBlockHash(t *testing.T) {
 		client, _, adapter := setupTest(t)
 
 		expectedError := errors.New("kaput")
-		client.EXPECT().StateAt(blockchainInfo.FinalizedHash).Return(nil, expectedError)
+
+		client.EXPECT().
+			Storage(
+				blockchainInfo.FinalizedHash,
+				storage.StorageKey("key"),
+			).
+			Return(
+				nil,
+				expectedError,
+			)
 
 		bhash := common.NewHashFromGeneric(blockchainInfo.FinalizedHash)
 
@@ -926,24 +930,35 @@ func TestGetStorageByBlockHash(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		client, _, adapter := setupTest(t)
 
-		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
-		backend.EXPECT().Storage([]byte("key")).Return([]byte("value"), nil)
-
-		client.EXPECT().StateAt(blockchainInfo.FinalizedHash).Return(backend, nil)
+		client.EXPECT().
+			Storage(
+				blockchainInfo.FinalizedHash,
+				storage.StorageKey("key"),
+			).
+			Return(
+				storage.StorageData("value"),
+				nil,
+			)
 
 		bhash := common.NewHashFromGeneric(blockchainInfo.FinalizedHash)
 
-		value, err := adapter.GetStorageByBlockHash(&bhash, []byte("key"))
+		value, err := adapter.GetStorageByBlockHash(&bhash, storage.StorageKey("key"))
 		require.NoError(t, err)
 		require.Equal(t, []byte("value"), value)
 	})
 	t.Run("bhash_nil", func(t *testing.T) {
 		client, _, adapter := setupTest(t)
 
-		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
-		backend.EXPECT().Storage([]byte("key")).Return([]byte("value"), nil)
+		client.EXPECT().
+			Storage(
+				blockchainInfo.BestHash,
+				storage.StorageKey("key"),
+			).
+			Return(
+				storage.StorageData("value"),
+				nil,
+			)
 
-		client.EXPECT().StateAt(blockchainInfo.BestHash).Return(backend, nil)
 		client.EXPECT().Info().Return(blockchainInfo)
 
 		value, err := adapter.GetStorageByBlockHash(nil, []byte("key"))

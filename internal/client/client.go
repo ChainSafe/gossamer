@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"github.com/tidwall/btree"
 )
 
@@ -1344,4 +1345,165 @@ func (c *Client[H, Hasher, N, E, Header]) RuntimeAPI() primitives_api.ApiExt[
 	Header,
 ] {
 	return c.runtimeConstructor.ConstructRuntimeAPI()
+}
+
+func (c *Client[H, Hasher, N, E, Header]) StateAt(hash H) (statemachine.Backend[H, Hasher], error) {
+	return c.backend.StateAt(hash)
+}
+
+// StorageProvider impl
+
+func (c *Client[H, Hasher, N, E, Header]) Storage(
+	hash H,
+	key storage.StorageKey,
+) (storage.StorageData, error) {
+	stateAt, err := c.backend.StateAt(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := stateAt.Storage(key)
+	return storage.StorageData(data), err
+}
+
+func (c *Client[H, Hasher, N, E, Header]) StorageHash(
+	hash H,
+	key storage.StorageKey,
+) (*H, error) {
+	stateAt, err := c.backend.StateAt(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return stateAt.StorageHash(key)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) StorageKeys(
+	hash H,
+	prefix,
+	startKey storage.StorageKey,
+) (api.KeysIter[H, Hasher], error) {
+	stateAt, err := c.backend.StateAt(hash)
+	if err != nil {
+		return api.KeysIter[H, Hasher]{}, err
+	}
+	backend, ok := stateAt.(*statemachine.TrieBackend[H, Hasher])
+	if !ok {
+		return api.KeysIter[H, Hasher]{}, fmt.Errorf(
+			"got unexpected Backend type from StateAt() %T instead of statemachine.TrieBackend",
+			backend,
+		)
+	}
+
+	iter, err := api.NewKeysIter(backend, &prefix, &startKey)
+	if err != nil {
+		return api.KeysIter[H, Hasher]{}, err
+	}
+
+	return *iter, nil
+}
+
+func (c *Client[H, Hasher, N, E, Header]) StoragePairs(
+	hash H,
+	prefix,
+	startKey storage.StorageKey,
+) (api.PairsIter[H, Hasher], error) {
+	stateAt, err := c.backend.StateAt(hash)
+	if err != nil {
+		return api.PairsIter[H, Hasher]{}, err
+	}
+	backend, ok := stateAt.(*statemachine.TrieBackend[H, Hasher])
+	if !ok {
+		return api.PairsIter[H, Hasher]{}, fmt.Errorf(
+			"got unexpected Backend type from StateAt() %T instead of statemachine.TrieBackend",
+			backend,
+		)
+	}
+
+	iter, err := api.NewPairsIter(backend, &prefix, &startKey)
+	if err != nil {
+		return api.PairsIter[H, Hasher]{}, err
+	}
+
+	return *iter, nil
+}
+
+func (c *Client[H, Hasher, N, E, Header]) ChildStorage(
+	hash H,
+	childInfo storage.ChildInfo,
+	key storage.StorageKey,
+) (storage.StorageData, error) {
+	stateAt, err := c.backend.StateAt(hash)
+	if err != nil {
+		return storage.StorageData{}, err
+	}
+
+	data, err := stateAt.ChildStorage(childInfo, key)
+	return storage.StorageData(data), err
+}
+
+func (c *Client[H, Hasher, N, E, Header]) ChildStorageKeys(
+	hash H,
+	childInfo storage.ChildInfo,
+	prefix storage.StorageKey,
+	startKey storage.StorageKey,
+) (api.KeysIter[H, Hasher], error) {
+	stateAt, err := c.backend.StateAt(hash)
+	if err != nil {
+		return api.KeysIter[H, Hasher]{}, err
+	}
+	backend, ok := stateAt.(*statemachine.TrieBackend[H, Hasher])
+	if !ok {
+		return api.KeysIter[H, Hasher]{}, fmt.Errorf(
+			"got unexpected Backend type from StateAt() %T instead of statemachine.TrieBackend",
+			backend,
+		)
+	}
+
+	iter, err := api.NewChildKeysIter(backend, childInfo, &prefix, &startKey)
+	if err != nil {
+		return api.KeysIter[H, Hasher]{}, err
+	}
+
+	return *iter, nil
+}
+
+func (c *Client[H, Hasher, N, E, Header]) ChildStorageHash(
+	hash H,
+	childInfo storage.ChildInfo,
+	key storage.StorageKey,
+) (*H, error) {
+	stateAt, err := c.backend.StateAt(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return stateAt.ChildStorageHash(childInfo, key)
+}
+
+// ClosestMerkleValue returns the closest merkle value, given a blocks hash and a key.
+func (c *Client[H, Hasher, N, E, Header]) ClosestMerkleValue(
+	hash H,
+	key storage.StorageKey,
+) (triedb.MerkleValue[H], error) {
+	stateAt, err := c.backend.StateAt(hash)
+	if err != nil {
+		return triedb.NodeMerkleValue{}, err
+	}
+
+	return stateAt.ClosestMerkleValue(key)
+}
+
+// ChildClosestMerkleValue returns the closest merkle value, given a blocks hash, a key and a child storage key.
+func (c *Client[H, Hasher, N, E, Header]) ChildClosestMerkleValue(
+	hash H,
+	childInfo storage.ChildInfo,
+	key storage.StorageKey,
+) (triedb.MerkleValue[H], error) {
+	stateAt, err := c.backend.StateAt(hash)
+	if err != nil {
+		return triedb.NodeMerkleValue{}, err
+	}
+
+	return stateAt.ChildClosestMerkleValue(childInfo, key)
 }

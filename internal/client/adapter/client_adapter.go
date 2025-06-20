@@ -25,7 +25,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
-	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 )
 
 type ClientAdapterDB interface {
@@ -43,6 +42,7 @@ type Client[
 	blockchain.HeaderBackend[H, N, Header]
 	blockchain.BlockBackend[H, N, Header, Hasher, E]
 	blockchain.Backend[H, N, Header, E]
+	api.StorageProvider[H, Hasher]
 
 	CompareAndSetBlockData(bd *types.BlockData) error
 	StateAt(hash H) (statemachine.Backend[H, Hasher], error)
@@ -595,7 +595,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorageByBlockHash(bhash *c
 		hash = hasher.NewHash(bhash.ToBytes())
 	}
 
-	return ca.Storage(hash, key)
+	return ca.client.Storage(hash, key)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageRoot() (common.Hash, error) {
@@ -727,163 +727,6 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) UnregisterStorageObserver(o st
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetBlockTree(blocktree *blocktree.BlockTree) {
 	panic("unimplemented")
-}
-
-// StorageProvider impl
-
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) Storage(
-	hash H,
-	key storage.StorageKey,
-) (storage.StorageData, error) {
-	stateAt, err := ca.client.StateAt(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := stateAt.Storage(key)
-	return storage.StorageData(data), err
-}
-
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageHash(
-	hash H,
-	key storage.StorageKey,
-) (*H, error) {
-	stateAt, err := ca.client.StateAt(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	return stateAt.StorageHash(key)
-}
-
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageKeys(
-	hash H,
-	prefix,
-	startKey storage.StorageKey,
-) (api.KeysIter[H, Hasher], error) {
-	stateAt, err := ca.client.StateAt(hash)
-	if err != nil {
-		return api.KeysIter[H, Hasher]{}, err
-	}
-	backend, ok := stateAt.(*statemachine.TrieBackend[H, Hasher])
-	if !ok {
-		return api.KeysIter[H, Hasher]{}, fmt.Errorf(
-			"got unexpected Backend type from StateAt() %T instead of statemachine.TrieBackend",
-			backend,
-		)
-	}
-
-	iter, err := api.NewKeysIter(backend, &prefix, &startKey)
-	if err != nil {
-		return api.KeysIter[H, Hasher]{}, err
-	}
-
-	return *iter, nil
-}
-
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoragePairs(
-	hash H,
-	prefix,
-	startKey storage.StorageKey,
-) (api.PairsIter[H, Hasher], error) {
-	stateAt, err := ca.client.StateAt(hash)
-	if err != nil {
-		return api.PairsIter[H, Hasher]{}, err
-	}
-	backend, ok := stateAt.(*statemachine.TrieBackend[H, Hasher])
-	if !ok {
-		return api.PairsIter[H, Hasher]{}, fmt.Errorf(
-			"got unexpected Backend type from StateAt() %T instead of statemachine.TrieBackend",
-			backend,
-		)
-	}
-
-	iter, err := api.NewPairsIter(backend, &prefix, &startKey)
-	if err != nil {
-		return api.PairsIter[H, Hasher]{}, err
-	}
-
-	return *iter, nil
-}
-
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorage(
-	hash H,
-	childInfo storage.ChildInfo,
-	key storage.StorageKey,
-) (storage.StorageData, error) {
-	stateAt, err := ca.client.StateAt(hash)
-	if err != nil {
-		return storage.StorageData{}, err
-	}
-
-	data, err := stateAt.ChildStorage(childInfo, key)
-	return storage.StorageData(data), err
-}
-
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorageKeys(
-	hash H,
-	childInfo storage.ChildInfo,
-	prefix storage.StorageKey,
-	startKey storage.StorageKey,
-) (api.KeysIter[H, Hasher], error) {
-	stateAt, err := ca.client.StateAt(hash)
-	if err != nil {
-		return api.KeysIter[H, Hasher]{}, err
-	}
-	backend, ok := stateAt.(*statemachine.TrieBackend[H, Hasher])
-	if !ok {
-		return api.KeysIter[H, Hasher]{}, fmt.Errorf(
-			"got unexpected Backend type from StateAt() %T instead of statemachine.TrieBackend",
-			backend,
-		)
-	}
-
-	iter, err := api.NewChildKeysIter(backend, childInfo, &prefix, &startKey)
-	if err != nil {
-		return api.KeysIter[H, Hasher]{}, err
-	}
-
-	return *iter, nil
-}
-
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorageHash(
-	hash H,
-	childInfo storage.ChildInfo,
-	key storage.StorageKey,
-) (*H, error) {
-	stateAt, err := ca.client.StateAt(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	return stateAt.ChildStorageHash(childInfo, key)
-}
-
-// ClosestMerkleValue returns the closest merkle value, given a blocks hash and a key.
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) ClosestMerkleValue(
-	hash H,
-	key storage.StorageKey,
-) (triedb.MerkleValue[H], error) {
-	stateAt, err := ca.client.StateAt(hash)
-	if err != nil {
-		return triedb.NodeMerkleValue{}, err
-	}
-
-	return stateAt.ClosestMerkleValue(key)
-}
-
-// ChildClosestMerkleValue returns the closest merkle value, given a blocks hash, a key and a child storage key.
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildClosestMerkleValue(
-	hash H,
-	childInfo storage.ChildInfo,
-	key storage.StorageKey,
-) (triedb.MerkleValue[H], error) {
-	stateAt, err := ca.client.StateAt(hash)
-	if err != nil {
-		return triedb.NodeMerkleValue{}, err
-	}
-
-	return stateAt.ChildClosestMerkleValue(childInfo, key)
 }
 
 func prefixKey(hash common.Hash, prefix []byte) []byte {

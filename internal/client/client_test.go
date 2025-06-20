@@ -63,6 +63,7 @@ var (
 		statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
 		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
 	]] = &TestClient{}
+	_ api.StorageProvider[hash.H256, runtime.BlakeTwo256] = &TestClient{}
 )
 
 type TestExecutor struct{}
