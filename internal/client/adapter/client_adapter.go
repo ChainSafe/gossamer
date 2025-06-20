@@ -762,19 +762,20 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetBlockTree(blocktree *blockt
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) Storage(
 	hash H,
-	key statemachine.StorageKey,
-) (statemachine.StorageValue, error) {
+	key storage.StorageKey,
+) (storage.StorageData, error) {
 	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return stateAt.Storage(key)
+	data, err := stateAt.Storage(key)
+	return storage.StorageData(data), err
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageHash(
 	hash H,
-	key statemachine.StorageKey,
+	key storage.StorageKey,
 ) (*H, error) {
 	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {
@@ -787,7 +788,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageHash(
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageKeys(
 	hash H,
 	prefix,
-	startKey statemachine.StorageKey,
+	startKey storage.StorageKey,
 ) (statemachine.KeysIter[H, Hasher], error) {
 	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {
@@ -804,7 +805,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageKeys(
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoragePairs(
 	hash H,
 	prefix,
-	startKey statemachine.StorageKey,
+	startKey storage.StorageKey,
 ) (statemachine.PairsIter[H, Hasher], error) {
 	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {
@@ -821,21 +822,22 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoragePairs(
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorage(
 	hash H,
 	childInfo storage.ChildInfo,
-	key statemachine.StorageKey,
-) (statemachine.StorageValue, error) {
+	key storage.StorageKey,
+) (storage.StorageData, error) {
 	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {
-		return statemachine.StorageValue{}, err
+		return storage.StorageData{}, err
 	}
 
-	return stateAt.ChildStorage(childInfo, key)
+	data, err := stateAt.ChildStorage(childInfo, key)
+	return storage.StorageData(data), err
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorageKeys(
 	hash H,
 	childInfo storage.ChildInfo,
-	prefix statemachine.StorageKey,
-	startKey statemachine.StorageKey,
+	prefix storage.StorageKey,
+	startKey storage.StorageKey,
 ) (statemachine.KeysIter[H, Hasher], error) {
 	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {
@@ -853,7 +855,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorageKeys(
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorageHash(
 	hash H,
 	childInfo storage.ChildInfo,
-	key statemachine.StorageKey,
+	key storage.StorageKey,
 ) (*H, error) {
 	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {
@@ -866,7 +868,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorageHash(
 // ClosestMerkleValue returns the closest merkle value, given a blocks hash and a key.
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) ClosestMerkleValue(
 	hash H,
-	key statemachine.StorageKey,
+	key storage.StorageKey,
 ) (triedb.MerkleValue[H], error) {
 	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {
@@ -880,7 +882,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) ClosestMerkleValue(
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildClosestMerkleValue(
 	hash H,
 	childInfo storage.ChildInfo,
-	key statemachine.StorageKey,
+	key storage.StorageKey,
 ) (triedb.MerkleValue[H], error) {
 	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {

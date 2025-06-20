@@ -355,47 +355,47 @@ type Backend[
 // StorageProvider provides access to storage primitives
 type StorageProvider[H runtime.Hash, Hasher runtime.Hasher[H]] interface {
 	// Storage returns the value under the key in that block, given a blocks hash and a key.
-	Storage(hash H, key statemachine.StorageKey) (statemachine.StorageValue, error)
+	Storage(hash H, key storage.StorageKey) (storage.StorageData, error)
 
 	// StorageHash returns the value under the hash in that block, given a blocks hash and a key.
-	StorageHash(hash H, key statemachine.StorageKey) (*H, error)
+	StorageHash(hash H, key storage.StorageKey) (*H, error)
 
 	// StorageKeys returns a [statemachine.KeysIter] that iterates over matching storage keys in that block
 	// given a blocks hash and a key prefix.
-	StorageKeys(hash H, prefix, startKey statemachine.StorageKey) (statemachine.KeysIter[H, Hasher], error)
+	StorageKeys(hash H, prefix, startKey storage.StorageKey) (statemachine.KeysIter[H, Hasher], error)
 
 	// StoragePairs returns an iterator over the storage keys and values in that block,
 	// given the blocks hash and a key prefix.
-	StoragePairs(hash H, prefix, startKey statemachine.StorageKey) (statemachine.PairsIter[H, Hasher], error)
+	StoragePairs(hash H, prefix, startKey storage.StorageKey) (statemachine.PairsIter[H, Hasher], error)
 
 	// ChildStorage returns the value under the key in that block, given a blocks hash,
 	// a key and a child storage key.
 	ChildStorage(
 		hash H,
 		childInfo storage.ChildInfo,
-		key statemachine.StorageKey,
-	) (statemachine.StorageValue, error)
+		key storage.StorageKey,
+	) (storage.StorageData, error)
 
 	// ChildStorageKeys returns a [statemachine.KeysIter] that iterates matching storage keys in that block,
 	// given a blocks hash, an optional key prefix and an optional child storage key.
 	ChildStorageKeys(
 		hash H,
 		childInfo storage.ChildInfo,
-		prefix statemachine.StorageKey,
-		startKey statemachine.StorageKey,
+		prefix storage.StorageKey,
+		startKey storage.StorageKey,
 	) (statemachine.KeysIter[H, Hasher], error)
 
 	// ChildStorageHash returns the hash under the key in a block, given its hash,
 	// a key and a child storage key.
-	ChildStorageHash(hash H, childInfo storage.ChildInfo, key statemachine.StorageKey) (*H, error)
+	ChildStorageHash(hash H, childInfo storage.ChildInfo, key storage.StorageKey) (*H, error)
 
 	// ClosestMerkleValue returns the closest merkle value, given a blocks hash and a key.
-	ClosestMerkleValue(hash H, key statemachine.StorageKey) (triedb.MerkleValue[H], error)
+	ClosestMerkleValue(hash H, key storage.StorageKey) (triedb.MerkleValue[H], error)
 
 	// ChildClosestMerkleValue returns the closest merkle value, given a blocks hash, a key and a child storage key.
 	ChildClosestMerkleValue(
 		hash H,
 		childInfo storage.ChildInfo,
-		key statemachine.StorageKey,
+		key storage.StorageKey,
 	) (triedb.MerkleValue[H], error)
 }
