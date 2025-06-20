@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/client/adapter/mocks"
+	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
@@ -57,6 +58,10 @@ var blockchainInfo = blockchain.Info[Hash, Number]{
 	BestNumber:      blockNumber,
 	FinalizedHash:   blockHash,
 	FinalizedNumber: blockNumber,
+}
+
+func TestStorageProviderImplemented(t *testing.T) {
+	var _ api.StorageProvider[Hash, Hasher] = &ClientAdapter[Hash, Hasher, Number, Extrinsic, Header]{}
 }
 
 func TestBlockStateImplemented(t *testing.T) {

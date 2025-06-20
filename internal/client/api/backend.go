@@ -4,6 +4,7 @@
 package api
 
 import (
+	"iter"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
@@ -352,6 +353,181 @@ type Backend[
 	// UsageInfo() *UsageInfo
 }
 
+// KeysIter is an iterator over storage keys.
+type KeysIter[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
+	backend *statemachine.TrieBackend[H, Hasher]
+	rawIter statemachine.StorageIterator[H, Hasher]
+}
+
+func NewKeysIter[H runtime.Hash, Hasher runtime.Hasher[H]](
+	backend *statemachine.TrieBackend[H, Hasher],
+	prefix *storage.StorageKey,
+	startAt *storage.StorageKey,
+) (*KeysIter[H, Hasher], error) {
+	args := statemachine.IterArgs{
+		StartAtExclusive: true,
+	}
+
+	if prefix != nil {
+		args.Prefix = *prefix
+	}
+
+	if startAt != nil {
+		args.StartAt = *startAt
+	}
+
+	rawIter, err := backend.RawIter(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return &KeysIter[H, Hasher]{backend, rawIter}, nil
+}
+
+func NewChildKeysIter[H runtime.Hash, Hasher runtime.Hasher[H]](
+	backend *statemachine.TrieBackend[H, Hasher],
+	childInfo storage.ChildInfo,
+	prefix *storage.StorageKey,
+	startAt *storage.StorageKey,
+) (*KeysIter[H, Hasher], error) {
+	args := statemachine.IterArgs{
+		ChildInfo:        childInfo,
+		StartAtExclusive: true,
+	}
+
+	if prefix != nil {
+		args.Prefix = *prefix
+	}
+
+	if startAt != nil {
+		args.StartAt = *startAt
+	}
+
+	rawIter, err := backend.RawIter(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return &KeysIter[H, Hasher]{backend, rawIter}, nil
+}
+
+func (ki *KeysIter[H, Hasher]) Next() (storage.StorageKey, error) {
+	key, err := ki.rawIter.NextKey(ki.backend)
+	return storage.StorageKey(key), err
+}
+
+func (ki *KeysIter[H, Hasher]) All() iter.Seq2[storage.StorageKey, error] {
+	return func(yield func(storage.StorageKey, error) bool) {
+		for {
+			item, err := ki.Next()
+			if err != nil {
+				return
+			}
+			if item == nil {
+				return
+			}
+			if !yield(item, err) {
+				return
+			}
+		}
+	}
+}
+
+// StorageKeyData is a storage key/value pair.
+type StorageKeyData struct {
+	storage.StorageKey
+	storage.StorageData
+}
+
+// PairsIter is an iterator over storage key/value pairs.
+type PairsIter[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
+	backend *statemachine.TrieBackend[H, Hasher]
+	rawIter statemachine.StorageIterator[H, Hasher]
+}
+
+func NewPairsIter[H runtime.Hash, Hasher runtime.Hasher[H]](
+	backend *statemachine.TrieBackend[H, Hasher],
+	prefix *storage.StorageKey,
+	startAt *storage.StorageKey,
+) (*PairsIter[H, Hasher], error) {
+	args := statemachine.IterArgs{
+		StartAtExclusive: true,
+	}
+
+	if prefix != nil {
+		args.Prefix = *prefix
+	}
+
+	if startAt != nil {
+		args.StartAt = *startAt
+	}
+
+	rawIter, err := backend.RawIter(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PairsIter[H, Hasher]{backend, rawIter}, nil
+}
+
+func NewChildPairsIter[H runtime.Hash, Hasher runtime.Hasher[H]](
+	backend *statemachine.TrieBackend[H, Hasher],
+	childInfo storage.ChildInfo,
+	prefix *storage.StorageKey,
+	startAt *storage.StorageKey,
+) (*PairsIter[H, Hasher], error) {
+	args := statemachine.IterArgs{
+		ChildInfo:        childInfo,
+		StartAtExclusive: true,
+	}
+
+	if prefix != nil {
+		args.Prefix = *prefix
+	}
+
+	if startAt != nil {
+		args.StartAt = *startAt
+	}
+
+	rawIter, err := backend.RawIter(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PairsIter[H, Hasher]{backend, rawIter}, nil
+}
+
+func (ki *PairsIter[H, Hasher]) Next() (*StorageKeyData, error) {
+	keyValue, err := ki.rawIter.NextKeyValue(ki.backend)
+	if err != nil {
+		return nil, err
+	}
+
+	data := StorageKeyData{
+		StorageKey:  storage.StorageKey(keyValue.StorageKey),
+		StorageData: storage.StorageData(keyValue.StorageValue),
+	}
+
+	return &data, nil
+}
+
+func (ki *PairsIter[H, Hasher]) All() iter.Seq2[StorageKeyData, error] {
+	return func(yield func(StorageKeyData, error) bool) {
+		for {
+			item, err := ki.Next()
+			if err != nil {
+				return
+			}
+			if item == nil {
+				return
+			}
+			if !yield(*item, err) {
+				return
+			}
+		}
+	}
+}
+
 // StorageProvider provides access to storage primitives
 type StorageProvider[H runtime.Hash, Hasher runtime.Hasher[H]] interface {
 	// Storage returns the value under the key in that block, given a blocks hash and a key.
@@ -360,13 +536,13 @@ type StorageProvider[H runtime.Hash, Hasher runtime.Hasher[H]] interface {
 	// StorageHash returns the value under the hash in that block, given a blocks hash and a key.
 	StorageHash(hash H, key storage.StorageKey) (*H, error)
 
-	// StorageKeys returns a [statemachine.KeysIter] that iterates over matching storage keys in that block
+	// StorageKeys returns a [KeysIter] that iterates over matching storage keys in that block
 	// given a blocks hash and a key prefix.
-	StorageKeys(hash H, prefix, startKey storage.StorageKey) (statemachine.KeysIter[H, Hasher], error)
+	StorageKeys(hash H, prefix, startKey storage.StorageKey) (KeysIter[H, Hasher], error)
 
 	// StoragePairs returns an iterator over the storage keys and values in that block,
 	// given the blocks hash and a key prefix.
-	StoragePairs(hash H, prefix, startKey storage.StorageKey) (statemachine.PairsIter[H, Hasher], error)
+	StoragePairs(hash H, prefix, startKey storage.StorageKey) (PairsIter[H, Hasher], error)
 
 	// ChildStorage returns the value under the key in that block, given a blocks hash,
 	// a key and a child storage key.
@@ -376,14 +552,14 @@ type StorageProvider[H runtime.Hash, Hasher runtime.Hasher[H]] interface {
 		key storage.StorageKey,
 	) (storage.StorageData, error)
 
-	// ChildStorageKeys returns a [statemachine.KeysIter] that iterates matching storage keys in that block,
+	// ChildStorageKeys returns a [KeysIter] that iterates matching storage keys in that block,
 	// given a blocks hash, an optional key prefix and an optional child storage key.
 	ChildStorageKeys(
 		hash H,
 		childInfo storage.ChildInfo,
 		prefix storage.StorageKey,
 		startKey storage.StorageKey,
-	) (statemachine.KeysIter[H, Hasher], error)
+	) (KeysIter[H, Hasher], error)
 
 	// ChildStorageHash returns the hash under the key in a block, given its hash,
 	// a key and a child storage key.

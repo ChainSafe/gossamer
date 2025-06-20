@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -789,34 +790,50 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageKeys(
 	hash H,
 	prefix,
 	startKey storage.StorageKey,
-) (statemachine.KeysIter[H, Hasher], error) {
+) (api.KeysIter[H, Hasher], error) {
 	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {
-		return statemachine.KeysIter[H, Hasher]{}, err
+		return api.KeysIter[H, Hasher]{}, err
+	}
+	backend, ok := stateAt.(*statemachine.TrieBackend[H, Hasher])
+	if !ok {
+		return api.KeysIter[H, Hasher]{}, fmt.Errorf(
+			"got unexpected Backend type from StateAt() %T instead of statemachine.TrieBackend",
+			backend,
+		)
 	}
 
-	return stateAt.Keys(statemachine.IterArgs{
-		Prefix:           prefix,
-		StartAt:          startKey,
-		StartAtExclusive: true,
-	})
+	iter, err := api.NewKeysIter(backend, &prefix, &startKey)
+	if err != nil {
+		return api.KeysIter[H, Hasher]{}, err
+	}
+
+	return *iter, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoragePairs(
 	hash H,
 	prefix,
 	startKey storage.StorageKey,
-) (statemachine.PairsIter[H, Hasher], error) {
+) (api.PairsIter[H, Hasher], error) {
 	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {
-		return statemachine.PairsIter[H, Hasher]{}, err
+		return api.PairsIter[H, Hasher]{}, err
+	}
+	backend, ok := stateAt.(*statemachine.TrieBackend[H, Hasher])
+	if !ok {
+		return api.PairsIter[H, Hasher]{}, fmt.Errorf(
+			"got unexpected Backend type from StateAt() %T instead of statemachine.TrieBackend",
+			backend,
+		)
 	}
 
-	return stateAt.Pairs(statemachine.IterArgs{
-		Prefix:           prefix,
-		StartAt:          startKey,
-		StartAtExclusive: true,
-	})
+	iter, err := api.NewPairsIter(backend, &prefix, &startKey)
+	if err != nil {
+		return api.PairsIter[H, Hasher]{}, err
+	}
+
+	return *iter, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorage(
@@ -838,18 +855,25 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorageKeys(
 	childInfo storage.ChildInfo,
 	prefix storage.StorageKey,
 	startKey storage.StorageKey,
-) (statemachine.KeysIter[H, Hasher], error) {
+) (api.KeysIter[H, Hasher], error) {
 	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {
-		return statemachine.KeysIter[H, Hasher]{}, err
+		return api.KeysIter[H, Hasher]{}, err
+	}
+	backend, ok := stateAt.(*statemachine.TrieBackend[H, Hasher])
+	if !ok {
+		return api.KeysIter[H, Hasher]{}, fmt.Errorf(
+			"got unexpected Backend type from StateAt() %T instead of statemachine.TrieBackend",
+			backend,
+		)
 	}
 
-	return stateAt.Keys(statemachine.IterArgs{
-		Prefix:           prefix,
-		StartAt:          startKey,
-		StartAtExclusive: true,
-		ChildInfo:        childInfo,
-	})
+	iter, err := api.NewChildKeysIter(backend, childInfo, &prefix, &startKey)
+	if err != nil {
+		return api.KeysIter[H, Hasher]{}, err
+	}
+
+	return *iter, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) ChildStorageHash(
