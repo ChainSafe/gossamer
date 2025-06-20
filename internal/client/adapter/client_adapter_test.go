@@ -1052,16 +1052,14 @@ func Test_GetStorageFromChild_GetStorageChild(t *testing.T) {
 	mdb := trie.NewPrefixedMemoryDB[Hash, Hasher]()
 
 	ksdb := trie.NewKeyspacedDB(mdb, childInfo.Keyspace())
-	childTrie := triedb.NewEmptyTrieDB[Hash, Hasher](ksdb)
-	childTrie.SetVersion(storage.DefaultStateVersion.TrieLayout())
+	childTrie := triedb.NewEmptyTrieDB[Hash, Hasher](ksdb, trie.LayoutV1[Hasher, Hash]{})
 	require.NoError(t, childTrie.Set([]byte("key"), []byte("value")))
 	require.NoError(t, childTrie.Set([]byte("anotherkey"), []byte("anothervalue")))
 
-	parentTrie := triedb.NewEmptyTrieDB[Hash, Hasher](mdb)
+	parentTrie := triedb.NewEmptyTrieDB[Hash, Hasher](mdb, trie.LayoutV1[Hasher, Hash]{})
 	require.NoError(t, parentTrie.Set(childInfo.PrefixedStorageKey(), childTrie.MustHash().Bytes()))
 	require.NoError(t, parentTrie.Set([]byte("key"), []byte("value2")))
 	require.NoError(t, parentTrie.Set([]byte(":code"), []byte("return 42")))
-	parentTrie.SetVersion(storage.DefaultStateVersion.TrieLayout())
 
 	header := header.Clone().(Header)
 	header.SetStateRoot(parentTrie.MustHash())
