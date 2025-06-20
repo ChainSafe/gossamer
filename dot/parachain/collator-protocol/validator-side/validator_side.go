@@ -75,6 +75,7 @@ func New(net Network, protocolID protocol.ID, overseerChan chan<- any,
 		Keystore:                        ks,
 		SubSystemToOverseer:             overseerChan,
 		collationFetchingReqResProtocol: collationFetchingReqResProtocol,
+		collationRequests:               make(chan CollationRequestInfo, 100),
 		peerData:                        make(map[peer.ID]PeerData),
 		currentAssignments:              make(map[parachaintypes.ParaID]uint),
 		perRelayParent:                  make(map[common.Hash]PerRelayParent),
@@ -88,6 +89,10 @@ func New(net Network, protocolID protocol.ID, overseerChan chan<- any,
 func (cpvs *CollatorProtocolValidatorSide) Run(
 	ctx context.Context, overseerToSubSystem <-chan any) {
 	inactivityTicker := time.NewTicker(activityPoll)
+
+	//Track active requests for timeout handling
+	requestCleanupTicker := time.NewTicker(10 * time.Millisecond)
+	activeRequests := make(map[string]CollationRequestInfo)
 
 	for {
 		select {
@@ -104,6 +109,23 @@ func (cpvs *CollatorProtocolValidatorSide) Run(
 
 		case <-inactivityTicker.C:
 			// TODO: disconnect inactive peers, Issue #4256
+
+		case requestInfo := <-cpvs.collationRequests:
+			// For now, just log that we received a collation request
+			logger.Debugf("Tracking collation request: %s for para %d from peer %s",
+				requestInfo.RequestID, requestInfo.ParaID, requestInfo.PeerID)
+			activeRequests[requestInfo.RequestID] = requestInfo
+
+		case <-requestCleanupTicker.C:
+			now := time.Now()
+			for requestID, requestInfo := range activeRequests {
+				// Check if request is older than maxUnsharedDownloadTime
+				if now.Sub(requestInfo.RequestTime) > maxUnsharedDownloadTime {
+					logger.Debugf("Request %s expired after %v, cleaning up",
+						requestID, now.Sub(requestInfo.RequestTime))
+					delete(activeRequests, requestID)
+				}
+			}
 
 		case unfetchedCollation := <-cpvs.unfetchedCollation:
 			// check if this peer id has advertised this relay parent
@@ -362,6 +384,22 @@ func (cpvs *CollatorProtocolValidatorSide) requestCollation(relayParent common.H
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second) // MAX_UNSHARED_DOWNLOAD_TIME
 	defer cancel()
 
+	requestInfo := CollationRequestInfo{
+		PeerID:      peerID,
+		RelayParent: relayParent,
+		ParaID:      paraID,
+		RequestTime: time.Now(),
+		RequestID:   fmt.Sprintf("%s-%d-%s", relayParent.String(), paraID, peerID.String()),
+	}
+
+	// Try to send to channel (non-blocking)
+	select {
+	case cpvs.collationRequests <- requestInfo:
+		//Successfully sent
+	default:
+		logger.Debugf("collation requests channel is full, continuing anyway")
+	}
+
 	// make collation fetching request
 	collationFetchingRequest := CollationFetchingRequest{
 		RelayParent: relayParent,
@@ -592,6 +630,9 @@ type CollatorProtocolValidatorSide struct {
 	// track all active collators and their data
 	peerData map[peer.ID]PeerData
 
+	// Channel that gets populated when new collation requests are sent
+	collationRequests chan CollationRequestInfo
+
 	// Parachains we're currently assigned to. With async backing enabled
 	// this includes assignments from the implicit view.
 	currentAssignments map[parachaintypes.ParaID]uint
@@ -626,6 +667,14 @@ type CollatorProtocolValidatorSide struct {
 	// Collations that we have successfully requested from peers and waiting
 	// on validation.
 	fetchedCandidates map[string]CollationEvent
+}
+
+type CollationRequestInfo struct {
+	PeerID      peer.ID
+	RelayParent common.Hash
+	ParaID      parachaintypes.ParaID
+	RequestTime time.Time
+	RequestID   string
 }
 
 // Identifier of a fetched collation
