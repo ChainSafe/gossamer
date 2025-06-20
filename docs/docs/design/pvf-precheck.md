@@ -1,4 +1,11 @@
+---
+layout: default
+title: PVF Pre-checking subsystem design
+permalink: /design/pvf-precheck/
+---
+# PVF Pre-checking subsystem design
 
+## Abstract
 PVF is a Parachain Validation Function, which is a WASM blob that defines how a parachain should be validated.
 Pre-checking mostly consists of attempting to prepare (compile) the PVF WASM blob. We use more strict limits (e.g. timeouts) here compared to 
 regular preparation for execution. This way errors during preparation later are likely unrelated to the PVF itself, as it already passed pre-checking.
@@ -93,12 +100,12 @@ Whe session changes (at least one of the new active leave session index is > the
 
 If the node is not in the active validator set, it still performs all the checks. However results are submitted only if it is in the active set.
 
-### Rejection
+#### Rejection
 If candidate validation was not able to check PVF eg timed out then subsystem votes against it. There is no slashing for being on the wrong side of a pre-check vote.
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
 
 
-### Implementation 
+## Implementation 
 ```mermaid
 graph TD
     A[Start: PvfCheckerSubsystem::start] --> C[run]
