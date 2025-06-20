@@ -14,12 +14,16 @@ import (
 )
 
 func TestNewClusterTracker(t *testing.T) {
+	t.Parallel()
+
 	clusterTracker := newClusterTracker([]parachaintypes.ValidatorIndex{4, 6, 3, 9}, 3)
 	require.NotNil(t, clusterTracker)
 }
 
 // tests that cover clusterTracker.canReceive() and clusterTracker.noteReceived()
 func TestClusterTracker_receive_statements(t *testing.T) {
+	t.Parallel()
+
 	group := []parachaintypes.ValidatorIndex{5, 200, 24, 146}
 	secondingLimit := uint(2)
 	hashA := parachaintypes.CandidateHash{Value: common.Hash{0x1}}
@@ -27,6 +31,8 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 	hashC := parachaintypes.CandidateHash{Value: common.Hash{0x3}}
 
 	t.Run("rejects_incoming_outside_of_group", func(t *testing.T) {
+		t.Parallel()
+
 		tracker := newClusterTracker(group, secondingLimit)
 
 		require.Equal(
@@ -51,6 +57,8 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 	})
 
 	t.Run("begrudgingly_accepts_too_many_seconded_from_multiple_peers", func(t *testing.T) {
+		t.Parallel()
+
 		tracker := newClusterTracker(group, secondingLimit)
 
 		require.Equal(
@@ -97,6 +105,8 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 	})
 
 	t.Run("rejects_too_many_seconded_from_sender", func(t *testing.T) {
+		t.Parallel()
+
 		tracker := newClusterTracker(group, secondingLimit)
 
 		require.Equal(
@@ -143,6 +153,8 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 	})
 
 	t.Run("rejects_duplicates", func(t *testing.T) {
+		t.Parallel()
+
 		tracker := newClusterTracker(group, secondingLimit)
 
 		tracker.noteReceived(
@@ -179,6 +191,8 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 	})
 
 	t.Run("rejects_incoming_valid_without_seconded", func(t *testing.T) {
+		t.Parallel()
+
 		tracker := newClusterTracker(group, secondingLimit)
 
 		require.Equal(
@@ -193,6 +207,8 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 	})
 
 	t.Run("accepts_incoming_valid_after_receiving_seconded", func(t *testing.T) {
+		t.Parallel()
+
 		tracker := newClusterTracker(group, secondingLimit)
 
 		tracker.noteReceived(
@@ -215,6 +231,8 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 
 // tests that cover clusterTracker.canSend() and clusterTracker.noteSent()
 func TestClusterTracker_send_statements(t *testing.T) {
+	t.Parallel()
+
 	group := []parachaintypes.ValidatorIndex{5, 200, 24, 146}
 	secondingLimit := uint(2)
 	hashA := parachaintypes.CandidateHash{Value: common.Hash{0x1}}
@@ -222,6 +240,8 @@ func TestClusterTracker_send_statements(t *testing.T) {
 	hashC := parachaintypes.CandidateHash{Value: common.Hash{0x3}}
 
 	t.Run("accepts_incoming_valid_after_outgoing_seconded", func(t *testing.T) {
+		t.Parallel()
+
 		tracker := newClusterTracker(group, secondingLimit)
 
 		tracker.noteSent(
@@ -242,6 +262,8 @@ func TestClusterTracker_send_statements(t *testing.T) {
 	})
 
 	t.Run("cannot_send_too_many_seconded_even_to_multiple_peers", func(t *testing.T) {
+		t.Parallel()
+
 		tracker := newClusterTracker(group, secondingLimit)
 
 		tracker.noteSent(
@@ -278,6 +300,8 @@ func TestClusterTracker_send_statements(t *testing.T) {
 	})
 
 	t.Run("cannot_send_duplicate", func(t *testing.T) {
+		t.Parallel()
+
 		tracker := newClusterTracker(group, secondingLimit)
 
 		tracker.noteSent(
@@ -298,6 +322,8 @@ func TestClusterTracker_send_statements(t *testing.T) {
 	})
 
 	t.Run("cannot_send_what_was_received", func(t *testing.T) {
+		t.Parallel()
+
 		tracker := newClusterTracker(group, secondingLimit)
 
 		tracker.noteReceived(
@@ -319,6 +345,8 @@ func TestClusterTracker_send_statements(t *testing.T) {
 
 	// Ensure statements received with prejudice don't prevent sending later.
 	t.Run("can_send_statements_received_with_prejudice", func(t *testing.T) {
+		t.Parallel()
+
 		secondingLimit := uint(1)
 		tracker := newClusterTracker(group, secondingLimit)
 
@@ -367,6 +395,8 @@ func TestClusterTracker_send_statements(t *testing.T) {
 }
 
 func TestClusterTracker_pendingStatementsFor(t *testing.T) {
+	t.Parallel()
+
 	group := []parachaintypes.ValidatorIndex{5, 200, 24, 146}
 	secondingLimit := uint(1)
 	hashA := parachaintypes.CandidateHash{Value: common.Hash{0x1}}
@@ -376,6 +406,8 @@ func TestClusterTracker_pendingStatementsFor(t *testing.T) {
 	//
 	// Also test that pending statements are sorted, with `Seconded` statements in the front.
 	t.Run("pending_statements_set_when_receiving_fresh_statements", func(t *testing.T) {
+		t.Parallel()
+
 		tracker := newClusterTracker(group, secondingLimit)
 
 		// Receive a 'Seconded' statement for candidate A.
@@ -574,6 +606,8 @@ func TestClusterTracker_pendingStatementsFor(t *testing.T) {
 	// Test that the `pending_statements` are updated when we send or receive statements from others
 	// in the cluster.
 	t.Run("pending_statements_updated_when_sending_statements", func(t *testing.T) {
+		t.Parallel()
+
 		tracker := newClusterTracker(group, secondingLimit)
 
 		// Receive a 'Seconded' statement for candidate A.
@@ -701,6 +735,8 @@ func TestClusterTracker_pendingStatementsFor(t *testing.T) {
 }
 
 func TestClusterTracker_noteIssued(t *testing.T) {
+	t.Parallel()
+
 	group := []parachaintypes.ValidatorIndex{5, 200, 24, 146}
 	hashA := parachaintypes.CandidateHash{Value: common.Hash{0x1}}
 	tracker := newClusterTracker(group, 2)
