@@ -41,11 +41,11 @@ type ClientAdapterDB interface {
 }
 
 type Client[
-H runtime.Hash,
-Hasher runtime.Hasher[H],
-N runtime.Number,
-E runtime.Extrinsic,
-Header runtime.Header[N, H],
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	N runtime.Number,
+	E runtime.Extrinsic,
+	Header runtime.Header[N, H],
 ] interface {
 	blockchain.HeaderBackend[H, N, Header]
 	blockchain.HeaderMetadata[H, N]
@@ -63,11 +63,11 @@ type Backend[H runtime.Hash, Hasher runtime.Hasher[H]] interface {
 }
 
 type ClientAdapter[
-H runtime.Hash,
-Hasher runtime.Hasher[H],
-N runtime.Number,
-E runtime.Extrinsic,
-Header runtime.Header[N, H],
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	N runtime.Number,
+	E runtime.Extrinsic,
+	Header runtime.Header[N, H],
 ] struct {
 	backend Backend[H, Hasher]
 	client  Client[H, Hasher, N, E, Header]
@@ -75,11 +75,11 @@ Header runtime.Header[N, H],
 }
 
 func NewClientAdapter[
-H runtime.Hash,
-Hasher runtime.Hasher[H],
-N runtime.Number,
-E runtime.Extrinsic,
-Header runtime.Header[N, H],
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	N runtime.Number,
+	E runtime.Extrinsic,
+	Header runtime.Header[N, H],
 ](
 	client Client[H, Hasher, N, E, Header],
 	db ClientAdapterDB,
@@ -539,8 +539,18 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) BlocktreeAsString() string {
 	panic("unimplemented")
 }
 
+// Leaves returns hashes of all blocks that are leaves of the block tree.
+// in other words, that have no children, are chain heads.
+// Results must be ordered best (longest, highest) chain first.
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) Leaves() []common.Hash {
-	panic("unimplemented")
+	leaves, _ := ca.client.Leaves()
+	hashes := make([]common.Hash, len(leaves))
+
+	for i, leaf := range leaves {
+		hashes[i] = common.NewHashFromGeneric(leaf)
+	}
+
+	return hashes
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) Range(startHash, endHash common.Hash) (
