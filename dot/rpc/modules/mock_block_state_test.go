@@ -263,21 +263,6 @@ func (mr *MockBlockStateMockRecorder) GetBlockByNumber(blockNumber any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockByNumber", reflect.TypeOf((*MockBlockState)(nil).GetBlockByNumber), blockNumber)
 }
 
-// GetBlockHashesBySlot mocks base method.
-func (m *MockBlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBlockHashesBySlot", slotNum)
-	ret0, _ := ret[0].([]common.Hash)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetBlockHashesBySlot indicates an expected call of GetBlockHashesBySlot.
-func (mr *MockBlockStateMockRecorder) GetBlockHashesBySlot(slotNum any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockHashesBySlot", reflect.TypeOf((*MockBlockState)(nil).GetBlockHashesBySlot), slotNum)
-}
-
 // GetBlockStateRoot mocks base method.
 func (m *MockBlockState) GetBlockStateRoot(bhash common.Hash) (common.Hash, error) {
 	m.ctrl.T.Helper()
@@ -528,21 +513,6 @@ func (m *MockBlockState) GetReceipt(arg0 common.Hash) ([]byte, error) {
 func (mr *MockBlockStateMockRecorder) GetReceipt(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReceipt", reflect.TypeOf((*MockBlockState)(nil).GetReceipt), arg0)
-}
-
-// GetRoundAndSetID mocks base method.
-func (m *MockBlockState) GetRoundAndSetID() (uint64, uint64) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRoundAndSetID")
-	ret0, _ := ret[0].(uint64)
-	ret1, _ := ret[1].(uint64)
-	return ret0, ret1
-}
-
-// GetRoundAndSetID indicates an expected call of GetRoundAndSetID.
-func (mr *MockBlockStateMockRecorder) GetRoundAndSetID() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoundAndSetID", reflect.TypeOf((*MockBlockState)(nil).GetRoundAndSetID))
 }
 
 // GetRuntime mocks base method.
