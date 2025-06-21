@@ -47,7 +47,7 @@ func (o originatorStatementPairSet) insert(
 func (o originatorStatementPairSet) remove(
 	validatorIndex parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
-) bool {
+) bool { //nolint:unparam
 	for pair := range o {
 		if pair.validatorIndex == validatorIndex && pair.statement.Equals(statement) {
 			delete(o, pair)
