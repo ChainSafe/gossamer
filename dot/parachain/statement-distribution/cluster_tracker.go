@@ -379,11 +379,13 @@ func (c *clusterTracker) secondedAlreadyOrWithinLimit(
 // note: this API is future-proofing for a case where we may
 // extend clusters beyond just the assigned group, for optimization
 // purposes.
+// The method returns an internal datastructure of the object which
+// should be copied before mutating it.
 func (c *clusterTracker) sendersForOriginator( //nolint:unused
 	originator parachaintypes.ValidatorIndex,
 ) []parachaintypes.ValidatorIndex {
 	if slices.Contains(c.validators, originator) {
-		return slices.Clone(c.validators)
+		return c.validators
 	}
 	return nil
 }
