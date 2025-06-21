@@ -223,32 +223,32 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 
 	block1 := BuildBlock(t, rt, parent, nil)
 	bs.StoreRuntime(block1.Header.Hash(), rt)
-	err = bs.AddBlock(block1)
+	err = bs.AddBlock(block1, nil, nil)
 	require.NoError(t, err)
 
 	block2 := BuildBlock(t, rt, &block1.Header, nil)
 	bs.StoreRuntime(block2.Header.Hash(), rt)
-	err = bs.AddBlock(block2)
+	err = bs.AddBlock(block2, nil, nil)
 	require.NoError(t, err)
 
 	block3 := BuildBlock(t, rt, &block2.Header, nil)
 	bs.StoreRuntime(block3.Header.Hash(), rt)
-	err = bs.AddBlock(block3)
+	err = bs.AddBlock(block3, nil, nil)
 	require.NoError(t, err)
 
 	block4 := BuildBlock(t, rt, &block3.Header, nil)
 	bs.StoreRuntime(block4.Header.Hash(), rt)
-	err = bs.AddBlock(block4)
+	err = bs.AddBlock(block4, nil, nil)
 	require.NoError(t, err)
 
 	block5 := BuildBlock(t, rt, &block4.Header, nil)
 	bs.StoreRuntime(block5.Header.Hash(), rt)
-	err = bs.AddBlock(block5)
+	err = bs.AddBlock(block5, nil, nil)
 	require.NoError(t, err)
 
 	block31 := BuildBlock(t, rt, &block2.Header, nil)
 	bs.StoreRuntime(block31.Header.Hash(), rt)
-	err = bs.AddBlock(block31)
+	err = bs.AddBlock(block31, nil, nil)
 	require.NoError(t, err)
 
 	nonce := uint64(0)
@@ -258,7 +258,7 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 
 	block41 := BuildBlock(t, rt, &block31.Header, ext)
 	bs.StoreRuntime(block41.Header.Hash(), rt)
-	err = bs.AddBlock(block41)
+	err = bs.AddBlock(block41, nil, nil)
 	require.NoError(t, err)
 
 	err = s.handleChainReorg(block41.Header.Hash(), block5.Header.Hash())
@@ -406,7 +406,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	}
 
 	s.blockState.StoreRuntime(block.Header.Hash(), rt)
-	err = s.blockState.AddBlock(block)
+	err = s.blockState.AddBlock(block, nil, nil)
 	require.NoError(t, err)
 
 	leaves := s.blockState.Leaves()
@@ -645,7 +645,7 @@ func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, trieSta
 		},
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Old Runtime")}),
 	}
-	err = blockState.AddBlock(newBlock)
+	err = blockState.AddBlock(newBlock, nil, nil)
 	require.NoError(t, err)
 
 	newBlockHash := newBlock.Header.Hash()
@@ -681,7 +681,7 @@ func createBlockUsingNewRuntime(t *testing.T, bestBlockHash common.Hash, newRunt
 		Body: *types.NewBody([]types.Extrinsic{[]byte("Updated Runtime")}),
 	}
 
-	err = blockState.AddBlock(newBlockRuntimeUpdate)
+	err = blockState.AddBlock(newBlockRuntimeUpdate, nil, nil)
 	require.NoError(t, err)
 
 	newBlockRTUpdateHash := newBlockRuntimeUpdate.Header.Hash()

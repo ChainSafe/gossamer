@@ -97,7 +97,7 @@ func TestGetBlockByNumber(t *testing.T) {
 		Body:   sampleBlockBody,
 	}
 
-	err := bs.AddBlock(block)
+	err := bs.AddBlock(block, nil, nil)
 	require.NoError(t, err)
 
 	retBlock, err := bs.GetBlockByNumber(blockHeader.Number)
@@ -122,7 +122,7 @@ func TestAddBlock(t *testing.T) {
 	}
 
 	// Add the block0 to the DB
-	err := bs.AddBlock(block0)
+	err := bs.AddBlock(block0, nil, nil)
 	require.NoError(t, err)
 
 	// Create header & blockData for block 2
@@ -139,7 +139,7 @@ func TestAddBlock(t *testing.T) {
 	}
 
 	// Add the block1 to the DB
-	err = bs.AddBlock(block1)
+	err = bs.AddBlock(block1, nil, nil)
 	require.NoError(t, err)
 
 	// Get the blocks & check if it's the same as the added blocks
@@ -191,7 +191,7 @@ func TestGetSlotForBlock(t *testing.T) {
 		Body: types.Body{},
 	}
 
-	err = bs.AddBlock(block)
+	err = bs.AddBlock(block, nil, nil)
 	require.NoError(t, err)
 
 	res, err := bs.GetSlotForBlock(block.Header.Hash())
@@ -226,7 +226,7 @@ func TestGetHashesByNumber(t *testing.T) {
 		Body: types.Body{},
 	}
 
-	err = bs.AddBlock(block)
+	err = bs.AddBlock(block, nil, nil)
 	require.NoError(t, err)
 
 	babeHeader2 := types.NewBabeDigest()
@@ -247,7 +247,7 @@ func TestGetHashesByNumber(t *testing.T) {
 		},
 		Body: types.Body{},
 	}
-	err = bs.AddBlock(block2)
+	err = bs.AddBlock(block2, nil, nil)
 	require.NoError(t, err)
 
 	blocks, err := bs.GetHashesByNumber(1)
@@ -345,7 +345,7 @@ func TestGetBlockHashesBySlot(t *testing.T) {
 		Body: types.Body{},
 	}
 
-	err = bs.AddBlock(block)
+	err = bs.AddBlock(block, nil, nil)
 	require.NoError(t, err)
 
 	babeHeader2 := types.NewBabeDigest()
@@ -366,7 +366,7 @@ func TestGetBlockHashesBySlot(t *testing.T) {
 		},
 		Body: types.Body{},
 	}
-	err = bs.AddBlock(block2)
+	err = bs.AddBlock(block2, nil, nil)
 	require.NoError(t, err)
 
 	blocks, err := bs.GetBlockHashesBySlot(slot)
@@ -433,7 +433,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 		Body: types.Body{},
 	}
 
-	err = bs.AddBlock(newBlock)
+	err = bs.AddBlock(newBlock, nil, nil)
 	require.NoError(t, err)
 
 	resBlock, err = bs.GetBlockByNumber(newBlock.Header.Number)
@@ -518,7 +518,7 @@ func TestGetHashByNumber(t *testing.T) {
 		Body:   sampleBlockBody,
 	}
 
-	err = bs.AddBlock(block)
+	err = bs.AddBlock(block, nil, nil)
 	require.NoError(t, err)
 
 	res, err = bs.GetHashByNumber(1)
@@ -542,7 +542,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		Body:   *blockbody1a,
 	}
 
-	err := bs.AddBlock(block1a)
+	err := bs.AddBlock(block1a, nil, nil)
 	require.NoError(t, err)
 
 	block1hash, err := bs.GetHashByNumber(1)
@@ -561,7 +561,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		Body:   sampleBlockBody,
 	}
 
-	err = bs.AddBlock(block1b)
+	err = bs.AddBlock(block1b, nil, nil)
 	require.NoError(t, err)
 
 	// should still be hash 1a since it arrived first
@@ -581,7 +581,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		Body:   sampleBlockBody,
 	}
 
-	err = bs.AddBlock(block2b)
+	err = bs.AddBlock(block2b, nil, nil)
 	require.NoError(t, err)
 
 	// should now be hash 1b since it's on the longer chain
@@ -604,7 +604,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		Body:   sampleBlockBody,
 	}
 
-	err = bs.AddBlock(block2a)
+	err = bs.AddBlock(block2a, nil, nil)
 	require.NoError(t, err)
 
 	header3a := &types.Header{
@@ -618,7 +618,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		Body:   sampleBlockBody,
 	}
 
-	err = bs.AddBlock(block3a)
+	err = bs.AddBlock(block3a, nil, nil)
 	require.NoError(t, err)
 
 	// should now be hash 1a since it's on the longer chain
@@ -675,13 +675,13 @@ func TestNumberIsFinalised(t *testing.T) {
 	err = bs.AddBlock(&types.Block{
 		Header: header1,
 		Body:   types.Body{},
-	})
+	}, nil, nil)
 	require.NoError(t, err)
 
 	err = bs.AddBlock(&types.Block{
 		Header: header2,
 		Body:   types.Body{},
-	})
+	}, nil, nil)
 	require.NoError(t, err)
 	err = bs.SetFinalisedHash(header2.Hash(), 1, 1, true)
 	require.NoError(t, err)
@@ -1012,7 +1012,7 @@ func TestRange(t *testing.T) {
 					Body:   testBlockBody,
 				}
 
-				err := blockState.AddBlock(block)
+				err := blockState.AddBlock(block, nil, nil)
 				require.NoError(t, err)
 
 				hashesCreated = append(hashesCreated, currentHeader.Hash())

@@ -13,19 +13,27 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/client/api"
+	"github.com/ChainSafe/gossamer/internal/client/api/utils"
+	client_consensus_common "github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	primitives_consensus_common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rt "github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
+
+var ErrMissingOverlayedChanges = errors.New("missing overlayed changes")
+var ErrMissingStorageVersion = errors.New("missing storage version")
 
 type ClientAdapterDB interface {
 	Get(key []byte) (value []byte, err error)
@@ -33,44 +41,107 @@ type ClientAdapterDB interface {
 }
 
 type Client[
-	H runtime.Hash,
-	Hasher runtime.Hasher[H],
-	N runtime.Number,
-	E runtime.Extrinsic,
-	Header runtime.Header[N, H],
+H runtime.Hash,
+Hasher runtime.Hasher[H],
+N runtime.Number,
+E runtime.Extrinsic,
+Header runtime.Header[N, H],
 ] interface {
 	blockchain.HeaderBackend[H, N, Header]
+	blockchain.HeaderMetadata[H, N]
 	blockchain.BlockBackend[H, N, Header, Hasher, E]
 	blockchain.Backend[H, N, Header, E]
 	api.StorageProvider[H, Hasher]
+	client_consensus_common.BlockImport[H, N, E, Header]
 
 	CompareAndSetBlockData(bd *types.BlockData) error
 	StateAt(hash H) (statemachine.Backend[H, Hasher], error)
 }
 
+type Backend[H runtime.Hash, Hasher runtime.Hasher[H]] interface {
+	statemachine.Backend[H, Hasher]
+}
+
 type ClientAdapter[
-	H runtime.Hash,
-	Hasher runtime.Hasher[H],
-	N runtime.Number,
-	E runtime.Extrinsic,
-	Header runtime.Header[N, H],
+H runtime.Hash,
+Hasher runtime.Hasher[H],
+N runtime.Number,
+E runtime.Extrinsic,
+Header runtime.Header[N, H],
 ] struct {
-	client Client[H, Hasher, N, E, Header]
-	db     ClientAdapterDB
+	backend Backend[H, Hasher]
+	client  Client[H, Hasher, N, E, Header]
+	db      ClientAdapterDB
 }
 
 func NewClientAdapter[
-	H runtime.Hash,
-	Hasher runtime.Hasher[H],
-	N runtime.Number,
-	E runtime.Extrinsic,
-	Header runtime.Header[N, H],
-](client Client[H, Hasher, N, E, Header], db ClientAdapterDB) *ClientAdapter[H, Hasher, N, E, Header] {
-	return &ClientAdapter[H, Hasher, N, E, Header]{client: client, db: db}
+H runtime.Hash,
+Hasher runtime.Hasher[H],
+N runtime.Number,
+E runtime.Extrinsic,
+Header runtime.Header[N, H],
+](
+	client Client[H, Hasher, N, E, Header],
+	db ClientAdapterDB,
+	backend Backend[H, Hasher],
+) *ClientAdapter[H, Hasher, N, E, Header] {
+	return &ClientAdapter[H, Hasher, N, E, Header]{client: client, db: db, backend: backend}
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(*types.Block) error {
-	panic("unimplemented")
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(
+	block *types.Block,
+	changes *overlayedchanges.OverlayedChanges[H, Hasher],
+	storageVersion *storage.StateVersion,
+) error {
+	if changes == nil {
+		return ErrMissingOverlayedChanges
+	}
+	if storageVersion == nil {
+		return ErrMissingStorageVersion
+	}
+	// Convert old header into generic one
+	encodedHeader, err := scale.Marshal(block.Header)
+	if err != nil {
+		return err
+	}
+	genericHeader := *new(Header)
+	err = scale.Unmarshal(encodedHeader, &genericHeader)
+	if err != nil {
+		return err
+	}
+
+	// Convert old extrinsics into generic ones
+	encodedExtrinsics, err := scale.Marshal(block.Body)
+	if err != nil {
+		return err
+	}
+
+	var extrinsics []E
+	err = scale.Unmarshal(encodedExtrinsics, &extrinsics)
+	if err != nil {
+		return err
+	}
+
+	storageChanges, err := changes.DrainStorageChanges(ca.backend, *storageVersion)
+	if err != nil {
+		return err
+	}
+
+	blockImportParams := &client_consensus_common.BlockImportParams[H, N, E, Header]{
+		Origin: primitives_consensus_common.NetworkInitialSyncBlockOrigin,
+		Header: genericHeader,
+		Body:   extrinsics,
+		StateAction: client_consensus_common.StateActionApplyChanges{
+			StorageChanges: client_consensus_common.Changes[H, Hasher](storageChanges),
+		},
+	}
+
+	_, err = ca.client.ImportBlock(blockImportParams)
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlockWithArrivalTime(block *types.Block,
@@ -441,11 +512,23 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) CompareAndSetBlockData(bd *typ
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) IsDescendantOf(parent, child common.Hash) (bool, error) {
-	panic("unimplemented")
+	hasher := *new(Hasher)
+	parentHash := hasher.NewHash(parent.ToBytes())
+	childHash := hasher.NewHash(child.ToBytes())
+
+	return utils.IsDescendantOf(ca.client, nil)(parentHash, childHash)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) LowestCommonAncestor(a, b common.Hash) (common.Hash, error) {
-	panic("unimplemented")
+	hasher := *new(Hasher)
+	hashA := hasher.NewHash(a.ToBytes())
+	hashB := hasher.NewHash(b.ToBytes())
+	ancestor, err := blockchain.LowestCommonAncestor(ca.client, hashA, hashB)
+	if err != nil {
+		return common.EmptyHash, err
+	}
+
+	return common.NewHashFromGeneric(ancestor.Hash), nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) NumberIsFinalised(blockNumber uint) (bool, error) {
@@ -462,11 +545,27 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) Leaves() []common.Hash {
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) Range(startHash, endHash common.Hash) (
 	hashes []common.Hash, err error) {
-	panic("unimplemented")
+	hasher := *new(Hasher)
+	start := hasher.NewHash(startHash.ToBytes())
+	end := hasher.NewHash(endHash.ToBytes())
+
+	treeRoute, err := blockchain.NewTreeRoute(ca.client, start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	route := treeRoute.Route
+
+	hashes = make([]common.Hash, len(route))
+	for i, hashNumber := range route {
+		hashes[i] = common.NewHashFromGeneric(hashNumber.Hash)
+	}
+
+	return hashes, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) RangeInMemory(start, end common.Hash) ([]common.Hash, error) {
-	panic("unimplemented")
+	return ca.Range(start, end)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoreRuntime(blockHash common.Hash, runtime rt.Instance) {

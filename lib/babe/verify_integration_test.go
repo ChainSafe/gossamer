@@ -830,7 +830,7 @@ func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.He
 	err = stateService.Block.AddBlock(&types.Block{
 		Header: *headerWhoOwnsNextEpochDigest,
 		Body:   *types.NewBody([]types.Extrinsic{}),
-	})
+	}, nil, nil)
 	require.NoError(t, err)
 
 	err = onImportBlockDigestHandler.HandleDigests(headerWhoOwnsNextEpochDigest)
@@ -869,7 +869,7 @@ func issueNewBlockFrom(t *testing.T, parentHeader *types.Header,
 	err = stateService.Block.AddBlock(&types.Block{
 		Header: *header,
 		Body:   *types.NewBody([]types.Extrinsic{}),
-	})
+	}, nil, nil)
 	require.NoError(t, err)
 
 	return header
@@ -916,7 +916,7 @@ func TestVerifyBlockAfterSkippedEpochs(t *testing.T) {
 
 	// add to the state then we can use the chain first slot number
 	// to calculate correctly the epochs from the next blocks
-	err = babeService.blockState.AddBlock(firstBlock)
+	err = babeService.blockState.AddBlock(firstBlock, nil, nil)
 	require.NoError(t, err)
 
 	epoch1DataRaw := &types.EpochDataRaw{

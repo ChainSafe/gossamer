@@ -19,14 +19,14 @@ func (cv cacheValue) Size() int64 {
 }
 
 // maxBytesLRUCache is an in-memory lru cache
-// consider that the values are deleted asyncronously so there is a chance that
+// consider that the values are deleted asynchronously so there is a chance that
 // the maxSize can be exceeded
 // we can use lru.GC() to force the deletion of the items that should be deleted
 type maxBytesLRUCache struct {
 	lru *ccache.Cache[cacheValue]
 }
 
-// newlruCache creates a new lruCache
+// newLruCache creates a new lruCache
 // maxSize is the cache max size in bytes
 func newLruCache(maxSize int64) *maxBytesLRUCache {
 	cache := ccache.New(ccache.Configure[cacheValue]().MaxSize(maxSize))
