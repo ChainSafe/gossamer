@@ -615,7 +615,13 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) Pause() error {
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) TrieState(root *common.Hash) (rtstorage.TrieState, error) {
-	panic("unimplemented")
+	stateAt, err := ca.getStateByStateRoot(root)
+	if err != nil {
+		return nil, err
+	}
+
+	ext := overlayedchanges.NewExt(overlayedchanges.NewOverlayedChanges[H, Hasher](), stateAt)
+	return rtstorage.NewExtBackedTrieState(ext), nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoreTrie(rtstorage.TrieState, *types.Header) error {
