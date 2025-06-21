@@ -373,12 +373,6 @@ func (c *clusterTracker) secondedAlreadyOrWithinLimit(
 	return secondedOtherCandidates < c.secondingLimit
 }
 
-// targets returns all targets as validator-indices. This doesn't attempt to filter
-// out the local validator index.
-func (c *clusterTracker) targets() []parachaintypes.ValidatorIndex { //nolint:unused
-	return slices.Clone(c.validators)
-}
-
 // sendersForOriginator returns all possible senders for the given originator.
 // Returns the empty slice in the case that the originator
 // is not part of the cluster.
