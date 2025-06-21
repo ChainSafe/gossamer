@@ -78,6 +78,7 @@ type BlockState interface {
 	GetHeaderByNumber(num uint) (*types.Header, error)
 	GetHighestFinalisedHeader() (*types.Header, error)
 	GetHighestFinalisedHash() (common.Hash, error)
+	GetHighestRoundAndSetID() (uint64, uint64, error)
 	GetJustification(common.Hash) ([]byte, error)
 	GetFirstNonOriginSlotNumber() (uint64, error)
 	GetReceipt(hash common.Hash) ([]byte, error)
