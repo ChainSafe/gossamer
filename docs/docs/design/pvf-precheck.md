@@ -41,7 +41,7 @@ As soon as the PVF gains required support, the runtime API will not return the P
 fn pvfs_require_precheck() -> Vec<ValidationCodeHash>;
 ```
 
-If the new PVF found subsystem initiate PVF pre-checking request adn wait for the result. Then based on the result it submits the vote.
+If a new PVF was found, the subsystem sends a PVF pre-checking request to the candidate validation subsystem and waits for the result. Then based on the result it submits the vote.
 
 ThThe second runtime API is needed to submit the judgement for a PVF, whether it is approved or not. 
 The voting process uses unsigned transactions. The PvfCheckStatement is circulated through the network via gossip similar to a normal transaction. 
