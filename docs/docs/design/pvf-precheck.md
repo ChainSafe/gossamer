@@ -91,7 +91,7 @@ In case, a judgement was received for a PVF that is no longer in view it is igno
 
 Whe session changes (at least one of the new active leave session index is > then prev on any of the leaves)  subsystem resign and submit only new session PVFs.
 
-If node is not in active validator set it is till perform all the checks, however results are submitted only if in active validator set.
+If the node is not in the active validator set, it still performs all the checks. However results are submitted only if it is in the active set.
 
 ### Rejection
 If candidate validation was not able to check PVF eg timed out then subsystem votes against it. There is no slashing for being on the wrong side of a pre-check vote.
