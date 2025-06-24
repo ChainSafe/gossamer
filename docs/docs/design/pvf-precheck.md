@@ -132,7 +132,7 @@ The main module is within `polkadot/node/core/pvf-checker`.
 Subsystem should listen to events from overseer and make periodic checks for PVF check results.
 
 Subsystem operates within its `State`. Most important parts of which are collections of PVFs that are observed (`State::InterestView`) 
-and list of futures that hold results of currenlty checking PVFs (`State::currently_checking`).
+and list of futures that hold results of currently checking PVFs (`State::currently_checking`).
 InterestView is a pretty simple struct with map.
 currently_checking can be implemented via channel that is listening responses of PVF check goroutines.
 Results of PVF check (that is actually happening on Candidate Validation Subsystem) should be signed and submitted
