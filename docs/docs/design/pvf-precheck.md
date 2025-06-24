@@ -43,7 +43,7 @@ fn pvfs_require_precheck() -> Vec<ValidationCodeHash>;
 
 If a new PVF was found, the subsystem sends a PVF pre-checking request to the candidate validation subsystem and waits for the result. Then based on the result it submits the vote.
 
-ThThe second runtime API is needed to submit the judgement for a PVF, whether it is approved or not. 
+The second runtime API is needed to submit the judgement for a PVF, whether it is approved or not. 
 The voting process uses unsigned transactions. The PvfCheckStatement is circulated through the network via gossip similar to a normal transaction. 
 At some point the validator will include the statement in the block, where it will be processed by the runtime. 
 If that was the last vote before gaining the super-majority, this PVF will not be returned by pvfs_require_precheck anymore.
