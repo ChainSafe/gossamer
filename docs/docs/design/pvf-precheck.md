@@ -156,3 +156,4 @@ This is intentional: when a new session starts, the set of validators may change
 Therefore, we must re-submit our votes for all PVFs we have judgements for, so that the new session's votes are up-to-date.
 
 
+After statement submit to runtime API, it will be broadcasted across the network to be included in the block together with runtime upgrade.
