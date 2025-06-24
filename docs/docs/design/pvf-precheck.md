@@ -135,7 +135,7 @@ Subsystem operates within its `State`. Most important parts of which are collect
 and list of futures that hold results of currenlty checking PVFs (`State::currently_checking`).
 InterestView is a pretty simple struct with map.
 currently_checking can be implemented via channel that is listening responses of PVF check goroutines.
-Results of PVF check (that is actually happening on Candidate Validation Subsystem) are should be signed and submit
+Results of PVF check (that is actually happening on Candidate Validation Subsystem) should be signed and submitted
 to runtime via `runtime_api::submit_pvf_check_statement`
 
 Subsystem handler only two messages from overseer, the `OverseerSignal::ActiveLeaves` and `OverseerSignal::Conclude`. 
