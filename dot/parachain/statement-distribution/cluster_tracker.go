@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // accept signifies that an incoming statement was accepted.
@@ -56,25 +57,25 @@ type rejectOutgoing interface { //nolint:unused
 }
 
 // candidateUnknownOutgoing means the candidate was unknown. Only applies to `Valid` statements.
-type candidateUnknownOutgoing struct{} //nolint:unused
+type candidateUnknownOutgoing struct{}
 
-func (candidateUnknownOutgoing) isRejectOutgoing() {} //nolint:unused
+func (candidateUnknownOutgoing) isRejectOutgoing() {}
 
 // excessiveSecondedOutgoing means we attempted to send excessive `Seconded` statements.
 // Indicates a bug on the local node's code.
-type excessiveSecondedOutgoing struct{} //nolint:unused
+type excessiveSecondedOutgoing struct{}
 
-func (excessiveSecondedOutgoing) isRejectOutgoing() {} //nolint:unused
+func (excessiveSecondedOutgoing) isRejectOutgoing() {}
 
 // knownOutgoing means the statement was already known to the peer.
-type knownOutgoing struct{} //nolint:unused
+type knownOutgoing struct{}
 
-func (knownOutgoing) isRejectOutgoing() {} //nolint:unused
+func (knownOutgoing) isRejectOutgoing() {}
 
 // notInGroupOutgoing means the target or originator are not in the group.
-type notInGroupOutgoing struct{} //nolint:unused
+type notInGroupOutgoing struct{}
 
-func (notInGroupOutgoing) isRejectOutgoing() {} //nolint:unused
+func (notInGroupOutgoing) isRejectOutgoing() {}
 
 type acceptOrRejectIncoming interface {
 	isAcceptOrRejectIncoming()
@@ -87,16 +88,16 @@ func (notInGroupIncoming) isAcceptOrRejectIncoming()        {}
 func (candidateUnknownIncoming) isAcceptOrRejectIncoming()  {}
 func (duplicateIncoming) isAcceptOrRejectIncoming()         {}
 
-type acceptOrRejectOutgoing interface { //nolint:unused
+type acceptOrRejectOutgoing interface {
 	isAcceptOrRejectOutgoing()
 }
 
 func (ok) isAcceptOrRejectOutgoing()                        {}
 func (withPrejudice) isAcceptOrRejectOutgoing()             {}
-func (candidateUnknownOutgoing) isAcceptOrRejectOutgoing()  {} //nolint:unused
-func (excessiveSecondedOutgoing) isAcceptOrRejectOutgoing() {} //nolint:unused
-func (knownOutgoing) isAcceptOrRejectOutgoing()             {} //nolint:unused
-func (notInGroupOutgoing) isAcceptOrRejectOutgoing()        {} //nolint:unused
+func (candidateUnknownOutgoing) isAcceptOrRejectOutgoing()  {}
+func (excessiveSecondedOutgoing) isAcceptOrRejectOutgoing() {}
+func (knownOutgoing) isAcceptOrRejectOutgoing()             {}
+func (notInGroupOutgoing) isAcceptOrRejectOutgoing()        {}
 
 // knowledge about a candidate
 type knowledge interface {
@@ -272,7 +273,7 @@ func (c *clusterTracker) canReceive(
 //
 // Should only be called after a successful [canReceive] call.
 func (c *clusterTracker) noteReceived(
-	sender parachaintypes.ValidatorIndex, //nolint:unparam
+	sender parachaintypes.ValidatorIndex,
 	originator parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
 ) {
@@ -372,6 +373,23 @@ func (c *clusterTracker) secondedAlreadyOrWithinLimit(
 	return secondedOtherCandidates < c.secondingLimit
 }
 
+// sendersForOriginator returns all possible senders for the given originator.
+// Returns the empty slice in the case that the originator
+// is not part of the cluster.
+// note: this API is future-proofing for a case where we may
+// extend clusters beyond just the assigned group, for optimization
+// purposes.
+// The method returns an internal datastructure of the object which
+// should be copied before mutating it.
+func (c *clusterTracker) sendersForOriginator( //nolint:unused
+	originator parachaintypes.ValidatorIndex,
+) []parachaintypes.ValidatorIndex {
+	if slices.Contains(c.validators, originator) {
+		return c.validators
+	}
+	return nil
+}
+
 // knowsCandidate queries whether a validator knows the candidate is `Seconded`.
 func (c *clusterTracker) knowsCandidate(
 	validator parachaintypes.ValidatorIndex,
@@ -381,6 +399,35 @@ func (c *clusterTracker) knowsCandidate(
 
 	return c.weSentSeconded(validator, candidateHash) || c.theySentSeconded(validator, candidateHash) ||
 		c.validatorSeconded(validator, candidateHash)
+}
+
+// canRequest queries whether a validator can request a candidate from us.
+func (c *clusterTracker) canRequest( //nolint:unused
+	target parachaintypes.ValidatorIndex,
+	candidateHash parachaintypes.CandidateHash,
+) bool {
+	return slices.Contains(c.validators, target) &&
+		c.weSentSeconded(target, candidateHash) &&
+		!c.theySentSeconded(target, candidateHash)
+}
+
+// noteIssued notes that we issued a statement. This updates internal structures.
+func (c *clusterTracker) noteIssued(
+	originator parachaintypes.ValidatorIndex,
+	statement parachaintypes.CompactStatement,
+) {
+	for _, clusterMember := range c.validators {
+		if !c.theyKnowStatement(clusterMember, originator, statement) {
+			// add the statement to pending knowledge for all peers
+			// which don't know the statement.
+			pending, ok := c.pending[clusterMember]
+			if !ok {
+				pending = make(originatorStatementPairSet)
+				c.pending[clusterMember] = pending
+			}
+			pending.insert(originator, statement)
+		}
+	}
 }
 
 func (c *clusterTracker) weSentSeconded(
@@ -407,4 +454,121 @@ func (c *clusterTracker) validatorSeconded(
 		}
 	}
 	return false
+}
+
+// canSend queries whether we can send a statement to a given validator.
+func (c *clusterTracker) canSend(
+	target parachaintypes.ValidatorIndex,
+	originator parachaintypes.ValidatorIndex,
+	statement parachaintypes.CompactStatement,
+) acceptOrRejectOutgoing {
+	if !c.isInGroup(target) || !c.isInGroup(originator) {
+		return notInGroupOutgoing{}
+	}
+
+	if c.theyKnowStatement(target, originator, statement) {
+		return knownOutgoing{}
+	}
+
+	switch statement.(type) {
+	case *parachaintypes.CompactSeconded:
+		// we send the same `Seconded` statements to all our peers, and only the first `k`
+		// from each originator.
+		if !c.secondedAlreadyOrWithinLimit(originator, statement.CandidateHash()) {
+			return excessiveSecondedOutgoing{}
+		}
+		return ok{}
+	case *parachaintypes.CompactValid:
+		if !c.knowsCandidate(target, statement.CandidateHash()) {
+			return candidateUnknownOutgoing{}
+		}
+		return ok{}
+	default:
+		panic("unreachable")
+	}
+}
+
+// noteSent notes that we sent an outgoing statement to a peer in the group.
+// This must be preceded by a successful `can_send` call.
+func (c *clusterTracker) noteSent(
+	target parachaintypes.ValidatorIndex,
+	originator parachaintypes.ValidatorIndex,
+	statement parachaintypes.CompactStatement,
+) {
+	targetKnowledge, ok := c.knowledge[target]
+	if !ok {
+		targetKnowledge = map[taggedKnowledge]struct{}{
+			outgoingP2P{specific{statement, originator}}: {},
+		}
+		c.knowledge[target] = targetKnowledge
+	}
+
+	if _, ok := statement.(*parachaintypes.CompactSeconded); ok {
+		targetKnowledge[outgoingP2P{general{statement.CandidateHash()}}] = struct{}{}
+
+		originatorKnowledge, ok := c.knowledge[originator]
+		if !ok {
+			originatorKnowledge = make(map[taggedKnowledge]struct{})
+		}
+
+		originatorKnowledge[seconded{statement.CandidateHash()}] = struct{}{}
+		c.knowledge[originator] = originatorKnowledge
+	}
+
+	if pending, ok := c.pending[target]; ok {
+		pending.remove(originator, statement)
+	}
+}
+
+// pendingStatementsFor returns a slice of pending statements to be sent to a particular validator.
+// `Seconded` statements are sorted to the front of the slice.
+func (c *clusterTracker) pendingStatementsFor(target parachaintypes.ValidatorIndex) []originatorStatementPair {
+	var seconded, valid []originatorStatementPair
+
+	pending, ok := c.pending[target]
+	if !ok {
+		return nil
+	}
+
+	for pair := range pending {
+		switch pair.statement.(type) {
+		case *parachaintypes.CompactSeconded:
+			seconded = append(seconded, pair)
+		case *parachaintypes.CompactValid:
+			valid = append(valid, pair)
+		default:
+			panic("unreachable")
+		}
+	}
+
+	return append(seconded, valid...)
+}
+
+// warnIfTooManyStatements dumps pending statement for this cluster.
+//
+// Normally we should not have pending statements to validators in our cluster,
+// but if we do for all validators in our cluster, then we don't participate
+// in backing. Occasional pending statements are expected if two authorities
+// can't detect each other or after restart, where it takes a while to discover
+// the whole network.
+func (c *clusterTracker) warnIfTooManyStatements(parentHash common.Hash) { //nolint:unused
+	count := 0
+	for _, set := range c.pending {
+		if len(set) > 0 {
+			count += 1
+		}
+	}
+
+	numValidators := len(c.validators)
+	if count >= numValidators &&
+		// No reason to warn if we are the only node in the cluster.
+		numValidators > 1 {
+		logger.Warnf(
+			"Cluster has too many pending statements, something wrong with our connection to our group peers "+
+				"Restart might be needed if validator gets 0 backing rewards for more than 3-4 consecutive sessions "+
+				"count=%d parentHash=%s",
+			count,
+			parentHash.String(),
+		)
+	}
 }
