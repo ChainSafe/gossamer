@@ -138,8 +138,8 @@ currently_checking can be implemented via channel that is listening responses of
 Results of PVF check (that is actually happening on Candidate Validation Subsystem) should be signed and submitted
 to runtime via `runtime_api::submit_pvf_check_statement`
 
-Subsystem handler only two messages from overseer, the `OverseerSignal::ActiveLeaves` and `OverseerSignal::Conclude`. 
-The Conlcude is pretty straight forward and should stop the subsystem process.
+Subsystem handles only two messages from overseer, the `OverseerSignal::ActiveLeaves` and `OverseerSignal::Conclude`. 
+The Conclude is pretty straight forward and should stop the subsystem process.
 
 #### ActiveLeaves
 ActiveLeaves on the other hand is when all the action take place.
