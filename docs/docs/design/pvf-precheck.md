@@ -20,7 +20,7 @@ Only validators from the active set can participate in the vote. The set of acti
 That's why we reset the votes each session. A voting that observed a certain number of sessions will be rejected.
 
 PVF-accepted:
-1. All onboardings subscribed to the approved PVF pre-checking process will get scheduled and after passing 2 session boundaries they will be onboarded.
+1. All newly registered parachains that passed the PVF pre-checking process will get scheduled and after passing 2 session boundaries they will be onboarded.
 2. All upgrades subscribed to the approved PVF pre-checking process will get scheduled very similarly to the existing process. 
    Upgrades with pre-checking are really the same process that is just delayed by the time required for pre-checking voting. 
    In case of instant approval the mechanism is exactly the same.
