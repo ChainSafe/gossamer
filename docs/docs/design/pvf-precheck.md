@@ -27,10 +27,8 @@ Only validators from the active set can participate in the vote. The set of acti
 That's why we reset the votes each session. A voting that observed a certain number of sessions will be rejected.
 
 PVF-accepted:
-1. All newly registered parachains that passed the PVF pre-checking process will get scheduled and after passing 2 session boundaries they will be onboarded.
-2. All upgrades subscribed to the approved PVF pre-checking process will get scheduled very similarly to the existing process. 
-   Upgrades with pre-checking are really the same process that is just delayed by the time required for pre-checking voting. 
-   In case of instant approval the mechanism is exactly the same.
+If PVF pre check is accepted, the parachain onboarding or runtime upgrade will be accepted and the PVF will be included in the chain.
+Though from the point of view of current subsystem it is not important, as it does not handle the actual onboarding or upgrade process.
 
 **PVF-rejection:**
 If PVF pre check is rejected onboarding of the parachain or runtime upgrade will be rejected.
@@ -94,11 +92,10 @@ for every active leave.
 If the PVF is not present in any of the active leaves, it ceases to be relevant.
 PVF-precheck subsystem ask Candidate Validation subsystem to check on the PVF validity the result is submited to runtime API with
 `submit_pvf_check_statement`
-In case, a judgement was received for a PVF that is no longer in view it is ignored. << This probably means that if CV taking long ot response for PVF that is not any more in activel lives then we ignore it
+In case, a judgement was received for a PVF that is no longer in view it is ignored. << This probably means that if CV taking long ot response for PVF that is not any more in active leaves then we ignore it
 
-Whe session changes (at least one of the new active leave session index is > then prev on any of the leaves)  subsystem resign and submit only new session PVFs.
-
-If the node is not in the active validator set, it still performs all the checks. However results are submitted only if it is in the active set.
+When session changes (at least one of the new active leave session index is > then prev on any of the leaves)  [runtime](https://github.com/paritytech/polkadot-sdk/blob/master/polkadot/runtime/parachains/src/paras/mod.rs#L486) resets all the votes hence subsystem re-checks all the PVFs in the view and resubmit votes.
+If node is not in active validator set it is till perform all the checks, however results are submitted only if in active validator set.
 
 #### Rejection
 If candidate validation was not able to check PVF eg timed out then subsystem votes against it. There is no slashing for being on the wrong side of a pre-check vote.
@@ -145,7 +142,7 @@ currently_checking can be implemented via channel that is listening responses of
 Results of PVF check (that is actually happening on Candidate Validation Subsystem) should be signed and submitted
 to runtime via `runtime_api::submit_pvf_check_statement`
 
-Subsystem handles only two messages from overseer, the `OverseerSignal::ActiveLeaves` and `OverseerSignal::Conclude`. 
+Subsystem handles only two messages from overseer, the `OverseerSignal::ActiveLeaves` and `OverseerSignal::Conclude`.
 The Conclude is pretty straight forward and should stop the subsystem process.
 
 #### ActiveLeaves
