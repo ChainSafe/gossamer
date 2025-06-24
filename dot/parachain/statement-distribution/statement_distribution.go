@@ -28,42 +28,42 @@ var (
 )
 
 var (
-	costConflictingManifest = parachainutil.UnifiedReputationChange{ //nolint:unused
+	costConflictingManifest = parachainutil.UnifiedReputationChange{
 		Type:   parachainutil.CostMajor,
 		Reason: "Manifest conflicts with previous",
 	}
 
-	costMalformedManifest = parachainutil.UnifiedReputationChange{ //nolint:unused
+	costMalformedManifest = parachainutil.UnifiedReputationChange{
 		Type:   parachainutil.CostMajor,
 		Reason: "Manifest is malformed",
 	}
 
-	costInsufficientManifest = parachainutil.UnifiedReputationChange{ //nolint:unused
+	costInsufficientManifest = parachainutil.UnifiedReputationChange{
 		Type:   parachainutil.CostMajor,
 		Reason: "Manifest statements insufficient to back candidate",
 	}
 
-	costUnexpectedManifestDisallowed = parachainutil.UnifiedReputationChange{ //nolint:unused
+	costUnexpectedManifestDisallowed = parachainutil.UnifiedReputationChange{
 		Type:   parachainutil.CostMinor,
 		Reason: "Unexpected Manifest, Peer Disallowed",
 	}
 
-	costUnexpectedManifestMissingKnowledge = parachainutil.UnifiedReputationChange{ //nolint:unused
+	costUnexpectedManifestMissingKnowledge = parachainutil.UnifiedReputationChange{
 		Type:   parachainutil.CostMinor,
 		Reason: "Unexpected Manifest, missing knowledge for relay parent",
 	}
 
-	costUnexpectedManifestPeerUnknown = parachainutil.UnifiedReputationChange{ //nolint:unused
+	costUnexpectedManifestPeerUnknown = parachainutil.UnifiedReputationChange{
 		Type:   parachainutil.CostMinor,
 		Reason: "Unexpected Manifest, Peer Unknown",
 	}
 
-	costExcessiveSeconded = parachainutil.UnifiedReputationChange{ //nolint:unused
+	costExcessiveSeconded = parachainutil.UnifiedReputationChange{
 		Type:   parachainutil.CostMinor,
 		Reason: "Sent Excessive `Seconded` Statements",
 	}
 
-	costInaccurateAdvertisement = parachainutil.UnifiedReputationChange{ //nolint:unused
+	costInaccurateAdvertisement = parachainutil.UnifiedReputationChange{
 		Type:   parachainutil.CostMajor,
 		Reason: "Peer advertised a candidate inaccurately",
 	}
@@ -335,7 +335,7 @@ func (s *StatementDistribution) sendBackingFreshStatements(
 	return nil
 }
 
-type manifestImportSuccess struct { //nolint:unused
+type manifestImportSuccess struct {
 	relayParentState perRelayParentState
 	perSession       perSessionState
 	acknowledge      bool
@@ -346,7 +346,7 @@ type manifestImportSuccess struct { //nolint:unused
 //
 // Basic sanity checks around data, importing the manifest into the grid tracker, finding the
 // sending peer's validator index, reporting the peer for any misbehaviour, etc.
-func (s *StatementDistribution) handleIncomingManifestCommon( //nolint:unused
+func (s *StatementDistribution) handleIncomingManifestCommon(
 	peer peer.ID,
 	peers map[peer.ID]peerState,
 	perRelayParent map[common.Hash]perRelayParentState,
