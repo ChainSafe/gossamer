@@ -501,6 +501,94 @@ func (s *StatementDistribution) handleIncomingManifestCommon(
 	}
 }
 
+func (s *StatementDistribution) handleIncomingManifest( //nolint:unused
+	state v2State,
+	peer peer.ID,
+	manifest validationprotocol.BackedCandidateManifest,
+	reputation *parachainutil.ReputationAggregator,
+) {
+	logger.Debugf("Received incoming manifest peer=%s candidateHash=%s", peer.String(), manifest.CandidateHash.String())
+
+	importSuccess := s.handleIncomingManifestCommon(
+		peer,
+		state.peers,
+		state.perRelayParent,
+		state.perSession,
+		state.candidates,
+		manifest.CandidateHash,
+		manifest.RelayParent,
+		manifest.ParaID,
+		manifestSummary{
+			claimedParentHash:  manifest.ParentHeadDataHash,
+			claimedGroupIndex:  manifest.GroupIndex,
+			statementKnowledge: manifest.StatementKnowledge,
+		},
+		full,
+		reputation,
+	)
+
+	if importSuccess == nil {
+		return
+	}
+
+	rpState := importSuccess.relayParentState
+	perSession := importSuccess.perSession
+	senderIndex := importSuccess.senderIndex
+
+	if importSuccess.acknowledge {
+		// 4. if already known within grid (confirmed & backed), acknowledge candidate
+		logger.Tracef("Known candidate - acknowledging manifest candidateHash=%s", manifest.CandidateHash.String())
+
+		group := perSession.groups.get(manifest.GroupIndex)
+		if group == nil {
+			return // sanity
+		}
+
+		localKnowledge, err := localKnowledgeFilter(
+			len(group),
+			manifest.GroupIndex,
+			manifest.CandidateHash,
+			rpState.statementStore,
+		)
+		if err != nil {
+			logger.Errorf("building local knowledge filter: %s", err)
+			return
+		}
+
+		// Assume the latest stable version, if we don't have info about peer version.
+		validationVersion := validationprotocol.ValidationVersionV3
+		peerState, ok := state.peers[peer]
+		if ok {
+			validationVersion = peerState.protocolVersion
+		}
+
+		messages /* statementsCount */, _ := acknowledgementAndStatementMessages(
+			peer,
+			validationVersion,
+			senderIndex,
+			perSession.groups,
+			&rpState,
+			manifest.RelayParent,
+			manifest.GroupIndex,
+			manifest.CandidateHash,
+			*localKnowledge,
+		)
+
+		if len(messages) != 0 {
+			s.SubSystemToOverseer <- networkbridgemessages.SendValidationMessages{Messages: messages}
+			// TODO metrics.on_statements_distributed(statements_count)
+		}
+	} else if !state.candidates.isConfirmed(manifest.CandidateHash) {
+		// 5. if unconfirmed, add request entry
+		logger.Tracef("Unknown candidate - requesting candidateHash=%s", manifest.CandidateHash.String())
+
+		// TODO #4377
+		//state.requestManager.
+		//	getOrInsert(manifest.RelayParent, manifest.CandidateHash, manifest.GroupIndex).
+		//	addPeer(peer)
+	}
+}
+
 // compareAndConvert ensure the original compact statement matches
 // the same encoding as the converted statement and transforms the
 // converted statement into a SignedFullStatementWithPVD with the
@@ -566,7 +654,7 @@ func acknowledgementAndStatementMessages(
 	groupIndex parachaintypes.GroupIndex,
 	candidateHash parachaintypes.CandidateHash,
 	localKnowledge parachaintypes.StatementFilter,
-) ([]*networkbridgemessages.SendValidationMessage, int) {
+) ([]*networkbridgemessages.SendValidationMessage, int) { //nolint:unparam
 	if rpState.localValidator == nil {
 		return []*networkbridgemessages.SendValidationMessage{}, 0
 	}
