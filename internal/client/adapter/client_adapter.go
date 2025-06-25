@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -30,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/proof"
 )
 
 var ErrMissingOverlayedChanges = errors.New("missing overlayed changes")
@@ -654,6 +656,15 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStateRootFromBlock(bhash *c
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) (
 	[][]byte, error) {
+	//hasher := *new(Hasher)
+	//rootHash := hasher.NewHash(stateRoot.ToBytes())
+	//
+	//sKeys := make([]string, len(keys))
+	//for i, k := range keys {
+	//	sKeys[i] = string(k)
+	//}
+	//
+	//return proof.NewMerkleProof[H, Hasher](/* FIXME */, trie.DefaultStateVersion, rootHash, sKeys)
 	panic("unimplemented")
 }
 
