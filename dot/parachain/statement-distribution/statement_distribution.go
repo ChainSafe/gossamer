@@ -58,6 +58,11 @@ var (
 		Reason: "Unexpected Manifest, Peer Unknown",
 	}
 
+	costUnexpectedAcknowledgementUnknownCandidate = parachainutil.UnifiedReputationChange{ //nolint:unused
+		Type:   parachainutil.CostMinor,
+		Reason: "Unexpected acknowledgement, unknown candidate",
+	}
+
 	costExcessiveSeconded = parachainutil.UnifiedReputationChange{
 		Type:   parachainutil.CostMinor,
 		Reason: "Sent Excessive `Seconded` Statements",
@@ -586,6 +591,89 @@ func (s *StatementDistribution) handleIncomingManifest( //nolint:unused
 		//state.requestManager.
 		//	getOrInsert(manifest.RelayParent, manifest.CandidateHash, manifest.GroupIndex).
 		//	addPeer(peer)
+	}
+}
+
+func (s *StatementDistribution) handleIncomingAcknowledgement( //nolint:unused
+	state v2State,
+	peer peer.ID,
+	ack validationprotocol.BackedCandidateKnown,
+	reputation *parachainutil.ReputationAggregator,
+) {
+	// The key difference between acknowledgments and full manifests is that only
+	// the candidate hash is included alongside the bitfields, so the candidate
+	// must be confirmed for us to even process it.
+
+	logger.Debugf(
+		"Received incoming acknowledgement peer=%s candidateHash=%s",
+		peer.String(),
+		ack.CandidateHash.String(),
+	)
+
+	confirmed, ok := state.candidates.getConfirmed(ack.CandidateHash)
+	if !ok {
+		reputation.Modify(s.SubSystemToOverseer, peer, costUnexpectedAcknowledgementUnknownCandidate)
+		return
+	}
+
+	relayParent := confirmed.receipt.Descriptor.RelayParent
+	parentHeadDataHash := confirmed.parentHash
+	groupIndex := confirmed.assignedGroup
+	paraID := confirmed.receipt.Descriptor.ParaID
+
+	importSuccess := s.handleIncomingManifestCommon(
+		peer,
+		state.peers,
+		state.perRelayParent,
+		state.perSession,
+		state.candidates,
+		ack.CandidateHash,
+		relayParent,
+		paraID,
+		manifestSummary{
+			claimedParentHash:  parentHeadDataHash,
+			claimedGroupIndex:  groupIndex,
+			statementKnowledge: ack.StatementKnowledge,
+		},
+		acknowledgement,
+		reputation,
+	)
+
+	if importSuccess == nil {
+		return
+	}
+
+	rpState := importSuccess.relayParentState
+	perSession := importSuccess.perSession
+	senderIndex := importSuccess.senderIndex
+
+	localValidator := rpState.localValidator
+	if localValidator == nil {
+		return
+	}
+
+	// Assume the latest stable version, if we don't have info about peer version.
+	validationVersion := validationprotocol.ValidationVersionV3
+	peerState, ok := state.peers[peer]
+	if ok {
+		validationVersion = peerState.protocolVersion
+	}
+
+	messages := postAcknowledgementStatementMessages(
+		senderIndex,
+		relayParent,
+		localValidator.gridTracker,
+		rpState.statementStore,
+		perSession.groups,
+		groupIndex,
+		ack.CandidateHash,
+		peer,
+		validationVersion,
+	)
+
+	if len(messages) != 0 {
+		s.SubSystemToOverseer <- networkbridgemessages.SendValidationMessages{Messages: messages}
+		// TODO metrics.on_statements_distributed(len(messages))
 	}
 }
 
