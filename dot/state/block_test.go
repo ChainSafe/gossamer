@@ -5,6 +5,7 @@ package state
 
 import (
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -460,22 +461,13 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 
 	after := bs.bt.GetAllBlocks()
 
-	isIn := func(arr []common.Hash, b common.Hash) bool {
-		for _, a := range arr {
-			if b == a {
-				return true
-			}
-		}
-		return false
-	}
-
 	// assert that every block except finalised has been deleted
 	for _, b := range before {
 		if b == fin {
 			continue
 		}
 
-		if isIn(after, b) {
+		if slices.Contains(after, b) {
 			continue
 		}
 
