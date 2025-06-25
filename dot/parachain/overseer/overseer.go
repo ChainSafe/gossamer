@@ -50,6 +50,9 @@ type OverseerSystem struct {
 	blockState   BlockState
 	activeLeaves map[common.Hash]uint32
 
+	//External listeners waiting for a hash to be in the active-leave set.
+	activationExternalListeners map[common.Hash][]chan error
+
 	// block notification channels
 	imported  chan *types.Block
 	finalised chan *types.FinalisationInfo
@@ -197,6 +200,10 @@ func (o *OverseerSystem) processMessages() {
 				}
 				msg.Resp <- rt
 
+			case parachaintypes.WaitForActivation: // external request to wait for activation of a relay parent
+				o.waitForActivation(msg)
+				return
+
 			default:
 				logger.Error("unknown message type")
 			}
@@ -212,6 +219,48 @@ func (o *OverseerSystem) processMessages() {
 			return
 		}
 	}
+}
+
+// onHeadActivated handles a header activation, If the header does not support parachains API, it returns false.
+func (o *OverseerSystem) onHeadActivated(blockHash common.Hash) bool {
+	isSupported, err := o.DoesHeadSupportsParachainConsensus(blockHash)
+	if err != nil {
+		panic(fmt.Sprintf("checking head supports parachain: %s", err.Error()))
+	}
+
+	if !isSupported {
+		return false
+	}
+
+	if responseChannels, ok := o.activationExternalListeners[blockHash]; ok {
+		for _, responseCh := range responseChannels {
+			responseCh <- nil
+		}
+		// leaf got activated
+		delete(o.activationExternalListeners, blockHash)
+	}
+
+	return true
+}
+
+func (o *OverseerSystem) onHeadDeactivated(blockHash common.Hash) {
+	delete(o.activationExternalListeners, blockHash)
+}
+
+// waitForActivation handles an external request to wait for activation of a relay parent.
+func (o *OverseerSystem) waitForActivation(msg parachaintypes.WaitForActivation) {
+	if _, ok := o.activeLeaves[msg.RelayParent]; ok {
+		//Leaf was already ready - answering waitForActivation
+		msg.ResponseCh <- nil
+		return
+	}
+
+	responseChannels, ok := o.activationExternalListeners[msg.RelayParent]
+	if !ok {
+		responseChannels = make([]chan error, 0)
+	}
+	responseChannels = append(responseChannels, msg.ResponseCh)
+	o.activationExternalListeners[msg.RelayParent] = responseChannels
 }
 
 func (o *OverseerSystem) handleBlockEvents() {
@@ -231,31 +280,28 @@ func (o *OverseerSystem) handleBlockEvents() {
 				}
 				return
 			}
-
 			o.activeLeaves[imported.Header.Hash()] = uint32(imported.Header.Number)
-			delete(o.activeLeaves, imported.Header.ParentHash)
 
 			var activeLeavesUpdate parachaintypes.ActiveLeavesUpdateSignal
 
-			supports, err := o.DoesHeadSupportsParachainConsensus(imported.Header.Hash())
-			if err != nil {
-				panic(fmt.Sprintf("checking head supports parachain: %s", err.Error()))
-			}
-
-			if supports {
+			if o.onHeadActivated(imported.Header.Hash()) {
 				activeLeavesUpdate = parachaintypes.ActiveLeavesUpdateSignal{
 					Activated: &parachaintypes.ActivatedLeaf{
 						Hash:   imported.Header.Hash(),
 						Number: uint32(imported.Header.Number),
 					},
-					Deactivated: []common.Hash{imported.Header.ParentHash},
 				}
 			}
+
+			if _, ok := o.activeLeaves[imported.Header.ParentHash]; ok {
+				activeLeavesUpdate.Deactivated = append(activeLeavesUpdate.Deactivated, imported.Header.Hash())
+				o.onHeadDeactivated(imported.Header.ParentHash)
+			}
+			delete(o.activeLeaves, imported.Header.ParentHash)
 
 			if !activeLeavesUpdate.IsEmpty() {
 				o.broadcast(activeLeavesUpdate)
 			}
-
 		case finalised := <-o.finalised:
 			deactivated := make([]common.Hash, 0)
 
@@ -264,6 +310,10 @@ func (o *OverseerSystem) handleBlockEvents() {
 					deactivated = append(deactivated, hash)
 					delete(o.activeLeaves, hash)
 				}
+			}
+
+			for _, hash := range deactivated {
+				o.onHeadDeactivated(hash)
 			}
 
 			o.broadcast(parachaintypes.BlockFinalizedSignal{
@@ -283,6 +333,7 @@ func (o *OverseerSystem) handleBlockEvents() {
 		}
 	}
 }
+
 func (o *OverseerSystem) broadcast(msg any) {
 	for _, overseerToSubSystem := range o.subsystems {
 		overseerToSubSystem <- msg

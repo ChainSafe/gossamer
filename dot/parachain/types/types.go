@@ -1161,3 +1161,9 @@ type DistributeBitfield struct {
 	RelayParent common.Hash
 	Bitfield    UncheckedSignedAvailabilityBitfield
 }
+
+// WaitForActivation is the external request to the overseer to wait for activation of a relay parent.
+type WaitForActivation struct {
+	RelayParent common.Hash
+	ResponseCh  chan error
+}

@@ -981,18 +981,18 @@ func TestSendInherentData(t *testing.T) {
 					case inherentData := <-responseSender:
 						var err error
 						// Verify bitfield data
-						if len(inherentData.Bitfield) != len(tc.signedBitfields) {
-							err = fmt.Errorf("expected %d bitfields, got %d", len(tc.signedBitfields), len(inherentData.Bitfield))
+						if len(inherentData.Bitfields) != len(tc.signedBitfields) {
+							err = fmt.Errorf("expected %d bitfields, got %d", len(tc.signedBitfields), len(inherentData.Bitfields))
 						} else if len(tc.signedBitfields) > 0 {
-							if !reflect.DeepEqual(inherentData.Bitfield[0].ValidatorIndex, tc.signedBitfields[0].ValidatorIndex) {
+							if !reflect.DeepEqual(inherentData.Bitfields[0].ValidatorIndex, tc.signedBitfields[0].ValidatorIndex) {
 								err = fmt.Errorf("validator index mismatch: expected %v, got %v",
-									tc.signedBitfields[0].ValidatorIndex, inherentData.Bitfield[0].ValidatorIndex)
-							} else if !reflect.DeepEqual(inherentData.Bitfield[0].Signature, tc.signedBitfields[0].Signature) {
+									tc.signedBitfields[0].ValidatorIndex, inherentData.Bitfields[0].ValidatorIndex)
+							} else if !reflect.DeepEqual(inherentData.Bitfields[0].Signature, tc.signedBitfields[0].Signature) {
 								err = fmt.Errorf("signature mismatch: expected %v, got %v",
-									tc.signedBitfields[0].Signature, inherentData.Bitfield[0].Signature)
-							} else if !reflect.DeepEqual(inherentData.Bitfield[0].Payload, tc.signedBitfields[0].Payload) {
+									tc.signedBitfields[0].Signature, inherentData.Bitfields[0].Signature)
+							} else if !reflect.DeepEqual(inherentData.Bitfields[0].Payload, tc.signedBitfields[0].Payload) {
 								err = fmt.Errorf("payload mismatch: expected %v, got %v",
-									tc.signedBitfields[0].Payload, inherentData.Bitfield[0].Payload)
+									tc.signedBitfields[0].Payload, inherentData.Bitfields[0].Payload)
 							}
 						}
 
