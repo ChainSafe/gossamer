@@ -18,31 +18,16 @@ type candidatesStore interface {
 	getConfirmed(candidateHash parachaintypes.CandidateHash) (*confirmedCandidate, bool)
 }
 
-type statementStore interface {
-	validatorStatement(stmt originatorStatementPair) *parachaintypes.SignedStatement
-
-	// freshStatementsForBacking provides a list of all statements marked as being
-	// unknown by the backing subsystem. This provides `Seconded` statements prior to `Valid` statements.
-	freshStatementsForBacking(validators []parachaintypes.ValidatorIndex,
-		candidateHash parachaintypes.CandidateHash) []parachaintypes.SignedStatement
-	noteKnownByBacking(parachaintypes.ValidatorIndex, parachaintypes.CompactStatement)
-	fillStatementFilter(parachaintypes.GroupIndex, parachaintypes.CandidateHash, *parachaintypes.StatementFilter)
-	// Get an iterator over stored signed statements by the group conforming to the
-	// given filter.
-	// Seconded statements are provided first.
-	groupStatements(*groups, parachaintypes.GroupIndex, parachaintypes.CandidateHash,
-		*parachaintypes.StatementFilter) []parachaintypes.SignedStatement
-}
-
 // skipcq:SCC-U1000
 type perRelayParentState struct {
 	localValidator       *localValidatorStore
-	statementStore       statementStore // TODO #4719: Create statement store
+	statementStore       *statementStore
 	secondingLimit       uint
 	session              parachaintypes.SessionIndex
 	transposedClaimQueue parachaintypes.TransposedClaimQueue
 	groupsPerPara        map[parachaintypes.ParaID][]parachaintypes.GroupIndex
 	disabledValidators   map[parachaintypes.ValidatorIndex]struct{}
+	assignmentsPerGroup  map[parachaintypes.GroupIndex][]parachaintypes.ParaID
 }
 
 // isDisabled returns `true` if the given validator is disabled in the context of the relay parent.
@@ -51,7 +36,7 @@ func (p *perRelayParentState) isDisabled(vIdx parachaintypes.ValidatorIndex) boo
 	return ok
 }
 
-func (p *perRelayParentState) disableBitmask(group []parachaintypes.ValidatorIndex) (parachaintypes.BitVec, error) {
+func (p *perRelayParentState) disabledBitmask(group []parachaintypes.ValidatorIndex) (parachaintypes.BitVec, error) {
 	disableBm := make([]bool, len(group))
 	for idx, v := range group {
 		disableBm[idx] = p.isDisabled(v)
@@ -83,7 +68,7 @@ type perSessionState struct {
 	sessionInfo parachaintypes.SessionInfo
 	groups      *groups
 	authLookup  map[parachaintypes.AuthorityDiscoveryID]parachaintypes.ValidatorIndex
-	gridView    any // TODO: use SessionTopologyView from statement-distribution grid (#4576)
+	gridView    *sessionTopologyView
 
 	// when localValidator is nil means it is inactive
 	localValidator     *parachaintypes.ValidatorIndex
@@ -123,19 +108,29 @@ func newPerSessionState(sessionInfo parachaintypes.SessionInfo,
 // discovery being a superset of the active validators for consensus.
 // skipcq:SCC-U1000
 func (s *perSessionState) supplyTopology(topology *grid.SessionGridTopology, localIdx *parachaintypes.ValidatorIndex) {
-	// TODO #4373: implement once buildSessionTopology is done
-	// gridView := buildSessionTopology(
-	// 	s.sessionInfo.ValidatorGroups,
-	// 	topology,
-	// 	localIdx,
-	// )
+	gridView, err := buildSessionTopology(
+		s.sessionInfo.ValidatorGroups,
+		topology,
+		localIdx,
+	)
+	if err != nil {
+		logger.Errorf("building sessionTopologyView for validator index %d: %s", localIdx, err)
+		return
+	}
 
-	// s.gridView = gridView
+	s.gridView = gridView
 
 	logger.Infof(
 		"Node uses the following topology indices: "+
 			"index_in_gossip_topology: %d, index_in_parachain_auths: %d",
 		localIdx, s.localValidator)
+}
+
+// isNotValidator returns `true` if local is neither active or inactive validator node.
+//
+// returns `false` if session topology is not known yet.
+func (s *perSessionState) isNotValidator() bool {
+	return s.gridView != nil && s.localValidator == nil
 }
 
 // skipcq:SCC-U1000

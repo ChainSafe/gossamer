@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
@@ -24,6 +25,48 @@ var (
 	errEncodedStatementsDoNotMatch = errors.New("encoded statements do not match")
 	errUnkownLocalValidator        = errors.New("unknown local validator")
 	errEmptyGroup                  = errors.New("group of validators empty")
+)
+
+var (
+	costConflictingManifest = parachainutil.UnifiedReputationChange{
+		Type:   parachainutil.CostMajor,
+		Reason: "Manifest conflicts with previous",
+	}
+
+	costMalformedManifest = parachainutil.UnifiedReputationChange{
+		Type:   parachainutil.CostMajor,
+		Reason: "Manifest is malformed",
+	}
+
+	costInsufficientManifest = parachainutil.UnifiedReputationChange{
+		Type:   parachainutil.CostMajor,
+		Reason: "Manifest statements insufficient to back candidate",
+	}
+
+	costUnexpectedManifestDisallowed = parachainutil.UnifiedReputationChange{
+		Type:   parachainutil.CostMinor,
+		Reason: "Unexpected Manifest, Peer Disallowed",
+	}
+
+	costUnexpectedManifestMissingKnowledge = parachainutil.UnifiedReputationChange{
+		Type:   parachainutil.CostMinor,
+		Reason: "Unexpected Manifest, missing knowledge for relay parent",
+	}
+
+	costUnexpectedManifestPeerUnknown = parachainutil.UnifiedReputationChange{
+		Type:   parachainutil.CostMinor,
+		Reason: "Unexpected Manifest, Peer Unknown",
+	}
+
+	costExcessiveSeconded = parachainutil.UnifiedReputationChange{
+		Type:   parachainutil.CostMinor,
+		Reason: "Sent Excessive `Seconded` Statements",
+	}
+
+	costInaccurateAdvertisement = parachainutil.UnifiedReputationChange{
+		Type:   parachainutil.CostMajor,
+		Reason: "Peer advertised a candidate inaccurately",
+	}
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-statement-distribution"))
@@ -269,7 +312,7 @@ func (s *StatementDistribution) sendBackingFreshStatements(
 			panic(fmt.Sprintf("unexpected error setting Statement VDT: %s", err.Error()))
 		}
 
-		signed, err := compareAndConvert(freshStmt, convertedStmt, withPVD)
+		signed, err := compareAndConvert(*freshStmt, convertedStmt, withPVD)
 		if err != nil {
 			return fmt.Errorf("comparing and converting stmt: %w", err)
 		}
@@ -290,6 +333,172 @@ func (s *StatementDistribution) sendBackingFreshStatements(
 	}
 
 	return nil
+}
+
+type manifestImportSuccess struct {
+	relayParentState perRelayParentState
+	perSession       perSessionState
+	acknowledge      bool
+	senderIndex      parachaintypes.ValidatorIndex
+}
+
+// handleIncomingManifestCommon handles the common part of incoming manifests of both types (full & acknowledgement)
+//
+// Basic sanity checks around data, importing the manifest into the grid tracker, finding the
+// sending peer's validator index, reporting the peer for any misbehaviour, etc.
+func (s *StatementDistribution) handleIncomingManifestCommon(
+	peer peer.ID,
+	peers map[peer.ID]peerState,
+	perRelayParent map[common.Hash]perRelayParentState,
+	perSession map[parachaintypes.SessionIndex]perSessionState,
+	candidates candidates,
+	candidateHash parachaintypes.CandidateHash,
+	relayParent common.Hash,
+	paraID parachaintypes.ParaID,
+	manifestSummary manifestSummary,
+	manifestKind manifestKind,
+	reputation *parachainutil.ReputationAggregator,
+) *manifestImportSuccess {
+	// 1. sanity checks: peer is connected, relay-parent in state, para ID matches group index.
+	peerState, ok := peers[peer]
+	if !ok {
+		return nil
+	}
+
+	relayParentState, ok := perRelayParent[relayParent]
+	if !ok {
+		reputation.Modify(s.SubSystemToOverseer, peer, costUnexpectedManifestMissingKnowledge)
+		return nil
+	}
+
+	perSessionEntry, ok := perSession[relayParentState.session]
+	if !ok {
+		return nil
+	}
+
+	if relayParentState.localValidator == nil {
+		if perSessionEntry.isNotValidator() {
+			reputation.Modify(s.SubSystemToOverseer, peer, costUnexpectedManifestMissingKnowledge)
+		}
+		return nil
+	}
+
+	expectedGroups, ok := relayParentState.groupsPerPara[paraID]
+	if !ok {
+		reputation.Modify(s.SubSystemToOverseer, peer, costMalformedManifest)
+		return nil
+	}
+
+	if !slices.Contains(expectedGroups, manifestSummary.claimedGroupIndex) {
+		reputation.Modify(s.SubSystemToOverseer, peer, costMalformedManifest)
+		return nil
+	}
+
+	gridTopology := perSessionEntry.gridView
+	if gridTopology == nil {
+		return nil
+	}
+
+	var senderIndex *parachaintypes.ValidatorIndex
+	for idx := range gridTopology.iterSendingForGroup(manifestSummary.claimedGroupIndex, manifestKind) {
+		if int(idx) >= len(perSessionEntry.sessionInfo.DiscoveryKeys) {
+			continue
+		}
+
+		ad := perSessionEntry.sessionInfo.DiscoveryKeys[idx]
+		if peerState.isAuthority(ad) {
+			senderIndex = &idx
+			break
+		}
+	}
+
+	if senderIndex == nil {
+		reputation.Modify(s.SubSystemToOverseer, peer, costUnexpectedManifestPeerUnknown)
+		return nil
+	}
+
+	// 2. sanity checks: peer is validator, bitvec size, import into grid tracker
+
+	// Ignore votes from disabled validators when counting towards the threshold.
+	groupIndex := manifestSummary.claimedGroupIndex
+	group := perSessionEntry.groups.get(groupIndex)
+	disabledMask, err := relayParentState.disabledBitmask(group)
+	if err != nil {
+		logger.Criticalf("perRelayParentState.disabledBitmask() failed in handleIncomingManifestCommon(): %s", err)
+		return nil
+	}
+
+	manifestSummary.statementKnowledge.MaskSeconded(disabledMask)
+	manifestSummary.statementKnowledge.MaskValid(disabledMask)
+
+	assignments, ok := relayParentState.assignmentsPerGroup[groupIndex]
+	if !ok {
+		return nil
+	}
+
+	var secondingLimit uint
+	for _, pID := range assignments {
+		if pID == paraID {
+			secondingLimit += 1
+		}
+	}
+
+	localValidator := *relayParentState.localValidator // non-nil check already done above
+	acknowledge, err := localValidator.gridTracker.importManifest(
+		gridTopology,
+		*perSessionEntry.groups,
+		candidateHash,
+		secondingLimit,
+		manifestSummary,
+		manifestKind,
+		*senderIndex,
+	)
+	switch err {
+	case errManifestImportConflicting:
+		reputation.Modify(s.SubSystemToOverseer, peer, costConflictingManifest)
+		return nil
+	case errManifestImportOverflow:
+		reputation.Modify(s.SubSystemToOverseer, peer, costExcessiveSeconded)
+		return nil
+	case errManifestImportInsufficient:
+		reputation.Modify(s.SubSystemToOverseer, peer, costInsufficientManifest)
+		return nil
+	case errManifestImportMalformed:
+		reputation.Modify(s.SubSystemToOverseer, peer, costMalformedManifest)
+		return nil
+	case errManifestImportDisallowed:
+		reputation.Modify(s.SubSystemToOverseer, peer, costUnexpectedManifestDisallowed)
+		return nil
+	default:
+	}
+
+	// 3. if accepted by grid, insert as unconfirmed.
+	if err = candidates.insertUnconfirmed(
+		peer,
+		candidateHash,
+		relayParent,
+		groupIndex,
+		&hashAndParaID{manifestSummary.claimedParentHash, paraID},
+	); errors.Is(err, errBadAdvertisement) {
+		reputation.Modify(s.SubSystemToOverseer, peer, costInaccurateAdvertisement)
+		return nil
+	}
+
+	if acknowledge {
+		logger.Tracef(
+			"immediate ack, known candidate: candidateHash=%s, from=%d, localIndex=%d, manifestKind=%s",
+			candidateHash.String(),
+			*senderIndex,
+			*perSessionEntry.localValidator,
+			manifestKind.String(),
+		)
+	}
+	return &manifestImportSuccess{
+		relayParentState: relayParentState,
+		perSession:       perSessionEntry,
+		acknowledge:      acknowledge,
+		senderIndex:      *senderIndex,
+	}
 }
 
 // compareAndConvert ensure the original compact statement matches
@@ -335,7 +544,7 @@ func localKnowledgeFilter(
 	groupSize int,
 	groupIndex parachaintypes.GroupIndex,
 	candidateHash parachaintypes.CandidateHash,
-	statementStore statementStore,
+	statementStore *statementStore, // Store,
 ) (*parachaintypes.StatementFilter, error) {
 	f, err := parachaintypes.NewStatementFilter(uint(groupSize), false)
 	if err != nil {
@@ -413,11 +622,12 @@ func postAcknowledgementStatementMessages(
 	recipient parachaintypes.ValidatorIndex,
 	rp common.Hash,
 	gridTracker *gridTracker,
-	stmtStore statementStore,
+	stmtStore *statementStore,
 	groups *groups,
 	groupIndex parachaintypes.GroupIndex,
 	candidateHash parachaintypes.CandidateHash,
-	peerID peer.ID, validationVersion validationprotocol.ValidationVersion,
+	peerID peer.ID,
+	validationVersion validationprotocol.ValidationVersion,
 ) []*networkbridgemessages.SendValidationMessage {
 	sendingFilter := gridTracker.pendingStatementsFor(recipient, candidateHash)
 	if sendingFilter == nil {
@@ -438,7 +648,7 @@ func postAcknowledgementStatementMessages(
 			stmtMessage := validationprotocol.NewStatementDistributionMessage()
 			err := stmtMessage.SetValue(validationprotocol.Statement{
 				RelayParent: rp,
-				Compact:     parachaintypes.UncheckedSignedCompactStatement(stmt),
+				Compact:     parachaintypes.UncheckedSignedCompactStatement(*stmt),
 			})
 			if err != nil {
 				panic(fmt.Sprintf("failed while defining enum variant: %s", err.Error()))
@@ -461,14 +671,14 @@ func postAcknowledgementStatementMessages(
 }
 
 func pendingStatementNetworkMessage(
-	stmtStore statementStore,
+	stmtStore *statementStore,
 	rp common.Hash,
 	peerID peer.ID, validationVersion validationprotocol.ValidationVersion,
 	pending originatorStatementPair,
 ) *networkbridgemessages.SendValidationMessage {
 	if validationVersion == validationprotocol.ValidationVersionV3 {
-		signed := stmtStore.validatorStatement(pending)
-		if signed == nil {
+		signed, known := stmtStore.validatorStatement(pending.validatorIndex, pending.statement)
+		if !known || signed == nil {
 			return nil
 		}
 
