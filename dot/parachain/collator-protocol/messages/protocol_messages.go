@@ -68,7 +68,7 @@ func NewCollationProtocol() CollationProtocol {
 }
 
 type CollatorProtocolMessageValues interface {
-	Declare | AdvertiseCollation | CollationSeconded
+	Declare | AdvertiseCollation | AdvertiseCollationV2 | CollationSeconded
 }
 
 // CollatorProtocolMessage represents Network messages used by the collator protocol subsystem
@@ -90,6 +90,10 @@ func (mvdt *CollatorProtocolMessage) SetValue(value any) (err error) {
 		setCollatorProtocolMessage(mvdt, value)
 		return
 
+	case AdvertiseCollationV2:
+		setCollatorProtocolMessage(mvdt, value)
+		return
+
 	case CollationSeconded:
 		setCollatorProtocolMessage(mvdt, value)
 		return
@@ -106,6 +110,9 @@ func (mvdt CollatorProtocolMessage) IndexValue() (index uint, value any, err err
 
 	case AdvertiseCollation:
 		return 1, mvdt.inner, nil
+
+	case AdvertiseCollationV2:
+		return 2, mvdt.inner, nil
 
 	case CollationSeconded:
 		return 4, mvdt.inner, nil
@@ -126,6 +133,9 @@ func (mvdt CollatorProtocolMessage) ValueAt(index uint) (value any, err error) {
 
 	case 1:
 		return *new(AdvertiseCollation), nil
+
+	case 2:
+		return *new(AdvertiseCollationV2), nil
 
 	case 4:
 		return *new(CollationSeconded), nil
@@ -152,6 +162,12 @@ type Declare struct {
 // set as validator for our para at the given relay parent.
 // It can only be sent once the peer has declared that they are a collator with given ID
 type AdvertiseCollation common.Hash
+
+type AdvertiseCollationV2 struct {
+	RelayParent        common.Hash                  `scale:"1"`
+	CandidateHash      parachaintypes.CandidateHash `scale:"2"`
+	ParentHeadDataHash common.Hash                  `scale:"3"`
+}
 
 // CollationSeconded represents that a collation sent to a validator was seconded.
 type CollationSeconded struct {
