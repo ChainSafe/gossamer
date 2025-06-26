@@ -33,27 +33,25 @@ type blockState interface {
 	GetHeader(common.Hash) (*types.Header, error)
 }
 
+// ProvideInherentData creates the inherent data for the parachain block authoring process
+// and returns it as a types.InherentData object with the parachain inherent data.
 func ProvideInherentData(
 	blockState blockState,
 	overseerCh chan<- any,
 	relayParent common.Hash,
-	inherentData *types.InherentData,
-) error {
+) (*types.InherentData, error) {
 	parachainInherentData, err := createInherentData(blockState, overseerCh, relayParent)
 	if err != nil {
-		return fmt.Errorf("creating parachain inherent data: %w", err)
+		return nil, fmt.Errorf("creating parachain inherent data: %w", err)
 	}
 
-	if inherentData == nil {
-		inherentData = types.NewInherentData()
-	}
-
+	inherentData := types.NewInherentData()
 	err = inherentData.SetInherent(types.Parachn0, parachainInherentData)
 	if err != nil {
-		return fmt.Errorf("setting parachain inherent data: %w", err)
+		return nil, fmt.Errorf("setting parachain inherent data: %w", err)
 	}
 
-	return nil
+	return inherentData, nil
 }
 
 func createInherentData(

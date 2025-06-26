@@ -235,6 +235,7 @@ func (o *OverseerSystem) onHeadActivated(blockHash common.Hash) bool {
 	if responseChannels, ok := o.activationExternalListeners[blockHash]; ok {
 		for _, responseCh := range responseChannels {
 			responseCh <- nil
+			close(responseCh)
 		}
 		// leaf got activated
 		delete(o.activationExternalListeners, blockHash)
