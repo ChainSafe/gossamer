@@ -78,6 +78,60 @@ type PairsIter[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	rawIter StorageIterator[H, Hasher]
 }
 
+// NewPairsIter returns on iterator over key/value pairs in the given [TrieBackend].
+func NewPairsIter[H runtime.Hash, Hasher runtime.Hasher[H]](
+	backend *TrieBackend[H, Hasher],
+	prefix *storage.StorageKey,
+	startAt *storage.StorageKey,
+) (*PairsIter[H, Hasher], error) {
+	args := IterArgs{
+		StartAtExclusive: true,
+	}
+
+	if prefix != nil {
+		args.Prefix = *prefix
+	}
+
+	if startAt != nil {
+		args.StartAt = *startAt
+	}
+
+	rawIter, err := backend.RawIter(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PairsIter[H, Hasher]{backend, rawIter}, nil
+}
+
+// NewChildPairsIter returns on iterator over key/value pairs of a child trie in the given [TrieBackend].
+func NewChildPairsIter[H runtime.Hash, Hasher runtime.Hasher[H]](
+	backend *TrieBackend[H, Hasher],
+	childInfo storage.ChildInfo,
+	prefix *storage.StorageKey,
+	startAt *storage.StorageKey,
+) (*PairsIter[H, Hasher], error) {
+	args := IterArgs{
+		ChildInfo:        childInfo,
+		StartAtExclusive: true,
+	}
+
+	if prefix != nil {
+		args.Prefix = *prefix
+	}
+
+	if startAt != nil {
+		args.StartAt = *startAt
+	}
+
+	rawIter, err := backend.RawIter(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PairsIter[H, Hasher]{backend, rawIter}, nil
+}
+
 func (pi *PairsIter[H, Hasher]) Next() (*StorageKeyValue, error) {
 	return pi.rawIter.NextKeyValue(pi.backend)
 }
@@ -103,6 +157,60 @@ func (pi *PairsIter[H, Hasher]) All() iter.Seq2[StorageKeyValue, error] {
 type KeysIter[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	backend *TrieBackend[H, Hasher]
 	rawIter StorageIterator[H, Hasher]
+}
+
+// NewKeysIter returns an interator over keys in the given [TrieBackend].
+func NewKeysIter[H runtime.Hash, Hasher runtime.Hasher[H]](
+	backend *TrieBackend[H, Hasher],
+	prefix *storage.StorageKey,
+	startAt *storage.StorageKey,
+) (*KeysIter[H, Hasher], error) {
+	args := IterArgs{
+		StartAtExclusive: true,
+	}
+
+	if prefix != nil {
+		args.Prefix = *prefix
+	}
+
+	if startAt != nil {
+		args.StartAt = *startAt
+	}
+
+	rawIter, err := backend.RawIter(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return &KeysIter[H, Hasher]{backend, rawIter}, nil
+}
+
+// NewChildKeysIter returns an interator over keys of a child trie in the given [TrieBackend].
+func NewChildKeysIter[H runtime.Hash, Hasher runtime.Hasher[H]](
+	backend *TrieBackend[H, Hasher],
+	childInfo storage.ChildInfo,
+	prefix *storage.StorageKey,
+	startAt *storage.StorageKey,
+) (*KeysIter[H, Hasher], error) {
+	args := IterArgs{
+		ChildInfo:        childInfo,
+		StartAtExclusive: true,
+	}
+
+	if prefix != nil {
+		args.Prefix = *prefix
+	}
+
+	if startAt != nil {
+		args.StartAt = *startAt
+	}
+
+	rawIter, err := backend.RawIter(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return &KeysIter[H, Hasher]{backend, rawIter}, nil
 }
 
 func (ki *KeysIter[H, Hasher]) Next() (StorageKey, error) {

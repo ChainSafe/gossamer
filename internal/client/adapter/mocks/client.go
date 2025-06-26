@@ -3,9 +3,7 @@
 package mocks
 
 import (
-	api "github.com/ChainSafe/gossamer/internal/client/api"
 	blockchain "github.com/ChainSafe/gossamer/internal/primitives/blockchain"
-
 	common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 
 	consensuscommon "github.com/ChainSafe/gossamer/internal/client/consensus/common"
@@ -741,22 +739,22 @@ func (_c *Client_ChildStorageHash_Call[H, Hasher, N, E, Header]) RunAndReturn(ru
 }
 
 // ChildStorageKeys provides a mock function with given fields: hash, childInfo, prefix, startKey
-func (_m *Client[H, Hasher, N, E, Header]) ChildStorageKeys(hash H, childInfo storage.ChildInfo, prefix storage.StorageKey, startKey storage.StorageKey) (api.KeysIter[H, Hasher], error) {
+func (_m *Client[H, Hasher, N, E, Header]) ChildStorageKeys(hash H, childInfo storage.ChildInfo, prefix storage.StorageKey, startKey storage.StorageKey) (statemachine.KeysIter[H, Hasher], error) {
 	ret := _m.Called(hash, childInfo, prefix, startKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ChildStorageKeys")
 	}
 
-	var r0 api.KeysIter[H, Hasher]
+	var r0 statemachine.KeysIter[H, Hasher]
 	var r1 error
-	if rf, ok := ret.Get(0).(func(H, storage.ChildInfo, storage.StorageKey, storage.StorageKey) (api.KeysIter[H, Hasher], error)); ok {
+	if rf, ok := ret.Get(0).(func(H, storage.ChildInfo, storage.StorageKey, storage.StorageKey) (statemachine.KeysIter[H, Hasher], error)); ok {
 		return rf(hash, childInfo, prefix, startKey)
 	}
-	if rf, ok := ret.Get(0).(func(H, storage.ChildInfo, storage.StorageKey, storage.StorageKey) api.KeysIter[H, Hasher]); ok {
+	if rf, ok := ret.Get(0).(func(H, storage.ChildInfo, storage.StorageKey, storage.StorageKey) statemachine.KeysIter[H, Hasher]); ok {
 		r0 = rf(hash, childInfo, prefix, startKey)
 	} else {
-		r0 = ret.Get(0).(api.KeysIter[H, Hasher])
+		r0 = ret.Get(0).(statemachine.KeysIter[H, Hasher])
 	}
 
 	if rf, ok := ret.Get(1).(func(H, storage.ChildInfo, storage.StorageKey, storage.StorageKey) error); ok {
@@ -789,12 +787,12 @@ func (_c *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header]) Run(run func(ha
 	return _c
 }
 
-func (_c *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header]) Return(_a0 api.KeysIter[H, Hasher], _a1 error) *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header] {
+func (_c *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header]) Return(_a0 statemachine.KeysIter[H, Hasher], _a1 error) *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.ChildInfo, storage.StorageKey, storage.StorageKey) (api.KeysIter[H, Hasher], error)) *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header] {
+func (_c *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.ChildInfo, storage.StorageKey, storage.StorageKey) (statemachine.KeysIter[H, Hasher], error)) *Client_ChildStorageKeys_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2042,22 +2040,22 @@ func (_c *Client_StorageHash_Call[H, Hasher, N, E, Header]) RunAndReturn(run fun
 }
 
 // StorageKeys provides a mock function with given fields: hash, prefix, startKey
-func (_m *Client[H, Hasher, N, E, Header]) StorageKeys(hash H, prefix storage.StorageKey, startKey storage.StorageKey) (api.KeysIter[H, Hasher], error) {
+func (_m *Client[H, Hasher, N, E, Header]) StorageKeys(hash H, prefix storage.StorageKey, startKey storage.StorageKey) (statemachine.KeysIter[H, Hasher], error) {
 	ret := _m.Called(hash, prefix, startKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for StorageKeys")
 	}
 
-	var r0 api.KeysIter[H, Hasher]
+	var r0 statemachine.KeysIter[H, Hasher]
 	var r1 error
-	if rf, ok := ret.Get(0).(func(H, storage.StorageKey, storage.StorageKey) (api.KeysIter[H, Hasher], error)); ok {
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey, storage.StorageKey) (statemachine.KeysIter[H, Hasher], error)); ok {
 		return rf(hash, prefix, startKey)
 	}
-	if rf, ok := ret.Get(0).(func(H, storage.StorageKey, storage.StorageKey) api.KeysIter[H, Hasher]); ok {
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey, storage.StorageKey) statemachine.KeysIter[H, Hasher]); ok {
 		r0 = rf(hash, prefix, startKey)
 	} else {
-		r0 = ret.Get(0).(api.KeysIter[H, Hasher])
+		r0 = ret.Get(0).(statemachine.KeysIter[H, Hasher])
 	}
 
 	if rf, ok := ret.Get(1).(func(H, storage.StorageKey, storage.StorageKey) error); ok {
@@ -2089,33 +2087,33 @@ func (_c *Client_StorageKeys_Call[H, Hasher, N, E, Header]) Run(run func(hash H,
 	return _c
 }
 
-func (_c *Client_StorageKeys_Call[H, Hasher, N, E, Header]) Return(_a0 api.KeysIter[H, Hasher], _a1 error) *Client_StorageKeys_Call[H, Hasher, N, E, Header] {
+func (_c *Client_StorageKeys_Call[H, Hasher, N, E, Header]) Return(_a0 statemachine.KeysIter[H, Hasher], _a1 error) *Client_StorageKeys_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *Client_StorageKeys_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.StorageKey, storage.StorageKey) (api.KeysIter[H, Hasher], error)) *Client_StorageKeys_Call[H, Hasher, N, E, Header] {
+func (_c *Client_StorageKeys_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.StorageKey, storage.StorageKey) (statemachine.KeysIter[H, Hasher], error)) *Client_StorageKeys_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(run)
 	return _c
 }
 
 // StoragePairs provides a mock function with given fields: hash, prefix, startKey
-func (_m *Client[H, Hasher, N, E, Header]) StoragePairs(hash H, prefix storage.StorageKey, startKey storage.StorageKey) (api.PairsIter[H, Hasher], error) {
+func (_m *Client[H, Hasher, N, E, Header]) StoragePairs(hash H, prefix storage.StorageKey, startKey storage.StorageKey) (statemachine.PairsIter[H, Hasher], error) {
 	ret := _m.Called(hash, prefix, startKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for StoragePairs")
 	}
 
-	var r0 api.PairsIter[H, Hasher]
+	var r0 statemachine.PairsIter[H, Hasher]
 	var r1 error
-	if rf, ok := ret.Get(0).(func(H, storage.StorageKey, storage.StorageKey) (api.PairsIter[H, Hasher], error)); ok {
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey, storage.StorageKey) (statemachine.PairsIter[H, Hasher], error)); ok {
 		return rf(hash, prefix, startKey)
 	}
-	if rf, ok := ret.Get(0).(func(H, storage.StorageKey, storage.StorageKey) api.PairsIter[H, Hasher]); ok {
+	if rf, ok := ret.Get(0).(func(H, storage.StorageKey, storage.StorageKey) statemachine.PairsIter[H, Hasher]); ok {
 		r0 = rf(hash, prefix, startKey)
 	} else {
-		r0 = ret.Get(0).(api.PairsIter[H, Hasher])
+		r0 = ret.Get(0).(statemachine.PairsIter[H, Hasher])
 	}
 
 	if rf, ok := ret.Get(1).(func(H, storage.StorageKey, storage.StorageKey) error); ok {
@@ -2147,12 +2145,12 @@ func (_c *Client_StoragePairs_Call[H, Hasher, N, E, Header]) Run(run func(hash H
 	return _c
 }
 
-func (_c *Client_StoragePairs_Call[H, Hasher, N, E, Header]) Return(_a0 api.PairsIter[H, Hasher], _a1 error) *Client_StoragePairs_Call[H, Hasher, N, E, Header] {
+func (_c *Client_StoragePairs_Call[H, Hasher, N, E, Header]) Return(_a0 statemachine.PairsIter[H, Hasher], _a1 error) *Client_StoragePairs_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *Client_StoragePairs_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.StorageKey, storage.StorageKey) (api.PairsIter[H, Hasher], error)) *Client_StoragePairs_Call[H, Hasher, N, E, Header] {
+func (_c *Client_StoragePairs_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H, storage.StorageKey, storage.StorageKey) (statemachine.PairsIter[H, Hasher], error)) *Client_StoragePairs_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(run)
 	return _c
 }

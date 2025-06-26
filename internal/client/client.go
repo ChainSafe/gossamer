@@ -1382,22 +1382,22 @@ func (c *Client[H, Hasher, N, E, Header]) StorageKeys(
 	hash H,
 	prefix,
 	startKey storage.StorageKey,
-) (api.KeysIter[H, Hasher], error) {
+) (statemachine.KeysIter[H, Hasher], error) {
 	stateAt, err := c.backend.StateAt(hash)
 	if err != nil {
-		return api.KeysIter[H, Hasher]{}, err
+		return statemachine.KeysIter[H, Hasher]{}, err
 	}
 	backend, ok := stateAt.(*statemachine.TrieBackend[H, Hasher])
 	if !ok {
-		return api.KeysIter[H, Hasher]{}, fmt.Errorf(
+		return statemachine.KeysIter[H, Hasher]{}, fmt.Errorf(
 			"got unexpected Backend type from StateAt() %T instead of statemachine.TrieBackend",
 			backend,
 		)
 	}
 
-	iter, err := api.NewKeysIter(backend, &prefix, &startKey)
+	iter, err := statemachine.NewKeysIter(backend, &prefix, &startKey)
 	if err != nil {
-		return api.KeysIter[H, Hasher]{}, err
+		return statemachine.KeysIter[H, Hasher]{}, err
 	}
 
 	return *iter, nil
@@ -1407,22 +1407,22 @@ func (c *Client[H, Hasher, N, E, Header]) StoragePairs(
 	hash H,
 	prefix,
 	startKey storage.StorageKey,
-) (api.PairsIter[H, Hasher], error) {
+) (statemachine.PairsIter[H, Hasher], error) {
 	stateAt, err := c.backend.StateAt(hash)
 	if err != nil {
-		return api.PairsIter[H, Hasher]{}, err
+		return statemachine.PairsIter[H, Hasher]{}, err
 	}
 	backend, ok := stateAt.(*statemachine.TrieBackend[H, Hasher])
 	if !ok {
-		return api.PairsIter[H, Hasher]{}, fmt.Errorf(
+		return statemachine.PairsIter[H, Hasher]{}, fmt.Errorf(
 			"got unexpected Backend type from StateAt() %T instead of statemachine.TrieBackend",
 			backend,
 		)
 	}
 
-	iter, err := api.NewPairsIter(backend, &prefix, &startKey)
+	iter, err := statemachine.NewPairsIter(backend, &prefix, &startKey)
 	if err != nil {
-		return api.PairsIter[H, Hasher]{}, err
+		return statemachine.PairsIter[H, Hasher]{}, err
 	}
 
 	return *iter, nil
@@ -1447,22 +1447,22 @@ func (c *Client[H, Hasher, N, E, Header]) ChildStorageKeys(
 	childInfo storage.ChildInfo,
 	prefix storage.StorageKey,
 	startKey storage.StorageKey,
-) (api.KeysIter[H, Hasher], error) {
+) (statemachine.KeysIter[H, Hasher], error) {
 	stateAt, err := c.backend.StateAt(hash)
 	if err != nil {
-		return api.KeysIter[H, Hasher]{}, err
+		return statemachine.KeysIter[H, Hasher]{}, err
 	}
 	backend, ok := stateAt.(*statemachine.TrieBackend[H, Hasher])
 	if !ok {
-		return api.KeysIter[H, Hasher]{}, fmt.Errorf(
+		return statemachine.KeysIter[H, Hasher]{}, fmt.Errorf(
 			"got unexpected Backend type from StateAt() %T instead of statemachine.TrieBackend",
 			backend,
 		)
 	}
 
-	iter, err := api.NewChildKeysIter(backend, childInfo, &prefix, &startKey)
+	iter, err := statemachine.NewChildKeysIter(backend, childInfo, &prefix, &startKey)
 	if err != nil {
-		return api.KeysIter[H, Hasher]{}, err
+		return statemachine.KeysIter[H, Hasher]{}, err
 	}
 
 	return *iter, nil

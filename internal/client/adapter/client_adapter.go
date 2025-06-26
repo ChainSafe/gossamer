@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -31,7 +30,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
-	"github.com/ChainSafe/gossamer/pkg/trie/triedb/proof"
 )
 
 var ErrMissingOverlayedChanges = errors.New("missing overlayed changes")
