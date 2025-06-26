@@ -745,6 +745,8 @@ func TestHandleIncomingManifestCommon(t *testing.T) {
 }
 
 func TestHandleIncomingManifest(t *testing.T) {
+	t.Parallel()
+
 	overseerCh := make(chan any, 10)
 
 	sd := &StatementDistribution{
