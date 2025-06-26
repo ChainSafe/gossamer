@@ -20,7 +20,11 @@ import (
 )
 
 func TestSendBackingFreshStatements(t *testing.T) {
+	t.Parallel()
+
 	t.Run("should_send_3_statements_to_backing", func(t *testing.T) {
+		t.Parallel()
+
 		relayParent := common.Hash{0x01}
 		groupIndex := parachaintypes.GroupIndex(0)
 
@@ -151,6 +155,8 @@ func TestSendBackingFreshStatements(t *testing.T) {
 	})
 
 	t.Run("should_fail_when_confirmed_candidate_does_not_match", func(t *testing.T) {
+		t.Parallel()
+
 		relayParent := common.Hash{0x01}
 		groupIndex := parachaintypes.GroupIndex(0)
 
@@ -206,7 +212,11 @@ func TestSendBackingFreshStatements(t *testing.T) {
 }
 
 func TestSendPendingGridMessages(t *testing.T) {
+	t.Parallel()
+
 	t.Run("nil_local_validator", func(t *testing.T) {
+		t.Parallel()
+
 		rpHash := common.Hash{0xab}
 		peerID := peer.ID("peer-ex")
 		validationVersion := validationprotocol.ValidationVersionV3
@@ -225,6 +235,8 @@ func TestSendPendingGridMessages(t *testing.T) {
 	})
 
 	t.Run("empty_pending_manifests_for_validator_id", func(t *testing.T) {
+		t.Parallel()
+
 		gt := newGridTracker()
 
 		rpHash := common.Hash{0xab}
@@ -247,6 +259,8 @@ func TestSendPendingGridMessages(t *testing.T) {
 	})
 
 	t.Run("pending_stmts_but_none_confirmed", func(t *testing.T) {
+		t.Parallel()
+
 		ctrl := gomock.NewController(t)
 		peerValidatorID := parachaintypes.ValidatorIndex(0)
 
@@ -285,6 +299,8 @@ func TestSendPendingGridMessages(t *testing.T) {
 	})
 
 	t.Run("pending_full_manifest_confirmed", func(t *testing.T) {
+		t.Parallel()
+
 		ctrl := gomock.NewController(t)
 		peerValidatorID := parachaintypes.ValidatorIndex(4)
 
@@ -382,6 +398,8 @@ func TestSendPendingGridMessages(t *testing.T) {
 	})
 
 	t.Run("pending_full_and_ack_manifest_confirmed", func(t *testing.T) {
+		t.Parallel()
+
 		ctrl := gomock.NewController(t)
 		peerValidatorID := parachaintypes.ValidatorIndex(4)
 
@@ -526,12 +544,16 @@ func TestSendPendingGridMessages(t *testing.T) {
 }
 
 func TestHandleIncomingManifestCommon(t *testing.T) {
+	t.Parallel()
+
 	pierre := peer.ID("pierre")
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x12}}
 	relayParent := common.Hash{0xab}
 	paraID := parachaintypes.ParaID(10)
 
 	t.Run("peer_not_connected", func(t *testing.T) {
+		t.Parallel()
+
 		sd := StatementDistribution{}
 
 		importSuccess := sd.handleIncomingManifestCommon(
@@ -552,6 +574,8 @@ func TestHandleIncomingManifestCommon(t *testing.T) {
 	})
 
 	t.Run("not_in_relay_parent_state", func(t *testing.T) {
+		t.Parallel()
+
 		peers := map[peer.ID]peerState{
 			pierre: {},
 		}
@@ -598,6 +622,8 @@ func TestHandleIncomingManifestCommon(t *testing.T) {
 	})
 
 	t.Run("happy_path", func(t *testing.T) {
+		t.Parallel()
+
 		groupIndex := parachaintypes.GroupIndex(0)
 
 		manifestSummary := manifestSummary{
