@@ -60,40 +60,28 @@ func createInherentData(
 	relayParent common.Hash,
 ) (*InherentData, error) {
 	var (
-		parentHeader        *types.Header
 		provisionerInherent *provisioner.ProvisionerInherentData
-		headerErr, provErr  error
+		provErr             error
 		wg                  sync.WaitGroup
 	)
 
-	wg.Add(2)
-
-	// Fetch parent header concurrently
-	go func() {
-		defer wg.Done()
-		h, err := blockState.GetHeader(relayParent)
-		if err != nil {
-			headerErr = fmt.Errorf("getting header for relay parent %s: %w", relayParent, err)
-			return
-		}
-		if h == nil {
-			headerErr = fmt.Errorf("header for relay parent %s not found", relayParent)
-			return
-		}
-		parentHeader = h
-	}()
-
+	wg.Add(1)
 	// Fetch provisioner inherent data concurrently
 	go func() {
 		defer wg.Done()
 		provisionerInherent, provErr = waitAndRequestProvisionerInherent(overseerCh, relayParent)
 	}()
 
-	wg.Wait()
-
-	if headerErr != nil {
-		return nil, headerErr
+	parentHeader, err := blockState.GetHeader(relayParent)
+	if err != nil {
+		return nil, fmt.Errorf("getting header for relay parent %s: %w", relayParent, err)
 	}
+
+	if parentHeader == nil {
+		return nil, fmt.Errorf("header for relay parent %s not found", relayParent)
+	}
+
+	wg.Wait() // wait for the provisioner inherent data to be fetched
 
 	if provErr != nil {
 		logger.Errorf("getting provisioner inherent data: %s\n", provErr)

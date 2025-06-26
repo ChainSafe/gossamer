@@ -295,7 +295,7 @@ func (o *OverseerSystem) handleBlockEvents() {
 			}
 
 			if _, ok := o.activeLeaves[imported.Header.ParentHash]; ok {
-				activeLeavesUpdate.Deactivated = append(activeLeavesUpdate.Deactivated, imported.Header.Hash())
+				activeLeavesUpdate.Deactivated = append(activeLeavesUpdate.Deactivated, imported.Header.ParentHash)
 				o.onHeadDeactivated(imported.Header.ParentHash)
 			}
 			delete(o.activeLeaves, imported.Header.ParentHash)
