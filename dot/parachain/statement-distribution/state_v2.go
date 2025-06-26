@@ -114,7 +114,7 @@ func (s *perSessionState) supplyTopology(topology *grid.SessionGridTopology, loc
 		localIdx,
 	)
 	if err != nil {
-		logger.Errorf("Failed to build sessionTopologyView for validator index %d: %s", localIdx, err)
+		logger.Errorf("building sessionTopologyView for validator index %d: %s", localIdx, err)
 		return
 	}
 
@@ -128,7 +128,7 @@ func (s *perSessionState) supplyTopology(topology *grid.SessionGridTopology, loc
 
 // isNotValidator returns `true` if local is neither active or inactive validator node.
 //
-// `false` is also returned if session topology is not known yet.
+// returns `false` if session topology is not known yet.
 func (s *perSessionState) isNotValidator() bool {
 	return s.gridView != nil && s.localValidator == nil
 }
