@@ -19,7 +19,7 @@ type RequestInherentData struct {
 }
 
 type ProvisionerInherentData struct {
-	Bitfield         []parachaintypes.CheckedSignedAvailabilityBitfield
+	Bitfields        []parachaintypes.CheckedSignedAvailabilityBitfield
 	BackedCandidates []parachaintypes.BackedCandidate
 	Disputes         []parachaintypes.DisputeStatementSet
 }

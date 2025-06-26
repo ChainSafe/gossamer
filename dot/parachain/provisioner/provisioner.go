@@ -207,7 +207,7 @@ func (p *Provisioner) sendInherentData(
 	}
 
 	inherentData := provisionermessages.ProvisionerInherentData{
-		Bitfield:         bitfields,
+		Bitfields:        bitfields,
 		BackedCandidates: candidates,
 		Disputes:         disputes,
 	}
