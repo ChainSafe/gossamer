@@ -506,7 +506,7 @@ func (s *StatementDistribution) handleIncomingManifestCommon(
 	}
 }
 
-func (s *StatementDistribution) handleIncomingManifest( //nolint:unused
+func (s *StatementDistribution) handleIncomingManifest(
 	state v2State,
 	peer peer.ID,
 	manifest validationprotocol.BackedCandidateManifest,
