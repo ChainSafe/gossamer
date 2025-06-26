@@ -77,6 +77,7 @@ func New(net Network, protocolID protocol.ID, overseerChan chan<- any,
 		collationFetchingReqResProtocol: collationFetchingReqResProtocol,
 		collationRequests:               make(chan CollationRequestInfo, 100),
 		peerData:                        make(map[peer.ID]PeerData),
+		peerVersions:                    make(map[peer.ID]PeerProtocolVersion),
 		currentAssignments:              make(map[parachaintypes.ParaID]uint),
 		perRelayParent:                  make(map[common.Hash]PerRelayParent),
 		BlockedAdvertisements:           make(map[string][]blockedAdvertisement),
@@ -135,12 +136,23 @@ func (cpvs *CollatorProtocolValidatorSide) Run(
 			logger.Debugf("Request %s completed successfully", requestID)
 
 		case unfetchedCollation := <-cpvs.unfetchedCollation:
+			// TODO: If we can't get the collation from given collator within MAX_UNSHARED_DOWNLOAD_TIME,
+			// we will start another one from the next collator.
+			var candidateHash *common.Hash
+			if unfetchedCollation.PendingCollation.ProspectiveCandidate != nil {
+				candidateHash = &unfetchedCollation.PendingCollation.ProspectiveCandidate.CandidateHash.Value
+			}
+
+			var candidateHashParam *parachaintypes.CandidateHash
+			if candidateHash != nil {
+				candidateHashParam = &parachaintypes.CandidateHash{Value: *candidateHash}
+			}
 			// check if this peer id has advertised this relay parent
 			peerData := cpvs.peerData[unfetchedCollation.PendingCollation.PeerID]
-			if peerData.HasAdvertised(unfetchedCollation.PendingCollation.RelayParent, nil) {
+			if peerData.HasAdvertised(unfetchedCollation.PendingCollation.RelayParent, candidateHashParam) {
 				// if so request collation from this peer id
 				collation, err := cpvs.requestCollation(unfetchedCollation.PendingCollation.RelayParent,
-					unfetchedCollation.PendingCollation.ParaID, unfetchedCollation.PendingCollation.PeerID)
+					unfetchedCollation.PendingCollation.ParaID, unfetchedCollation.PendingCollation.PeerID, candidateHash)
 				if err != nil {
 					logger.Errorf("fetching collation: %w", err)
 				}
@@ -317,6 +329,19 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 	return nil
 }
 
+func (cpvs *CollatorProtocolValidatorSide) getPeerProtocolVersion(peerID peer.ID) PeerProtocolVersion {
+	if version, exists := cpvs.peerVersions[peerID]; exists {
+		return version
+	}
+	// Default to V1 for backward compatibility
+	return ProtocolV1
+}
+
+// Add method to detect peer version during handshake or connection
+func (cpvs *CollatorProtocolValidatorSide) setPeerProtocolVersion(peerID peer.ID, version PeerProtocolVersion) {
+	cpvs.peerVersions[peerID] = version
+}
+
 func findValidatorGroup(validatorIndex parachaintypes.ValidatorIndex, validatorGroups parachaintypes.ValidatorGroups,
 ) (parachaintypes.GroupIndex, bool) {
 	for groupIndex, validatorGroup := range validatorGroups.Validators {
@@ -381,7 +406,7 @@ func (*CollatorProtocolValidatorSide) Stop() {
 // - check if the requested collation is in our view
 // TODO: #4711
 func (cpvs *CollatorProtocolValidatorSide) requestCollation(relayParent common.Hash,
-	paraID parachaintypes.ParaID, peerID peer.ID) (*parachaintypes.Collation, error) {
+	paraID parachaintypes.ParaID, peerID peer.ID, candidateHash *common.Hash) (*parachaintypes.Collation, error) {
 
 	_, ok := cpvs.perRelayParent[relayParent]
 	if !ok {
@@ -410,17 +435,42 @@ func (cpvs *CollatorProtocolValidatorSide) requestCollation(relayParent common.H
 		return nil, fmt.Errorf("collation requests channel is full")
 	}
 
-	// make collation fetching request
-	collationFetchingRequest := CollationFetchingRequest{
-		RelayParent: relayParent,
-		ParaID:      paraID,
+	peerVersion := cpvs.getPeerProtocolVersion(peerID)
+
+	var requestMessage network.Message
+
+	switch peerVersion {
+	case ProtocolV1:
+		requestMessage = CollationFetchingRequestV1{
+			RelayParent: relayParent,
+			ParaID:      paraID,
+		}
+	case ProtocolV2:
+		// For V2, we need the candidate hash - this should come from the advertisement
+		// For now, use zero hash as placeholder (you'll need to pass this as parameter)
+		if candidateHash != nil {
+			requestMessage = CollationFetchingRequestV2{
+				RelayParent:   relayParent,
+				ParaID:        paraID,
+				CandidateHash: *candidateHash, // TODO: Get from advertisement
+			}
+		} else {
+			// Should this be an error instead?
+			return nil, fmt.Errorf("V2 peer requires candidate hash")
+		}
+	default:
+		// Fallback to V1
+		requestMessage = CollationFetchingRequestV1{
+			RelayParent: relayParent,
+			ParaID:      paraID,
+		}
 	}
 
 	collationFetchingResponse := NewCollationFetchingResponse()
 
 	done := make(chan error, 1)
 	go func() {
-		err := cpvs.collationFetchingReqResProtocol.Do(peerID, collationFetchingRequest, &collationFetchingResponse)
+		err := cpvs.collationFetchingReqResProtocol.Do(peerID, requestMessage, &collationFetchingResponse)
 		done <- err
 	}()
 
@@ -469,6 +519,13 @@ type PeerData struct {
 	view  parachaintypes.View
 	state PeerStateInfo
 }
+
+type PeerProtocolVersion int
+
+const (
+	ProtocolV1 PeerProtocolVersion = 1
+	ProtocolV2 PeerProtocolVersion = 2
+)
 
 func (peerData *PeerData) HasAdvertised(
 	relayParent common.Hash,
@@ -647,6 +704,9 @@ type CollatorProtocolValidatorSide struct {
 	// track all active collators and their data
 	peerData map[peer.ID]PeerData
 
+	// Track protocol versions for each peer
+	peerVersions map[peer.ID]PeerProtocolVersion
+
 	// Channel that gets populated when new collation requests are sent
 	collationRequests chan CollationRequestInfo
 
@@ -798,9 +858,12 @@ func (cpvs *CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) er
 					Instant:   time.Now(),
 				},
 			}
+			// Default to V1, will upgrade if we detect V2 capabilities later
+			cpvs.setPeerProtocolVersion(msg.PeerID, ProtocolV1)
 		}
 	case networkbridgeevents.PeerDisconnected:
 		delete(cpvs.peerData, msg.PeerID)
+		delete(cpvs.peerVersions, msg.PeerID)
 	case networkbridgeevents.NewGossipTopology:
 		// NOTE: This won't happen
 	case networkbridgeevents.PeerViewChange:

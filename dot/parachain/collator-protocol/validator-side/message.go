@@ -156,9 +156,17 @@ func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation Pendi
 		return ErrNotAdvertised
 	}
 
-	// TODO #4711
+	// Convert parachaintypes.CandidateHash to *common.Hash for requestCollation
+	var candidateHashCommon *common.Hash
+	if candidateHash != nil {
+		candidateHashCommon = &candidateHash.Value // Extract the common.Hash from CandidateHash
+	}
+	// TODO: Add it to collation_fetch_timeouts if we can't process this in timeout time.
+	// state
+	// .collation_fetch_timeouts
+	// .push(timeout(id.clone(), candidate_hash, relay_parent).boxed());
 	collation, err := cpvs.requestCollation(pendingCollation.RelayParent, pendingCollation.ParaID,
-		pendingCollation.PeerID)
+		pendingCollation.PeerID, candidateHashCommon)
 	if err != nil {
 		return fmt.Errorf("requesting collation: %w", err)
 	}
@@ -423,8 +431,25 @@ func (cpvs *CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender
 		if err != nil {
 			return fmt.Errorf("handling v1 advertisement: %w", err)
 		}
+		// TODO:
+		// - tracks advertisements received and the source (peer id) of the advertisement
+		// - accept one advertisement per collator per source per relay-parent
+	case 2: // AdvertiseCollationV2
+		advertiseCollationV2Message, ok := collatorProtocolMessageV.(collatorprotocolmessages.AdvertiseCollationV2)
+		if !ok {
+			return errors.New("expected message to be advertise collation v2")
+		}
+		prospectiveCandidate := &ProspectiveCandidate{
+			CandidateHash:      advertiseCollationV2Message.CandidateHash,
+			ParentHeadDataHash: advertiseCollationV2Message.ParentHeadDataHash,
+		}
 
-	case CollationSeconded:
+		err := cpvs.handleAdvertisement(advertiseCollationV2Message.RelayParent, sender, prospectiveCandidate)
+		if err != nil {
+			return fmt.Errorf("handling v2 advertisement: %w", err)
+		}
+
+	case 4: // CollationSeconded
 		logger.Errorf("unexpected collation seconded message from peer %s, decreasing its reputation", sender)
 		cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
 			PeerID: sender,

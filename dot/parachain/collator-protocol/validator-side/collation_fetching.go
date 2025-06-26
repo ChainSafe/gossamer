@@ -19,9 +19,11 @@ const (
 	collationFetchingMaxResponseSize = maxPoVSize + 10000 // 10MB
 )
 
+type CollationFetchingRequest = CollationFetchingRequestV1
+
 // CollationFetchingRequest represents a request to retrieve
 // the advertised collation at the specified relay chain block.
-type CollationFetchingRequest struct {
+type CollationFetchingRequestV1 struct {
 	// Relay parent we want a collation for
 	RelayParent common.Hash `scale:"1"`
 
@@ -29,8 +31,23 @@ type CollationFetchingRequest struct {
 	ParaID parachaintypes.ParaID `scale:"2"`
 }
 
+// CollationFetchingRequestV2 represents the enhanced request format
+// with candidate hash
+type CollationFetchingRequestV2 struct {
+	// Relay parent we want a collation for
+	RelayParent common.Hash `scale:"1"`
+	// Parachain id of the collation
+	ParaID parachaintypes.ParaID `scale:"2"`
+	// Hash of the candidate we want a collation for
+	CandidateHash common.Hash `scale:"3"`
+}
+
 // Encode returns the SCALE encoding of the CollationFetchingRequest
-func (c CollationFetchingRequest) Encode() ([]byte, error) {
+func (c CollationFetchingRequestV1) Encode() ([]byte, error) {
+	return scale.Marshal(c)
+}
+
+func (c CollationFetchingRequestV2) Encode() ([]byte, error) {
 	return scale.Marshal(c)
 }
 
