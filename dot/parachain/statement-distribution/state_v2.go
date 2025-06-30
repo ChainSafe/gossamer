@@ -61,7 +61,7 @@ type activeValidatorState struct {
 	index          parachaintypes.ValidatorIndex
 	groupIndex     parachaintypes.GroupIndex
 	assignments    []parachaintypes.ParaID
-	clusterTracker any // TODO: use cluster tracker implementation (#4713)
+	clusterTracker clusterTracker
 }
 
 // skipcq:SCC-U1000
@@ -220,6 +220,6 @@ type v2State struct {
 	peers            map[peer.ID]peerState
 	keystore         keystore.Keystore
 	authorities      map[parachaintypes.AuthorityDiscoveryID]string
-	requestManager   any // TODO: #4377
-	responseManager  any // TODO: #4378
+	requestManager   *requestManager
+	responseManager  responseManager // TODO: when switching to implementation, might want to use a pointer here (#4378)
 }

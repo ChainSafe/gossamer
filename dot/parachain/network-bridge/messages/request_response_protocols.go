@@ -21,6 +21,7 @@ const (
 	AvailableDataFetchingV1
 	StatementFetchingV1
 	DisputeSendingV1
+	AttestedCandidateV2
 )
 
 func (n ReqProtocolName) String() string {
@@ -39,6 +40,8 @@ func (n ReqProtocolName) String() string {
 		return "req_statement/1"
 	case DisputeSendingV1:
 		return "send_dispute/1"
+	case AttestedCandidateV2:
+		return "/req_attested_candidate/2"
 	default:
 		panic("unknown protocol")
 	}

@@ -587,10 +587,9 @@ func (s *StatementDistribution) handleIncomingManifest(
 		// 5. if unconfirmed, add request entry
 		logger.Tracef("Unknown candidate - requesting candidateHash=%s", manifest.CandidateHash.String())
 
-		// TODO #4377
-		//state.requestManager.
-		//	getOrInsert(manifest.RelayParent, manifest.CandidateHash, manifest.GroupIndex).
-		//	addPeer(peer)
+		state.requestManager.
+			getOrInsert(manifest.RelayParent, manifest.CandidateHash, manifest.GroupIndex).
+			addPeer(peer)
 	}
 }
 
@@ -881,4 +880,13 @@ func pendingStatementNetworkMessage(
 	}
 
 	return nil
+}
+
+// secondedAndSufficient returns true if the statement filter meets the backing threshold for grid requests.
+func secondedAndSufficient(filter *parachaintypes.StatementFilter, backingThreshold *int) bool { //nolint:unused
+	if backingThreshold == nil {
+		return true
+	}
+
+	return filter.HasSeconded() && filter.BackingValidators() >= *backingThreshold
 }
