@@ -37,6 +37,7 @@ type Service struct {
 	epochState       EpochState
 
 	blockImportHandler BlockImportHandler
+	overseerMessenger  OverseerMessenger
 
 	// BABE authority keypair
 	keypair *sr25519.Keypair // TODO: change to BABE keystore (#1864)
@@ -57,6 +58,7 @@ type ServiceConfig struct {
 	TransactionState   TransactionState
 	EpochState         EpochState
 	BlockImportHandler BlockImportHandler
+	OverseerMessenger  OverseerMessenger
 	Keypair            *sr25519.Keypair
 	AuthData           []types.Authority
 	IsDev              bool
@@ -103,6 +105,7 @@ func (Builder) NewServiceIFace(cfg *ServiceConfig) (service *Service, err error)
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
+		overseerMessenger:  cfg.OverseerMessenger,
 		constants: constants{
 			slotDuration: slotDuration,
 			epochLength:  cfg.EpochState.GetEpochLength(),
@@ -145,6 +148,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
+		overseerMessenger:  cfg.OverseerMessenger,
 		constants: constants{
 			slotDuration: slotDuration,
 			epochLength:  cfg.EpochState.GetEpochLength(),

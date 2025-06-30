@@ -140,6 +140,10 @@ func (Service) Stop() error {
 	return nil
 }
 
+func (s Service) OverseerChannel() chan<- any {
+	return s.overseer.GetSubsystemToOverseerChannel()
+}
+
 // Network is the interface required by parachain service for the network
 type Network interface {
 	GossipMessage(msg network.NotificationsMessage)

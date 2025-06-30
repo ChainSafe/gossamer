@@ -10,6 +10,7 @@ import (
 	"math"
 	"sort"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -1166,4 +1167,16 @@ type DistributeBitfield struct {
 type WaitForActivation struct {
 	RelayParent common.Hash
 	ResponseCh  chan error
+}
+
+// InherentData represents parachains inherent-data passed into the runtime by a block author
+type InherentData struct {
+	// Bitfields represents signed bitfields by validators about availability.
+	Bitfields []UncheckedSignedAvailabilityBitfield `scale:"1"`
+	// BackedCandidates represents backed candidates for inclusion in the block.
+	BackedCandidates []BackedCandidate `scale:"2"`
+	// Disputes represents sets of dispute votes for inclusion.
+	Disputes []DisputeStatementSet `scale:"3"`
+	// ParentHeader represents the parent block header. Used for checking state proofs.
+	ParentHeader types.Header `scale:"4"`
 }

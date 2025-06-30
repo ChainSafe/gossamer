@@ -79,3 +79,8 @@ type EpochState interface {
 type BlockImportHandler interface {
 	HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error
 }
+
+// OverseerMessenger is the interface that provides a channel to send messages to the overseer.
+type OverseerMessenger interface {
+	OverseerChannel() chan<- any
+}

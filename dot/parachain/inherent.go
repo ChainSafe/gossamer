@@ -17,48 +17,16 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
 var errResponseChannelClosed = fmt.Errorf("response channel is closed")
 
-// InherentData represents parachains inherent-data passed into the runtime by a block author
-type InherentData struct {
-	// Bitfields represents signed bitfields by validators about availability.
-	Bitfields []parachaintypes.UncheckedSignedAvailabilityBitfield `scale:"1"`
-	// BackedCandidates represents backed candidates for inclusion in the block.
-	BackedCandidates []parachaintypes.BackedCandidate `scale:"2"`
-	// Disputes represents sets of dispute votes for inclusion.
-	Disputes []parachaintypes.DisputeStatementSet `scale:"3"`
-	// ParentHeader represents the parent block header. Used for checking state proofs.
-	ParentHeader types.Header `scale:"4"`
-}
-
 type blockState interface {
 	GetHeader(common.Hash) (*types.Header, error)
 }
 
-// ProvideInherentData creates the inherent data for the parachain block authoring process
-// and returns it as a types.InherentData object with the parachain inherent data.
-func ProvideInherentData(
+// CreateInherentData fetches the necessary data for the parachain inherent and returns it as an InherentData object.
+func CreateInherentData(
 	blockState blockState,
 	overseerCh chan<- any,
 	relayParent common.Hash,
-) (*types.InherentData, error) {
-	parachainInherentData, err := createInherentData(blockState, overseerCh, relayParent)
-	if err != nil {
-		return nil, fmt.Errorf("creating parachain inherent data: %w", err)
-	}
-
-	inherentData := types.NewInherentData()
-	err = inherentData.SetInherent(types.Parachn0, parachainInherentData)
-	if err != nil {
-		return nil, fmt.Errorf("setting parachain inherent data: %w", err)
-	}
-
-	return inherentData, nil
-}
-
-func createInherentData(
-	blockState blockState,
-	overseerCh chan<- any,
-	relayParent common.Hash,
-) (*InherentData, error) {
+) (*parachaintypes.InherentData, error) {
 	var (
 		provisionerInherent *provisioner.ProvisionerInherentData
 		provErr             error
@@ -85,7 +53,7 @@ func createInherentData(
 
 	if provErr != nil {
 		logger.Errorf("getting provisioner inherent data: %s\n", provErr)
-		return &InherentData{ParentHeader: *parentHeader}, provErr
+		return &parachaintypes.InherentData{ParentHeader: *parentHeader}, provErr
 	}
 
 	uncheckBitfields := make([]parachaintypes.UncheckedSignedAvailabilityBitfield, 0, len(provisionerInherent.Bitfields))
@@ -93,7 +61,7 @@ func createInherentData(
 		uncheckBitfields = append(uncheckBitfields, parachaintypes.UncheckedSignedAvailabilityBitfield(bitfield))
 	}
 
-	return &InherentData{
+	return &parachaintypes.InherentData{
 		Bitfields:        uncheckBitfields,
 		BackedCandidates: provisionerInherent.BackedCandidates,
 		Disputes:         provisionerInherent.Disputes,

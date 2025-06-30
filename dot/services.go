@@ -224,8 +224,8 @@ type ServiceBuilder interface {
 var _ ServiceBuilder = (*babe.Builder)(nil)
 
 func (nb nodeBuilder) createBABEService(config *cfg.Config, st *state.Service, ks KeyStore,
-	cs *core.Service, telemetryMailer Telemetry) (service *babe.Service, err error) {
-	return nb.createBABEServiceWithBuilder(config, st, ks, cs, telemetryMailer, babe.Builder{})
+	cs *core.Service, telemetryMailer Telemetry, om babe.OverseerMessenger) (service *babe.Service, err error) {
+	return nb.createBABEServiceWithBuilder(config, st, ks, cs, telemetryMailer, babe.Builder{}, om)
 }
 
 // KeyStore is the keystore interface for the BABE service.
@@ -236,7 +236,7 @@ type KeyStore interface {
 }
 
 func (nodeBuilder) createBABEServiceWithBuilder(config *cfg.Config, st *state.Service, ks KeyStore,
-	cs *core.Service, telemetryMailer Telemetry, newBabeService ServiceBuilder) (
+	cs *core.Service, telemetryMailer Telemetry, newBabeService ServiceBuilder, om babe.OverseerMessenger) (
 	service *babe.Service, err error) {
 	logger.Info("creating BABE service" +
 		asAuthority(config.Core.BabeAuthority) + "...")
@@ -262,6 +262,7 @@ func (nodeBuilder) createBABEServiceWithBuilder(config *cfg.Config, st *state.Se
 		TransactionState:   st.Transaction,
 		EpochState:         st.Epoch,
 		BlockImportHandler: cs,
+		OverseerMessenger:  om,
 		Authority:          config.Core.BabeAuthority,
 		IsDev:              config.ID == "dev",
 		Telemetry:          telemetryMailer,

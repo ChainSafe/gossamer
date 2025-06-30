@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/parachain"
+
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -38,7 +39,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt Runtime,
 	ethmetrics.Enabled = true
 
 	start := time.Now()
-	block, err := builder.buildBlock(parent, slot, rt)
+	block, err := builder.buildBlock(parent, slot, rt, b.blockState, b.overseerMessenger)
 	if err != nil {
 		builderErrors := ethmetrics.GetOrRegisterCounter(buildBlockErrors, nil)
 		builderErrors.Inc(1)
@@ -76,7 +77,8 @@ func NewBlockBuilder(
 	}
 }
 
-func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt Runtime) (*types.Block, error) {
+func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt Runtime,
+	blockState BlockState, om OverseerMessenger) (*types.Block, error) {
 	logger.Tracef("build block with parent %s and slot: %s", parent, slot)
 
 	// create new block header
@@ -97,7 +99,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt Runtime) (
 	logger.Trace("initialised block")
 
 	// add block inherents
-	inherents, err := buildBlockInherents(slot, rt, parent)
+	inherents, err := buildBlockInherents(slot, rt, parent, om, blockState)
 	if err != nil {
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
@@ -226,7 +228,8 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt ExtrinsicHandler) []*t
 	return included
 }
 
-func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) ([][]byte, error) {
+func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header,
+	om OverseerMessenger, blockState BlockState) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentData()
 	err := idata.SetInherent(types.Timstap0, uint64(slot.start.UnixMilli()))
@@ -240,13 +243,10 @@ func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) (
 		return nil, err
 	}
 
-	parachainInherent := inherents.ParachainInherentData{
-		ParentHeader: *parent,
+	parachainInherent, err := parachain.CreateInherentData(blockState, om.OverseerChannel(), parent.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("creating parachain inherent data: %w", err)
 	}
-
-	// add parachn0 and newheads
-	// for now we can use "empty" values, as we require parachain-specific
-	// logic to actually provide the data.
 
 	if err = idata.SetInherent(types.Parachn0, parachainInherent); err != nil {
 		return nil, fmt.Errorf("setting inherent %q: %w", types.Parachn0, err)

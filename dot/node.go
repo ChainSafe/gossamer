@@ -69,7 +69,7 @@ type nodeBuilderIface interface {
 		verifier *babe.VerificationManager, cs *core.Service, net *network.Service,
 		telemetryMailer Telemetry) (*dotsync.Service, error)
 	createBABEService(config *cfg.Config, st *state.Service, ks KeyStore, cs *core.Service,
-		telemetryMailer Telemetry) (service *babe.Service, err error)
+		telemetryMailer Telemetry, om babe.OverseerMessenger) (service *babe.Service, err error)
 	createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error)
 	createRPCService(params rpcServiceSettings) (*rpc.HTTPServer, error)
 }
@@ -393,7 +393,7 @@ func newNode(config *cfg.Config,
 	}
 	nodeSrvcs = append(nodeSrvcs, phs)
 
-	bp, err := builder.createBABEService(config, stateSrvc, ks.Babe, coreSrvc, telemetryMailer)
+	bp, err := builder.createBABEService(config, stateSrvc, ks.Babe, coreSrvc, telemetryMailer, phs)
 	if err != nil {
 		return nil, err
 	}
