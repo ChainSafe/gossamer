@@ -54,18 +54,18 @@ func (m *MocknodeBuilderIface) EXPECT() *MocknodeBuilderIfaceMockRecorder {
 }
 
 // createBABEService mocks base method.
-func (m *MocknodeBuilderIface) createBABEService(config *config.Config, st *state.Service, ks KeyStore, cs *core.Service, telemetryMailer Telemetry) (*babe.Service, error) {
+func (m *MocknodeBuilderIface) createBABEService(arg0 *config.Config, st *state.Service, ks KeyStore, cs *core.Service, telemetryMailer Telemetry, om babe.OverseerMessenger) (*babe.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "createBABEService", config, st, ks, cs, telemetryMailer)
+	ret := m.ctrl.Call(m, "createBABEService", arg0, st, ks, cs, telemetryMailer, om)
 	ret0, _ := ret[0].(*babe.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // createBABEService indicates an expected call of createBABEService.
-func (mr *MocknodeBuilderIfaceMockRecorder) createBABEService(config, st, ks, cs, telemetryMailer any) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) createBABEService(arg0, st, ks, cs, telemetryMailer, om any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createBABEService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createBABEService), config, st, ks, cs, telemetryMailer)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createBABEService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createBABEService), arg0, st, ks, cs, telemetryMailer, om)
 }
 
 // createBlockVerifier mocks base method.
@@ -83,18 +83,18 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createBlockVerifier(st any) *gomock.
 }
 
 // createCoreService mocks base method.
-func (m *MocknodeBuilderIface) createCoreService(config *config.Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service) (*core.Service, error) {
+func (m *MocknodeBuilderIface) createCoreService(arg0 *config.Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service) (*core.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "createCoreService", config, ks, st, net)
+	ret := m.ctrl.Call(m, "createCoreService", arg0, ks, st, net)
 	ret0, _ := ret[0].(*core.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // createCoreService indicates an expected call of createCoreService.
-func (mr *MocknodeBuilderIfaceMockRecorder) createCoreService(config, ks, st, net any) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) createCoreService(arg0, ks, st, net any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createCoreService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createCoreService), config, ks, st, net)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createCoreService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createCoreService), arg0, ks, st, net)
 }
 
 // createDigestHandler mocks base method.
@@ -113,33 +113,33 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createDigestHandler(st any) *gomock.
 }
 
 // createGRANDPAService mocks base method.
-func (m *MocknodeBuilderIface) createGRANDPAService(config *config.Config, st *state.Service, ks KeyStore, net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error) {
+func (m *MocknodeBuilderIface) createGRANDPAService(arg0 *config.Config, st *state.Service, ks KeyStore, net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "createGRANDPAService", config, st, ks, net, telemetryMailer)
+	ret := m.ctrl.Call(m, "createGRANDPAService", arg0, st, ks, net, telemetryMailer)
 	ret0, _ := ret[0].(*grandpa.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // createGRANDPAService indicates an expected call of createGRANDPAService.
-func (mr *MocknodeBuilderIfaceMockRecorder) createGRANDPAService(config, st, ks, net, telemetryMailer any) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) createGRANDPAService(arg0, st, ks, net, telemetryMailer any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createGRANDPAService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createGRANDPAService), config, st, ks, net, telemetryMailer)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createGRANDPAService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createGRANDPAService), arg0, st, ks, net, telemetryMailer)
 }
 
 // createNetworkService mocks base method.
-func (m *MocknodeBuilderIface) createNetworkService(config *config.Config, stateSrvc *state.Service, telemetryMailer Telemetry) (*network.Service, error) {
+func (m *MocknodeBuilderIface) createNetworkService(arg0 *config.Config, stateSrvc *state.Service, telemetryMailer Telemetry) (*network.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "createNetworkService", config, stateSrvc, telemetryMailer)
+	ret := m.ctrl.Call(m, "createNetworkService", arg0, stateSrvc, telemetryMailer)
 	ret0, _ := ret[0].(*network.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // createNetworkService indicates an expected call of createNetworkService.
-func (mr *MocknodeBuilderIfaceMockRecorder) createNetworkService(config, stateSrvc, telemetryMailer any) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) createNetworkService(arg0, stateSrvc, telemetryMailer any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createNetworkService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createNetworkService), config, stateSrvc, telemetryMailer)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createNetworkService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createNetworkService), arg0, stateSrvc, telemetryMailer)
 }
 
 // createParachainHostService mocks base method.
@@ -188,18 +188,18 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createRuntimeStorage(st any) *gomock
 }
 
 // createStateService mocks base method.
-func (m *MocknodeBuilderIface) createStateService(config *config.Config) (*state.Service, error) {
+func (m *MocknodeBuilderIface) createStateService(arg0 *config.Config) (*state.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "createStateService", config)
+	ret := m.ctrl.Call(m, "createStateService", arg0)
 	ret0, _ := ret[0].(*state.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // createStateService indicates an expected call of createStateService.
-func (mr *MocknodeBuilderIfaceMockRecorder) createStateService(config any) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) createStateService(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createStateService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createStateService), config)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createStateService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createStateService), arg0)
 }
 
 // createSystemService mocks base method.
@@ -218,44 +218,44 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createSystemService(cfg, stateSrvc a
 }
 
 // initNode mocks base method.
-func (m *MocknodeBuilderIface) initNode(config *config.Config) error {
+func (m *MocknodeBuilderIface) initNode(arg0 *config.Config) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "initNode", config)
+	ret := m.ctrl.Call(m, "initNode", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // initNode indicates an expected call of initNode.
-func (mr *MocknodeBuilderIfaceMockRecorder) initNode(config any) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) initNode(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "initNode", reflect.TypeOf((*MocknodeBuilderIface)(nil).initNode), config)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "initNode", reflect.TypeOf((*MocknodeBuilderIface)(nil).initNode), arg0)
 }
 
 // loadRuntime mocks base method.
-func (m *MocknodeBuilderIface) loadRuntime(config *config.Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
+func (m *MocknodeBuilderIface) loadRuntime(arg0 *config.Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "loadRuntime", config, ns, stateSrvc, ks, net)
+	ret := m.ctrl.Call(m, "loadRuntime", arg0, ns, stateSrvc, ks, net)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // loadRuntime indicates an expected call of loadRuntime.
-func (mr *MocknodeBuilderIfaceMockRecorder) loadRuntime(config, ns, stateSrvc, ks, net any) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) loadRuntime(arg0, ns, stateSrvc, ks, net any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "loadRuntime", reflect.TypeOf((*MocknodeBuilderIface)(nil).loadRuntime), config, ns, stateSrvc, ks, net)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "loadRuntime", reflect.TypeOf((*MocknodeBuilderIface)(nil).loadRuntime), arg0, ns, stateSrvc, ks, net)
 }
 
 // newSyncService mocks base method.
-func (m *MocknodeBuilderIface) newSyncService(config *config.Config, st *state.Service, finalityGadget BlockJustificationVerifier, verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (*sync.Service, error) {
+func (m *MocknodeBuilderIface) newSyncService(arg0 *config.Config, st *state.Service, finalityGadget BlockJustificationVerifier, verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (*sync.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "newSyncService", config, st, finalityGadget, verifier, cs, net, telemetryMailer)
+	ret := m.ctrl.Call(m, "newSyncService", arg0, st, finalityGadget, verifier, cs, net, telemetryMailer)
 	ret0, _ := ret[0].(*sync.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // newSyncService indicates an expected call of newSyncService.
-func (mr *MocknodeBuilderIfaceMockRecorder) newSyncService(config, st, finalityGadget, verifier, cs, net, telemetryMailer any) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) newSyncService(arg0, st, finalityGadget, verifier, cs, net, telemetryMailer any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "newSyncService", reflect.TypeOf((*MocknodeBuilderIface)(nil).newSyncService), config, st, finalityGadget, verifier, cs, net, telemetryMailer)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "newSyncService", reflect.TypeOf((*MocknodeBuilderIface)(nil).newSyncService), arg0, st, finalityGadget, verifier, cs, net, telemetryMailer)
 }

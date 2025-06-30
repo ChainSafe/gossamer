@@ -371,15 +371,15 @@ func (mr *MockBlockStateMockRecorder) SetJustification(hash, data any) *gomock.C
 }
 
 // StoreRuntime mocks base method.
-func (m *MockBlockState) StoreRuntime(blockHash common.Hash, runtime runtime.Instance) {
+func (m *MockBlockState) StoreRuntime(blockHash common.Hash, arg1 runtime.Instance) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "StoreRuntime", blockHash, runtime)
+	m.ctrl.Call(m, "StoreRuntime", blockHash, arg1)
 }
 
 // StoreRuntime indicates an expected call of StoreRuntime.
-func (mr *MockBlockStateMockRecorder) StoreRuntime(blockHash, runtime any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) StoreRuntime(blockHash, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreRuntime", reflect.TypeOf((*MockBlockState)(nil).StoreRuntime), blockHash, runtime)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreRuntime", reflect.TypeOf((*MockBlockState)(nil).StoreRuntime), blockHash, arg1)
 }
 
 // MockStorageState is a mock of StorageState interface.

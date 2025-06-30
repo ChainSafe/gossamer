@@ -8,6 +8,7 @@ package core
 import (
 	"context"
 	"fmt"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"math/big"
 	"os"
 	"testing"
@@ -17,7 +18,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -720,7 +720,7 @@ func buildTestBlockWithoutExtrinsics(t *testing.T, instance runtime.Instance,
 	err = inherentData.SetInherent(types.Babeslot, uint64(1))
 	require.NoError(t, err)
 
-	parachainInherent := inherents.ParachainInherentData{
+	parachainInherent := parachaintypes.InherentData{
 		ParentHeader: *parentHeader,
 	}
 

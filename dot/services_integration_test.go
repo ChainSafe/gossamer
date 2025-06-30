@@ -33,6 +33,14 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
+type mockOverseerMessenger struct {
+	ch chan any
+}
+
+func (m mockOverseerMessenger) OverseerChannel() chan<- any {
+	return m.ch
+}
+
 func Test_nodeBuilder_createBABEService(t *testing.T) {
 	t.Parallel()
 
@@ -106,14 +114,15 @@ func Test_nodeBuilder_createBABEService(t *testing.T) {
 						})
 			}
 
+			overseerMessenger := mockOverseerMessenger{ch: make(chan any)}
 			builder := nodeBuilder{}
 			var got *babe.Service
 			if tt.args.initStateService {
 				got, err = builder.createBABEServiceWithBuilder(tt.args.cfg, stateSrvc, tt.args.ks, tt.args.cs,
-					tt.args.telemetryMailer, mockBabeBuilder)
+					tt.args.telemetryMailer, mockBabeBuilder, overseerMessenger)
 			} else {
 				got, err = builder.createBABEServiceWithBuilder(tt.args.cfg, &state.Service{}, tt.args.ks, tt.args.cs,
-					tt.args.telemetryMailer, mockBabeBuilder)
+					tt.args.telemetryMailer, mockBabeBuilder, overseerMessenger)
 			}
 
 			assert.Equal(t, tt.expected, got)
@@ -652,7 +661,8 @@ func TestCreateBABEService_Integration(t *testing.T) {
 	coreSrvc, err := builder.createCoreService(config, ks, stateSrvc, &network.Service{})
 	require.NoError(t, err)
 
-	bs, err := builder.createBABEService(config, stateSrvc, ks.Babe, coreSrvc, nil)
+	overseerMessenger := mockOverseerMessenger{ch: make(chan any)}
+	bs, err := builder.createBABEService(config, stateSrvc, ks.Babe, coreSrvc, nil, overseerMessenger)
 	require.NoError(t, err)
 	require.NotNil(t, bs)
 }

@@ -168,7 +168,7 @@ func TestNewNode(t *testing.T) {
 		gomock.AssignableToTypeOf(&telemetry.Mailer{})).
 		Return(&dotsync.Service{}, nil)
 	m.EXPECT().createBABEService(initConfig, gomock.AssignableToTypeOf(&state.Service{}), ks.Babe,
-		&core.Service{}, gomock.AssignableToTypeOf(&telemetry.Mailer{})).
+		&core.Service{}, gomock.AssignableToTypeOf(&telemetry.Mailer{}), gomock.AssignableToTypeOf(&parachain.Service{})).
 		Return(&babe.Service{}, nil)
 	m.EXPECT().createSystemService(systemInfo, gomock.AssignableToTypeOf(&state.Service{})).
 		DoAndReturn(func(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error) {
