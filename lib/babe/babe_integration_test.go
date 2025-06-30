@@ -1,12 +1,13 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-//go:build integration
-
 package babe
 
 import (
 	"fmt"
+	provisioner "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"go.uber.org/mock/gomock"
 	"testing"
 	"time"
 
@@ -33,6 +34,14 @@ var AuthorOnEverySlotBABEConfig = &types.BabeConfiguration{
 	},
 	Randomness:     [32]byte{},
 	SecondarySlots: 0,
+}
+
+type mockOverseerMessenger struct {
+	ch chan any
+}
+
+func (m mockOverseerMessenger) OverseerChannel() chan<- any {
+	return m.ch
 }
 
 func TestService_SlotDuration(t *testing.T) {
@@ -182,7 +191,32 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 		preRuntimeDigest,
 	)
 
-	block, err := builder.buildBlock(&genesisHeader, slot, rt)
+	ctrl := gomock.NewController(t)
+	bs := NewMockBlockState(ctrl)
+	bs.EXPECT().GetHeader(gomock.Any()).Return(&types.Header{
+		ParentHash: emptyHash,
+		Number:     0,
+	}, nil)
+
+	ovChan := make(chan any)
+	go func() {
+		ovMsg := <-ovChan
+		waitForActivation, ok := ovMsg.(parachaintypes.WaitForActivation)
+		require.True(t, ok)
+		waitForActivation.ResponseCh <- nil
+
+		ovMsg = <-ovChan
+		provisionerInherentReq, ok := ovMsg.(provisioner.RequestInherentData)
+		require.True(t, ok)
+		// Provide valid inherent data with required bitfields and heads
+		provisionerInherentReq.ProvisionerInherentData <- provisioner.ProvisionerInherentData{
+			Bitfields:        []parachaintypes.CheckedSignedAvailabilityBitfield{},
+			BackedCandidates: []parachaintypes.BackedCandidate{},
+			Disputes:         []parachaintypes.DisputeStatementSet{},
+		}
+	}()
+
+	block, err := builder.buildBlock(&genesisHeader, slot, rt, bs, mockOverseerMessenger{ch: ovChan})
 	require.NoError(t, err)
 
 	fmt.Println(epochDescriptor.startSlot)
@@ -255,7 +289,10 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		preRuntimeDigest,
 	)
 
-	block, err := builder.buildBlock(&genesisHeader, slot, runtime)
+	ctrl := gomock.NewController(t)
+	bs := NewMockBlockState(ctrl)
+
+	block, err := builder.buildBlock(&genesisHeader, slot, runtime, bs, mockOverseerMessenger{ch: make(chan any)})
 	require.NoError(t, err)
 
 	// Create new non authority service
