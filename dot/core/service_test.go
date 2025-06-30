@@ -651,7 +651,6 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(&common.Hash{1}).Return(&rtstorage.InMemoryTrieState{}, nil)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{1}).Return(&common.Hash{1}, nil)
 		service := &Service{
 			transactionState: mockTxnState,
 			blockState:       mockBlockState,
@@ -718,7 +717,6 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(&common.Hash{1}).Return(&rtstorage.InMemoryTrieState{}, nil)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{1}).Return(&common.Hash{1}, nil)
 		service := &Service{
 			transactionState: mockTxnState,
 			blockState:       mockBlockStateOk,
@@ -1158,23 +1156,10 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		assert.Equal(t, exp, res)
 	}
 
-	t.Run("get_state_root_err", func(t *testing.T) {
-		t.Parallel()
-		ctrl := gomock.NewController(t)
-		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(nil, errDummyErr)
-		service := &Service{
-			storageState: mockStorageState,
-		}
-		const expectedErrMessage = "setting up runtime: getting state root from block hash: dummy error for testing"
-		execTest(t, service, &common.Hash{}, runtime.Version{}, errDummyErr, expectedErrMessage)
-	})
-
 	t.Run("trie_state_err", func(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, errDummyErr)
 		service := &Service{
 			storageState: mockStorageState,
@@ -1187,7 +1172,6 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
 
 		mockBlockState := NewMockBlockState(ctrl)
@@ -1204,7 +1188,6 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil).MaxTimes(2)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(ts, nil).MaxTimes(2)
 
 		runtimeMock := NewMockInstance(ctrl)
@@ -1248,7 +1231,6 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(nil, errDummyErr)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
@@ -1273,7 +1255,6 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.InMemoryTrieState{}, nil)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().Exists(nil).MaxTimes(2)
@@ -1297,7 +1278,6 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.InMemoryTrieState{}, nil)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().Exists(types.Extrinsic{})
@@ -1354,7 +1334,6 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 
 		mockStorageState := NewMockStorageState(ctrl)
 		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.InMemoryTrieState{}, nil)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().Exists(types.Extrinsic{}).MaxTimes(2)
@@ -1382,18 +1361,6 @@ func TestServiceGetMetadata(t *testing.T) {
 		}
 		assert.Equal(t, exp, res)
 	}
-
-	t.Run("get_state_root_error", func(t *testing.T) {
-		t.Parallel()
-		ctrl := gomock.NewController(t)
-		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(nil, errDummyErr)
-		service := &Service{
-			storageState: mockStorageState,
-		}
-		const expectedErrMessage = "setting up runtime: getting state root from block hash: dummy error for testing"
-		execTest(t, service, &common.Hash{}, nil, errDummyErr, expectedErrMessage)
-	})
 
 	t.Run("trie_state_error", func(t *testing.T) {
 		t.Parallel()

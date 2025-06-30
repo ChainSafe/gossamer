@@ -19,10 +19,11 @@ func (s *Service) validateTransaction(head *types.Header, rt runtime.Instance,
 	tx types.Extrinsic) (validity *transaction.Validity, err error) {
 	s.storageState.Lock()
 
-	ts, err := s.storageState.TrieState(&head.StateRoot)
+	bhash := head.Hash()
+	ts, err := s.storageState.TrieState(&bhash)
 	s.storageState.Unlock()
 	if err != nil {
-		return nil, fmt.Errorf("cannot get trie state from storage for root %s: %w", head.StateRoot, err)
+		return nil, fmt.Errorf("cannot get trie state from storage for block hash %s: %w", bhash.String(), err)
 	}
 
 	rt.SetContextStorage(ts)

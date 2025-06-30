@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/pkg/trie"
 	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -31,7 +30,7 @@ func newTestStorageState(t *testing.T) *InmemoryStorageState {
 
 func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(nil)
 	require.NoError(t, err)
 
 	root, err := ts.Root()
@@ -51,7 +50,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(nil)
 	require.NoError(t, err)
 
 	key := []byte("testkey")
@@ -84,36 +83,9 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	require.Equal(t, value, res)
 }
 
-func TestStorage_TrieState(t *testing.T) {
-	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
-	require.NoError(t, err)
-	ts.Put([]byte("noot"), []byte("washere"))
-
-	root, err := ts.Root()
-	require.NoError(t, err)
-	err = storage.StoreTrie(ts, nil)
-	require.NoError(t, err)
-
-	time.Sleep(time.Millisecond * 100)
-
-	// get trie from db
-	storage.blockState.GetTries().delete(root)
-	ts3, err := storage.TrieState(&root)
-	require.NoError(t, err)
-
-	tsRoot, err := ts.Root()
-	require.NoError(t, err)
-
-	ts3Root, err := ts3.Root()
-	require.NoError(t, err)
-
-	require.Equal(t, tsRoot, ts3Root)
-}
-
 func TestStorage_LoadFromDB(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(nil)
 	require.NoError(t, err)
 
 	trieKV := []struct {
@@ -160,7 +132,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(nil)
 	require.NoError(t, err)
 
 	key := []byte("testkey")

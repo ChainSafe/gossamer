@@ -614,8 +614,17 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) Pause() error {
 	panic("unimplemented")
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) TrieState(root *common.Hash) (rtstorage.TrieState, error) {
-	stateAt, err := ca.getStateByStateRoot(root)
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) TrieState(bhash *common.Hash) (rtstorage.TrieState, error) {
+	var hash H
+
+	if bhash == nil {
+		hash = ca.client.Info().BestHash
+	} else {
+		hasher := *new(Hasher)
+		hash = hasher.NewHash(bhash.ToBytes())
+	}
+
+	stateAt, err := ca.client.StateAt(hash)
 	if err != nil {
 		return nil, err
 	}

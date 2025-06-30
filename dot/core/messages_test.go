@@ -114,6 +114,7 @@ func TestService_TransactionsCount(t *testing.T) {
 
 func TestServiceHandleTransactionMessage(t *testing.T) {
 	testEmptyHeader := types.NewEmptyHeader()
+	headerHash := testEmptyHeader.Hash()
 	testExtrinsic := []types.Extrinsic{{1, 2, 3}}
 
 	ctrl := gomock.NewController(t)
@@ -222,7 +223,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				},
 			},
 			mockStorageState: &mockStorageState{
-				input: &common.Hash{},
+				input: &headerHash,
 				err:   errDummyErr,
 			},
 			args: args{
@@ -232,8 +233,8 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				},
 			},
 			expErr: errDummyErr,
-			expErrMsg: "validating transaction from peerID D1KeRhQ: cannot get trie state from storage" +
-				" for root 0x0000000000000000000000000000000000000000000000000000000000000000: dummy error for testing",
+			expErrMsg: "validating transaction from peerID D1KeRhQ: cannot get trie state from storage for block " +
+				"hash 0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a: dummy error for testing",
 		},
 		{
 			name: "runtime.ErrInvalidTransaction",
@@ -257,7 +258,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				callsBestBlockHash: true,
 			},
 			mockStorageState: &mockStorageState{
-				input:     &common.Hash{},
+				input:     &headerHash,
 				trieState: &storage.InMemoryTrieState{},
 			},
 			mockRuntime: &mockRuntime{
@@ -301,7 +302,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 				callsBestBlockHash: true,
 			},
 			mockStorageState: &mockStorageState{
-				input:     &common.Hash{},
+				input:     &headerHash,
 				trieState: &storage.InMemoryTrieState{},
 			},
 			mockTxnState: &mockTxnState{

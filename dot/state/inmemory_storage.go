@@ -23,7 +23,7 @@ var storagePrefix = "storage"
 var codeKey = common.CodeKey
 
 // ErrTrieDoesNotExist is returned when attempting to interact with a trie that is not stored in the StorageState
-var ErrTrieDoesNotExist = errors.New("trie with given root does not exist")
+var ErrTrieDoesNotExist = errors.New("trie for given state root does not exist")
 
 func errTrieDoesNotExist(hash common.Hash) error {
 	return fmt.Errorf("%w: %s", ErrTrieDoesNotExist, hash)
@@ -98,31 +98,46 @@ func (s *InmemoryStorageState) StoreTrie(ts storage.TrieState, header *types.Hea
 		}
 	}
 
-	go s.notifyAll(root)
+	var bhash *common.Hash
+	if header != nil {
+		h := header.Hash()
+		bhash = &h
+	}
+
+	go s.notifyAll(root, bhash)
 	return nil
 }
 
-// TrieState returns the TrieState for a given state root.
-// If no state root is provided, it returns the TrieState for the current chain head.
-func (s *InmemoryStorageState) TrieState(root *common.Hash) (storage.TrieState, error) {
-	if root == nil {
+// TrieState returns the TrieState for a given block hash.
+// If no block hash is provided, it returns the TrieState for the current chain head.
+func (s *InmemoryStorageState) TrieState(bhash *common.Hash) (storage.TrieState, error) {
+	if bhash == nil {
 		header, err := s.blockState.BestBlockHeader()
 		if err != nil {
-			return nil, fmt.Errorf("while getting best block state root: %w", err)
+			return nil, fmt.Errorf("while getting best block header: %w", err)
 		}
-		root = &header.StateRoot
+		h := header.Hash()
+		bhash = &h
 	}
 
-	t := s.tries.get(*root)
+	root, err := s.GetStateRootFromBlock(bhash)
+	if err != nil {
+		return nil, fmt.Errorf("getting state root for block hash %s: %w", bhash.String(), err)
+	}
+	return s.trieStateByRoot(*root)
+}
+
+func (s *InmemoryStorageState) trieStateByRoot(root common.Hash) (storage.TrieState, error) {
+	t := s.tries.get(root)
 	if t == nil {
 		var err error
-		t, err = s.LoadFromDB(*root)
+		t, err = s.LoadFromDB(root)
 		if err != nil {
 			return nil, fmt.Errorf("while loading from database: %w", err)
 		}
 
-		s.tries.softSet(*root, t)
-	} else if t.MustHash() != *root {
+		s.tries.softSet(root, t)
+	} else if t.MustHash() != root {
 		panic("trie does not have expected root")
 	}
 

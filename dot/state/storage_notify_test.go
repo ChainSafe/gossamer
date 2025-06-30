@@ -44,9 +44,8 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	ss.RegisterStorageObserver(mockobs)
 	defer ss.UnregisterStorageObserver(mockobs)
 
-	ts.Put([]byte("mackcom"), []byte("wuz here"))
-	err = ss.StoreTrie(ts, nil)
-	require.NoError(t, err)
+	require.NoError(t, ts.Put([]byte("mackcom"), []byte("wuz here")))
+	require.NoError(t, ss.StoreTrie(ts, nil))
 
 	// We need to wait since GetFilter and Update are called
 	// in fire and forget goroutines. Not ideal, but it's out of scope

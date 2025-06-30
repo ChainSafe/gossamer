@@ -248,18 +248,18 @@ func (mr *MockStorageStateMockRecorder) StoreTrie(arg0, arg1 any) *gomock.Call {
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(root *common.Hash) (storage.TrieState, error) {
+func (m *MockStorageState) TrieState(bhash *common.Hash) (storage.TrieState, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TrieState", root)
+	ret := m.ctrl.Call(m, "TrieState", bhash)
 	ret0, _ := ret[0].(storage.TrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TrieState indicates an expected call of TrieState.
-func (mr *MockStorageStateMockRecorder) TrieState(root any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) TrieState(bhash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), root)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), bhash)
 }
 
 // Unlock mocks base method.

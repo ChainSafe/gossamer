@@ -13,7 +13,7 @@ import (
 )
 
 type StorageState interface {
-	TrieState(root *common.Hash) (rtstorage.TrieState, error)
+	TrieState(bhash *common.Hash) (rtstorage.TrieState, error)
 	StoreTrie(rtstorage.TrieState, *types.Header) error
 
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)

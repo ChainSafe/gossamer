@@ -487,13 +487,7 @@ func (s *Service) maintainTransactionPool(block *types.Block, bestBlockHash comm
 		s.transactionState.RemoveExtrinsic(ext)
 	}
 
-	stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
-	if err != nil {
-		logger.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
-		return err
-	}
-
-	ts, err := s.storageState.TrieState(stateRoot)
+	ts, err := s.storageState.TrieState(&bestBlockHash)
 	if err != nil {
 		logger.Errorf(err.Error())
 		return err
@@ -586,12 +580,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	bestBlockHash := s.blockState.BestBlockHash()
 
-	stateRoot, err := s.storageState.GetStateRootFromBlock(&bestBlockHash)
-	if err != nil {
-		return fmt.Errorf("could not get state root from block %s: %w", bestBlockHash, err)
-	}
-
-	ts, err := s.storageState.TrieState(stateRoot)
+	ts, err := s.storageState.TrieState(&bestBlockHash)
 	if err != nil {
 		return err
 	}
@@ -679,15 +668,7 @@ func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrin
 
 func prepareRuntime(blockHash *common.Hash, storageState state.StorageState,
 	blockState state.BlockState) (instance runtime.Instance, err error) {
-	var stateRootHash *common.Hash
-	if blockHash != nil {
-		stateRootHash, err = storageState.GetStateRootFromBlock(blockHash)
-		if err != nil {
-			return nil, fmt.Errorf("getting state root from block hash: %w", err)
-		}
-	}
-
-	trieState, err := storageState.TrieState(stateRootHash)
+	trieState, err := storageState.TrieState(blockHash)
 	if err != nil {
 		return nil, fmt.Errorf("getting trie state: %w", err)
 	}
