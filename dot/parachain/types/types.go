@@ -206,7 +206,8 @@ type OccupiedCore struct {
 	// The hash of the candidate occupying the core.
 	CandidateHash common.Hash `scale:"7"`
 	// The descriptor of the candidate occupying the core.
-	CandidateDescriptor CandidateDescriptor `scale:"8"`
+	// CandidateDescriptor CandidateDescriptor `scale:"8"`
+	CandidateDescriptor CandidateDescriptorV2 `scale:"8"`
 }
 
 // ScheduledCore Information about a core which is currently occupied.
@@ -397,18 +398,18 @@ func (c CommittedCandidateReceipt) Hash() (common.Hash, error) {
 }
 
 var (
-	_ hashable = CommittedCandidateReceiptV2{}
-	_ hashable = CandidateReceiptV2{}
+	_ Hashable = CommittedCandidateReceiptV2{}
+	_ Hashable = CandidateReceiptV2{}
 )
 
-type hashable interface {
+type Hashable interface {
 	Hash() (common.Hash, error)
 }
 
 // GetCandidateHash returns the CandidateHash.
 //
 // candidate would be either CommittedCandidateReceipt or CandidateReceipt.
-func GetCandidateHash(candidate hashable) (CandidateHash, error) {
+func GetCandidateHash(candidate Hashable) (CandidateHash, error) {
 	h, err := candidate.Hash()
 	if err != nil {
 		return CandidateHash{}, err
@@ -1166,4 +1167,10 @@ func (v Validator) VerifySignature(
 type DistributeBitfield struct {
 	RelayParent common.Hash
 	Bitfield    UncheckedSignedAvailabilityBitfield
+}
+
+// WaitForActivation is the external request to the overseer to wait for activation of a relay parent.
+type WaitForActivation struct {
+	RelayParent common.Hash
+	ResponseCh  chan error
 }

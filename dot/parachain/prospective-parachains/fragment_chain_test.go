@@ -1961,14 +1961,15 @@ func TestFindAncestorPathAndFindBackableChainEmptyBestChain(t *testing.T) {
 	assert.Equal(t, 0, chain.bestChainLen())
 
 	assert.Equal(t, 0, chain.findAncestorPath(map[parachaintypes.CandidateHash]struct{}{}))
-	assert.Equal(t, []*candidateAndRelayParent{}, chain.findBackableChain(map[parachaintypes.CandidateHash]struct{}{}, 2))
+	assert.Equal(t, []*parachaintypes.CandidateHashAndRelayParent{},
+		chain.findBackableChain(map[parachaintypes.CandidateHash]struct{}{}, 2))
 
 	// Invalid candidate
 	ancestors := map[parachaintypes.CandidateHash]struct{}{
 		{Value: common.Hash{}}: {},
 	}
 	assert.Equal(t, 0, chain.findAncestorPath(ancestors))
-	assert.Equal(t, []*candidateAndRelayParent{}, chain.findBackableChain(ancestors, 2))
+	assert.Equal(t, []*parachaintypes.CandidateHashAndRelayParent{}, chain.findBackableChain(ancestors, 2))
 }
 
 func TestFindAncestorPathAndFindBackableChain(t *testing.T) {
@@ -2023,13 +2024,13 @@ func TestFindAncestorPathAndFindBackableChain(t *testing.T) {
 
 	type Ancestors = map[parachaintypes.CandidateHash]struct{}
 
-	hashes := func(from, to uint) []*candidateAndRelayParent {
-		var output []*candidateAndRelayParent
+	hashes := func(from, to uint) []*parachaintypes.CandidateHashAndRelayParent {
+		var output []*parachaintypes.CandidateHashAndRelayParent
 
 		for i := from; i < to; i++ {
-			output = append(output, &candidateAndRelayParent{
-				candidateHash:   candidateHashes[i],
-				realyParentHash: relayParent,
+			output = append(output, &parachaintypes.CandidateHashAndRelayParent{
+				CandidateHash:        candidateHashes[i],
+				CandidateRelayParent: relayParent,
 			})
 		}
 
@@ -2098,14 +2099,14 @@ func TestFindAncestorPathAndFindBackableChain(t *testing.T) {
 		require.Equal(t, 6, chain.bestChainLen())
 
 		for count := 0; count < 10; count++ {
-			var result []*candidateAndRelayParent
+			var result []*parachaintypes.CandidateHashAndRelayParent
 			if count > 6 {
 				result = hashes(0, 6)
 			} else {
 				for i := 0; i < count && i < 6; i++ {
-					result = append(result, &candidateAndRelayParent{
-						candidateHash:   candidateHashes[i],
-						realyParentHash: relayParent,
+					result = append(result, &parachaintypes.CandidateHashAndRelayParent{
+						CandidateHash:        candidateHashes[i],
+						CandidateRelayParent: relayParent,
 					})
 				}
 			}
@@ -2132,7 +2133,7 @@ func TestFindAncestorPathAndFindBackableChain(t *testing.T) {
 
 		// no ancestors supplied
 		require.Equal(t, 0, chain.findAncestorPath(make(Ancestors)))
-		require.Equal(t, []*candidateAndRelayParent(nil), chain.findBackableChain(make(Ancestors), 0))
+		require.Equal(t, []*parachaintypes.CandidateHashAndRelayParent(nil), chain.findBackableChain(make(Ancestors), 0))
 		require.Equal(t, hashes(0, 1), chain.findBackableChain(make(Ancestors), 1))
 		require.Equal(t, hashes(0, 2), chain.findBackableChain(make(Ancestors), 2))
 		require.Equal(t, hashes(0, 5), chain.findBackableChain(make(Ancestors), 5))

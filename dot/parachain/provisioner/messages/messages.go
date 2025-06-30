@@ -19,6 +19,9 @@ type RequestInherentData struct {
 }
 
 type ProvisionerInherentData struct {
+	Bitfields        []parachaintypes.CheckedSignedAvailabilityBitfield
+	BackedCandidates []parachaintypes.BackedCandidate
+	Disputes         []parachaintypes.DisputeStatementSet
 }
 
 // ProvisionableData is a provisioner message.

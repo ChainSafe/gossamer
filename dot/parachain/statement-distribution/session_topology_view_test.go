@@ -148,3 +148,77 @@ func TestBuildSessionTopology(t *testing.T) {
 		)
 	})
 }
+
+func TestSessionTopologyView_IterSendingForGroup(t *testing.T) {
+	t.Parallel()
+
+	t.Run("non_existent_group", func(t *testing.T) {
+		t.Parallel()
+
+		view := newSessionTopologyView()
+
+		var results []parachaintypes.ValidatorIndex
+		for i := range view.iterSendingForGroup(42, full) {
+			results = append(results, i)
+		}
+
+		// Should be empty since group doesn't exist
+		require.Empty(t, results)
+	})
+
+	t.Run("manifestKind_full", func(t *testing.T) {
+		t.Parallel()
+
+		view := newSessionTopologyView()
+
+		groupIdx := parachaintypes.GroupIndex(1)
+		view.groupViews[groupIdx] = groupSubView{
+			sending: map[parachaintypes.ValidatorIndex]struct{}{
+				5: {},
+				7: {},
+			},
+			receiving: map[parachaintypes.ValidatorIndex]struct{}{
+				1: {},
+				2: {},
+				3: {},
+			},
+		}
+
+		var results []parachaintypes.ValidatorIndex
+		for i := range view.iterSendingForGroup(groupIdx, full) {
+			results = append(results, i)
+		}
+
+		// For full manifest kind, should return indices from receiving map
+		require.Len(t, results, 3)
+		require.ElementsMatch(t, []parachaintypes.ValidatorIndex{1, 2, 3}, results)
+	})
+
+	t.Run("manifestKind_acknowledgement", func(t *testing.T) {
+		t.Parallel()
+
+		view := newSessionTopologyView()
+
+		groupIdx := parachaintypes.GroupIndex(1)
+		view.groupViews[groupIdx] = groupSubView{
+			sending: map[parachaintypes.ValidatorIndex]struct{}{
+				5: {},
+				7: {},
+			},
+			receiving: map[parachaintypes.ValidatorIndex]struct{}{
+				1: {},
+				2: {},
+				3: {},
+			},
+		}
+
+		var results []parachaintypes.ValidatorIndex
+		for i := range view.iterSendingForGroup(groupIdx, acknowledgement) {
+			results = append(results, i)
+		}
+
+		// For acknowledgement kind, should return indices from sending map
+		require.Len(t, results, 2)
+		require.ElementsMatch(t, []parachaintypes.ValidatorIndex{5, 7}, results)
+	})
+}

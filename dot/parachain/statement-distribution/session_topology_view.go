@@ -4,6 +4,7 @@
 package statementdistribution
 
 import (
+	"iter"
 	"maps"
 	"slices"
 
@@ -48,6 +49,31 @@ type sessionTopologyView struct {
 func newSessionTopologyView() *sessionTopologyView {
 	return &sessionTopologyView{
 		groupViews: make(map[parachaintypes.GroupIndex]groupSubView),
+	}
+}
+
+// iterSendingForGroup returns an iterator over all validator indices from the group who are allowed to
+// send us manifests of the given kind.
+func (stv *sessionTopologyView) iterSendingForGroup(
+	group parachaintypes.GroupIndex,
+	kind manifestKind,
+) iter.Seq[parachaintypes.ValidatorIndex] {
+	return func(yield func(parachaintypes.ValidatorIndex) bool) {
+		groupView, ok := stv.groupViews[group]
+		if !ok {
+			return
+		}
+
+		validators := groupView.receiving
+		if kind == acknowledgement {
+			validators = groupView.sending
+		}
+
+		for validatorIndex := range validators {
+			if !yield(validatorIndex) {
+				return
+			}
+		}
 	}
 }
 

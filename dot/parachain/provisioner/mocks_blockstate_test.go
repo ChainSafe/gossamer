@@ -12,8 +12,8 @@ package provisioner
 import (
 	reflect "reflect"
 
-	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	common "github.com/ChainSafe/gossamer/lib/common"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -42,10 +42,10 @@ func (m *MockBlockState) EXPECT() *MockBlockStateMockRecorder {
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(blockHash common.Hash) (parachain.RuntimeInstance, error) {
+func (m *MockBlockState) GetRuntime(blockHash common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRuntime", blockHash)
-	ret0, _ := ret[0].(parachain.RuntimeInstance)
+	ret0, _ := ret[0].(runtime.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

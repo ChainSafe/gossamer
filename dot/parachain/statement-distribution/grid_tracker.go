@@ -23,6 +23,17 @@ const (
 	acknowledgement
 )
 
+func (mk manifestKind) String() string {
+	switch mk {
+	case full:
+		return "full"
+	case acknowledgement:
+		return "acknowledgement"
+	default:
+		panic("unreachable")
+	}
+}
+
 type validatorGroupPair struct {
 	validator parachaintypes.ValidatorIndex
 	group     parachaintypes.GroupIndex
@@ -47,7 +58,7 @@ func (o originatorStatementPairSet) insert(
 func (o originatorStatementPairSet) remove(
 	validatorIndex parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
-) bool {
+) bool { //nolint:unparam
 	for pair := range o {
 		if pair.validatorIndex == validatorIndex && pair.compactStmt.Equals(statement) {
 			delete(o, pair)
@@ -95,7 +106,7 @@ func (g *gridTracker) importManifest( //skipcq: GO-R1005
 	sessionTopology *sessionTopologyView,
 	groups groups,
 	candidateHash parachaintypes.CandidateHash,
-	secondingLimit uint, //nolint:unparam
+	secondingLimit uint,
 	manifest manifestSummary,
 	kind manifestKind,
 	sender parachaintypes.ValidatorIndex,

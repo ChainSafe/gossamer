@@ -14,40 +14,17 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 )
 
-type candidatesTracker interface {
-	frontierHypotheticals(*common.Hash, *parachaintypes.ParaID) []parachaintypes.HypotheticalCandidate
-	onDeactivateLeaves(leaves []common.Hash, rpLiveFn func(common.Hash) bool)
-	noteImportableUnder(hypo parachaintypes.HypotheticalCandidate, leaf common.Hash)
-	getConfirmed(candidateHash parachaintypes.CandidateHash) (*confirmedCandidate, bool)
-	isConfirmed(candidateHash parachaintypes.CandidateHash) bool
-}
-
 // requestManager defines the interface that manages
 // outgoing requests
 type requestManager interface {
 	removeByRelayParent(rp common.Hash)
 }
 
-type statementStore interface {
-	validatorStatement(stmt originatorStatementPair) (*parachaintypes.SignedStatement, bool)
-
-	// freshStatementsForBacking provides a list of all statements marked as being
-	// unknown by the backing subsystem. This provides `Seconded` statements prior to `Valid` statements.
-	freshStatementsForBacking(validators []parachaintypes.ValidatorIndex,
-		candidateHash parachaintypes.CandidateHash) []*parachaintypes.SignedStatement
-	noteKnownByBacking(parachaintypes.ValidatorIndex, parachaintypes.CompactStatement)
-	fillStatementFilter(parachaintypes.GroupIndex, parachaintypes.CandidateHash, *parachaintypes.StatementFilter)
-	// Get an iterator over stored signed statements by the group conforming to the
-	// given filter.
-	// Seconded statements are provided first.
-	groupStatements(*groups, parachaintypes.GroupIndex, parachaintypes.CandidateHash,
-		*parachaintypes.StatementFilter) []*parachaintypes.SignedStatement
-}
-
 // skipcq:SCC-U1000
 type perRelayParentState struct {
 	localValidator       *localValidatorState
-	statementStore       statementStore // TODO #4719: Create statement store
+	statementStore       *statementStore
+	secondingLimit       uint
 	session              parachaintypes.SessionIndex
 	transposedClaimQueue parachaintypes.TransposedClaimQueue
 	groupsPerPara        map[parachaintypes.ParaID][]parachaintypes.GroupIndex
@@ -69,7 +46,7 @@ func (p *perRelayParentState) isDisabled(vIdx parachaintypes.ValidatorIndex) boo
 	return ok
 }
 
-func (p *perRelayParentState) disableBitmask(group []parachaintypes.ValidatorIndex) (parachaintypes.BitVec, error) {
+func (p *perRelayParentState) disabledBitmask(group []parachaintypes.ValidatorIndex) (parachaintypes.BitVec, error) {
 	disableBm := make([]bool, len(group))
 	for idx, v := range group {
 		disableBm[idx] = p.isDisabled(v)
@@ -146,9 +123,8 @@ func (s *perSessionState) supplyTopology(topology *grid.SessionGridTopology, loc
 		topology,
 		localIdx,
 	)
-
 	if err != nil {
-		logger.Errorf("Failed to build session topology: %v", err)
+		logger.Errorf("building sessionTopologyView for validator index %d: %s", localIdx, err)
 		return
 	}
 
@@ -158,6 +134,13 @@ func (s *perSessionState) supplyTopology(topology *grid.SessionGridTopology, loc
 		"Node uses the following topology indices: "+
 			"index_in_gossip_topology: %d, index_in_parachain_auths: %d",
 		localIdx, s.localValidator)
+}
+
+// isNotValidator returns `true` if local is neither active or inactive validator node.
+//
+// returns `false` if session topology is not known yet.
+func (s *perSessionState) isNotValidator() bool {
+	return s.gridView != nil && s.localValidator == nil
 }
 
 // skipcq:SCC-U1000
@@ -239,7 +222,7 @@ func (p *peerState) iterKnownDiscoveryIDs() []parachaintypes.AuthorityDiscoveryI
 
 type v2State struct {
 	implicitView     parachainutil.ImplicitView
-	candidates       candidatesTracker // TODO #4718: Create Candidates Tracker
+	candidates       *candidates
 	perRelayParent   map[common.Hash]*perRelayParentState
 	perSession       map[parachaintypes.SessionIndex]*perSessionState
 	unusedTopologies map[parachaintypes.SessionIndex]events.NewGossipTopology
