@@ -449,6 +449,9 @@ func (cpvs *CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender
 			return fmt.Errorf("handling v2 advertisement: %w", err)
 		}
 
+		logger.Debugf("Peer %s sent V2 advertisement, upgrading to ProtocolV2", sender)
+		cpvs.setPeerProtocolVersion(sender, ProtocolV2)
+
 	case 4: // CollationSeconded
 		logger.Errorf("unexpected collation seconded message from peer %s, decreasing its reputation", sender)
 		cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{

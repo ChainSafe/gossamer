@@ -858,8 +858,6 @@ func (cpvs *CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) er
 					Instant:   time.Now(),
 				},
 			}
-			// Default to V1, will upgrade if we detect V2 capabilities later
-			cpvs.setPeerProtocolVersion(msg.PeerID, ProtocolV1)
 		}
 	case networkbridgeevents.PeerDisconnected:
 		delete(cpvs.peerData, msg.PeerID)
