@@ -743,3 +743,133 @@ func TestHandleIncomingManifestCommon(t *testing.T) {
 		require.Equal(t, groupIndex, validatorAndGroups[0].group)
 	})
 }
+
+func TestHandleIncomingManifest(t *testing.T) {
+	t.Parallel()
+
+	overseerCh := make(chan any, 10)
+
+	sd := &StatementDistribution{
+		SubSystemToOverseer: overseerCh,
+	}
+
+	peerID := peer.ID("pierre")
+	groupIndex := parachaintypes.GroupIndex(0)
+	validatorIndex := parachaintypes.ValidatorIndex(1)
+	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{1, 2, 3, 4}}
+	relayParent := common.Hash{5, 6, 7, 8}
+	paraID := parachaintypes.ParaID(42)
+	authKey := [32]byte{0x04}
+
+	seconded, err := parachaintypes.NewBitVec([]bool{true, false, false})
+	require.NoError(t, err)
+	valid, err := parachaintypes.NewBitVec([]bool{false, true, false})
+	require.NoError(t, err)
+
+	manifest := validationprotocol.BackedCandidateManifest{
+		RelayParent:        relayParent,
+		CandidateHash:      candidateHash,
+		GroupIndex:         groupIndex,
+		ParaID:             paraID,
+		ParentHeadDataHash: common.Hash{9, 10, 11, 12},
+		StatementKnowledge: parachaintypes.StatementFilter{
+			SecondedInGroup:  seconded,
+			ValidatedInGroup: valid,
+		},
+	}
+
+	groups := newGroups(
+		[][]parachaintypes.ValidatorIndex{
+			{0, 1, 2},
+			{3, 4, 5},
+		},
+		2,
+	)
+
+	gt := newGridTracker()
+	gt.confirmedBacked[candidateHash] = knownBackedCandidate{
+		mutualKnowledge: make(map[parachaintypes.ValidatorIndex]mutualKnowledge),
+	}
+
+	mockState := v2State{
+		peers: map[peer.ID]peerState{
+			peerID: {
+				protocolVersion: validationprotocol.ValidationVersionV3,
+				discoveryIds:    &map[parachaintypes.AuthorityDiscoveryID]struct{}{authKey: {}},
+			},
+		},
+		perRelayParent: map[common.Hash]perRelayParentState{
+			relayParent: {
+				session: 1,
+				localValidator: &localValidatorStore{
+					gridTracker: gt,
+				},
+				groupsPerPara: map[parachaintypes.ParaID][]parachaintypes.GroupIndex{
+					paraID: {groupIndex},
+				},
+				assignmentsPerGroup: map[parachaintypes.GroupIndex][]parachaintypes.ParaID{
+					groupIndex: {paraID},
+				},
+				statementStore: newStatementStore(groups),
+			},
+		},
+		perSession: map[parachaintypes.SessionIndex]perSessionState{
+			1: {
+				localValidator: &validatorIndex,
+				gridView: &sessionTopologyView{
+					groupViews: map[parachaintypes.GroupIndex]groupSubView{
+						groupIndex: {
+							sending:   make(map[parachaintypes.ValidatorIndex]struct{}),
+							receiving: map[parachaintypes.ValidatorIndex]struct{}{validatorIndex: {}},
+						},
+					},
+				},
+				groups: groups,
+				sessionInfo: parachaintypes.SessionInfo{
+					DiscoveryKeys: []parachaintypes.AuthorityDiscoveryID{
+						{0x0a},  // Validator 0
+						authKey, // Validator 1 - matches our peer's authority key
+						{0x0c},  // Validator 2
+					},
+				},
+			},
+		},
+		candidates: candidates{
+			candidates: map[parachaintypes.CandidateHash]candidateState{
+				candidateHash: &confirmedCandidate{
+					receipt: parachaintypes.CommittedCandidateReceiptV2{
+						Descriptor: parachaintypes.CandidateDescriptorV2{
+							RelayParent: relayParent,
+							ParaID:      paraID,
+						},
+					},
+					assignedGroup: groupIndex,
+					parentHash:    common.Hash{9, 10, 11, 12},
+					importableUnder: map[common.Hash]struct{}{
+						{13}: {},
+					},
+				},
+			},
+		},
+	}
+
+	reputation := util.NewReputationAggregator(func(util.UnifiedReputationChange) bool { return false })
+
+	sd.handleIncomingManifest(mockState, peerID, manifest, reputation)
+
+	require.Len(t, overseerCh, 1)
+
+	var message any
+	select {
+	case message = <-overseerCh:
+	default:
+		t.Fatal("No message was sent to the overseer")
+	}
+
+	sendMessages, ok := message.(networkbridgemessages.SendValidationMessages)
+	require.True(t, ok)
+
+	require.NotEmpty(t, sendMessages.Messages)
+	require.Contains(t, sendMessages.Messages[0].To, peerID)
+	require.NotNil(t, sendMessages.Messages[0].ValidationProtocolMessage)
+}

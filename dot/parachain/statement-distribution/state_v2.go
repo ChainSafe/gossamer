@@ -12,6 +12,7 @@ import (
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type candidatesStore interface {
@@ -212,11 +213,11 @@ func (p *peerState) iterKnownDiscoveryIDs() []parachaintypes.AuthorityDiscoveryI
 
 type v2State struct {
 	implicitView     parachainutil.ImplicitView
-	candidates       any // TODO #4718: Create Candidates Tracker
+	candidates       candidates
 	perRelayParent   map[common.Hash]perRelayParentState
 	perSession       map[parachaintypes.SessionIndex]perSessionState
 	unusedTopologies map[parachaintypes.SessionIndex]events.NewGossipTopology
-	peers            map[string]peerState
+	peers            map[peer.ID]peerState
 	keystore         keystore.Keystore
 	authorities      map[parachaintypes.AuthorityDiscoveryID]string
 	requestManager   any // TODO: #4377
