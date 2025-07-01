@@ -53,7 +53,7 @@ func CreateInherentData(
 
 	if provErr != nil {
 		logger.Errorf("getting provisioner inherent data: %s\n", provErr)
-		return &parachaintypes.InherentData{ParentHeader: *parentHeader}, provErr
+		return &parachaintypes.InherentData{ParentHeader: *parentHeader}, nil
 	}
 
 	uncheckBitfields := make([]parachaintypes.UncheckedSignedAvailabilityBitfield, 0, len(provisionerInherent.Bitfields))
