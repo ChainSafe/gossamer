@@ -242,8 +242,18 @@ func (s *InmemoryStorageState) StorageRoot() (common.Hash, error) {
 	return header.StateRoot, nil
 }
 
-// Entries returns Entries from the trie with the given state root
-func (s *InmemoryStorageState) Entries(root *common.Hash) (map[string][]byte, error) {
+// Entries returns Entries from the trie for the given block hash
+func (s *InmemoryStorageState) Entries(bhash *common.Hash) (map[string][]byte, error) {
+	if bhash == nil {
+		b := s.blockState.BestBlockHash()
+		bhash = &b
+	}
+
+	root, err := s.GetStateRootFromBlock(bhash)
+	if err != nil {
+		return nil, err
+	}
+
 	tr, err := s.loadTrie(root)
 	if err != nil {
 		return nil, err

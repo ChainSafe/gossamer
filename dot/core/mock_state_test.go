@@ -927,18 +927,18 @@ func (m *MockStorageState) EXPECT() *MockStorageStateMockRecorder {
 }
 
 // Entries mocks base method.
-func (m *MockStorageState) Entries(root *common.Hash) (map[string][]byte, error) {
+func (m *MockStorageState) Entries(bhash *common.Hash) (map[string][]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Entries", root)
+	ret := m.ctrl.Call(m, "Entries", bhash)
 	ret0, _ := ret[0].(map[string][]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Entries indicates an expected call of Entries.
-func (mr *MockStorageStateMockRecorder) Entries(root any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) Entries(bhash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Entries", reflect.TypeOf((*MockStorageState)(nil).Entries), root)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Entries", reflect.TypeOf((*MockStorageState)(nil).Entries), bhash)
 }
 
 // GenerateTrieProof mocks base method.

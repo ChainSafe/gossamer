@@ -143,7 +143,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 
 	storage.blockState.GetTries().delete(root)
 
-	entries, err := storage.Entries(&root)
+	entries, err := storage.Entries(&hash)
 	require.NoError(t, err)
 	require.Equal(t, 5, len(entries))
 }
