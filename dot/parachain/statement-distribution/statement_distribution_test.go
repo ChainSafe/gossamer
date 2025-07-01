@@ -261,7 +261,6 @@ func TestSendPendingGridMessages(t *testing.T) {
 	t.Run("pending_stmts_but_none_confirmed", func(t *testing.T) {
 		t.Parallel()
 
-		ctrl := gomock.NewController(t)
 		peerValidatorID := parachaintypes.ValidatorIndex(0)
 
 		gt := newGridTracker()
@@ -281,19 +280,11 @@ func TestSendPendingGridMessages(t *testing.T) {
 			},
 		}
 
-		candidatesMock := NewMockcandidatesTracker(ctrl)
-		candidatesMock.EXPECT().
-			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0x12}}).
-			Return(nil, false)
-		candidatesMock.EXPECT().
-			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0xab}}).
-			Return(nil, false)
-
 		sd := StatementDistribution{}
 
 		err := sd.sendPendingGridMessages(rpHash, peerID,
 			validationVersion, peerValidatorID, nil,
-			rpState, candidatesMock,
+			rpState, &candidates{},
 		)
 		require.Nil(t, err)
 	})
