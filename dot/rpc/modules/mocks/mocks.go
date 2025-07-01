@@ -95,33 +95,18 @@ func (mr *MockStorageAPIMockRecorder) GetStateRootFromBlock(bhash any) *gomock.C
 }
 
 // GetStorage mocks base method.
-func (m *MockStorageAPI) GetStorage(root *common.Hash, key []byte) ([]byte, error) {
+func (m *MockStorageAPI) GetStorage(bhash *common.Hash, key []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStorage", root, key)
+	ret := m.ctrl.Call(m, "GetStorage", bhash, key)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStorage indicates an expected call of GetStorage.
-func (mr *MockStorageAPIMockRecorder) GetStorage(root, key any) *gomock.Call {
+func (mr *MockStorageAPIMockRecorder) GetStorage(bhash, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorage", reflect.TypeOf((*MockStorageAPI)(nil).GetStorage), root, key)
-}
-
-// GetStorageByBlockHash mocks base method.
-func (m *MockStorageAPI) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStorageByBlockHash", bhash, key)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetStorageByBlockHash indicates an expected call of GetStorageByBlockHash.
-func (mr *MockStorageAPIMockRecorder) GetStorageByBlockHash(bhash, key any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageByBlockHash", reflect.TypeOf((*MockStorageAPI)(nil).GetStorageByBlockHash), bhash, key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorage", reflect.TypeOf((*MockStorageAPI)(nil).GetStorage), bhash, key)
 }
 
 // GetStorageChild mocks base method.

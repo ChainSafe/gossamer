@@ -48,14 +48,14 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	require.Equal(t, trie.MustHash(), ts2Root)
 }
 
-func TestStorage_GetStorageByBlockHash(t *testing.T) {
+func TestStorage_GetStorage(t *testing.T) {
 	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(nil)
 	require.NoError(t, err)
 
 	key := []byte("testkey")
 	value := []byte("testvalue")
-	ts.Put(key, value)
+	require.NoError(t, ts.Put(key, value))
 
 	root, err := ts.Root()
 	require.NoError(t, err)
@@ -78,7 +78,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	require.NoError(t, err)
 
 	hash := block.Header.Hash()
-	res, err := storage.GetStorageByBlockHash(&hash, key)
+	res, err := storage.GetStorage(&hash, key)
 	require.NoError(t, err)
 	require.Equal(t, value, res)
 }
@@ -106,14 +106,32 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	root, err := ts.Root()
 	require.NoError(t, err)
 
-	// Write trie to disk.
-	err = storage.StoreTrie(ts, nil)
+	// Create a block associated with the trie.
+	body, err := types.NewBodyFromBytes([]byte{})
 	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: testGenesisHeader.Hash(),
+			Number:     1,
+			StateRoot:  root,
+			Digest:     createPrimaryBABEDigest(t),
+		},
+		Body: *body,
+	}
+
+	// Write trie to disk.
+	err = storage.StoreTrie(ts, &block.Header)
+	require.NoError(t, err)
+
+	// Add the block to allow lookup by block hash.
+	require.NoError(t, storage.blockState.AddBlock(block, nil, nil))
 
 	// Clear trie from cache and fetch data from disk.
 	storage.blockState.GetTries().delete(root)
 
-	data, err := storage.GetStorage(&root, trieKV[0].key)
+	hash := block.Header.Hash()
+	data, err := storage.GetStorage(&hash, trieKV[0].key)
 	require.NoError(t, err)
 	require.Equal(t, trieKV[0].value, data)
 

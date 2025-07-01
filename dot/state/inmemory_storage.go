@@ -184,22 +184,28 @@ func (s *InmemoryStorageState) loadTrie(root *common.Hash) (trie.Trie, error) {
 	return tr, nil
 }
 
-// ExistsStorage check if the key exists in the storage trie with the given storage hash
+// ExistsStorage check if the key exists in the storage trie for the given block hash
 // If no hash is provided, the current chain head is used
-func (s *InmemoryStorageState) ExistsStorage(root *common.Hash, key []byte) (bool, error) {
-	val, err := s.GetStorage(root, key)
+func (s *InmemoryStorageState) ExistsStorage(bhash *common.Hash, key []byte) (bool, error) {
+	val, err := s.GetStorage(bhash, key)
 	return val != nil, err
 }
 
-// GetStorage gets the object from the trie using the given key and storage hash
+// GetStorage gets the object from the trie using the given key and block hash
 // If no hash is provided, the current chain head is used
-func (s *InmemoryStorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error) {
-	if root == nil {
+func (s *InmemoryStorageState) GetStorage(bhash *common.Hash, key []byte) ([]byte, error) {
+	if bhash == nil {
 		header, err := s.blockState.BestBlockHeader()
 		if err != nil {
 			return nil, err
 		}
-		root = &header.StateRoot
+		h := header.Hash()
+		bhash = &h
+	}
+
+	root, err := s.GetStateRootFromBlock(bhash)
+	if err != nil {
+		return nil, err
 	}
 
 	t := s.tries.get(*root)
@@ -209,30 +215,6 @@ func (s *InmemoryStorageState) GetStorage(root *common.Hash, key []byte) ([]byte
 	}
 
 	return inmemory_trie.GetFromDB(s.db, *root, key)
-}
-
-// GetStorageByBlockHash returns the value at the given key at the given block hash
-func (s *InmemoryStorageState) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error) {
-	var (
-		root common.Hash
-		err  error
-	)
-
-	if bhash != nil {
-		header, err := s.blockState.GetHeader(*bhash)
-		if err != nil {
-			return nil, err
-		}
-
-		root = header.StateRoot
-	} else {
-		root, err = s.StorageRoot()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return s.GetStorage(&root, key)
 }
 
 // GetStateRootFromBlock returns the state root hash of a given block hash
@@ -302,13 +284,13 @@ func (s *InmemoryStorageState) GetStorageFromChild(root *common.Hash, keyToChild
 }
 
 // LoadCode returns the runtime code (located at :code)
-func (s *InmemoryStorageState) LoadCode(hash *common.Hash) ([]byte, error) {
-	return s.GetStorage(hash, codeKey)
+func (s *InmemoryStorageState) LoadCode(bhash *common.Hash) ([]byte, error) {
+	return s.GetStorage(bhash, codeKey)
 }
 
 // LoadCodeHash returns the hash of the runtime code (located at :code)
-func (s *InmemoryStorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
-	code, err := s.LoadCode(hash)
+func (s *InmemoryStorageState) LoadCodeHash(bhash *common.Hash) (common.Hash, error) {
+	code, err := s.LoadCode(bhash)
 	if err != nil {
 		return common.NewHash([]byte{}), err
 	}

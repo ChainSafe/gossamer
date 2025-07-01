@@ -18,8 +18,7 @@ type StorageState interface {
 
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
-	GetStorage(root *common.Hash, key []byte) ([]byte, error)
-	GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error)
+	GetStorage(bhash *common.Hash, key []byte) ([]byte, error)
 	StorageRoot() (common.Hash, error)
 	Entries(root *common.Hash) (map[string][]byte, error) // should be overhauled to iterate
 	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
