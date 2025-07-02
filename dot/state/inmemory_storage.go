@@ -111,15 +111,6 @@ func (s *InmemoryStorageState) StoreTrie(ts storage.TrieState, header *types.Hea
 // TrieState returns the TrieState for a given block hash.
 // If no block hash is provided, it returns the TrieState for the current chain head.
 func (s *InmemoryStorageState) TrieState(bhash *common.Hash) (storage.TrieState, error) {
-	if bhash == nil {
-		header, err := s.blockState.BestBlockHeader()
-		if err != nil {
-			return nil, fmt.Errorf("while getting best block header: %w", err)
-		}
-		h := header.Hash()
-		bhash = &h
-	}
-
 	root, err := s.GetStateRootFromBlock(bhash)
 	if err != nil {
 		return nil, fmt.Errorf("getting state root for block hash %s: %w", bhash.String(), err)
@@ -194,15 +185,6 @@ func (s *InmemoryStorageState) ExistsStorage(bhash *common.Hash, key []byte) (bo
 // GetStorage gets the object from the trie using the given key and block hash
 // If no hash is provided, the current chain head is used
 func (s *InmemoryStorageState) GetStorage(bhash *common.Hash, key []byte) ([]byte, error) {
-	if bhash == nil {
-		header, err := s.blockState.BestBlockHeader()
-		if err != nil {
-			return nil, err
-		}
-		h := header.Hash()
-		bhash = &h
-	}
-
 	root, err := s.GetStateRootFromBlock(bhash)
 	if err != nil {
 		return nil, err
@@ -244,11 +226,6 @@ func (s *InmemoryStorageState) StorageRoot() (common.Hash, error) {
 
 // Entries returns Entries from the trie for the given block hash
 func (s *InmemoryStorageState) Entries(bhash *common.Hash) (map[string][]byte, error) {
-	if bhash == nil {
-		b := s.blockState.BestBlockHash()
-		bhash = &b
-	}
-
 	root, err := s.GetStateRootFromBlock(bhash)
 	if err != nil {
 		return nil, err
@@ -265,15 +242,6 @@ func (s *InmemoryStorageState) Entries(bhash *common.Hash) (map[string][]byte, e
 // GetKeysWithPrefix returns all that match the given prefix for the given hash
 // (or best block if hash is nil) in lexicographic order
 func (s *InmemoryStorageState) GetKeysWithPrefix(bhash *common.Hash, prefix []byte) ([][]byte, error) {
-	if bhash == nil {
-		header, err := s.blockState.BestBlockHeader()
-		if err != nil {
-			return nil, err
-		}
-		h := header.Hash()
-		bhash = &h
-	}
-
 	root, err := s.GetStateRootFromBlock(bhash)
 	if err != nil {
 		return nil, err
@@ -289,15 +257,6 @@ func (s *InmemoryStorageState) GetKeysWithPrefix(bhash *common.Hash, prefix []by
 
 // GetStorageChild returns a child trie, if it exists
 func (s *InmemoryStorageState) GetStorageChild(bhash *common.Hash, keyToChild []byte) (trie.Trie, error) {
-	if bhash == nil {
-		header, err := s.blockState.BestBlockHeader()
-		if err != nil {
-			return nil, err
-		}
-		h := header.Hash()
-		bhash = &h
-	}
-
 	root, err := s.GetStateRootFromBlock(bhash)
 	if err != nil {
 		return nil, err
