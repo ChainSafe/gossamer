@@ -37,12 +37,11 @@ type NetworkPeers interface {
 	AddKnownAddress(peerID peerid.PeerID, addr multiaddr.Multiaddr)
 	// Report a given peer as either beneficial (+) or costly (-) according to the given scalar.
 	ReportPeer(peerID peerid.PeerID, costBenefit network.ReputationChange)
+	// Get peer reputation.
+	PeerReputation(peerID peerid.PeerID) int32
 	// Disconnect from a node as soon as possible.
 	//
 	// This triggers the same effects as if the connection had closed itself spontaneously.
-	//
-	// See also ["NetworkPeers::remove_from_peers_set"], which has the same effect but also prevents the local node
-	// from re-establishing an outgoing substream to this peer until it is added again.
 	DisconnectPeer(who peerid.PeerID, protocol network.ProtocolName)
 	// Connect to unreserved peers and allow unreserved peers to connect for syncing purposes.
 	AcceptUnreservedPeers()
@@ -81,20 +80,6 @@ type NetworkPeers interface {
 	AddPeersToReservedSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error
 	// Remove peers from a peer set.
 	RemovePeersFromReservedSet(protocol network.ProtocolName, peers []peerid.PeerID)
-	// Add a peer to a set of peers.
-	//
-	// If the set has slots available, it will try to open a substream with this peer.
-	//
-	// Each Multiaddr must end with a "/p2p/" component containing the peer id. It can also consist of only
-	// "/p2p/<peerid>".
-	//
-	// Returns an error if one of the given addresses is invalid or contains an invalid peer id (which includes the
-	// local peer id).
-	AddToPeersSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error
-	// Remove peers from a peer set.
-	//
-	// If we currently have an open substream with this peer, it will soon be closed.
-	RemoveFromPeersSet(protocol network.ProtocolName, peers []peerid.PeerID)
 	// Returns the number of peers in the sync peer set we're connected to.
 	SyncNumConnected() uint
 

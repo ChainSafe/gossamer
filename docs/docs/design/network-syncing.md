@@ -37,12 +37,11 @@ type NetworkPeers interface {
 	AddKnownAddress(peerID peerid.PeerID, addr multiaddr.Multiaddr)
 	// Report a given peer as either beneficial (+) or costly (-) according to the given scalar.
 	ReportPeer(peerID peerid.PeerID, costBenefit network.ReputationChange)
+	// Get peer reputation.
+	PeerReputation(peerID peerid.PeerID) int32
 	// Disconnect from a node as soon as possible.
 	//
 	// This triggers the same effects as if the connection had closed itself spontaneously.
-	//
-	// See also ["NetworkPeers::remove_from_peers_set"], which has the same effect but also prevents the local node
-	// from re-establishing an outgoing substream to this peer until it is added again.
 	DisconnectPeer(who peerid.PeerID, protocol network.ProtocolName)
 	// Connect to unreserved peers and allow unreserved peers to connect for syncing purposes.
 	AcceptUnreservedPeers()
@@ -81,21 +80,7 @@ type NetworkPeers interface {
 	AddPeersToReservedSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error
 	// Remove peers from a peer set.
 	RemovePeersFromReservedSet(protocol network.ProtocolName, peers []peerid.PeerID)
-	// Add a peer to a set of peers.
-	//
-	// If the set has slots available, it will try to open a substream with this peer.
-	//
-	// Each Multiaddr must end with a "/p2p/" component containing the peer id. It can also consist of only
-	// "/p2p/<peerid>".
-	//
-	// Returns an error if one of the given addresses is invalid or contains an invalid peer id (which includes the
-	// local peer id).
-	AddToPeersSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error
-	// Remove peers from a peer set.
-	//
-	// If we currently have an open substream with this peer, it will soon be closed.
-	RemoveFromPeersSet(protocol network.ProtocolName, peers []peerid.PeerID)
-	// Returns the number of peers in the sync peer set we're connected to.
+	// Returns the number of peers in the dsync peer set we're connected to.
 	SyncNumConnected() uint
 
 	// Attempt to get peer role.
@@ -121,13 +106,15 @@ The `AddKnownAddress` method is only used by [polkadot](https://github.com/parit
 
 `ReportPeer` is already implemented by our existing `peerset.Handler`. We just need to create some sort of translation type to convert between the new `PeerID` and `ReputationChange` and call [`Handler.ReportPeer`](https://github.com/ChainSafe/gossamer/blob/3729f32087e3fe4ebd0be35306a98bae97a0b022/dot/peerset/handler.go#L79).
 
+`PeerReputation` isn't called by GRANDPA and can remain unimplemented.  Should be quite simple to implement.
+
 `DisconnectPeer` is already implemented by `PeerState` via [`disconnect`](https://github.com/ChainSafe/gossamer/blob/dbe6858a7363d61247019ebf81dde4ada90242c8/dot/peerset/peerstate.go#L345). Currently this only exposed by polkadot through [`polkadot_network_bridge::network::Network`](https://github.com/paritytech/polkadot-sdk/blob/21fbd6b59d37fd18a00d0ec4b6f72dc376d63010/polkadot/node/network/bridge/src/network.rs#L159) trait and through a [`NetworkServiceHandle`](https://github.com/paritytech/polkadot-sdk/blob/12d9052459ade7fc7588807bf0775d7c7d135e82/substrate/client/network/sync/src/service/network.rs#L84) exclusively used by the syncing engine.  This can be de-prioritized given that GRANDPA doesn't actually need to disconnect peers.
 
 `AcceptUnreservedPeers` and `DenyUnreservedPeers` doesn't look to be called anywhere in substrate.  We can safely omit this and even remove it from the interface.
 
-`AddReservedPeers` and `RemoveReservedPeer` isn't called by GRANDPA so there is no immediate requirement to implement this.  However we already have this functionality within the `host` private type in `network` ([link](https://github.com/ChainSafe/gossamer/blob/2eff00475ac1234ac1701f596808f93b3bf0bd46/dot/network/host.go#L408)).
+`AddReservedPeer` and `RemoveReservedPeer` isn't called by GRANDPA so there is no immediate requirement to implement this.  However we already have this functionality within the `host` private type in `network` ([link](https://github.com/ChainSafe/gossamer/blob/2eff00475ac1234ac1701f596808f93b3bf0bd46/dot/network/host.go#L408)).
 
-`SetReservedPeers`, `AddPeersToReservedSet`, `RemovePeersFromReservedSet`, `AddToPeersSet`, and `SyncNumConnected` are all methods to modify the reserved and regular set of peers specific to a protocol.  This will definitely be needed for the Parachains initiative.  `AddPeersToReservedSet` and `RemovedPeersFromReservedSet` are called by `AddSetReserved` and `RemoveSetReserved` which are just helper functions to add one or remove one peer.  These two helper methods are called in the GRANDPA integration.  Our current method peerset `Handler` doesn't expose adding reserved peers based on protocol.  We will need to expose this adding/removing peers per protocol in the `Handler` and utilize it for GRANDPA.  
+`SetReservedPeers`, `AddPeersToReservedSet`, and `RemovePeersFromReservedSet` are all methods to modify the reserved set of peers specific to a protocol.  This will definitely be needed for the Parachains initiative.  `AddPeersToReservedSet` and `RemovedPeersFromReservedSet` are called by `AddSetReserved` and `RemoveSetReserved` which are just helper functions to add one or remove one peer.  These two helper methods are called in the GRANDPA integration.  Our current peerset `Handler` exposes a `AddReservedPeer` and `RemoveReservedPeer` but takes a `int` param for `setID`.  We will need to translate the `ProtocolName` type using a mapping to `int`.  The integer `setID` is enumerated based on the order it is added as a supported notification protocol (see [code](https://github.com/paritytech/polkadot-sdk/blob/3ff1b1db36260cbc47297ab753e2dcec1f5999fd/substrate/client/network/src/service.rs#L395)).
 
 `SyncNumConnected` doesn't appear to be used in `polkadot-sdk`.  We can safely remove from interface.
 
