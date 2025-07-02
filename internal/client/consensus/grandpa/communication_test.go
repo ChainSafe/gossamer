@@ -51,6 +51,7 @@ func (TestNetwork) AddKnownAddress(peerID peerid.PeerID, addr multiaddr.Multiadd
 func (tn *TestNetwork) ReportPeer(peerID peerid.PeerID, costBenefit network.ReputationChange) {
 	tn.sender <- EventReport{peerID, costBenefit}
 }
+func (TestNetwork) PeerReputation(peerID peerid.PeerID) int32                       { panic("unimpl") }
 func (TestNetwork) DisconnectPeer(who peerid.PeerID, protocol network.ProtocolName) { panic("unimpl") }
 func (TestNetwork) AcceptUnreservedPeers()                                          { panic("unimpl") }
 func (TestNetwork) DenyUnreservedPeers()                                            { panic("unimpl") }

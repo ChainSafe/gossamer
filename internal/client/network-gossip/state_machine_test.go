@@ -98,6 +98,7 @@ func (non *NoOpNetwork) ReportPeer(peerID peerid.PeerID, costBenefit network.Rep
 		ReputationChange: costBenefit,
 	})
 }
+func (*NoOpNetwork) PeerReputation(peerID peerid.PeerID) int32 { panic("unimpl") }
 func (*NoOpNetwork) DisconnectPeer(who peerid.PeerID, protocol network.ProtocolName) {
 	panic("unimpl")
 }

@@ -86,8 +86,8 @@ type NetworkPeers interface {
 	// Attempt to get peer role.
 	//
 	// Right now the peer role is decoded from the received handshake for all protocols ("/block-announces/1" has other
-	// information as well). If the handshake cannot be decoded into a role, the role queried from peer storeand if the
-	// role is not stored there either, nil is returned and the peer should be discarded.
+	// information as well). If the handshake cannot be decoded into a role, the role queried from peer store and if
+	// the role is not stored there either, nil is returned and the peer should be discarded.
 	PeerRole(peerID peerid.PeerID, handshake []byte) *role.ObservedRole
 
 	// Get the list of reserved peers.
