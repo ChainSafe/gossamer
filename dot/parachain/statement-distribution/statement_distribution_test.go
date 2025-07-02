@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 func TestSendBackingFreshStatements(t *testing.T) {
@@ -292,7 +291,6 @@ func TestSendPendingGridMessages(t *testing.T) {
 	t.Run("pending_full_manifest_confirmed", func(t *testing.T) {
 		t.Parallel()
 
-		ctrl := gomock.NewController(t)
 		peerValidatorID := parachaintypes.ValidatorIndex(4)
 
 		gt := newGridTracker()
@@ -303,21 +301,19 @@ func TestSendPendingGridMessages(t *testing.T) {
 			},
 		)
 
-		candidatesMock := NewMockcandidatesTracker(ctrl)
-		candidatesMock.EXPECT().
-			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0x12}}).
-			Return(&confirmedCandidate{
-				assignedGroup: parachaintypes.GroupIndex(1),
-				receipt: parachaintypes.CommittedCandidateReceiptV2{
-					Descriptor: parachaintypes.CandidateDescriptorV2{
-						ParaID: parachaintypes.ParaID(10),
+		candidatesTracker := &candidates{
+			candidates: map[parachaintypes.CandidateHash]candidateState{
+				parachaintypes.CandidateHash{Value: common.Hash{0x12}}: &confirmedCandidate{
+					assignedGroup: parachaintypes.GroupIndex(1),
+					receipt: parachaintypes.CommittedCandidateReceiptV2{
+						Descriptor: parachaintypes.CandidateDescriptorV2{
+							ParaID: parachaintypes.ParaID(10),
+						},
 					},
+					parentHash: common.Hash(bytes.Repeat([]byte{0xbc}, 32)),
 				},
-				parentHash: common.Hash(bytes.Repeat([]byte{0xbc}, 32)),
-			}, true)
-		candidatesMock.EXPECT().
-			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0xab}}).
-			Return(nil, false)
+			},
+		}
 
 		gps := newGroups([][]parachaintypes.ValidatorIndex{
 			{0, 1, 2},
@@ -358,7 +354,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 
 		err = sd.sendPendingGridMessages(rpHash, peerID,
 			v3, peerValidatorID, gps,
-			rpState, candidatesMock,
+			rpState, candidatesTracker,
 		)
 		require.Nil(t, err)
 
@@ -391,7 +387,6 @@ func TestSendPendingGridMessages(t *testing.T) {
 	t.Run("pending_full_and_ack_manifest_confirmed", func(t *testing.T) {
 		t.Parallel()
 
-		ctrl := gomock.NewController(t)
 		peerValidatorID := parachaintypes.ValidatorIndex(4)
 
 		gt := newGridTracker()
@@ -402,29 +397,28 @@ func TestSendPendingGridMessages(t *testing.T) {
 			},
 		)
 
-		candidatesMock := NewMockcandidatesTracker(ctrl)
-		candidatesMock.EXPECT().
-			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0x12}}).
-			Return(&confirmedCandidate{
-				assignedGroup: parachaintypes.GroupIndex(1),
-				receipt: parachaintypes.CommittedCandidateReceiptV2{
-					Descriptor: parachaintypes.CandidateDescriptorV2{
-						ParaID: parachaintypes.ParaID(10),
+		candidatesTracker := &candidates{
+			candidates: map[parachaintypes.CandidateHash]candidateState{
+				parachaintypes.CandidateHash{Value: common.Hash{0x12}}: &confirmedCandidate{
+					assignedGroup: parachaintypes.GroupIndex(1),
+					receipt: parachaintypes.CommittedCandidateReceiptV2{
+						Descriptor: parachaintypes.CandidateDescriptorV2{
+							ParaID: parachaintypes.ParaID(10),
+						},
 					},
+					parentHash: common.Hash(bytes.Repeat([]byte{0xbc}, 32)),
 				},
-				parentHash: common.Hash(bytes.Repeat([]byte{0xbc}, 32)),
-			}, true)
-		candidatesMock.EXPECT().
-			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0xab}}).
-			Return(&confirmedCandidate{
-				assignedGroup: parachaintypes.GroupIndex(0),
-				receipt: parachaintypes.CommittedCandidateReceiptV2{
-					Descriptor: parachaintypes.CandidateDescriptorV2{
-						ParaID: parachaintypes.ParaID(11),
+				parachaintypes.CandidateHash{Value: common.Hash{0xab}}: &confirmedCandidate{
+					assignedGroup: parachaintypes.GroupIndex(0),
+					receipt: parachaintypes.CommittedCandidateReceiptV2{
+						Descriptor: parachaintypes.CandidateDescriptorV2{
+							ParaID: parachaintypes.ParaID(11),
+						},
 					},
+					parentHash: common.Hash(bytes.Repeat([]byte{0xee}, 32)),
 				},
-				parentHash: common.Hash(bytes.Repeat([]byte{0xee}, 32)),
-			}, true)
+			},
+		}
 
 		gps := newGroups([][]parachaintypes.ValidatorIndex{
 			{0, 1, 2},
@@ -476,7 +470,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 
 		err = sd.sendPendingGridMessages(rpHash, peerID,
 			v3, peerValidatorID, gps,
-			rpState, candidatesMock,
+			rpState, candidatesTracker,
 		)
 		require.Nil(t, err)
 

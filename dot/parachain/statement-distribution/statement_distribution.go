@@ -204,8 +204,7 @@ func (s *StatementDistribution) sendPeerMessagesForRelayParent(pid string, rp co
 }
 
 func (s *StatementDistribution) fragmentChainUpdateInner(rp *common.Hash,
-	requiredParentHash *common.Hash, requiredParentParaID *parachaintypes.ParaID,
-	knowHypotheticals *[]parachaintypes.HypotheticalCandidate) {
+	parent *hashAndParaID, knowHypotheticals *[]parachaintypes.HypotheticalCandidate) {
 
 	// 1. get hypothetical candidates
 	var hypotheticals []parachaintypes.HypotheticalCandidate
@@ -213,10 +212,7 @@ func (s *StatementDistribution) fragmentChainUpdateInner(rp *common.Hash,
 	if knowHypotheticals != nil {
 		hypotheticals = *knowHypotheticals
 	} else {
-		hypotheticals = s.state.candidates.frontierHypotheticals(&hashAndParaID{
-			Hash:   *requiredParentHash,
-			ParaID: *requiredParentParaID,
-		})
+		hypotheticals = s.state.candidates.frontierHypotheticals(parent)
 	}
 
 	// 2. find out which are in the frontier
@@ -237,6 +233,8 @@ func (s *StatementDistribution) fragmentChainUpdateInner(rp *common.Hash,
 	case resp := <-response:
 		candidateMemberships = resp
 	}
+
+	fmt.Println(len(candidateMemberships))
 
 	// 3. note that they are importable under a given leaf hash.
 	for _, item := range candidateMemberships {

@@ -49,7 +49,7 @@ func (s *StatementDistribution) handleActiveLeavesUpdate(leaf *parachaintypes.Ac
 		}
 	}
 
-	s.fragmentChainUpdateInner(&leaf.Hash, nil, nil, nil)
+	s.fragmentChainUpdateInner(&leaf.Hash, nil, nil)
 	return nil
 }
 
@@ -295,8 +295,7 @@ func findActiveValidatorState(
 	}
 
 	parasAssignedToCore := assignmentsPerGroup[*ourGroup]
-	// TODO: use cluster tracker implementation (#4713)
-	// secondingLimit := len(parasAssignedToCore)
+	secondingLimit := len(parasAssignedToCore)
 
 	return &localValidatorState{
 		gridTracker: newGridTracker(),
@@ -304,7 +303,7 @@ func findActiveValidatorState(
 			index:          validatorIdx,
 			groupIndex:     *ourGroup,
 			assignments:    slices.Clone(parasAssignedToCore),
-			clusterTracker: nil, // TODO: use cluster tracker implementation (#4713)
+			clusterTracker: newClusterTracker(groupValidators, uint(secondingLimit)),
 		},
 	}
 }

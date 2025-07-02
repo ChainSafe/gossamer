@@ -5,14 +5,12 @@ import (
 	"sync"
 	"testing"
 
-	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	prospectiveparachainsmessages "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -69,6 +67,8 @@ func TestHandleActiveLeavesUpdate_HappyPath(t *testing.T) {
 		NeededApprovals:         1,
 	}
 
+	groups := newGroups(sessionInfoDummy.ValidatorGroups, 3)
+
 	rtInstanceMock.EXPECT().
 		ParachainHostSessionInfo(parachaintypes.SessionIndex(1)).
 		Return(&sessionInfoDummy, nil)
@@ -113,18 +113,13 @@ func TestHandleActiveLeavesUpdate_HappyPath(t *testing.T) {
 		GetRuntime(leafHash).
 		Return(rtInstanceMock, nil)
 
-	candidatesMock := NewMockcandidatesTracker(ctrl)
-	candidatesMock.EXPECT().
-		frontierHypotheticals(nil, nil).
-		Return([]parachaintypes.HypotheticalCandidate{})
-
 	state := &v2State{
 		implicitView:   implicitViewMock,
 		perRelayParent: make(map[common.Hash]*perRelayParentState),
 		perSession:     make(map[parachaintypes.SessionIndex]*perSessionState),
 		peers:          map[string]peerState{},
 		keystore:       dummyKeystore,
-		candidates:     candidatesMock, // No candidates tracker needed for this test
+		candidates:     &candidates{},
 	}
 
 	overseerCh := make(chan any, 1)
@@ -158,13 +153,18 @@ func TestHandleActiveLeavesUpdate_HappyPath(t *testing.T) {
 		localValidator: &localValidatorState{
 			gridTracker: newGridTracker(),
 			active: &activeValidatorState{
-				index:          parachaintypes.ValidatorIndex(0),
-				groupIndex:     parachaintypes.GroupIndex(0),
-				assignments:    []parachaintypes.ParaID{parachaintypes.ParaID(1), parachaintypes.ParaID(2)},
-				clusterTracker: nil, // TODO: use cluster tracker implementation (#4713)
+				index:       parachaintypes.ValidatorIndex(0),
+				groupIndex:  parachaintypes.GroupIndex(0),
+				assignments: []parachaintypes.ParaID{parachaintypes.ParaID(1), parachaintypes.ParaID(2)},
+				clusterTracker: &clusterTracker{
+					validators:     []parachaintypes.ValidatorIndex{0, 1},
+					secondingLimit: 2,
+					knowledge:      map[parachaintypes.ValidatorIndex]map[taggedKnowledge]struct{}{},
+					pending:        map[parachaintypes.ValidatorIndex]originatorStatementPairSet{},
+				},
 			},
 		},
-		statementStore:       nil,
+		statementStore:       newStatementStore(groups),
 		session:              parachaintypes.SessionIndex(1),
 		transposedClaimQueue: transposedDummyClaimQueue,
 		groupsPerPara: map[parachaintypes.ParaID][]parachaintypes.GroupIndex{
@@ -288,35 +288,13 @@ func TestHandleActiveLeavesUpdate_SendPeerMessageForRelayParent(t *testing.T) {
 		GetRuntime(leafHash).
 		Return(rtInstanceMock, nil)
 
-	candidatesMock := NewMockcandidatesTracker(ctrl)
-	candidatesMock.EXPECT().
-		frontierHypotheticals(nil, nil).
-		Return([]parachaintypes.HypotheticalCandidate{})
-
-	candidatesMock.EXPECT().
-		isConfirmed(parachaintypes.CandidateHash{Value: common.Hash(bytes.Repeat([]byte{0xff}, 32))}).
-		Return(true)
-
-	compactStmtToSend := &parachaintypes.CompactValid{Value: common.Hash(bytes.Repeat([]byte{0xff}, 32))}
-	validatorStmtPair := []originatorStatementPair{
-		{
-			validatorIndex: parachaintypes.ValidatorIndex(1),
-			compactStmt:    compactStmtToSend,
+	candidatesTracker := &candidates{
+		candidates: map[parachaintypes.CandidateHash]candidateState{
+			{Value: common.Hash(bytes.Repeat([]byte{0xff}, 32))}: &confirmedCandidate{
+				pvd: &parachaintypes.PersistedValidationData{},
+			},
 		},
 	}
-
-	var signature [64]byte
-	copy(signature[:], bytes.Repeat([]byte{0x01}, 64))
-	signedStmt := &parachaintypes.SignedStatement{
-		Payload:        *compactStmtToSend.ToEncodable(),
-		ValidatorIndex: parachaintypes.ValidatorIndex(2),
-		Signature:      parachaintypes.ValidatorSignature(parachaintypes.Signature(signature)),
-	}
-
-	stmtStoreMock := NewMockstatementStore(ctrl)
-	stmtStoreMock.EXPECT().
-		validatorStatement(validatorStmtPair).
-		Return(signedStmt)
 
 	peer1AuthDiscoveryID := parachaintypes.AuthorityDiscoveryID{2}
 
@@ -337,7 +315,7 @@ func TestHandleActiveLeavesUpdate_SendPeerMessageForRelayParent(t *testing.T) {
 			},
 		},
 		keystore:   dummyKeystore,
-		candidates: candidatesMock,
+		candidates: candidatesTracker,
 	}
 
 	overseerCh := make(chan any, 1)
@@ -360,30 +338,6 @@ func TestHandleActiveLeavesUpdate_SendPeerMessageForRelayParent(t *testing.T) {
 
 		// just return an empty slice
 		msg.Response <- []*prospectiveparachainsmessages.HypotheticalMembershipResponseItem{}
-
-		// second message is a statement distribution message
-		// we don't expect a third message about pending grid statements
-		// because the grid tracker is empty and no pending statements are available
-		// on a new active leaf update
-		sendValidationMsg := <-overseerCh
-		validationMsg, ok := sendValidationMsg.(*networkbridgemessages.SendValidationMessage)
-		require.True(t, ok)
-
-		require.Equal(t, []peer.ID{peer.ID("peer1")}, validationMsg.To)
-
-		expectedSDMV3 := validationprotocol.NewStatementDistributionMessage()
-		err := expectedSDMV3.SetValue(validationprotocol.Statement{
-			RelayParent: leafHash,
-			Compact:     parachaintypes.UncheckedSignedCompactStatement(*signedStmt),
-		})
-		require.NoError(t, err)
-
-		expectedMsg := validationprotocol.NewValidationProtocolVDT()
-		err = expectedMsg.SetValue(validationprotocol.StatementDistribution{
-			StatementDistributionMessage: expectedSDMV3})
-		require.NoError(t, err)
-
-		require.Equal(t, expectedMsg, validationMsg.ValidationProtocolMessage)
 	}()
 
 	// The actual sendPeerMessagesForRelayParent will run, but we can't assert its call directly.
@@ -393,17 +347,24 @@ func TestHandleActiveLeavesUpdate_SendPeerMessageForRelayParent(t *testing.T) {
 	wg.Wait()
 
 	// assertions
+	groups := newGroups(sessionInfoDummy.ValidatorGroups, 3)
+
 	expectedPerRelayParentState := &perRelayParentState{
 		localValidator: &localValidatorState{
 			gridTracker: newGridTracker(),
 			active: &activeValidatorState{
-				index:          parachaintypes.ValidatorIndex(0),
-				groupIndex:     parachaintypes.GroupIndex(0),
-				assignments:    []parachaintypes.ParaID{parachaintypes.ParaID(1), parachaintypes.ParaID(2)},
-				clusterTracker: nil, // TODO: use cluster tracker implementation (#4713)
+				index:       parachaintypes.ValidatorIndex(0),
+				groupIndex:  parachaintypes.GroupIndex(0),
+				assignments: []parachaintypes.ParaID{parachaintypes.ParaID(1), parachaintypes.ParaID(2)},
+				clusterTracker: &clusterTracker{
+					validators:     []parachaintypes.ValidatorIndex{0, 1},
+					secondingLimit: 2,
+					knowledge:      map[parachaintypes.ValidatorIndex]map[taggedKnowledge]struct{}{},
+					pending:        map[parachaintypes.ValidatorIndex]originatorStatementPairSet{},
+				},
 			},
 		},
-		statementStore:       nil,
+		statementStore:       newStatementStore(groups),
 		session:              parachaintypes.SessionIndex(1),
 		transposedClaimQueue: transposedDummyClaimQueue,
 		groupsPerPara: map[parachaintypes.ParaID][]parachaintypes.GroupIndex{
@@ -447,10 +408,6 @@ func TestHandleDeactivatedLeaves(t *testing.T) {
 	reqManagerMock.EXPECT().
 		removeByRelayParent(common.Hash{0xab})
 
-	candidatesMock := NewMockcandidatesTracker(ctrl)
-	candidatesMock.EXPECT().
-		onDeactivateLeaves([]common.Hash{{0xcd}}, gomock.Any())
-
 	state := &v2State{
 		implicitView: implicitViewMock,
 		perRelayParent: map[common.Hash]*perRelayParentState{
@@ -463,7 +420,7 @@ func TestHandleDeactivatedLeaves(t *testing.T) {
 			parachaintypes.SessionIndex(2): nil,
 		},
 		requestManager: reqManagerMock,
-		candidates:     candidatesMock,
+		candidates:     &candidates{},
 	}
 
 	sd := &StatementDistribution{
