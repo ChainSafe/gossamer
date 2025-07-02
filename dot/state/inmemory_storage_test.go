@@ -195,21 +195,26 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	trieState := runtime.NewInMemoryTrieState(genTrie)
 
 	header := types.NewHeader(blockState.GenesisHash(), trieState.Trie().MustHash(),
-		common.Hash{}, 1, types.NewDigest())
+		common.Hash{}, 1, createPrimaryBABEDigest(t))
 
 	err = storage.StoreTrie(trieState, header)
+	require.NoError(t, err)
+
+	body, err := types.NewBodyFromBytes([]byte{})
+	require.NoError(t, err)
+	require.NoError(t, blockState.AddBlock(&types.Block{Header: *header, Body: *body}, nil, nil))
+
+	blockHash := header.Hash()
+	_, err = storage.GetStorageChild(&blockHash, []byte("keyToChild"))
 	require.NoError(t, err)
 
 	rootHash, err := genTrie.Hash()
 	require.NoError(t, err)
 
-	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
-	require.NoError(t, err)
-
 	// Clear trie from cache and fetch data from disk.
 	storage.blockState.GetTries().delete(rootHash)
 
-	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
+	_, err = storage.GetStorageChild(&blockHash, []byte("keyToChild"))
 	require.NoError(t, err)
 
 	value, err := storage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"))

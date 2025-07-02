@@ -288,7 +288,21 @@ func (s *InmemoryStorageState) GetKeysWithPrefix(bhash *common.Hash, prefix []by
 }
 
 // GetStorageChild returns a child trie, if it exists
-func (s *InmemoryStorageState) GetStorageChild(root *common.Hash, keyToChild []byte) (trie.Trie, error) {
+func (s *InmemoryStorageState) GetStorageChild(bhash *common.Hash, keyToChild []byte) (trie.Trie, error) {
+	if bhash == nil {
+		header, err := s.blockState.BestBlockHeader()
+		if err != nil {
+			return nil, err
+		}
+		h := header.Hash()
+		bhash = &h
+	}
+
+	root, err := s.GetStateRootFromBlock(bhash)
+	if err != nil {
+		return nil, err
+	}
+
 	tr, err := s.loadTrie(root)
 	if err != nil {
 		return nil, err

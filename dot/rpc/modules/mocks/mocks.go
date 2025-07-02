@@ -110,18 +110,18 @@ func (mr *MockStorageAPIMockRecorder) GetStorage(bhash, key any) *gomock.Call {
 }
 
 // GetStorageChild mocks base method.
-func (m *MockStorageAPI) GetStorageChild(root *common.Hash, keyToChild []byte) (trie.Trie, error) {
+func (m *MockStorageAPI) GetStorageChild(bhash *common.Hash, keyToChild []byte) (trie.Trie, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStorageChild", root, keyToChild)
+	ret := m.ctrl.Call(m, "GetStorageChild", bhash, keyToChild)
 	ret0, _ := ret[0].(trie.Trie)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStorageChild indicates an expected call of GetStorageChild.
-func (mr *MockStorageAPIMockRecorder) GetStorageChild(root, keyToChild any) *gomock.Call {
+func (mr *MockStorageAPIMockRecorder) GetStorageChild(bhash, keyToChild any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageChild", reflect.TypeOf((*MockStorageAPI)(nil).GetStorageChild), root, keyToChild)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageChild", reflect.TypeOf((*MockStorageAPI)(nil).GetStorageChild), bhash, keyToChild)
 }
 
 // GetStorageFromChild mocks base method.
