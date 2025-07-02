@@ -24,7 +24,6 @@ type StorageAPI interface {
 	GetStorageChild(bhash *common.Hash, keyToChild []byte) (trie.Trie, error)
 	GetStorageFromChild(bhash *common.Hash, keyToChild, key []byte) ([]byte, error)
 	Entries(bhash *common.Hash) (map[string][]byte, error)
-	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetKeysWithPrefix(bhash *common.Hash, prefix []byte) ([][]byte, error)
 	RegisterStorageObserver(observer state.Observer)
 	UnregisterStorageObserver(observer state.Observer)

@@ -20,7 +20,6 @@ func NewMockAnyStorageAPI(ctrl *gomock.Controller) *modulesmocks.MockStorageAPI 
 	m.EXPECT().Entries(gomock.Any()).Return(nil, nil).AnyTimes()
 	m.EXPECT().RegisterStorageObserver(gomock.Any()).AnyTimes()
 	m.EXPECT().UnregisterStorageObserver(gomock.Any()).AnyTimes()
-	m.EXPECT().GetStateRootFromBlock(gomock.Any()).Return(nil, nil).AnyTimes()
 	m.EXPECT().GetKeysWithPrefix(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 	return m
 }
