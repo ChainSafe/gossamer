@@ -43,32 +43,23 @@ func TestStateModuleGetPairs(t *testing.T) {
 	m["b"] = []byte{23, 24}
 
 	mockStorageAPI := mocks.NewMockStorageAPI(ctrl)
-	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&hash, nil)
 	mockStorageAPI.EXPECT().GetKeysWithPrefix(&hash, common.MustHexToBytes(str)).Return([][]byte{{1}, {1}}, nil)
 	mockStorageAPI.EXPECT().GetStorage(&hash, []byte{1}).Return([]byte{21}, nil).Times(2)
 
 	mockStorageAPINil := mocks.NewMockStorageAPI(ctrl)
-	mockStorageAPINil.EXPECT().GetStateRootFromBlock(&hash).Return(&hash, nil)
 	mockStorageAPINil.EXPECT().Entries(&hash).Return(m, nil)
 
 	mockStorageAPIGetKeysEmpty := mocks.NewMockStorageAPI(ctrl)
-	mockStorageAPIGetKeysEmpty.EXPECT().GetStateRootFromBlock(&hash).Return(&hash, nil)
 	mockStorageAPIGetKeysEmpty.EXPECT().GetKeysWithPrefix(&hash, common.MustHexToBytes(str)).Return([][]byte{}, nil)
 
 	mockStorageAPIGetKeysErr := mocks.NewMockStorageAPI(ctrl)
-	mockStorageAPIGetKeysErr.EXPECT().GetStateRootFromBlock(&hash).Return(&hash, nil)
 	mockStorageAPIGetKeysErr.EXPECT().GetKeysWithPrefix(&hash, common.MustHexToBytes(str)).
 		Return(nil, errors.New("GetKeysWithPrefix Err"))
 
 	mockStorageAPIEntriesErr := mocks.NewMockStorageAPI(ctrl)
-	mockStorageAPIEntriesErr.EXPECT().GetStateRootFromBlock(&hash).Return(&hash, nil)
 	mockStorageAPIEntriesErr.EXPECT().Entries(&hash).Return(nil, errors.New("entries Err"))
 
-	mockStorageAPIErr := mocks.NewMockStorageAPI(ctrl)
-	mockStorageAPIErr.EXPECT().GetStateRootFromBlock(&hash).Return(nil, errors.New("GetStateRootFromBlock Err"))
-
 	mockStorageAPIGetStorageErr := mocks.NewMockStorageAPI(ctrl)
-	mockStorageAPIGetStorageErr.EXPECT().GetStateRootFromBlock(&hash).Return(&hash, nil)
 	mockStorageAPIGetStorageErr.EXPECT().GetKeysWithPrefix(&hash, common.MustHexToBytes(str)).
 		Return([][]byte{{2}, {2}}, nil)
 	mockStorageAPIGetStorageErr.EXPECT().GetStorage(&hash, []byte{2}).Return(nil, errors.New("GetStorage Err"))
@@ -93,16 +84,6 @@ func TestStateModuleGetPairs(t *testing.T) {
 		expErr error
 		exp    StatePairResponse
 	}{
-		{
-			name:   "GetStateRootFromBlock Error",
-			fields: fields{nil, mockStorageAPIErr, nil},
-			args: args{
-				req: &StatePairRequest{
-					Bhash: &hash,
-				},
-			},
-			expErr: errors.New("GetStateRootFromBlock Err"),
-		},
 		{
 			name:   "Nil Prefix OK",
 			fields: fields{nil, mockStorageAPINil, nil},

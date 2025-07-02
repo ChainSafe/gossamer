@@ -21,7 +21,7 @@ type StorageState interface {
 	GetStorage(bhash *common.Hash, key []byte) ([]byte, error)
 	StorageRoot() (common.Hash, error)
 	Entries(bhash *common.Hash) (map[string][]byte, error) // should be overhauled to iterate
-	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
+	GetKeysWithPrefix(bhash *common.Hash, prefix []byte) ([][]byte, error)
 	GetStorageChild(root *common.Hash, keyToChild []byte) (trie.Trie, error)
 	GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error)
 

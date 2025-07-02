@@ -59,7 +59,7 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 		TransactionVersion: 12,
 	}
 
-	sm, hash, _ := setupStateModule(t)
+	sm, hash := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -100,7 +100,7 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 }
 
 func TestStateModule_GetPairs(t *testing.T) {
-	sm, hash, _ := setupStateModule(t)
+	sm, hash := setupStateModule(t)
 
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
@@ -179,7 +179,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 }
 
 func TestStateModule_GetStorage(t *testing.T) {
-	sm, hash, _ := setupStateModule(t)
+	sm, hash := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -229,7 +229,7 @@ func TestStateModule_GetStorage(t *testing.T) {
 }
 
 func TestStateModule_GetStorageHash(t *testing.T) {
-	sm, hash, _ := setupStateModule(t)
+	sm, hash := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -277,7 +277,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 }
 
 func TestStateModule_GetStorageSize(t *testing.T) {
-	sm, hash, _ := setupStateModule(t)
+	sm, hash := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -403,7 +403,7 @@ func TestStateModule_QueryStorage(t *testing.T) {
 
 func TestStateModule_GetMetadata(t *testing.T) {
 	t.Skip() // TODO: update expected_metadata (#1026)
-	sm, hash, _ := setupStateModule(t)
+	sm, hash := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -444,7 +444,7 @@ func TestStateModule_GetMetadata(t *testing.T) {
 }
 
 func TestStateModule_GetKeysPaged(t *testing.T) {
-	sm, _, stateRootHash := setupStateModule(t)
+	sm, blockHash := setupStateModule(t)
 
 	testCases := []struct {
 		name     string
@@ -461,7 +461,7 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 		{name: "allKeysTestBlockHash",
 			params: StateStorageKeyRequest{
 				Qty:   10,
-				Block: stateRootHash,
+				Block: blockHash,
 			}, expected: []string{
 				"0x3a6368696c645f73746f726167653a64656661756c743a3a6368696c6431",
 				"0x3a6b657931", "0x3a6b657932"}},
@@ -557,7 +557,7 @@ func TestGetReadProof_WhenReturnsProof(t *testing.T) {
 	require.Equal(t, res.Proof, expectedProof)
 }
 
-func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
+func setupStateModule(t *testing.T) (*StateModule, *common.Hash) {
 	// setup service
 	net := newNetworkService(t)
 	chain := newTestStateService(t)
@@ -607,5 +607,5 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	require.NoError(t, err)
 
 	core := newCoreService(t, chain)
-	return NewStateModule(net, chain.Storage, core, nil), &hash, &sr1
+	return NewStateModule(net, chain.Storage, core, nil), &hash
 }

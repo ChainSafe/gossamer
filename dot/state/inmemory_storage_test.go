@@ -137,7 +137,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 
 	storage.blockState.GetTries().delete(root)
 
-	prefixKeys, err := storage.GetKeysWithPrefix(&root, []byte("ke"))
+	prefixKeys, err := storage.GetKeysWithPrefix(&hash, []byte("ke"))
 	require.NoError(t, err)
 	require.Equal(t, 2, len(prefixKeys))
 

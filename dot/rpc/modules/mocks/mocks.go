@@ -65,18 +65,18 @@ func (mr *MockStorageAPIMockRecorder) Entries(bhash any) *gomock.Call {
 }
 
 // GetKeysWithPrefix mocks base method.
-func (m *MockStorageAPI) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
+func (m *MockStorageAPI) GetKeysWithPrefix(bhash *common.Hash, prefix []byte) ([][]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetKeysWithPrefix", root, prefix)
+	ret := m.ctrl.Call(m, "GetKeysWithPrefix", bhash, prefix)
 	ret0, _ := ret[0].([][]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetKeysWithPrefix indicates an expected call of GetKeysWithPrefix.
-func (mr *MockStorageAPIMockRecorder) GetKeysWithPrefix(root, prefix any) *gomock.Call {
+func (mr *MockStorageAPIMockRecorder) GetKeysWithPrefix(bhash, prefix any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKeysWithPrefix", reflect.TypeOf((*MockStorageAPI)(nil).GetKeysWithPrefix), root, prefix)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKeysWithPrefix", reflect.TypeOf((*MockStorageAPI)(nil).GetKeysWithPrefix), bhash, prefix)
 }
 
 // GetStateRootFromBlock mocks base method.

@@ -194,18 +194,6 @@ func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI, blockAPI B
 
 // GetPairs returns the keys with prefix, leave empty to get all the keys.
 func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *StatePairResponse) error {
-	var (
-		stateRootHash *common.Hash
-		err           error
-	)
-
-	if req.Bhash != nil {
-		stateRootHash, err = sm.storageAPI.GetStateRootFromBlock(req.Bhash)
-		if err != nil {
-			return err
-		}
-	}
-
 	if req.Prefix == nil || *req.Prefix == "" || *req.Prefix == "0x" {
 		pairs, err := sm.storageAPI.Entries(req.Bhash)
 		if err != nil {
@@ -222,7 +210,7 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 	if err != nil {
 		return fmt.Errorf("cannot convert hex prefix %s to bytes: %w", *req.Prefix, err)
 	}
-	keys, err := sm.storageAPI.GetKeysWithPrefix(stateRootHash, reqBytes)
+	keys, err := sm.storageAPI.GetKeysWithPrefix(req.Bhash, reqBytes)
 	if err != nil {
 		return err
 	}

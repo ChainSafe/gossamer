@@ -263,8 +263,22 @@ func (s *InmemoryStorageState) Entries(bhash *common.Hash) (map[string][]byte, e
 }
 
 // GetKeysWithPrefix returns all that match the given prefix for the given hash
-// (or best block state root if hash is nil) in lexicographic order
-func (s *InmemoryStorageState) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
+// (or best block if hash is nil) in lexicographic order
+func (s *InmemoryStorageState) GetKeysWithPrefix(bhash *common.Hash, prefix []byte) ([][]byte, error) {
+	if bhash == nil {
+		header, err := s.blockState.BestBlockHeader()
+		if err != nil {
+			return nil, err
+		}
+		h := header.Hash()
+		bhash = &h
+	}
+
+	root, err := s.GetStateRootFromBlock(bhash)
+	if err != nil {
+		return nil, err
+	}
+
 	tr, err := s.loadTrie(root)
 	if err != nil {
 		return nil, err
