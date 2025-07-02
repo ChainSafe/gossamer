@@ -271,7 +271,12 @@ func (s *InmemoryStorageState) GetStorageChild(bhash *common.Hash, keyToChild []
 }
 
 // GetStorageFromChild get a value from a child trie
-func (s *InmemoryStorageState) GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error) {
+func (s *InmemoryStorageState) GetStorageFromChild(bhash *common.Hash, keyToChild, key []byte) ([]byte, error) {
+	root, err := s.GetStateRootFromBlock(bhash)
+	if err != nil {
+		return nil, err
+	}
+
 	tr, err := s.loadTrie(root)
 	if err != nil {
 		return nil, err

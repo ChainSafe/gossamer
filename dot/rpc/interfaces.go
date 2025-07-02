@@ -22,7 +22,7 @@ import (
 type StorageAPI interface {
 	GetStorage(bhash *common.Hash, key []byte) ([]byte, error)
 	GetStorageChild(bhash *common.Hash, keyToChild []byte) (trie.Trie, error)
-	GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error)
+	GetStorageFromChild(bhash *common.Hash, keyToChild, key []byte) ([]byte, error)
 	Entries(bhash *common.Hash) (map[string][]byte, error)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetKeysWithPrefix(bhash *common.Hash, prefix []byte) ([][]byte, error)

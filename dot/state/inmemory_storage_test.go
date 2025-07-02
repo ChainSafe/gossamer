@@ -217,7 +217,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	_, err = storage.GetStorageChild(&blockHash, []byte("keyToChild"))
 	require.NoError(t, err)
 
-	value, err := storage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"))
+	value, err := storage.GetStorageFromChild(&blockHash, []byte("keyToChild"), []byte("keyInsidechild"))
 	require.NoError(t, err)
 
 	require.Equal(t, []byte("voila"), value)

@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createTestTrieState(t *testing.T) (trie.Trie, common.Hash) {
+func createTestTrieState(t *testing.T) trie.Trie {
 	t.Helper()
 
 	_, genesisTrie, _ := newWestendLocalGenesisWithTrieAndHeader(t)
@@ -33,16 +33,13 @@ func createTestTrieState(t *testing.T) (trie.Trie, common.Hash) {
 	err = tr.SetChildStorage([]byte(":child_storage_key"), []byte(":another_child"), []byte("value"))
 	require.NoError(t, err)
 
-	stateRoot, err := tr.Root()
-	require.NoError(t, err)
-
-	return genesisTrie, stateRoot
+	return genesisTrie
 }
 
 func TestChildStateModule_GetKeys(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	tr, _ := createTestTrieState(t)
+	tr := createTestTrieState(t)
 
 	expKeys := tr.GetKeysWithPrefix([]byte{})
 	expHexKeys := make([]string, len(expKeys))
@@ -151,25 +148,29 @@ func TestChildStateModule_GetKeys(t *testing.T) {
 func TestChildStateModule_GetStorageSize(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	_, sr := createTestTrieState(t)
-
 	mockStorageAPI := apimocks.NewMockStorageAPI(ctrl)
-	mockErrorStorageAPI1 := apimocks.NewMockStorageAPI(ctrl)
-	mockErrorStorageAPI2 := apimocks.NewMockStorageAPI(ctrl)
+	mockErrorStorageAPI := apimocks.NewMockStorageAPI(ctrl)
 	mockBlockAPI := apimocks.NewMockBlockAPI(ctrl)
 
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-	mockBlockAPI.EXPECT().BestBlockHash().Return(hash)
 
-	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&sr, nil).Times(2)
-	mockStorageAPI.EXPECT().GetStorageFromChild(&sr, []byte(":child_storage_key"), []byte(":child_first")).
-		Return([]byte(""), nil).Times(2)
+	mockStorageAPI.EXPECT().
+		GetStorageFromChild(&hash, []byte(":child_storage_key"), []byte(":child_first")).
+		Return([]byte(""), nil).
+		MaxTimes(2)
+	mockStorageAPI.EXPECT().
+		GetStorageFromChild((*common.Hash)(nil), []byte(":child_storage_key"), []byte(":child_first")).
+		Return([]byte(""), nil).
+		MaxTimes(2)
 
-	mockErrorStorageAPI1.EXPECT().GetStateRootFromBlock(&hash).Return(nil, nil)
-	mockErrorStorageAPI1.EXPECT().GetStorageFromChild((*common.Hash)(nil), []byte(nil), []byte(nil)).
-		Return(nil, errors.New("GetStorageChild error"))
-
-	mockErrorStorageAPI2.EXPECT().GetStateRootFromBlock(&hash).Return(nil, errors.New("GetStateRootFromBlock error"))
+	mockErrorStorageAPI.EXPECT().
+		GetStorageFromChild(&hash, []byte(nil), []byte(nil)).
+		Return(nil, errors.New("GetStorageChild error")).
+		MaxTimes(2)
+	mockErrorStorageAPI.EXPECT().
+		GetStorageFromChild((*common.Hash)(nil), []byte(nil), []byte(nil)).
+		Return(nil, errors.New("GetStorageChild error")).
+		MaxTimes(2)
 
 	childStateModule := NewChildStateModule(mockStorageAPI, mockBlockAPI)
 	type fields struct {
@@ -219,7 +220,7 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 		{
 			name: "GetStorageChild_error",
 			fields: fields{
-				mockErrorStorageAPI1,
+				mockErrorStorageAPI,
 				mockBlockAPI,
 			},
 			args: args{
@@ -228,19 +229,6 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 				},
 			},
 			expErr: errors.New("GetStorageChild error"),
-		},
-		{
-			name: "GetStateRootFromBlock_error",
-			fields: fields{
-				mockErrorStorageAPI2,
-				mockBlockAPI,
-			},
-			args: args{
-				req: &GetChildStorageRequest{
-					Hash: &hash,
-				},
-			},
-			expErr: errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
@@ -264,25 +252,25 @@ func TestChildStateModule_GetStorageSize(t *testing.T) {
 func TestChildStateModule_GetStorageHash(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	_, sr := createTestTrieState(t)
-
 	mockStorageAPI := apimocks.NewMockStorageAPI(ctrl)
-	mockErrorStorageAPI1 := apimocks.NewMockStorageAPI(ctrl)
-	mockErrorStorageAPI2 := apimocks.NewMockStorageAPI(ctrl)
+	mockErrorStorageAPI := apimocks.NewMockStorageAPI(ctrl)
 	mockBlockAPI := apimocks.NewMockBlockAPI(ctrl)
 
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-	mockBlockAPI.EXPECT().BestBlockHash().Return(hash)
 
-	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&sr, nil).Times(2)
-	mockStorageAPI.EXPECT().GetStorageFromChild(&sr, []byte(":child_storage_key"), []byte(":child_first")).
-		Return([]byte(""), nil).Times(2)
+	mockStorageAPI.EXPECT().
+		GetStorageFromChild((*common.Hash)(nil), []byte(":child_storage_key"), []byte(":child_first")).
+		Return([]byte(""), nil).
+		MaxTimes(2)
+	mockStorageAPI.EXPECT().
+		GetStorageFromChild(&hash, []byte(":child_storage_key"), []byte(":child_first")).
+		Return([]byte(""), nil).
+		MaxTimes(2)
 
-	mockErrorStorageAPI1.EXPECT().GetStateRootFromBlock(&hash).Return(nil, nil)
-	mockErrorStorageAPI1.EXPECT().GetStorageFromChild((*common.Hash)(nil), []byte(nil), []byte(nil)).
-		Return(nil, errors.New("GetStorageChild error"))
-
-	mockErrorStorageAPI2.EXPECT().GetStateRootFromBlock(&hash).Return(nil, errors.New("GetStateRootFromBlock error"))
+	mockErrorStorageAPI.EXPECT().
+		GetStorageFromChild(&hash, []byte(nil), []byte(nil)).
+		Return(nil, errors.New("GetStorageChild error")).
+		MaxTimes(2)
 
 	childStateModule := NewChildStateModule(mockStorageAPI, mockBlockAPI)
 	type fields struct {
@@ -332,7 +320,7 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 		{
 			name: "GetStorageChild_error",
 			fields: fields{
-				mockErrorStorageAPI1,
+				mockErrorStorageAPI,
 				mockBlockAPI,
 			},
 			args: args{
@@ -341,19 +329,6 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 				},
 			},
 			expErr: errors.New("GetStorageChild error"),
-		},
-		{
-			name: "GetStateRootFromBlock_error",
-			fields: fields{
-				mockErrorStorageAPI2,
-				mockBlockAPI,
-			},
-			args: args{
-				req: &GetStorageHash{
-					Hash: &hash,
-				},
-			},
-			expErr: errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
@@ -377,25 +352,25 @@ func TestChildStateModule_GetStorageHash(t *testing.T) {
 func TestChildStateModule_GetStorage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
-	_, sr := createTestTrieState(t)
-
 	mockStorageAPI := apimocks.NewMockStorageAPI(ctrl)
-	mockErrorStorageAPI1 := apimocks.NewMockStorageAPI(ctrl)
-	mockErrorStorageAPI2 := apimocks.NewMockStorageAPI(ctrl)
+	mockErrorStorageAPI := apimocks.NewMockStorageAPI(ctrl)
 	mockBlockAPI := apimocks.NewMockBlockAPI(ctrl)
 
 	hash := common.MustHexToHash("0x3aa96b0149b6ca3688878bdbd19464448624136398e3ce45b9e755d3ab61355a")
-	mockBlockAPI.EXPECT().BestBlockHash().Return(hash)
 
-	mockStorageAPI.EXPECT().GetStateRootFromBlock(&hash).Return(&sr, nil).Times(2)
-	mockStorageAPI.EXPECT().GetStorageFromChild(&sr, []byte(":child_storage_key"), []byte(":child_first")).
-		Return([]byte("test"), nil).Times(2)
+	mockStorageAPI.EXPECT().
+		GetStorageFromChild(&hash, []byte(":child_storage_key"), []byte(":child_first")).
+		Return([]byte("test"), nil).
+		MaxTimes(2)
+	mockStorageAPI.EXPECT().
+		GetStorageFromChild((*common.Hash)(nil), []byte(":child_storage_key"), []byte(":child_first")).
+		Return([]byte("test"), nil).
+		MaxTimes(2)
 
-	mockErrorStorageAPI1.EXPECT().GetStateRootFromBlock(&hash).Return(nil, nil)
-	mockErrorStorageAPI1.EXPECT().GetStorageFromChild((*common.Hash)(nil), []byte(nil), []byte(nil)).
-		Return(nil, errors.New("GetStorageChild error"))
-
-	mockErrorStorageAPI2.EXPECT().GetStateRootFromBlock(&hash).Return(nil, errors.New("GetStateRootFromBlock error"))
+	mockErrorStorageAPI.EXPECT().
+		GetStorageFromChild(&hash, []byte(nil), []byte(nil)).
+		Return(nil, errors.New("GetStorageChild error")).
+		MaxTimes(2)
 
 	childStateModule := NewChildStateModule(mockStorageAPI, mockBlockAPI)
 	type fields struct {
@@ -445,7 +420,7 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 		{
 			name: "GetStorageChild_error",
 			fields: fields{
-				mockErrorStorageAPI1,
+				mockErrorStorageAPI,
 				mockBlockAPI,
 			},
 			args: args{
@@ -454,19 +429,6 @@ func TestChildStateModule_GetStorage(t *testing.T) {
 				},
 			},
 			expErr: errors.New("GetStorageChild error"),
-		},
-		{
-			name: "GetStateRootFromBlock_error",
-			fields: fields{
-				mockErrorStorageAPI2,
-				mockBlockAPI,
-			},
-			args: args{
-				req: &ChildStateStorageRequest{
-					Hash: &hash,
-				},
-			},
-			expErr: errors.New("GetStateRootFromBlock error"),
 		},
 	}
 	for _, tt := range tests {
