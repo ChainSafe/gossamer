@@ -145,7 +145,7 @@ func (s *StatementDistribution) awaitMessageFrom(
 // upon learning about a new relay parent.
 func (s *StatementDistribution) sendPendingGridMessages(
 	rp common.Hash,
-	peerID peer.ID,                                         //nolint:unparam
+	peerID peer.ID, //nolint:unparam
 	validationVersion validationprotocol.ValidationVersion, //nolint:unparam
 	peerValidatorID parachaintypes.ValidatorIndex,
 	groups *groups,
