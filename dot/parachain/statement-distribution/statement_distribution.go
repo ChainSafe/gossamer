@@ -145,7 +145,7 @@ func (s *StatementDistribution) awaitMessageFrom(
 // upon learning about a new relay parent.
 func (s *StatementDistribution) sendPendingGridMessages(
 	rp common.Hash,
-	peerID peer.ID, //nolint:unparam
+	peerID peer.ID,                                         //nolint:unparam
 	validationVersion validationprotocol.ValidationVersion, //nolint:unparam
 	peerValidatorID parachaintypes.ValidatorIndex,
 	groups *groups,
@@ -352,7 +352,7 @@ type manifestImportSuccess struct {
 // Basic sanity checks around data, importing the manifest into the grid tracker, finding the
 // sending peer's validator index, reporting the peer for any misbehaviour, etc.
 func (s *StatementDistribution) handleIncomingManifestCommon(
-	peer peer.ID,
+	peerID peer.ID,
 	peers map[peer.ID]peerState,
 	perRelayParent map[common.Hash]perRelayParentState,
 	perSession map[parachaintypes.SessionIndex]perSessionState,
@@ -365,14 +365,25 @@ func (s *StatementDistribution) handleIncomingManifestCommon(
 	reputation *parachainutil.ReputationAggregator,
 ) *manifestImportSuccess {
 	// 1. sanity checks: peer is connected, relay-parent in state, para ID matches group index.
-	peerState, ok := peers[peer]
+	peerState, ok := peers[peerID]
 	if !ok {
 		return nil
 	}
 
+	reportPeer := func(change parachainutil.UnifiedReputationChange) {
+		logger.Debugf(
+			"Peer %s sent us an unimportable parachain candidate manifest or acknowledgement. "+
+				"Adjusting reputation by %d for reason '%s'.",
+			peerID.String(),
+			change.CostOrBenefit(),
+			change.Reason,
+		)
+		reputation.Modify(s.SubSystemToOverseer, peerID, change)
+	}
+
 	relayParentState, ok := perRelayParent[relayParent]
 	if !ok {
-		reputation.Modify(s.SubSystemToOverseer, peer, costUnexpectedManifestMissingKnowledge)
+		reportPeer(costUnexpectedManifestMissingKnowledge)
 		return nil
 	}
 
@@ -383,19 +394,19 @@ func (s *StatementDistribution) handleIncomingManifestCommon(
 
 	if relayParentState.localValidator == nil {
 		if perSessionEntry.isNotValidator() {
-			reputation.Modify(s.SubSystemToOverseer, peer, costUnexpectedManifestMissingKnowledge)
+			reportPeer(costUnexpectedManifestMissingKnowledge)
 		}
 		return nil
 	}
 
 	expectedGroups, ok := relayParentState.groupsPerPara[paraID]
 	if !ok {
-		reputation.Modify(s.SubSystemToOverseer, peer, costMalformedManifest)
+		reportPeer(costMalformedManifest)
 		return nil
 	}
 
 	if !slices.Contains(expectedGroups, manifestSummary.claimedGroupIndex) {
-		reputation.Modify(s.SubSystemToOverseer, peer, costMalformedManifest)
+		reportPeer(costMalformedManifest)
 		return nil
 	}
 
@@ -418,7 +429,7 @@ func (s *StatementDistribution) handleIncomingManifestCommon(
 	}
 
 	if senderIndex == nil {
-		reputation.Modify(s.SubSystemToOverseer, peer, costUnexpectedManifestPeerUnknown)
+		reportPeer(costUnexpectedManifestPeerUnknown)
 		return nil
 	}
 
@@ -460,32 +471,32 @@ func (s *StatementDistribution) handleIncomingManifestCommon(
 	)
 	switch err {
 	case errManifestImportConflicting:
-		reputation.Modify(s.SubSystemToOverseer, peer, costConflictingManifest)
+		reportPeer(costConflictingManifest)
 		return nil
 	case errManifestImportOverflow:
-		reputation.Modify(s.SubSystemToOverseer, peer, costExcessiveSeconded)
+		reportPeer(costExcessiveSeconded)
 		return nil
 	case errManifestImportInsufficient:
-		reputation.Modify(s.SubSystemToOverseer, peer, costInsufficientManifest)
+		reportPeer(costInsufficientManifest)
 		return nil
 	case errManifestImportMalformed:
-		reputation.Modify(s.SubSystemToOverseer, peer, costMalformedManifest)
+		reportPeer(costMalformedManifest)
 		return nil
 	case errManifestImportDisallowed:
-		reputation.Modify(s.SubSystemToOverseer, peer, costUnexpectedManifestDisallowed)
+		reportPeer(costUnexpectedManifestDisallowed)
 		return nil
 	default:
 	}
 
 	// 3. if accepted by grid, insert as unconfirmed.
 	if err = candidates.insertUnconfirmed(
-		peer,
+		peerID,
 		candidateHash,
 		relayParent,
 		groupIndex,
 		&hashAndParaID{manifestSummary.claimedParentHash, paraID},
 	); errors.Is(err, errBadAdvertisement) {
-		reputation.Modify(s.SubSystemToOverseer, peer, costInaccurateAdvertisement)
+		reportPeer(costInaccurateAdvertisement)
 		return nil
 	}
 
@@ -533,6 +544,12 @@ func (s *StatementDistribution) handleIncomingManifest(
 	)
 
 	if importSuccess == nil {
+		logger.Warnf(
+			"Unable to import incoming manifest from peer=%s candidateHash=%s",
+			peer.String(),
+			manifest.CandidateHash.String(),
+		)
+
 		return
 	}
 
