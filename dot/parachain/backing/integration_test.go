@@ -146,10 +146,10 @@ func newCommittedCandidate(
 }
 
 // parachainValidators returns a list of parachain validator IDs for testing purposes.
-func parachainValidators(t *testing.T, ks keystore.Keystore) []parachaintypes.ValidatorID {
+func parachainValidators(t *testing.T, ks keystore.Keystore) []parachaintypes.ValidatorPublicKey {
 	t.Helper()
 
-	validatorIds := make([]parachaintypes.ValidatorID, 0, 6)
+	validatorPublicKeys := make([]parachaintypes.ValidatorPublicKey, 0, 6)
 
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
@@ -164,17 +164,17 @@ func parachainValidators(t *testing.T, ks keystore.Keystore) []parachaintypes.Va
 	}
 
 	for _, kp := range keyPairs {
-		var validatorID parachaintypes.ValidatorID
+		var validatorKey parachaintypes.ValidatorPublicKey
 
 		err := ks.Insert(kp)
 		require.NoError(t, err)
 
 		bytes := kp.Public().Encode()
-		copy(validatorID[:], bytes)
-		validatorIds = append(validatorIds, validatorID)
+		copy(validatorKey[:], bytes)
+		validatorPublicKeys = append(validatorPublicKeys, validatorKey)
 	}
 
-	return validatorIds
+	return validatorPublicKeys
 }
 
 func claimQueue(t *testing.T) parachaintypes.ClaimQueue {

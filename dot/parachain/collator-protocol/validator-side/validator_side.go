@@ -303,8 +303,8 @@ func findValidatorGroup(validatorIndex parachaintypes.ValidatorIndex, validatorG
 
 // signingKeyAndIndex finds the first key we can sign with from the given set of validators,
 // if any, and returns it along with the validator index.
-func signingKeyAndIndex(validators []parachaintypes.ValidatorID, ks keystore.Keystore,
-) (*parachaintypes.ValidatorID, parachaintypes.ValidatorIndex) {
+func signingKeyAndIndex(validators []parachaintypes.ValidatorPublicKey, ks keystore.Keystore,
+) (*parachaintypes.ValidatorPublicKey, parachaintypes.ValidatorIndex) {
 	for i, validator := range validators {
 		publicKey, _ := sr25519.NewPublicKey(validator[:])
 		keypair := ks.GetKeypair(publicKey)

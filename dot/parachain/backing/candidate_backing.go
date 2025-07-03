@@ -101,7 +101,7 @@ type attestingData struct {
 type tableContext struct {
 	validator          *parachaintypes.Validator
 	groups             map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex
-	validators         []parachaintypes.ValidatorID
+	validators         []parachaintypes.ValidatorPublicKey
 	disabledValidators []parachaintypes.ValidatorIndex
 }
 
@@ -343,7 +343,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 // and avoid redundant computations.
 type perSessionCache struct {
 	// Cache for storing validators list, retrieved from the runtime.
-	validatorsCache *lrucache.LRUCache[parachaintypes.SessionIndex, []parachaintypes.ValidatorID]
+	validatorsCache *lrucache.LRUCache[parachaintypes.SessionIndex, []parachaintypes.ValidatorPublicKey]
 	// Cache for storing node features, retrieved from the runtime.
 	nodeFeaturesCache *lrucache.LRUCache[parachaintypes.SessionIndex, *parachaintypes.BitVec]
 	// Cache for storing executor parameters, retrieved from the runtime.
@@ -357,7 +357,7 @@ type perSessionCache struct {
 
 func newPerSessionCache(capacity uint) perSessionCache {
 	return perSessionCache{
-		validatorsCache:          lrucache.NewLRUCache[parachaintypes.SessionIndex, []parachaintypes.ValidatorID](capacity),
+		validatorsCache:          lrucache.NewLRUCache[parachaintypes.SessionIndex, []parachaintypes.ValidatorPublicKey](capacity),
 		nodeFeaturesCache:        lrucache.NewLRUCache[parachaintypes.SessionIndex, *parachaintypes.BitVec](capacity),
 		executorParamsCache:      lrucache.NewLRUCache[parachaintypes.SessionIndex, parachaintypes.ExecutorParams](capacity),
 		minimumBackingVotesCache: lrucache.NewLRUCache[parachaintypes.SessionIndex, uint32](capacity),
@@ -370,7 +370,7 @@ func newPerSessionCache(capacity uint) perSessionCache {
 func (cache *perSessionCache) getValidators(
 	sessionIndex parachaintypes.SessionIndex,
 	rt runtime.Instance,
-) ([]parachaintypes.ValidatorID, error) {
+) ([]parachaintypes.ValidatorPublicKey, error) {
 	validators := cache.validatorsCache.Get(sessionIndex)
 	if validators != nil {
 		return validators, nil
@@ -448,7 +448,7 @@ func (cache *perSessionCache) getMinimumBackingVotes(
 // Otherwise, it constructs the mapping, caches it, and then returns it.
 func (cache *perSessionCache) getValidatorToGroup(
 	sessionIndex parachaintypes.SessionIndex,
-	validators []parachaintypes.ValidatorID,
+	validators []parachaintypes.ValidatorPublicKey,
 	validatorGroups [][]parachaintypes.ValidatorIndex,
 ) map[parachaintypes.ValidatorIndex]parachaintypes.GroupIndex {
 	validatorToGroup := cache.validatorToGroupCache.Get(sessionIndex)

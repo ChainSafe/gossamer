@@ -132,7 +132,7 @@ func TestGetKeyIndexAndUpdateMetrics(t *testing.T) {
 		// than the key index of the current authority
 		sessionInfo := &parachaintypes.SessionInfo{
 			DiscoveryKeys: authorities,
-			Validators:    []parachaintypes.ValidatorID{{0x01}, {0x02}, {0x03}},
+			Validators:    []parachaintypes.ValidatorPublicKey{{0x01}, {0x02}, {0x03}},
 		}
 		keyIdx, err := gs.getKeyIndexAndUpdateMetrics(sessionInfo)
 
@@ -141,7 +141,7 @@ func TestGetKeyIndexAndUpdateMetrics(t *testing.T) {
 
 		// The subset of authorities participating in parachain consensus is less
 		// than the key index of the current authority
-		sessionInfo = &parachaintypes.SessionInfo{DiscoveryKeys: authorities, Validators: []parachaintypes.ValidatorID{{}}}
+		sessionInfo = &parachaintypes.SessionInfo{DiscoveryKeys: authorities, Validators: []parachaintypes.ValidatorPublicKey{{}}}
 		keyIdx, err = gs.getKeyIndexAndUpdateMetrics(sessionInfo)
 
 		assert.Nil(t, err)

@@ -116,7 +116,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 				mockRuntime := NewMockInstance(ctrl)
 				mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
 				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil)
-				mockRuntime.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorID{{1}, {2}, {3}}, nil)
+				mockRuntime.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorPublicKey{{1}, {2}, {3}}, nil)
 				mockRuntime.EXPECT().ParachainHostNodeFeatures().Return(bv, nil)
 				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
 					Return(&parachaintypes.ExecutorParams{}, nil)

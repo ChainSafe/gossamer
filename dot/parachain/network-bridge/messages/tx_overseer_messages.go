@@ -64,7 +64,7 @@ const (
 // `PeerConnected` events from the network bridge.
 type ConnectToValidators struct {
 	// IDs of the validators to connect to.
-	ValidatorIDs []parachaintypes.AuthorityDiscoveryID
+	ValidatorPublicKeys []parachaintypes.AuthorityDiscoveryID
 	// The underlying protocol to use for this request.
 	PeerSet PeerSetType
 	// Sends back the number of `AuthorityDiscoveryId`s which

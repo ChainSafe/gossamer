@@ -56,7 +56,7 @@ type Instance interface {
 	ParachainHostValidationCode(parachaidID parachaintypes.ParaID, assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.ValidationCode, error)
 	ParachainHostValidationCodeByHash(validationCodeHash common.Hash) (*parachaintypes.ValidationCode, error)
-	ParachainHostValidators() ([]parachaintypes.ValidatorID, error)
+	ParachainHostValidators() ([]parachaintypes.ValidatorPublicKey, error)
 	ParachainHostValidatorGroups() (*parachaintypes.ValidatorGroups, error)
 	ParachainHostAvailabilityCores() ([]parachaintypes.CoreState, error)
 	ParachainHostCheckValidationOutputs(
