@@ -497,11 +497,12 @@ func (c *clusterTracker) noteSent(
 ) {
 	targetKnowledge, ok := c.knowledge[target]
 	if !ok {
-		targetKnowledge = map[taggedKnowledge]struct{}{
-			outgoingP2P{specific{statement, originator}}: {},
-		}
+		targetKnowledge = map[taggedKnowledge]struct{}{}
 		c.knowledge[target] = targetKnowledge
 	}
+
+	targetKnowledge[outgoingP2P{specific{statement, originator}}] = struct{}{}
+	c.knowledge[target] = targetKnowledge
 
 	if _, ok := statement.(*parachaintypes.CompactSeconded); ok {
 		targetKnowledge[outgoingP2P{general{statement.CandidateHash()}}] = struct{}{}

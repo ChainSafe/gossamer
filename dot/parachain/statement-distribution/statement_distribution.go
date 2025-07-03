@@ -234,8 +234,6 @@ func (s *StatementDistribution) fragmentChainUpdateInner(rp *common.Hash,
 		candidateMemberships = resp
 	}
 
-	fmt.Println(len(candidateMemberships))
-
 	// 3. note that they are importable under a given leaf hash.
 	for _, item := range candidateMemberships {
 		// skip parablocks which aren't potential candidates

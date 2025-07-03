@@ -5,7 +5,6 @@ package statementdistribution
 
 import (
 	"cmp"
-	"fmt"
 	"slices"
 	"testing"
 
@@ -277,17 +276,10 @@ func TestClusterTracker_noteSent(t *testing.T) {
 	// since the compact statement is valid, we dont add the originator to knowledge
 	expectedSpecific = outgoingP2P{specific{validStmt, parachaintypes.ValidatorIndex(24)}}
 	_, ok = tracker.knowledge[parachaintypes.ValidatorIndex(5)][expectedSpecific]
-
-	for k := range tracker.knowledge[parachaintypes.ValidatorIndex(5)] {
-		fmt.Printf("%+v\n", k)
-		fmt.Printf("%+v\n", expectedSpecific)
-
-		if k == expectedSpecific {
-			fmt.Println("eql")
-		}
-	}
-
 	require.True(t, ok)
+
+	_, ok = tracker.knowledge[parachaintypes.ValidatorIndex(24)]
+	require.False(t, ok)
 
 	require.Len(t, tracker.pending[parachaintypes.ValidatorIndex(5)], 0)
 }
