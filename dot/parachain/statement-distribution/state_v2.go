@@ -12,6 +12,7 @@ import (
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // requestManager defines the interface that manages
@@ -226,7 +227,7 @@ type v2State struct {
 	perRelayParent   map[common.Hash]*perRelayParentState
 	perSession       map[parachaintypes.SessionIndex]*perSessionState
 	unusedTopologies map[parachaintypes.SessionIndex]events.NewGossipTopology
-	peers            map[string]peerState
+	peers            map[peer.ID]peerState
 	keystore         keystore.Keystore
 	authorities      map[parachaintypes.AuthorityDiscoveryID]string
 	requestManager   requestManager // TODO: #4377
@@ -240,7 +241,7 @@ func newV2State(ks keystore.Keystore, iv parachainutil.ImplicitView) *v2State {
 		perRelayParent:   map[common.Hash]*perRelayParentState{},
 		perSession:       map[parachaintypes.SessionIndex]*perSessionState{},
 		unusedTopologies: map[parachaintypes.SessionIndex]events.NewGossipTopology{},
-		peers:            map[string]peerState{},
+		peers:            map[peer.ID]peerState{},
 		keystore:         ks,
 		authorities:      map[parachaintypes.AuthorityDiscoveryID]string{},
 		requestManager:   nil,

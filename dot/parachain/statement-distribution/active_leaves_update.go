@@ -7,6 +7,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/libp2p/go-libp2p/core/peer"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
@@ -35,7 +36,7 @@ func (s *StatementDistribution) handleActiveLeavesUpdate(leaf *parachaintypes.Ac
 	// Reconcile all peers' views with the active leaf and any relay parents
 	// it implies. If they learned about the block before we did, this reconciliation will give
 	// non-empty results and we should send them messages concerning all activated relay-parents.
-	updatePeers := make(map[string][]common.Hash)
+	updatePeers := make(map[peer.ID][]common.Hash)
 	for pid, pState := range s.state.peers {
 		fresh := pState.reconcileActiveLeaf(leaf.Hash, newRelayParents)
 		if len(fresh) > 0 {

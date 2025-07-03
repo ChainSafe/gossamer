@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -117,7 +118,7 @@ func TestHandleActiveLeavesUpdate_HappyPath(t *testing.T) {
 		implicitView:   implicitViewMock,
 		perRelayParent: make(map[common.Hash]*perRelayParentState),
 		perSession:     make(map[parachaintypes.SessionIndex]*perSessionState),
-		peers:          map[string]peerState{},
+		peers:          map[peer.ID]peerState{},
 		keystore:       dummyKeystore,
 		candidates:     &candidates{},
 	}
@@ -302,8 +303,8 @@ func TestHandleActiveLeavesUpdate_SendPeerMessageForRelayParent(t *testing.T) {
 		implicitView:   implicitViewMock,
 		perRelayParent: make(map[common.Hash]*perRelayParentState),
 		perSession:     make(map[parachaintypes.SessionIndex]*perSessionState),
-		peers: map[string]peerState{
-			"peer1": {
+		peers: map[peer.ID]peerState{
+			peer.ID("peer1"): {
 				view: parachaintypes.View{
 					Heads: []common.Hash{leafHash},
 				},
