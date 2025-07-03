@@ -174,7 +174,6 @@ func Test_gossipValidator(t *testing.T) {
 			KeyStore:                      nil,
 			Name:                          nil,
 			LocalRole:                     role.RoleAuthority,
-			ObserverEnabled:               false,
 			ProtocolName:                  "grandpa_protocol_name",
 		}
 	}

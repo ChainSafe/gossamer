@@ -21,6 +21,12 @@ var (
 
 type writeAux func(insertions []api.KeyValue) error
 
+// Persistent data kept between runs.
+type persistentData[H runtime.Hash, N runtime.Number] struct {
+	authoritySet *SharedAuthoritySet[H, N]
+	setState     *SharedVoterSetState[H, N]
+}
+
 // updateAuthoritySet Update the authority set on disk after a change.
 //
 // If there has just been a handoff, pass a newSet parameter that describes the handoff. set in all cases should

@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
+	forktree "github.com/ChainSafe/gossamer/internal/utils/fork-tree"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -83,7 +84,7 @@ func TestCompleteRoundEncoding(t *testing.T) {
 func TestCompletedRoundsEncoding(t *testing.T) {
 	authorities := AuthoritySet[hashString, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[hashString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[hashString, uint, PendingChange[hashString, uint]](),
 		PendingForcedChanges:   []PendingChange[hashString, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
@@ -173,7 +174,7 @@ func TestCompletedRounds_Iter(t *testing.T) {
 func TestCompletedRounds_Last(t *testing.T) {
 	authorities := AuthoritySet[hashString, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[hashString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[hashString, uint, PendingChange[hashString, uint]](),
 		PendingForcedChanges:   []PendingChange[hashString, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
@@ -204,7 +205,7 @@ func TestCompletedRounds_Last(t *testing.T) {
 func TestCompletedRounds_Push(t *testing.T) {
 	authorities := AuthoritySet[hashString, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[hashString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[hashString, uint, PendingChange[hashString, uint]](),
 		PendingForcedChanges:   []PendingChange[hashString, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
@@ -319,7 +320,7 @@ func TestVoterSetStateEncoding(t *testing.T) {
 func TestVoterSetState_Live(t *testing.T) {
 	authorities := AuthoritySet[hashString, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[hashString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[hashString, uint, PendingChange[hashString, uint]](),
 		PendingForcedChanges:   []PendingChange[hashString, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
@@ -337,7 +338,7 @@ func TestVoterSetState_Live(t *testing.T) {
 func TestVoterSetState_CompletedRounds(t *testing.T) {
 	authorities := AuthoritySet[hashString, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[hashString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[hashString, uint, PendingChange[hashString, uint]](),
 		PendingForcedChanges:   []PendingChange[hashString, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
@@ -368,7 +369,7 @@ func TestVoterSetState_CompletedRounds(t *testing.T) {
 func TestVoterSetState_LastCompletedRound(t *testing.T) {
 	authorities := AuthoritySet[hashString, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[hashString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[hashString, uint, PendingChange[hashString, uint]](),
 		PendingForcedChanges:   []PendingChange[hashString, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
@@ -410,7 +411,7 @@ func TestVoterSetState_LastCompletedRound(t *testing.T) {
 func TestVoterSetState_WithCurrentRound(t *testing.T) {
 	authorities := AuthoritySet[hashString, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[hashString, uint](),
+		PendingStandardChanges: forktree.NewForkTree[hashString, uint, PendingChange[hashString, uint]](),
 		PendingForcedChanges:   []PendingChange[hashString, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
