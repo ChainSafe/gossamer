@@ -357,12 +357,26 @@ type perSessionCache struct {
 
 func newPerSessionCache(capacity uint) perSessionCache {
 	return perSessionCache{
-		validatorsCache:          lrucache.NewLRUCache[parachaintypes.SessionIndex, []parachaintypes.ValidatorPublicKey](capacity),
-		nodeFeaturesCache:        lrucache.NewLRUCache[parachaintypes.SessionIndex, *parachaintypes.BitVec](capacity),
-		executorParamsCache:      lrucache.NewLRUCache[parachaintypes.SessionIndex, parachaintypes.ExecutorParams](capacity),
-		minimumBackingVotesCache: lrucache.NewLRUCache[parachaintypes.SessionIndex, uint32](capacity),
-		validatorToGroupCache: lrucache.NewLRUCache[parachaintypes.SessionIndex,
-			map[parachaintypes.ValidatorIndex]parachaintypes.GroupIndex](capacity),
+		validatorsCache: lrucache.NewLRUCache[
+			parachaintypes.SessionIndex,
+			[]parachaintypes.ValidatorPublicKey,
+		](capacity),
+		nodeFeaturesCache: lrucache.NewLRUCache[
+			parachaintypes.SessionIndex,
+			*parachaintypes.BitVec,
+		](capacity),
+		executorParamsCache: lrucache.NewLRUCache[
+			parachaintypes.SessionIndex,
+			parachaintypes.ExecutorParams,
+		](capacity),
+		minimumBackingVotesCache: lrucache.NewLRUCache[
+			parachaintypes.SessionIndex,
+			uint32,
+		](capacity),
+		validatorToGroupCache: lrucache.NewLRUCache[
+			parachaintypes.SessionIndex,
+			map[parachaintypes.ValidatorIndex]parachaintypes.GroupIndex,
+		](capacity),
 	}
 }
 

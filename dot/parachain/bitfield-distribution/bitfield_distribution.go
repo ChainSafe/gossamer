@@ -48,7 +48,9 @@ type perRelayParentData struct {
 	messageReceivedFromPeer map[peer.ID]map[parachaintypes.ValidatorPublicKey]struct{}
 }
 
-func newPerRelayParentData(signingContext parachaintypes.SigningContext, validatorSet []parachaintypes.ValidatorPublicKey,
+func newPerRelayParentData(
+	signingContext parachaintypes.SigningContext,
+	validatorSet []parachaintypes.ValidatorPublicKey,
 ) *perRelayParentData {
 	return &perRelayParentData{
 		signingContext:          signingContext,
