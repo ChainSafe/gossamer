@@ -42,7 +42,7 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.NewCompactSeconded(parachaintypes.CandidateHash{Value: common.Hash{0x1}}),
 			),
-			notInGroupIncoming{},
+			notInGroup,
 		)
 
 		require.Equal(
@@ -52,7 +52,7 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 				parachaintypes.ValidatorIndex(100),
 				parachaintypes.NewCompactSeconded(parachaintypes.CandidateHash{Value: common.Hash{0x1}}),
 			),
-			notInGroupIncoming{},
+			notInGroup,
 		)
 	})
 
@@ -63,7 +63,7 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.ValidatorIndex(5),
@@ -79,7 +79,7 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.ValidatorIndex(5),
@@ -95,7 +95,7 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			excessiveSecondedIncoming{},
+			excessiveSeconded,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.ValidatorIndex(5),
@@ -111,7 +111,7 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.ValidatorIndex(5),
@@ -127,7 +127,7 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.ValidatorIndex(5),
@@ -143,7 +143,7 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			withPrejudice{},
+			withPrejudice,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(200),
 				parachaintypes.ValidatorIndex(5),
@@ -171,7 +171,7 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			duplicateIncoming{},
+			duplicate,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.ValidatorIndex(5),
@@ -181,7 +181,7 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			duplicateIncoming{},
+			duplicate,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.ValidatorIndex(200),
@@ -197,7 +197,7 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			candidateUnknownIncoming{},
+			candidateUnknown,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.ValidatorIndex(5),
@@ -219,7 +219,7 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.ValidatorIndex(5),
@@ -252,7 +252,7 @@ func TestClusterTracker_send_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.ValidatorIndex(5),
@@ -280,7 +280,7 @@ func TestClusterTracker_send_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			excessiveSecondedOutgoing{},
+			excessiveSeconded,
 			tracker.canSend(
 				parachaintypes.ValidatorIndex(200),
 				parachaintypes.ValidatorIndex(5),
@@ -290,7 +290,7 @@ func TestClusterTracker_send_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			excessiveSecondedOutgoing{},
+			excessiveSeconded,
 			tracker.canSend(
 				parachaintypes.ValidatorIndex(24),
 				parachaintypes.ValidatorIndex(5),
@@ -312,7 +312,7 @@ func TestClusterTracker_send_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			knownOutgoing{},
+			known,
 			tracker.canSend(
 				parachaintypes.ValidatorIndex(200),
 				parachaintypes.ValidatorIndex(5),
@@ -334,7 +334,7 @@ func TestClusterTracker_send_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			knownOutgoing{},
+			known,
 			tracker.canSend(
 				parachaintypes.ValidatorIndex(200),
 				parachaintypes.ValidatorIndex(5),
@@ -352,7 +352,7 @@ func TestClusterTracker_send_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(200),
 				parachaintypes.ValidatorIndex(5),
@@ -368,7 +368,7 @@ func TestClusterTracker_send_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			withPrejudice{},
+			withPrejudice,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(24),
 				parachaintypes.ValidatorIndex(5),
@@ -384,7 +384,7 @@ func TestClusterTracker_send_statements(t *testing.T) {
 
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canSend(
 				parachaintypes.ValidatorIndex(24),
 				parachaintypes.ValidatorIndex(5),
@@ -413,7 +413,7 @@ func TestClusterTracker_pendingStatementsFor(t *testing.T) {
 		// Receive a 'Seconded' statement for candidate A.
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(200),
 				parachaintypes.ValidatorIndex(5),
@@ -470,7 +470,7 @@ func TestClusterTracker_pendingStatementsFor(t *testing.T) {
 		// First, send a `Seconded` statement for the candidate.
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canSend(
 				parachaintypes.ValidatorIndex(24),
 				parachaintypes.ValidatorIndex(200),
@@ -488,7 +488,7 @@ func TestClusterTracker_pendingStatementsFor(t *testing.T) {
 		// 'Seconded' above.
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(24),
 				parachaintypes.ValidatorIndex(200),
@@ -540,7 +540,7 @@ func TestClusterTracker_pendingStatementsFor(t *testing.T) {
 
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(5),
 				parachaintypes.ValidatorIndex(146),
@@ -614,7 +614,7 @@ func TestClusterTracker_pendingStatementsFor(t *testing.T) {
 
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(200),
 				parachaintypes.ValidatorIndex(5),
@@ -665,7 +665,7 @@ func TestClusterTracker_pendingStatementsFor(t *testing.T) {
 		// First, send a `Seconded` statement for the candidate.
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canSend(
 				parachaintypes.ValidatorIndex(24),
 				parachaintypes.ValidatorIndex(200),
@@ -682,7 +682,7 @@ func TestClusterTracker_pendingStatementsFor(t *testing.T) {
 		// We have to see the candidate is known by the sender, e.g. we sent them 'Seconded'.
 		require.Equal(
 			t,
-			ok{},
+			ok,
 			tracker.canReceive(
 				parachaintypes.ValidatorIndex(24),
 				parachaintypes.ValidatorIndex(200),
