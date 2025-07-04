@@ -6,6 +6,7 @@ package parachaintypes
 import (
 	_ "embed"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -672,4 +673,54 @@ func TestCandidateCommitments_CoreSelector(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestParachainInherents(t *testing.T) {
+	t.Parallel()
+
+	expectedParaInherentsbytes := []byte{0, 0, 0, 197, 243, 254, 225, 31, 117, 21, 218, 179, 213, 92, 6, 247, 164, 230, 25, 47, 166, 140, 117, 142, 159, 195, 202, 67, 196, 238, 26, 44, 18, 33, 92, 65, 31, 219, 225, 47, 12, 107, 88, 153, 146, 55, 21, 226, 186, 110, 48, 167, 187, 67, 183, 228, 232, 118, 136, 30, 254, 11, 87, 48, 112, 7, 97, 31, 82, 146, 110, 96, 87, 152, 68, 98, 162, 227, 222, 78, 14, 244, 194, 120, 154, 112, 97, 222, 144, 174, 101, 220, 44, 111, 126, 54, 34, 155, 220, 253, 124, 0}                                            //nolint:lll
+	expectedInherentsBytes := []byte{4, 112, 97, 114, 97, 99, 104, 110, 48, 153, 1, 0, 0, 0, 197, 243, 254, 225, 31, 117, 21, 218, 179, 213, 92, 6, 247, 164, 230, 25, 47, 166, 140, 117, 142, 159, 195, 202, 67, 196, 238, 26, 44, 18, 33, 92, 65, 31, 219, 225, 47, 12, 107, 88, 153, 146, 55, 21, 226, 186, 110, 48, 167, 187, 67, 183, 228, 232, 118, 136, 30, 254, 11, 87, 48, 112, 7, 97, 31, 82, 146, 110, 96, 87, 152, 68, 98, 162, 227, 222, 78, 14, 244, 194, 120, 154, 112, 97, 222, 144, 174, 101, 220, 44, 111, 126, 54, 34, 155, 220, 253, 124, 0} //nolint:lll
+
+	// corresponding rust struct
+	// ----------------------------------------
+	// let para_int: polkadot_primitives::v2::InherentData = polkadot_primitives::v2::InherentData {
+	// 	bitfields: Vec::new(),
+	// 	backed_candidates: Vec::new(),
+	// 	disputes: Vec::new(),
+	// 	parent_header: polkadot_core_primitives::Header{
+	// 	   parent_hash: BlakeTwo256::hash(b"1000"),
+	// 	   digest: Default::default(),
+	// 	   number: 2000,
+	// 	   state_root: BlakeTwo256::hash(b"3000"),
+	// 	   extrinsics_root: BlakeTwo256::hash(b"4000"),
+	//    },
+	// };
+	// ----------------------------------------
+	// way to get inherents encoding from rust
+	// ----------------------------------------
+	// let mut inherents: sp_inherents::InherentData = sp_inherents::InherentData::new();
+	// inherents.put_data(*b"parachn0", &para_int).unwrap();
+	// println!("{:?}", inherents.encode());
+
+	parachainInherent := InherentData{
+		ParentHeader: types.Header{
+			ParentHash:     common.MustBlake2bHash([]byte("1000")),
+			Number:         uint(2000),
+			StateRoot:      common.MustBlake2bHash([]byte("3000")),
+			ExtrinsicsRoot: common.MustBlake2bHash([]byte("4000")),
+		},
+	}
+
+	actualParaInherentBytes, err := scale.Marshal(parachainInherent)
+	require.NoError(t, err)
+
+	assert.Equal(t, expectedParaInherentsbytes, actualParaInherentBytes)
+
+	idata := types.NewInherentData()
+	err = idata.SetInherent(types.Parachn0, parachainInherent)
+	require.NoError(t, err)
+
+	actualInherentsBytes, err := idata.Encode()
+	require.NoError(t, err)
+	require.Equal(t, expectedInherentsBytes, actualInherentsBytes)
 }
