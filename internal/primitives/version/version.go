@@ -16,7 +16,7 @@ type ApiID [8]uint8
 
 // A pair of ApiID and a uint32 for version.
 type ApiIDVersion struct {
-	ApiId   ApiID
+	ApiID
 	Version uint32
 }
 
@@ -67,7 +67,7 @@ type RuntimeVersion struct {
 	ImplVersion uint32
 
 	// List of supported API "features" along with their versions.
-	Apis ApisVec
+	APIs []ApiIDVersion
 
 	// All existing calls (dispatchables) are fully compatible when this number doesn't change. If
 	// this number changes, then SpecVersion must change, also.
@@ -88,4 +88,14 @@ func (v *RuntimeVersion) StateVersion() storage.StateVersion {
 	}
 
 	return storage.StateVersion(stateVersion)
+}
+
+// Returns the api version found for api with id.
+func (v *RuntimeVersion) APIVersion(id ApiID) *uint32 {
+	for _, api := range v.APIs {
+		if api.ApiID == id {
+			return &api.Version
+		}
+	}
+	return nil
 }

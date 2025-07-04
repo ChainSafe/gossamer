@@ -110,7 +110,7 @@ type ClientForGrandpa[
 	papi.ProvideRuntimeAPI[primitives.GrandpaAPI[H, N]]
 	// api.ExecutorProvider
 	client_common.BlockImport[H, N, E, Header]
-	// api.StorageProvider[H, N, Hasher]
+	api.StorageProvider[H, N, Hasher]
 }
 
 // Something that one can ask to do a block sync request.
@@ -165,13 +165,134 @@ type LinkHalf[
 	persistentData      persistentData[H, N]
 	voterCommandsRx     chan voterCommand
 	justificationSender GrandpaJustificationSender[H, N, Header]
-	justificationStream GrandpaJustificationStream[H, N, Header] //nolint: unused
+	justificationStream GrandpaJustificationStream[H, N, Header]
 }
 
 // Provider for the Grandpa authority set configured on the genesis block.
 type GenesisAuthoritySetProvider interface {
 	// Get the authority set at the genesis block.
 	Get() (primitives.AuthorityList, error)
+}
+
+// Make block importer and link half necessary to tie the background voter to it.
+//
+// The justificationImportPeriod sets the minimum period on which justifications will be imported.  When importing
+// a block, if it includes a justification it will only be processed if it fits within this period, otherwise it will
+// be ignored (and won't be validated). This is to avoid slowing down sync by a peer serving us unnecessary
+// justifications which aren't trivial to validate.
+func BlockImport[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+](
+	client ClientForGrandpa[H, N, Hasher, Header, E],
+	justificationImportPeriod uint32,
+	genesisAuthoritySetProvider GenesisAuthoritySetProvider,
+	selectChain common.SelectChain[H, N, Header],
+	// TODO: telemetry
+) (*GrandpaBlockImport[H, N, Hasher, Header, E], LinkHalf[H, N, Hasher, Header, E], error) {
+	return blockImportWithAuthoritySetHardForks(
+		client,
+		justificationImportPeriod,
+		genesisAuthoritySetProvider,
+		selectChain,
+		nil,
+	)
+}
+
+// A descriptor for an authority set hard fork. These are authority set changes that are not signalled by the runtime
+// and instead are defined off-chain (hence the hard fork).
+type AuthoritySetHardFork[H, N any] struct {
+	// The new authority set id.
+	SetID SetID
+	// The block hash and number at which the hard fork should be applied.
+	Block HashNumber[H, N]
+	// The authorities in the new set.
+	Authorities primitives.AuthorityList
+	// The latest block number that was finalized before this authority set hard fork. When defined, the authority set
+	// change will be forced, i.e. the node won't wait for the block above to be finalized before enacting the change,
+	// and the given finalized number will be used as a base for voting.
+	LastFinalized *N
+}
+
+// Make block importer and link half necessary to tie the background voter to it. A vector of authority set hard forks
+// can be passed, any authority set change signalled at the given block (either already signalled or in a further block
+// when importing it) will be replaced by a standard change with the given static authorities.
+func blockImportWithAuthoritySetHardForks[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+](
+	client ClientForGrandpa[H, N, Hasher, Header, E],
+	justificationImportPeriod uint32,
+	genesisAuthoritySetProvider GenesisAuthoritySetProvider,
+	selectChain common.SelectChain[H, N, Header],
+	authoritySetHardForks []AuthoritySetHardFork[H, N],
+	// TODO: telemetry
+) (*GrandpaBlockImport[H, N, Hasher, Header, E], LinkHalf[H, N, Hasher, Header, E], error) {
+	chainInfo := client.Info()
+	genesisHash := chainInfo.GenesisHash
+
+	persistentData, err := loadPersistent[H, N](client, genesisHash, 0, genesisAuthoritySetProvider.Get)
+	if err != nil {
+		return nil, LinkHalf[H, N, Hasher, Header, E]{}, err
+	}
+
+	voterCommands := make(chan voterCommand, 100000)
+
+	justificationSender, justificationStream := NewGrandpaJustificationSender[H, N, Header]()
+
+	// create pending change objects with 0 delay for each authority set hard fork.
+	hardForks := make([]struct {
+		SetID
+		PendingChange[H, N]
+	}, len(authoritySetHardForks))
+	for i, fork := range authoritySetHardForks {
+		var kind delayKind
+		if fork.LastFinalized != nil {
+			kind = delayKindBest[N]{MedianLastFinalized: *fork.LastFinalized}
+		} else {
+			kind = delayKindFinalized{}
+		}
+
+		hardForks[i] = struct {
+			SetID
+			PendingChange[H, N]
+		}{
+			SetID: fork.SetID,
+			PendingChange: PendingChange[H, N]{
+				NextAuthorities: fork.Authorities,
+				Delay:           0,
+				CanonHash:       fork.Block.Hash,
+				CanonHeight:     fork.Block.Number,
+				DelayKind:       kind,
+			},
+		}
+	}
+
+	blockImport := newGrandpaBlockImport(
+		client,
+		justificationImportPeriod,
+		selectChain,
+		persistentData.authoritySet,
+		voterCommands,
+		hardForks,
+		justificationSender,
+	)
+
+	linkHalf := LinkHalf[H, N, Hasher, Header, E]{
+		client:              client,
+		selectChain:         selectChain,
+		persistentData:      *persistentData,
+		voterCommandsRx:     voterCommands,
+		justificationSender: justificationSender,
+		justificationStream: justificationStream,
+	}
+	return blockImport, linkHalf, nil
 }
 
 func globalCommunication[
