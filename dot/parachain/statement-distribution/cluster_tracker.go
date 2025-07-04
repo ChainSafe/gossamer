@@ -10,94 +10,32 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// accept signifies that an incoming statement was accepted.
-type accept interface { //nolint:unused
-	isAccept()
-}
+type acceptOrReject byte
 
-// ok means neither the peer nor the originator have apparently exceeded limits.
-// Candidate or statement may already be known.
-type ok struct{}
+const (
+	// ok means neither the peer nor the originator have apparently exceeded limits.
+	// Candidate or statement may already be known.
+	ok acceptOrReject = iota
 
-func (ok) isAccept() {}
+	// withPrejudice means accept the message; the peer hasn't exceeded limits but the originator has.
+	withPrejudice
 
-// / withPrejudice means accept the message; the peer hasn't exceeded limits but the originator has.
-type withPrejudice struct{}
+	// excessiveSeconded means peer sent excessive `Seconded` statements or we attempted to send excessive `Seconded`
+	// statements. The latter indicates a bug on the local node's code.
+	excessiveSeconded
 
-func (withPrejudice) isAccept() {}
+	// notInGroup means sender/target or originator is not in the group.
+	notInGroup
 
-// / rejectIncoming signifies that an incoming statement was rejected.
-type rejectIncoming interface { //nolint:unused
-	isRejectIncoming()
-}
+	// candidateUnknown means the candidate is unknown to us. Only applies to `Valid` statements.
+	candidateUnknown
 
-// excessiveSecondedIncoming means peer sent excessive `Seconded` statements.
-type excessiveSecondedIncoming struct{}
+	// duplicate means the statement is a duplicate.
+	duplicate
 
-func (excessiveSecondedIncoming) isRejectIncoming() {}
-
-// notInGroupIncoming means sender or originator is not in the group.
-type notInGroupIncoming struct{}
-
-func (notInGroupIncoming) isRejectIcoming() {} //nolint:unused
-
-// candidateUnknownIncoming means the candidate is unknown to us. Only applies to `Valid` statements.
-type candidateUnknownIncoming struct{}
-
-func (candidateUnknownIncoming) isRejectIncoming() {}
-
-// duplicateIncoming means the statement is a duplicate.
-type duplicateIncoming struct{}
-
-func (duplicateIncoming) isRejectIncoming() {}
-
-// / rejectOutgoing signifies that an outgoing statement was rejected.
-type rejectOutgoing interface { //nolint:unused
-	isRejectOutgoing()
-}
-
-// candidateUnknownOutgoing means the candidate was unknown. Only applies to `Valid` statements.
-type candidateUnknownOutgoing struct{}
-
-func (candidateUnknownOutgoing) isRejectOutgoing() {}
-
-// excessiveSecondedOutgoing means we attempted to send excessive `Seconded` statements.
-// Indicates a bug on the local node's code.
-type excessiveSecondedOutgoing struct{}
-
-func (excessiveSecondedOutgoing) isRejectOutgoing() {}
-
-// knownOutgoing means the statement was already known to the peer.
-type knownOutgoing struct{}
-
-func (knownOutgoing) isRejectOutgoing() {}
-
-// notInGroupOutgoing means the target or originator are not in the group.
-type notInGroupOutgoing struct{}
-
-func (notInGroupOutgoing) isRejectOutgoing() {}
-
-type acceptOrRejectIncoming interface {
-	isAcceptOrRejectIncoming()
-}
-
-func (ok) isAcceptOrRejectIncoming()                        {}
-func (withPrejudice) isAcceptOrRejectIncoming()             {}
-func (excessiveSecondedIncoming) isAcceptOrRejectIncoming() {}
-func (notInGroupIncoming) isAcceptOrRejectIncoming()        {}
-func (candidateUnknownIncoming) isAcceptOrRejectIncoming()  {}
-func (duplicateIncoming) isAcceptOrRejectIncoming()         {}
-
-type acceptOrRejectOutgoing interface {
-	isAcceptOrRejectOutgoing()
-}
-
-func (ok) isAcceptOrRejectOutgoing()                        {}
-func (withPrejudice) isAcceptOrRejectOutgoing()             {}
-func (candidateUnknownOutgoing) isAcceptOrRejectOutgoing()  {}
-func (excessiveSecondedOutgoing) isAcceptOrRejectOutgoing() {}
-func (knownOutgoing) isAcceptOrRejectOutgoing()             {}
-func (notInGroupOutgoing) isAcceptOrRejectOutgoing()        {}
+	// known means the statement was already known to the peer.
+	known
+)
 
 // knowledge about a candidate
 type knowledge interface {
@@ -214,13 +152,13 @@ func (c *clusterTracker) canReceive(
 	sender parachaintypes.ValidatorIndex,
 	originator parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
-) acceptOrRejectIncoming {
+) acceptOrReject {
 	if !c.isInGroup(sender) || !c.isInGroup(originator) {
-		return notInGroupIncoming{}
+		return notInGroup
 	}
 
 	if c.theySent(sender, specific{statement, originator}) {
-		return duplicateIncoming{}
+		return duplicate
 	}
 
 	switch statement.(type) {
@@ -250,20 +188,20 @@ func (c *clusterTracker) canReceive(
 		}
 
 		if otherSecondedForOrigFromRemote == c.secondingLimit {
-			return excessiveSecondedIncoming{}
+			return excessiveSeconded
 		}
 
 		// at this point, it doesn't seem like the remote has done anything wrong.
 		if c.secondedAlreadyOrWithinLimit(originator, statement.CandidateHash()) {
-			return ok{}
+			return ok
 		} else {
-			return withPrejudice{}
+			return withPrejudice
 		}
 	case *parachaintypes.CompactValid:
 		if !c.knowsCandidate(sender, statement.CandidateHash()) {
-			return candidateUnknownIncoming{}
+			return candidateUnknown
 		}
-		return ok{}
+		return ok
 	default:
 		panic("unreachable")
 	}
@@ -461,13 +399,13 @@ func (c *clusterTracker) canSend(
 	target parachaintypes.ValidatorIndex,
 	originator parachaintypes.ValidatorIndex,
 	statement parachaintypes.CompactStatement,
-) acceptOrRejectOutgoing {
+) acceptOrReject {
 	if !c.isInGroup(target) || !c.isInGroup(originator) {
-		return notInGroupOutgoing{}
+		return notInGroup
 	}
 
 	if c.theyKnowStatement(target, originator, statement) {
-		return knownOutgoing{}
+		return known
 	}
 
 	switch statement.(type) {
@@ -475,14 +413,14 @@ func (c *clusterTracker) canSend(
 		// we send the same `Seconded` statements to all our peers, and only the first `k`
 		// from each originator.
 		if !c.secondedAlreadyOrWithinLimit(originator, statement.CandidateHash()) {
-			return excessiveSecondedOutgoing{}
+			return excessiveSeconded
 		}
-		return ok{}
+		return ok
 	case *parachaintypes.CompactValid:
 		if !c.knowsCandidate(target, statement.CandidateHash()) {
-			return candidateUnknownOutgoing{}
+			return candidateUnknown
 		}
-		return ok{}
+		return ok
 	default:
 		panic("unreachable")
 	}
