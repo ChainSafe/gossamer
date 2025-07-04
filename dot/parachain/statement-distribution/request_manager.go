@@ -94,18 +94,6 @@ type requestProperties struct { //nolint:unused
 	backingThreshold *int
 }
 
-type taggedResponse struct { //nolint:unused
-	identifier    candidateIdentifier
-	requestedPeer peer.ID
-	props         requestProperties
-	// payload is AttestedCandidateResponse, maybe ReqRespResult should be generic over the response type?
-	response chan messages.ReqRespResult
-}
-
-type unhandledResponse struct { //nolint:unused
-	response taggedResponse
-}
-
 type priority struct {
 	origin   origin
 	attempts uint
@@ -353,14 +341,6 @@ func (rm *requestManager) nextRetryTime() *time.Time { //nolint:unused
 	return next
 }
 
-// TODO: replace with implementation (#4378)
-type responseManager interface { //nolint:unused
-	incoming() *unhandledResponse
-	len() int
-	push(taggedResponse, peer.ID)
-	isSendingTo(peer.ID) bool
-}
-
 // nextRequest yields the next request to dispatch, if there is any.
 //
 // This function accepts two closures as an argument.
@@ -373,7 +353,7 @@ type responseManager interface { //nolint:unused
 // statements by a peer, to be compared against the mask and backing
 // threshold and returns `None` if the peer is no longer connected.
 func (rm *requestManager) nextRequest( //nolint:unused
-	responseManager responseManager,
+	responseManager *responseManager,
 	requestProps func(candidateIdentifier) *requestProperties,
 	peerAdvertised func(candidateIdentifier, peer.ID) *parachaintypes.StatementFilter,
 ) *messages.OutgoingRequest {
@@ -386,7 +366,7 @@ func (rm *requestManager) nextRequest( //nolint:unused
 	// would make sense to try to request things as early as we can, given
 	// we would need to request it for each candidate, around 25 right now
 	// on kusama.
-	if responseManager.len() >= 2*messages.MaxParallelAttestedCandidateRequests {
+	if len(responseManager.pendingResponses) >= 2*messages.MaxParallelAttestedCandidateRequests {
 		return nil
 	}
 
@@ -444,7 +424,6 @@ func (rm *requestManager) nextRequest( //nolint:unused
 				props:         *props,
 				response:      res.Result,
 			},
-			*target,
 		)
 
 		break
@@ -498,7 +477,7 @@ func findRequestTargetWithUpdate( //nolint:unused
 	candidateIdentifier candidateIdentifier,
 	props requestProperties,
 	peerAdvertised func(candidateIdentifier, peer.ID) *parachaintypes.StatementFilter,
-	responseManager responseManager,
+	responseManager *responseManager,
 ) *peer.ID {
 	if knownBy == nil {
 		logger.Debugf("Unexpected call to findRequestTargetWithUpdate() with nil knownBy argument")
