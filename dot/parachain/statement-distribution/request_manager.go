@@ -18,8 +18,8 @@ import (
 type origin byte
 
 const (
-	cluster     origin = 0
-	unspecified origin = 1
+	cluster origin = iota
+	unspecified
 )
 
 // candidateIdentifier is an identifier for a candidate.
@@ -134,10 +134,8 @@ func (rc requestedCandidate) isPending() bool { //nolint:unused
 		return false
 	}
 
-	if rc.nextRetryTime != nil {
-		if time.Now().Before(*rc.nextRetryTime) {
-			return false
-		}
+	if rc.nextRetryTime != nil && time.Now().Before(*rc.nextRetryTime) {
+		return false
 	}
 
 	return true
@@ -480,9 +478,8 @@ func insertOrUpdatePriority(
 		if (*prioritySorted)[*prevIndex].priority == newPriority {
 			// unchanged.
 			return *prevIndex
-		} else {
-			prioritySorted.remove(*prevIndex)
 		}
+		prioritySorted.remove(*prevIndex)
 	}
 
 	index, found := prioritySorted.binarySearch(newPriority, candidateIdentifier)
