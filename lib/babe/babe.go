@@ -433,9 +433,11 @@ func (b *Service) handleSlot(epoch uint64, slot Slot,
 
 	// set runtime trie before building block
 	// if block building is successful, store the resulting trie in the storage state
-	ts, err := b.storageState.TrieState(&parent.StateRoot)
+	parentHash := parent.Hash()
+	ts, err := b.storageState.TrieState(&parentHash)
 	if err != nil || ts == nil {
-		logger.Errorf("failed to get parent trie with parent state root %s: %s", parent.StateRoot, err)
+		err = fmt.Errorf("failed to get parent trie for block hash %s: %w", parentHash.String(), err)
+		logger.Error(err.Error())
 		return err
 	}
 

@@ -194,20 +194,8 @@ func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI, blockAPI B
 
 // GetPairs returns the keys with prefix, leave empty to get all the keys.
 func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *StatePairResponse) error {
-	var (
-		stateRootHash *common.Hash
-		err           error
-	)
-
-	if req.Bhash != nil {
-		stateRootHash, err = sm.storageAPI.GetStateRootFromBlock(req.Bhash)
-		if err != nil {
-			return err
-		}
-	}
-
 	if req.Prefix == nil || *req.Prefix == "" || *req.Prefix == "0x" {
-		pairs, err := sm.storageAPI.Entries(stateRootHash)
+		pairs, err := sm.storageAPI.Entries(req.Bhash)
 		if err != nil {
 			return err
 		}
@@ -222,7 +210,7 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 	if err != nil {
 		return fmt.Errorf("cannot convert hex prefix %s to bytes: %w", *req.Prefix, err)
 	}
-	keys, err := sm.storageAPI.GetKeysWithPrefix(stateRootHash, reqBytes)
+	keys, err := sm.storageAPI.GetKeysWithPrefix(req.Bhash, reqBytes)
 	if err != nil {
 		return err
 	}
@@ -234,7 +222,7 @@ func (sm *StateModule) GetPairs(_ *http.Request, req *StatePairRequest, res *Sta
 
 	*res = make([]interface{}, len(keys))
 	for i, key := range keys {
-		val, err := sm.storageAPI.GetStorage(stateRootHash, key)
+		val, err := sm.storageAPI.GetStorage(req.Bhash, key)
 		if err != nil {
 			return err
 		}
@@ -362,24 +350,15 @@ func (sm *StateModule) GetRuntimeVersion(
 // GetStorage Returns a storage entry at a specific block's state.
 // If not block hash is provided, the latest value is returned.
 func (sm *StateModule) GetStorage(
-	_ *http.Request, req *StateStorageRequest, res *StateStorageResponse) error {
-	var (
-		item []byte
-		err  error
-	)
-
+	_ *http.Request,
+	req *StateStorageRequest,
+	res *StateStorageResponse,
+) error {
 	reqBytes, _ := common.HexToBytes(req.Key) // no need to catch error here
 
-	if req.Bhash != nil {
-		item, err = sm.storageAPI.GetStorageByBlockHash(req.Bhash, reqBytes)
-		if err != nil {
-			return err
-		}
-	} else {
-		item, err = sm.storageAPI.GetStorage(nil, reqBytes)
-		if err != nil {
-			return err
-		}
+	item, err := sm.storageAPI.GetStorage(req.Bhash, reqBytes)
+	if err != nil {
+		return err
 	}
 
 	if len(item) > 0 {
@@ -392,24 +371,15 @@ func (sm *StateModule) GetStorage(
 // GetStorageHash returns the blake2b hash of a storage entry at a block's state.
 // If no block hash is provided, the latest value is returned.
 func (sm *StateModule) GetStorageHash(
-	_ *http.Request, req *StateStorageHashRequest, res *StateStorageHashResponse) error {
-	var (
-		item []byte
-		err  error
-	)
-
+	_ *http.Request,
+	req *StateStorageHashRequest,
+	res *StateStorageHashResponse,
+) error {
 	reqBytes, _ := common.HexToBytes(req.Key)
 
-	if req.Bhash != nil {
-		item, err = sm.storageAPI.GetStorageByBlockHash(req.Bhash, reqBytes)
-		if err != nil {
-			return err
-		}
-	} else {
-		item, err = sm.storageAPI.GetStorage(nil, reqBytes)
-		if err != nil {
-			return err
-		}
+	item, err := sm.storageAPI.GetStorage(req.Bhash, reqBytes)
+	if err != nil {
+		return err
 	}
 
 	hash, err := common.Blake2bHash(item)
@@ -425,23 +395,11 @@ func (sm *StateModule) GetStorageHash(
 // If no block hash is provided, the latest value is used.
 func (sm *StateModule) GetStorageSize(
 	_ *http.Request, req *StateStorageSizeRequest, res *StateStorageSizeResponse) error {
-	var (
-		item []byte
-		err  error
-	)
-
 	reqBytes, _ := common.HexToBytes(req.Key)
 
-	if req.Bhash != nil {
-		item, err = sm.storageAPI.GetStorageByBlockHash(req.Bhash, reqBytes)
-		if err != nil {
-			return err
-		}
-	} else {
-		item, err = sm.storageAPI.GetStorage(nil, reqBytes)
-		if err != nil {
-			return err
-		}
+	item, err := sm.storageAPI.GetStorage(req.Bhash, reqBytes)
+	if err != nil {
+		return err
 	}
 
 	if len(item) > 0 {
@@ -487,7 +445,7 @@ func (sm *StateModule) QueryStorage(
 		changes := make([][2]*string, 0, len(req.Keys))
 
 		for j, key := range req.Keys {
-			value, err := sm.storageAPI.GetStorageByBlockHash(&blockHash, common.MustHexToBytes(key))
+			value, err := sm.storageAPI.GetStorage(&blockHash, common.MustHexToBytes(key))
 			if err != nil {
 				return fmt.Errorf("getting value by block hash: %w", err)
 			}
@@ -531,7 +489,7 @@ func (sm *StateModule) QueryStorageAt(
 	changes := make([][2]*string, len(request.Keys))
 
 	for i, key := range request.Keys {
-		value, err := sm.storageAPI.GetStorageByBlockHash(&atBlockHash, common.MustHexToBytes(key))
+		value, err := sm.storageAPI.GetStorage(&atBlockHash, common.MustHexToBytes(key))
 		if err != nil {
 			return fmt.Errorf("getting value by block hash: %w", err)
 		}

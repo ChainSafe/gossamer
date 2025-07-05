@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/pkg/trie"
 	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -31,7 +30,7 @@ func newTestStorageState(t *testing.T) *InmemoryStorageState {
 
 func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(nil)
 	require.NoError(t, err)
 
 	root, err := ts.Root()
@@ -49,14 +48,14 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	require.Equal(t, trie.MustHash(), ts2Root)
 }
 
-func TestStorage_GetStorageByBlockHash(t *testing.T) {
+func TestStorage_GetStorage(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(nil)
 	require.NoError(t, err)
 
 	key := []byte("testkey")
 	value := []byte("testvalue")
-	ts.Put(key, value)
+	require.NoError(t, ts.Put(key, value))
 
 	root, err := ts.Root()
 	require.NoError(t, err)
@@ -79,41 +78,14 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	require.NoError(t, err)
 
 	hash := block.Header.Hash()
-	res, err := storage.GetStorageByBlockHash(&hash, key)
+	res, err := storage.GetStorage(&hash, key)
 	require.NoError(t, err)
 	require.Equal(t, value, res)
 }
 
-func TestStorage_TrieState(t *testing.T) {
-	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
-	require.NoError(t, err)
-	ts.Put([]byte("noot"), []byte("washere"))
-
-	root, err := ts.Root()
-	require.NoError(t, err)
-	err = storage.StoreTrie(ts, nil)
-	require.NoError(t, err)
-
-	time.Sleep(time.Millisecond * 100)
-
-	// get trie from db
-	storage.blockState.GetTries().delete(root)
-	ts3, err := storage.TrieState(&root)
-	require.NoError(t, err)
-
-	tsRoot, err := ts.Root()
-	require.NoError(t, err)
-
-	ts3Root, err := ts3.Root()
-	require.NoError(t, err)
-
-	require.Equal(t, tsRoot, ts3Root)
-}
-
 func TestStorage_LoadFromDB(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(nil)
 	require.NoError(t, err)
 
 	trieKV := []struct {
@@ -134,33 +106,51 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	root, err := ts.Root()
 	require.NoError(t, err)
 
-	// Write trie to disk.
-	err = storage.StoreTrie(ts, nil)
+	// Create a block associated with the trie.
+	body, err := types.NewBodyFromBytes([]byte{})
 	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: testGenesisHeader.Hash(),
+			Number:     1,
+			StateRoot:  root,
+			Digest:     createPrimaryBABEDigest(t),
+		},
+		Body: *body,
+	}
+
+	// Write trie to disk.
+	err = storage.StoreTrie(ts, &block.Header)
+	require.NoError(t, err)
+
+	// Add the block to allow lookup by block hash.
+	require.NoError(t, storage.blockState.AddBlock(block, nil, nil))
 
 	// Clear trie from cache and fetch data from disk.
 	storage.blockState.GetTries().delete(root)
 
-	data, err := storage.GetStorage(&root, trieKV[0].key)
+	hash := block.Header.Hash()
+	data, err := storage.GetStorage(&hash, trieKV[0].key)
 	require.NoError(t, err)
 	require.Equal(t, trieKV[0].value, data)
 
 	storage.blockState.GetTries().delete(root)
 
-	prefixKeys, err := storage.GetKeysWithPrefix(&root, []byte("ke"))
+	prefixKeys, err := storage.GetKeysWithPrefix(&hash, []byte("ke"))
 	require.NoError(t, err)
 	require.Equal(t, 2, len(prefixKeys))
 
 	storage.blockState.GetTries().delete(root)
 
-	entries, err := storage.Entries(&root)
+	entries, err := storage.Entries(&hash)
 	require.NoError(t, err)
 	require.Equal(t, 5, len(entries))
 }
 
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(nil)
 	require.NoError(t, err)
 
 	key := []byte("testkey")
@@ -205,24 +195,29 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	trieState := runtime.NewInMemoryTrieState(genTrie)
 
 	header := types.NewHeader(blockState.GenesisHash(), trieState.Trie().MustHash(),
-		common.Hash{}, 1, types.NewDigest())
+		common.Hash{}, 1, createPrimaryBABEDigest(t))
 
 	err = storage.StoreTrie(trieState, header)
+	require.NoError(t, err)
+
+	body, err := types.NewBodyFromBytes([]byte{})
+	require.NoError(t, err)
+	require.NoError(t, blockState.AddBlock(&types.Block{Header: *header, Body: *body}, nil, nil))
+
+	blockHash := header.Hash()
+	_, err = storage.GetStorageChild(&blockHash, []byte("keyToChild"))
 	require.NoError(t, err)
 
 	rootHash, err := genTrie.Hash()
 	require.NoError(t, err)
 
-	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
-	require.NoError(t, err)
-
 	// Clear trie from cache and fetch data from disk.
 	storage.blockState.GetTries().delete(rootHash)
 
-	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
+	_, err = storage.GetStorageChild(&blockHash, []byte("keyToChild"))
 	require.NoError(t, err)
 
-	value, err := storage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"))
+	value, err := storage.GetStorageFromChild(&blockHash, []byte("keyToChild"), []byte("keyInsidechild"))
 	require.NoError(t, err)
 
 	require.Equal(t, []byte("voila"), value)

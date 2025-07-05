@@ -525,7 +525,7 @@ func (nodeBuilder) loadRuntime(config *cfg.Config, ns *runtime.NodeStorage,
 	runtimeCode := make(map[string]runtime.Instance)
 	for i := range blocks {
 		hash := &blocks[i]
-		code, err := stateSrvc.Storage.GetStorageByBlockHash(hash, []byte(":code"))
+		code, err := stateSrvc.Storage.GetStorage(hash, []byte(":code"))
 		if err != nil {
 			return err
 		}

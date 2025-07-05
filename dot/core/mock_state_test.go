@@ -927,18 +927,18 @@ func (m *MockStorageState) EXPECT() *MockStorageStateMockRecorder {
 }
 
 // Entries mocks base method.
-func (m *MockStorageState) Entries(root *common.Hash) (map[string][]byte, error) {
+func (m *MockStorageState) Entries(bhash *common.Hash) (map[string][]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Entries", root)
+	ret := m.ctrl.Call(m, "Entries", bhash)
 	ret0, _ := ret[0].(map[string][]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Entries indicates an expected call of Entries.
-func (mr *MockStorageStateMockRecorder) Entries(root any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) Entries(bhash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Entries", reflect.TypeOf((*MockStorageState)(nil).Entries), root)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Entries", reflect.TypeOf((*MockStorageState)(nil).Entries), bhash)
 }
 
 // GenerateTrieProof mocks base method.
@@ -957,123 +957,93 @@ func (mr *MockStorageStateMockRecorder) GenerateTrieProof(stateRoot, keys any) *
 }
 
 // GetKeysWithPrefix mocks base method.
-func (m *MockStorageState) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
+func (m *MockStorageState) GetKeysWithPrefix(bhash *common.Hash, prefix []byte) ([][]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetKeysWithPrefix", root, prefix)
+	ret := m.ctrl.Call(m, "GetKeysWithPrefix", bhash, prefix)
 	ret0, _ := ret[0].([][]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetKeysWithPrefix indicates an expected call of GetKeysWithPrefix.
-func (mr *MockStorageStateMockRecorder) GetKeysWithPrefix(root, prefix any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) GetKeysWithPrefix(bhash, prefix any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKeysWithPrefix", reflect.TypeOf((*MockStorageState)(nil).GetKeysWithPrefix), root, prefix)
-}
-
-// GetStateRootFromBlock mocks base method.
-func (m *MockStorageState) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStateRootFromBlock", bhash)
-	ret0, _ := ret[0].(*common.Hash)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetStateRootFromBlock indicates an expected call of GetStateRootFromBlock.
-func (mr *MockStorageStateMockRecorder) GetStateRootFromBlock(bhash any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStateRootFromBlock", reflect.TypeOf((*MockStorageState)(nil).GetStateRootFromBlock), bhash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKeysWithPrefix", reflect.TypeOf((*MockStorageState)(nil).GetKeysWithPrefix), bhash, prefix)
 }
 
 // GetStorage mocks base method.
-func (m *MockStorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error) {
+func (m *MockStorageState) GetStorage(bhash *common.Hash, key []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStorage", root, key)
+	ret := m.ctrl.Call(m, "GetStorage", bhash, key)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStorage indicates an expected call of GetStorage.
-func (mr *MockStorageStateMockRecorder) GetStorage(root, key any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) GetStorage(bhash, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorage", reflect.TypeOf((*MockStorageState)(nil).GetStorage), root, key)
-}
-
-// GetStorageByBlockHash mocks base method.
-func (m *MockStorageState) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStorageByBlockHash", bhash, key)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetStorageByBlockHash indicates an expected call of GetStorageByBlockHash.
-func (mr *MockStorageStateMockRecorder) GetStorageByBlockHash(bhash, key any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageByBlockHash", reflect.TypeOf((*MockStorageState)(nil).GetStorageByBlockHash), bhash, key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorage", reflect.TypeOf((*MockStorageState)(nil).GetStorage), bhash, key)
 }
 
 // GetStorageChild mocks base method.
-func (m *MockStorageState) GetStorageChild(root *common.Hash, keyToChild []byte) (trie.Trie, error) {
+func (m *MockStorageState) GetStorageChild(bhash *common.Hash, keyToChild []byte) (trie.Trie, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStorageChild", root, keyToChild)
+	ret := m.ctrl.Call(m, "GetStorageChild", bhash, keyToChild)
 	ret0, _ := ret[0].(trie.Trie)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStorageChild indicates an expected call of GetStorageChild.
-func (mr *MockStorageStateMockRecorder) GetStorageChild(root, keyToChild any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) GetStorageChild(bhash, keyToChild any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageChild", reflect.TypeOf((*MockStorageState)(nil).GetStorageChild), root, keyToChild)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageChild", reflect.TypeOf((*MockStorageState)(nil).GetStorageChild), bhash, keyToChild)
 }
 
 // GetStorageFromChild mocks base method.
-func (m *MockStorageState) GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error) {
+func (m *MockStorageState) GetStorageFromChild(bhash *common.Hash, keyToChild, key []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStorageFromChild", root, keyToChild, key)
+	ret := m.ctrl.Call(m, "GetStorageFromChild", bhash, keyToChild, key)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStorageFromChild indicates an expected call of GetStorageFromChild.
-func (mr *MockStorageStateMockRecorder) GetStorageFromChild(root, keyToChild, key any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) GetStorageFromChild(bhash, keyToChild, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageFromChild", reflect.TypeOf((*MockStorageState)(nil).GetStorageFromChild), root, keyToChild, key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageFromChild", reflect.TypeOf((*MockStorageState)(nil).GetStorageFromChild), bhash, keyToChild, key)
 }
 
 // LoadCode mocks base method.
-func (m *MockStorageState) LoadCode(arg0 *common.Hash) ([]byte, error) {
+func (m *MockStorageState) LoadCode(bhash *common.Hash) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LoadCode", arg0)
+	ret := m.ctrl.Call(m, "LoadCode", bhash)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LoadCode indicates an expected call of LoadCode.
-func (mr *MockStorageStateMockRecorder) LoadCode(arg0 any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) LoadCode(bhash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadCode", reflect.TypeOf((*MockStorageState)(nil).LoadCode), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadCode", reflect.TypeOf((*MockStorageState)(nil).LoadCode), bhash)
 }
 
 // LoadCodeHash mocks base method.
-func (m *MockStorageState) LoadCodeHash(arg0 *common.Hash) (common.Hash, error) {
+func (m *MockStorageState) LoadCodeHash(bhash *common.Hash) (common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LoadCodeHash", arg0)
+	ret := m.ctrl.Call(m, "LoadCodeHash", bhash)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LoadCodeHash indicates an expected call of LoadCodeHash.
-func (mr *MockStorageStateMockRecorder) LoadCodeHash(arg0 any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) LoadCodeHash(bhash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadCodeHash", reflect.TypeOf((*MockStorageState)(nil).LoadCodeHash), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadCodeHash", reflect.TypeOf((*MockStorageState)(nil).LoadCodeHash), bhash)
 }
 
 // Lock mocks base method.
@@ -1130,18 +1100,18 @@ func (mr *MockStorageStateMockRecorder) StoreTrie(arg0, arg1 any) *gomock.Call {
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(root *common.Hash) (storage0.TrieState, error) {
+func (m *MockStorageState) TrieState(bhash *common.Hash) (storage0.TrieState, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TrieState", root)
+	ret := m.ctrl.Call(m, "TrieState", bhash)
 	ret0, _ := ret[0].(storage0.TrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TrieState indicates an expected call of TrieState.
-func (mr *MockStorageStateMockRecorder) TrieState(root any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) TrieState(bhash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), root)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), bhash)
 }
 
 // Unlock mocks base method.

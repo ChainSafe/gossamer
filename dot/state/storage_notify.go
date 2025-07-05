@@ -58,7 +58,8 @@ func (s *InmemoryStorageState) RegisterStorageObserver(o Observer) {
 		return
 	}
 	go func() {
-		if err := s.notifyObserver(header.StateRoot, o); err != nil {
+		bhash := header.Hash()
+		if err := s.notifyObserver(header.StateRoot, &bhash, o); err != nil {
 			logger.Warnf("failed to notify storage subscriptions: %s", err)
 		}
 	}()
@@ -72,19 +73,19 @@ func (s *InmemoryStorageState) UnregisterStorageObserver(o Observer) {
 	s.observerList = s.removeFromSlice(s.observerList, o)
 }
 
-func (s *InmemoryStorageState) notifyAll(root common.Hash) {
+func (s *InmemoryStorageState) notifyAll(root common.Hash, bhash *common.Hash) {
 	s.observerListMutex.RLock()
 	defer s.observerListMutex.RUnlock()
 	for _, observer := range s.observerList {
-		err := s.notifyObserver(root, observer)
+		err := s.notifyObserver(root, bhash, observer)
 		if err != nil {
 			logger.Warnf("failed to notify storage subscriptions: %s", err)
 		}
 	}
 }
 
-func (s *InmemoryStorageState) notifyObserver(root common.Hash, o Observer) error {
-	t, err := s.TrieState(&root)
+func (s *InmemoryStorageState) notifyObserver(root common.Hash, bhash *common.Hash, o Observer) error {
+	t, err := s.trieStateByRoot(root)
 	if err != nil {
 		return err
 	}
@@ -93,8 +94,12 @@ func (s *InmemoryStorageState) notifyObserver(root common.Hash, o Observer) erro
 		return errTrieDoesNotExist(root)
 	}
 
+	if bhash == nil {
+		bhash = &common.EmptyHash
+	}
+
 	subRes := &SubscriptionResult{
-		Hash: root,
+		Hash: *bhash,
 	}
 	if len(o.GetFilter()) == 0 {
 		// no filter, so send all changes

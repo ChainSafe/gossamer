@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -194,7 +193,8 @@ func (b *blockImporter) handleBlock(block *types.Block) error {
 	b.storageState.Lock()
 	defer b.storageState.Unlock()
 
-	ts, err := b.storageState.TrieState(&parent.StateRoot)
+	parentHash := parent.Hash()
+	ts, err := b.storageState.TrieState(&parentHash)
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func (b *blockImporter) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	if !bytes.Equal(parent.StateRoot[:], root[:]) {
+	if parent.StateRoot != root {
 		panic("parent state root does not match snapshot state root")
 	}
 

@@ -53,20 +53,7 @@ func NewChildStateModule(s StorageAPI, b BlockAPI) *ChildStateModule {
 
 // GetKeys returns the keys from the specified child storage. The keys can also be filtered based on a prefix.
 func (cs *ChildStateModule) GetKeys(_ *http.Request, req *GetKeysRequest, res *[]string) error {
-	var hash common.Hash
-
-	if req.Hash == nil {
-		hash = cs.blockAPI.BestBlockHash()
-	} else {
-		hash = *req.Hash
-	}
-
-	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(&hash)
-	if err != nil {
-		return err
-	}
-
-	trie, err := cs.storageAPI.GetStorageChild(stateRoot, req.Key)
+	trie, err := cs.storageAPI.GetStorageChild(req.Hash, req.Key)
 	if err != nil {
 		return err
 	}
@@ -83,20 +70,7 @@ func (cs *ChildStateModule) GetKeys(_ *http.Request, req *GetKeysRequest, res *[
 
 // GetStorageSize returns the size of a child storage entry.
 func (cs *ChildStateModule) GetStorageSize(_ *http.Request, req *GetChildStorageRequest, res *uint64) error {
-	var hash common.Hash
-
-	if req.Hash == nil {
-		hash = cs.blockAPI.BestBlockHash()
-	} else {
-		hash = *req.Hash
-	}
-
-	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(&hash)
-	if err != nil {
-		return err
-	}
-
-	item, err := cs.storageAPI.GetStorageFromChild(stateRoot, req.KeyChild, req.EntryKey)
+	item, err := cs.storageAPI.GetStorageFromChild(req.Hash, req.KeyChild, req.EntryKey)
 	if err != nil {
 		return err
 	}
@@ -110,20 +84,7 @@ func (cs *ChildStateModule) GetStorageSize(_ *http.Request, req *GetChildStorage
 
 // GetStorageHash returns the hash of a child storage entry
 func (cs *ChildStateModule) GetStorageHash(_ *http.Request, req *GetStorageHash, res *string) error {
-	var hash common.Hash
-
-	if req.Hash == nil {
-		hash = cs.blockAPI.BestBlockHash()
-	} else {
-		hash = *req.Hash
-	}
-
-	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(&hash)
-	if err != nil {
-		return err
-	}
-
-	item, err := cs.storageAPI.GetStorageFromChild(stateRoot, req.KeyChild, req.EntryKey)
+	item, err := cs.storageAPI.GetStorageFromChild(req.Hash, req.KeyChild, req.EntryKey)
 	if err != nil {
 		return err
 	}
@@ -138,24 +99,7 @@ func (cs *ChildStateModule) GetStorageHash(_ *http.Request, req *GetStorageHash,
 // GetStorage returns a child storage entry.
 func (cs *ChildStateModule) GetStorage(
 	_ *http.Request, req *ChildStateStorageRequest, res *StateStorageResponse) error {
-	var (
-		item []byte
-		err  error
-		hash common.Hash
-	)
-
-	if req.Hash == nil {
-		hash = cs.blockAPI.BestBlockHash()
-	} else {
-		hash = *req.Hash
-	}
-
-	stateRoot, err := cs.storageAPI.GetStateRootFromBlock(&hash)
-	if err != nil {
-		return err
-	}
-
-	item, err = cs.storageAPI.GetStorageFromChild(stateRoot, req.ChildStorageKey, req.Key)
+	item, err := cs.storageAPI.GetStorageFromChild(req.Hash, req.ChildStorageKey, req.Key)
 	if err != nil {
 		return err
 	}

@@ -589,9 +589,8 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	require.NoError(t, err)
 
 	genesisBlockHash := genesisHeader.Hash()
-	genesisStateRoot := genesisHeader.StateRoot
 
-	ts, err := s.storageState.TrieState(&genesisStateRoot) // Pass genesis root
+	ts, err := s.storageState.TrieState(&genesisBlockHash)
 	require.NoError(t, err)
 
 	firstBlockHash := createBlockUsingOldRuntime(t, genesisBlockHash, ts, s.blockState)

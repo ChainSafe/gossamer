@@ -13,21 +13,19 @@ import (
 )
 
 type StorageState interface {
-	TrieState(root *common.Hash) (rtstorage.TrieState, error)
+	TrieState(bhash *common.Hash) (rtstorage.TrieState, error)
 	StoreTrie(rtstorage.TrieState, *types.Header) error
 
-	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
-	GetStorage(root *common.Hash, key []byte) ([]byte, error)
-	GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error)
+	GetStorage(bhash *common.Hash, key []byte) ([]byte, error)
 	StorageRoot() (common.Hash, error)
-	Entries(root *common.Hash) (map[string][]byte, error) // should be overhauled to iterate
-	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
-	GetStorageChild(root *common.Hash, keyToChild []byte) (trie.Trie, error)
-	GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error)
+	Entries(bhash *common.Hash) (map[string][]byte, error) // should be overhauled to iterate
+	GetKeysWithPrefix(bhash *common.Hash, prefix []byte) ([][]byte, error)
+	GetStorageChild(bhash *common.Hash, keyToChild []byte) (trie.Trie, error)
+	GetStorageFromChild(bhash *common.Hash, keyToChild, key []byte) ([]byte, error)
 
-	LoadCode(hash *common.Hash) ([]byte, error)
-	LoadCodeHash(hash *common.Hash) (common.Hash, error)
+	LoadCode(bhash *common.Hash) ([]byte, error)
+	LoadCodeHash(bhash *common.Hash) (common.Hash, error)
 
 	RegisterStorageObserver(o Observer)
 	UnregisterStorageObserver(o Observer)
