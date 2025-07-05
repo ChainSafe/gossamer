@@ -14,3 +14,20 @@ import (
 type GrandpaJustificationSender[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]] struct {
 	notification.NotificationSender[GrandpaJustification[Hash, N, Header]]
 }
+
+func NewGrandpaJustificationSender[
+	Hash runtime.Hash,
+	N runtime.Number,
+	Header runtime.Header[N, Hash],
+]() (GrandpaJustificationSender[Hash, N, Header], GrandpaJustificationStream[Hash, N, Header]) {
+	sender, stream := notification.NewNotificationStream[GrandpaJustification[Hash, N, Header]]()
+	return GrandpaJustificationSender[Hash, N, Header]{NotificationSender: sender},
+		GrandpaJustificationStream[Hash, N, Header]{NotificationStream: stream}
+}
+
+// The receiving half of the Grandpa justification channel.
+//
+// Used to receive notifications about justifications generated at the end of a Grandpa round.
+type GrandpaJustificationStream[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]] struct {
+	notification.NotificationStream[GrandpaJustification[Hash, N, Header]]
+}

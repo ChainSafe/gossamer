@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	ptrie "github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/recorder"
+	"github.com/ChainSafe/gossamer/internal/primitives/version"
 )
 
 // Something that provides a runtime api.
@@ -70,4 +71,9 @@ type ApiExt[
 	RegisterExtension(extension any)
 	// Execute the given block
 	ExecuteBlock(runtimeApiAtParam H, block runtime.Block[H, N, E, Header]) error
+}
+
+type Core[H runtime.Hash] interface {
+	// Returns the version of the runtime.
+	Version(hash H) (version.RuntimeVersion, error)
 }

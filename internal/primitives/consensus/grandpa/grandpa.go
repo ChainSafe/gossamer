@@ -4,8 +4,11 @@
 package grandpa
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/internal/client/keystore"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa/app"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -94,6 +97,128 @@ type GrandpaJustification[H runtime.Hash, N runtime.Number, Header runtime.Heade
 	Round          uint64
 	Commit         Commit[H, N]
 	VoteAncestries []Header
+}
+
+// A consensus log item for GRANDPA.
+type ConsensusLog interface {
+	isConsensusLog()
+}
+
+// Schedule an authority set change.
+//
+// The earliest digest of this type in a single block will be respected,
+// provided that there is no ForcedChange digest. If there is, then the
+// ForcedChange will take precedence.
+//
+// No change should be scheduled if one is already and the delay has not
+// passed completely.
+//
+// This should be a pure function: i.e. as long as the runtime can interpret
+// the digest type it should return the same result regardless of the current
+// state.
+type ConsensusLogScheduledChange[N runtime.Number] ScheduledChange[N]
+
+// Force an authority set change.
+//
+// Forced changes are applied after a delay of _imported_ blocks,
+// while pending changes are applied after a delay of _finalized_ blocks.
+//
+// The earliest digest of this type in a single block will be respected,
+// with others ignored.
+//
+// No change should be scheduled if one is already and the delay has not
+// passed completely.
+//
+// This should be a pure function: i.e. as long as the runtime can interpret
+// the digest type it should return the same result regardless of the current
+// state.
+type ConsensusLogForcedChange[N runtime.Number] struct {
+	Median N
+	ScheduledChange[N]
+}
+
+// Note that the authority with given index is disabled until the next change.
+type ConsensusLogOnDisabled AuthorityIndex
+
+// A signal to pause the current authority set after the given delay.
+// After finalizing the block at _delay_ the authorities should stop voting.
+type ConsensusLogPause[N runtime.Number] struct {
+	Delay N
+}
+
+// A signal to resume the current authority set after the given delay.
+// After authoring the block at _delay_ the authorities should resume voting.
+type ConsensusLogResume[N runtime.Number] struct {
+	Delay N
+}
+
+func (ConsensusLogScheduledChange[N]) isConsensusLog() {}
+func (ConsensusLogForcedChange[N]) isConsensusLog()    {}
+func (ConsensusLogOnDisabled) isConsensusLog()         {}
+func (ConsensusLogPause[N]) isConsensusLog()           {}
+func (ConsensusLogResume[N]) isConsensusLog()          {}
+
+type ConsensusLogVDT[N runtime.Number] struct {
+	inner ConsensusLog
+}
+
+func (mvdt *ConsensusLogVDT[N]) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case ConsensusLogScheduledChange[N]:
+		mvdt.inner = value
+		return
+	case ConsensusLogForcedChange[N]:
+		mvdt.inner = value
+		return
+	case ConsensusLogOnDisabled:
+		mvdt.inner = value
+		return
+	case ConsensusLogPause[N]:
+		mvdt.inner = value
+		return
+	case ConsensusLogResume[N]:
+		mvdt.inner = value
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt ConsensusLogVDT[N]) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case ConsensusLogScheduledChange[N]:
+		return 1, mvdt.inner, nil
+	case ConsensusLogForcedChange[N]:
+		return 2, mvdt.inner, nil
+	case ConsensusLogOnDisabled:
+		return 3, mvdt.inner, nil
+	case ConsensusLogPause[N]:
+		return 4, mvdt.inner, nil
+	case ConsensusLogResume[N]:
+		return 5, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt ConsensusLogVDT[N]) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt ConsensusLogVDT[N]) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 1:
+		return ConsensusLogScheduledChange[N]{}, nil
+	case 2:
+		return ConsensusLogForcedChange[N]{}, nil
+	case 3:
+		return ConsensusLogOnDisabled(0), nil
+	case 4:
+		return ConsensusLogPause[N]{}, nil
+	case 5:
+		return ConsensusLogResume[N]{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // EquivocationProof is proof of voter misbehavior on a given set id. Misbehavior/equivocation in GRANDPA happens when
@@ -211,12 +336,13 @@ type OpaqueKeyOwnershipProof = runtime.OpaqueValue
 //
 // The consensus protocol will coordinate the handoff externally.
 type GrandpaAPI[H runtime.Hash, N runtime.Number] interface {
+	api.Core[H]
 	// Get the current GRANDPA authorities and weights. This should not change except for when changes are scheduled
 	// and the corresponding delay has passed.
 	//
 	// When called at block B, it will return the set of authorities that should be used to finalize descendants of
 	// this block (B+1, B+2, ...). The block B itself is finalized by the authorities from block B-1.
-	GrandpaAuthorities() AuthorityList
+	GrandpaAuthorities(hash H) (AuthorityList, error)
 
 	// Submits an unsigned extrinsic to report an equivocation. The caller must provide the equivocation proof and a
 	// key ownership proof (should be obtained using GenerateKeyOwnershipProof). The extrinsic will be unsigned
@@ -242,4 +368,7 @@ type GrandpaAPI[H runtime.Hash, N runtime.Number] interface {
 		setID SetID,
 		authorityID AuthorityID,
 	) *OpaqueKeyOwnershipProof
+
+	/// Get current GRANDPA authority set id.
+	CurrentSetID(hash H) (SetID, error)
 }

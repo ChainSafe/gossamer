@@ -31,6 +31,7 @@ func (TestNetwork) SetAuthorizedPeers(peers map[peerid.PeerID]struct{})         
 func (TestNetwork) SetAuthorizedOnly(reservedOnly bool)                                   { panic("unimpl") }
 func (TestNetwork) AddKnownAddress(peerID peerid.PeerID, addr multiaddr.Multiaddr)        { panic("unimpl") }
 func (TestNetwork) ReportPeer(peerID peerid.PeerID, costBenefit network.ReputationChange) {}
+func (TestNetwork) PeerReputation(peerID peerid.PeerID) int32                             { panic("unimpl") }
 func (TestNetwork) DisconnectPeer(who peerid.PeerID, protocol network.ProtocolName)       { panic("unimpl") }
 func (TestNetwork) AcceptUnreservedPeers()                                                { panic("unimpl") }
 func (TestNetwork) DenyUnreservedPeers()                                                  { panic("unimpl") }

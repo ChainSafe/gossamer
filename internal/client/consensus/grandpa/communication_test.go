@@ -51,6 +51,7 @@ func (TestNetwork) AddKnownAddress(peerID peerid.PeerID, addr multiaddr.Multiadd
 func (tn *TestNetwork) ReportPeer(peerID peerid.PeerID, costBenefit network.ReputationChange) {
 	tn.sender <- EventReport{peerID, costBenefit}
 }
+func (TestNetwork) PeerReputation(peerID peerid.PeerID) int32                       { panic("unimpl") }
 func (TestNetwork) DisconnectPeer(who peerid.PeerID, protocol network.ProtocolName) { panic("unimpl") }
 func (TestNetwork) AcceptUnreservedPeers()                                          { panic("unimpl") }
 func (TestNetwork) DenyUnreservedPeers()                                            { panic("unimpl") }
@@ -172,7 +173,6 @@ func getConfig() Config {
 		KeyStore:                      nil,
 		Name:                          nil,
 		LocalRole:                     role.RoleAuthority,
-		ObserverEnabled:               false,
 		ProtocolName:                  "grandpa_protocol_name",
 	}
 }
@@ -242,6 +242,7 @@ func Test_networkBridge(t *testing.T) {
 		private := []ed25519.Keyring{ed25519.Alice, ed25519.Bob, ed25519.Charlie}
 		public := makeIDs(private)
 		voterSet := grandpa.NewVoterSet(public)
+		require.NotNil(t, voterSet)
 
 		round := Round(1)
 		setID := SetID(1)
@@ -299,7 +300,7 @@ func Test_networkBridge(t *testing.T) {
 		tester.gossipValidator.NewPeer(NoopContext{}, id, role.ObservedRoleFull)
 
 		// start round, dispatch commit, and wait for broadcast.
-		commitsIn, commitsOut := tester.networkBridge.globalCommunication(setID, voterSet, false)
+		commitsIn, commitsOut := tester.networkBridge.globalCommunication(setID, *voterSet, false)
 		_ = commitsOut
 
 		{
@@ -461,7 +462,7 @@ func Test_networkBridge(t *testing.T) {
 		tester.gossipValidator.NewPeer(NoopContext{}, id, role.ObservedRoleFull)
 
 		// start round, dispatch commit, and wait for broadcast.
-		commitsIn, _ := tester.networkBridge.globalCommunication(setID, voterSet, false)
+		commitsIn, _ := tester.networkBridge.globalCommunication(setID, *voterSet, false)
 
 		{
 			action, _, _ := tester.gossipValidator.doValidate(id, encodedCommit)

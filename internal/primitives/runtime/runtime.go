@@ -47,6 +47,16 @@ func (j Justifications) Get(engineID ConsensusEngineID) *EncodedJustification {
 	return nil
 }
 
+// IntoJustification returns the encoded justification for the given consensus engine, if it exists.
+func (j Justifications) IntoJustification(enginedID ConsensusEngineID) *EncodedJustification {
+	for _, justification := range j {
+		if justification.ConsensusEngineID == enginedID {
+			return &justification.EncodedJustification
+		}
+	}
+	return nil
+}
+
 // Complex storage builder stuff.
 type BuildStorage interface {
 	// Build the storage out of this builder.
