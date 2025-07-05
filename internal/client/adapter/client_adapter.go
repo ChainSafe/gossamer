@@ -615,16 +615,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) Pause() error {
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) TrieState(bhash *common.Hash) (rtstorage.TrieState, error) {
-	var hash H
-
-	if bhash == nil {
-		hash = ca.client.Info().BestHash
-	} else {
-		hasher := *new(Hasher)
-		hash = hasher.NewHash(bhash.ToBytes())
-	}
-
-	stateAt, err := ca.client.StateAt(hash)
+	stateAt, err := ca.stateAt(bhash)
 	if err != nil {
 		return nil, err
 	}
@@ -640,15 +631,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) StoreTrie(rtstorage.TrieState,
 // GetStateRootFromBlock returns the state root of the block with the given hash.
 // Uses the best block hash when called with `nil`.
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
-	var hash H
-
-	if bhash == nil {
-		hash = ca.client.Info().BestHash
-	} else {
-		hasher := *new(Hasher)
-		hash = hasher.NewHash(bhash.ToBytes())
-	}
-
+	hash := ca.hashToGeneric(bhash)
 	header, err := ca.client.Header(hash)
 	if err != nil {
 		return nil, err
@@ -676,59 +659,8 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GenerateTrieProof(stateRoot co
 }
 
 // GetStorage queries the state that corresponds to the given state root hash for the data at the given key.
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorage(root *common.Hash, key []byte) ([]byte, error) {
-	stateAt, err := ca.getStateByStateRoot(root)
-	if err != nil {
-		return nil, err
-	}
-
-	return stateAt.Storage(key)
-}
-
-const maxSearchDepth = 1000
-
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) getStateByStateRoot(
-	root *common.Hash,
-) (statemachine.Backend[H, Hasher], error) {
-	currentHash := ca.client.Info().BestHash
-
-	if root == nil {
-		return ca.client.StateAt(currentHash)
-	}
-
-	targetRoot := (*new(Hasher)).NewHash(root.ToBytes())
-
-	for i := 0; i < maxSearchDepth; i++ {
-		header, err := ca.client.Header(currentHash)
-		if err != nil {
-			return nil, err
-		}
-		if header == nil {
-			return nil, fmt.Errorf("no block header found for hash %s", currentHash.String())
-		}
-
-		if (*header).StateRoot() == targetRoot {
-			return ca.client.StateAt(currentHash)
-		}
-
-		currentHash = (*header).ParentHash()
-	}
-
-	return nil, fmt.Errorf("max search depth exceeded without finding storage root %s", targetRoot.String())
-}
-
-// GetStorageByBlockHash queries the state that at the given block hash for the data at the given key.
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorageByBlockHash(bhash *common.Hash, key []byte) (
-	[]byte, error) {
-	var hash H
-	if bhash == nil {
-		hash = ca.client.Info().BestHash
-	} else {
-		hasher := *new(Hasher)
-		hash = hasher.NewHash(bhash.ToBytes())
-	}
-
-	return ca.client.Storage(hash, key)
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorage(bhash *common.Hash, key []byte) ([]byte, error) {
+	return ca.client.Storage(ca.hashToGeneric(bhash), key)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageRoot() (common.Hash, error) {
@@ -740,8 +672,8 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) StorageRoot() (common.Hash, er
 	return common.NewHashFromGeneric((*header).StateRoot()), nil
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) Entries(root *common.Hash) (map[string][]byte, error) {
-	stateAt, err := ca.getStateByStateRoot(root)
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) Entries(bhash *common.Hash) (map[string][]byte, error) {
+	stateAt, err := ca.stateAt(bhash)
 	if err != nil {
 		return nil, err
 	}
@@ -763,10 +695,12 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) Entries(root *common.Hash) (ma
 }
 
 // GetKeysWithPrefix returns all keys with the given prefix from the state
-// that corresponds to the given state root hash.
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetKeysWithPrefix(root *common.Hash, prefix []byte) (
-	[][]byte, error) {
-	stateAt, err := ca.getStateByStateRoot(root)
+// that corresponds to the given block hash.
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetKeysWithPrefix(
+	bhash *common.Hash,
+	prefix []byte,
+) ([][]byte, error) {
+	stateAt, err := ca.stateAt(bhash)
 	if err != nil {
 		return nil, err
 	}
@@ -787,9 +721,11 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetKeysWithPrefix(root *common
 	return res, nil
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorageChild(root *common.Hash, keyToChild []byte) (
-	trie.Trie, error) {
-	stateAt, err := ca.getStateByStateRoot(root)
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorageChild(
+	bhash *common.Hash,
+	keyToChild []byte,
+) (trie.Trie, error) {
+	stateAt, err := ca.stateAt(bhash)
 	if err != nil {
 		return nil, err
 	}
@@ -819,27 +755,25 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorageChild(root *common.H
 	return storageTrie, nil
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorageFromChild(root *common.Hash, keyToChild, key []byte) (
-	[]byte, error) {
-	stateAt, err := ca.getStateByStateRoot(root)
-	if err != nil {
-		return nil, err
-	}
-
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetStorageFromChild(
+	bhash *common.Hash,
+	keyToChild []byte,
+	key []byte,
+) ([]byte, error) {
+	hash := ca.hashToGeneric(bhash)
 	info := storage.NewDefaultChildInfo(keyToChild)
-	return stateAt.ChildStorage(info, key)
+
+	return ca.client.ChildStorage(hash, info, key)
 }
 
 // LoadCode returns the runtime blob for the given block hash.
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) LoadCode(hash *common.Hash) ([]byte, error) {
-	// InmemoryStorageState.LoadCode() calls GetStorage() but I'm pretty sure `hash` is meant to be a block hash,
-	// not a state root hash. 🤔
-	return ca.GetStorageByBlockHash(hash, common.CodeKey)
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) LoadCode(bhash *common.Hash) ([]byte, error) {
+	return ca.GetStorage(bhash, common.CodeKey)
 }
 
 // LoadCodeHash returns the hash of the runtime blob for the given block hash.
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
-	code, err := ca.LoadCode(hash)
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) LoadCodeHash(bhash *common.Hash) (common.Hash, error) {
+	code, err := ca.LoadCode(bhash)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -860,6 +794,19 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) UnregisterStorageObserver(o st
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetBlockTree(blocktree *blocktree.BlockTree) {
 	panic("unimplemented")
+}
+
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) stateAt(bhash *common.Hash) (statemachine.Backend[H, Hasher], error) {
+	return ca.client.StateAt(ca.hashToGeneric(bhash))
+}
+
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) hashToGeneric(bhash *common.Hash) H {
+	if bhash == nil {
+		return ca.client.Info().BestHash
+	}
+
+	hasher := *new(Hasher)
+	return hasher.NewHash(bhash.ToBytes())
 }
 
 func prefixKey(hash common.Hash, prefix []byte) []byte {

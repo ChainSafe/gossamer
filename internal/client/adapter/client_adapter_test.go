@@ -5,7 +5,6 @@ package adapter
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -789,132 +788,6 @@ func TestGetStorage(t *testing.T) {
 		client, _, _, adapter := setupTest(t)
 
 		expectedError := errors.New("kaput")
-		client.EXPECT().StateAt(header.Hash()).Return(nil, expectedError)
-		client.EXPECT().Info().Return(blockchainInfo)
-		client.EXPECT().Header(header.Hash()).Return(&header, nil)
-
-		root := common.NewHashFromGeneric(header.StateRoot())
-
-		value, err := adapter.GetStorage(&root, []byte("key"))
-		require.ErrorIs(t, err, expectedError)
-		require.Nil(t, value)
-	})
-	t.Run("ok", func(t *testing.T) {
-		client, _, _, adapter := setupTest(t)
-
-		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
-		backend.EXPECT().Storage([]byte("key")).Return([]byte("value"), nil)
-
-		client.EXPECT().StateAt(header.Hash()).Return(backend, nil)
-		client.EXPECT().Info().Return(blockchainInfo)
-		client.EXPECT().Header(header.Hash()).Return(&header, nil)
-
-		root := common.NewHashFromGeneric(header.StateRoot())
-
-		value, err := adapter.GetStorage(&root, []byte("key"))
-		require.NoError(t, err)
-		require.Equal(t, []byte("value"), value)
-	})
-	t.Run("root_nil", func(t *testing.T) {
-		client, _, _, adapter := setupTest(t)
-
-		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
-		backend.EXPECT().Storage([]byte("key")).Return([]byte("value"), nil)
-
-		client.EXPECT().StateAt(blockchainInfo.BestHash).Return(backend, nil)
-		client.EXPECT().Info().Return(blockchainInfo)
-
-		value, err := adapter.GetStorage(nil, []byte("key"))
-		require.NoError(t, err)
-		require.Equal(t, []byte("value"), value)
-	})
-	t.Run("search_succeeds", func(t *testing.T) {
-		client, _, _, adapter := setupTest(t)
-
-		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
-		backend.EXPECT().Storage([]byte("key")).Return([]byte("value"), nil)
-
-		length := min(maxSearchDepth-1, 10)
-		genesisHeader := makeHeaderChain(t, client, uint16(length))
-		client.EXPECT().StateAt(genesisHeader.Hash()).Return(backend, nil)
-
-		root := common.NewHashFromGeneric(genesisHeader.StateRoot())
-
-		value, err := adapter.GetStorage(&root, []byte("key"))
-		require.NoError(t, err)
-		require.Equal(t, []byte("value"), value)
-	})
-	t.Run("search_fails", func(t *testing.T) {
-		client, _, _, adapter := setupTest(t)
-
-		backend := mocks.NewStatemachineBackend[Hash, Hasher](t)
-
-		backend.EXPECT().
-			Storage([]byte("key")).
-			Maybe().
-			Return([]byte("value"), nil)
-
-		genesisHeader := makeHeaderChain(t, client, maxSearchDepth+1)
-		client.EXPECT().StateAt(genesisHeader.Hash()).Maybe().Return(backend, nil)
-
-		root := common.NewHashFromGeneric(genesisHeader.StateRoot())
-
-		value, err := adapter.GetStorage(&root, []byte("key"))
-		require.Error(t, err)
-		require.Nil(t, value)
-	})
-}
-
-// makeHeaderChain creates a chain of headers and returns the header of the genesis block.
-//
-// The given client is configured to return them from Header() by their hash and to return
-// [blockchain.Info] with appropriate values from Info().
-func makeHeaderChain(
-	t *testing.T,
-	client *mocks.Client[Hash, Hasher, Number, Extrinsic, Header],
-	length uint16,
-) (genesisHeader Header) {
-	t.Helper()
-
-	chain := make([]Header, length)
-	hasher := new(Hasher)
-
-	for i := 0; i < int(length); i++ {
-		parentHash := hash.NewRandomH256()
-		if i > 0 {
-			parentHash = chain[i-1].Hash()
-		}
-
-		h := generic.NewHeader[Number, Hash, Hasher](
-			Number(i),
-			hash.NewRandomH256(),
-			hasher.Hash([]byte(fmt.Sprintf("header%d", i))),
-			parentHash,
-			runtime.Digest{},
-		)
-
-		chain[i] = *h
-		client.EXPECT().Header(h.Hash()).Maybe().Return(h, nil)
-	}
-
-	info := blockchain.Info[Hash, Number]{
-		GenesisHash:     genesisHeader.Hash(),
-		BestHash:        chain[length-1].Hash(),
-		BestNumber:      chain[length-1].Number(),
-		FinalizedHash:   chain[length-1].Hash(),
-		FinalizedNumber: chain[length-1].Number(),
-	}
-
-	client.EXPECT().Info().Return(info)
-
-	return chain[0]
-}
-
-func TestGetStorageByBlockHash(t *testing.T) {
-	t.Run("error", func(t *testing.T) {
-		client, _, _, adapter := setupTest(t)
-
-		expectedError := errors.New("kaput")
 
 		client.EXPECT().
 			Storage(
@@ -928,7 +801,7 @@ func TestGetStorageByBlockHash(t *testing.T) {
 
 		bhash := common.NewHashFromGeneric(blockchainInfo.FinalizedHash)
 
-		value, err := adapter.GetStorageByBlockHash(&bhash, []byte("key"))
+		value, err := adapter.GetStorage(&bhash, []byte("key"))
 		require.ErrorIs(t, err, expectedError)
 		require.Nil(t, value)
 	})
@@ -947,7 +820,7 @@ func TestGetStorageByBlockHash(t *testing.T) {
 
 		bhash := common.NewHashFromGeneric(blockchainInfo.FinalizedHash)
 
-		value, err := adapter.GetStorageByBlockHash(&bhash, storage.StorageKey("key"))
+		value, err := adapter.GetStorage(&bhash, storage.StorageKey("key"))
 		require.NoError(t, err)
 		require.Equal(t, []byte("value"), value)
 	})
@@ -966,7 +839,7 @@ func TestGetStorageByBlockHash(t *testing.T) {
 
 		client.EXPECT().Info().Return(blockchainInfo)
 
-		value, err := adapter.GetStorageByBlockHash(nil, []byte("key"))
+		value, err := adapter.GetStorage(nil, []byte("key"))
 		require.NoError(t, err)
 		require.Equal(t, []byte("value"), value)
 	})
@@ -984,14 +857,12 @@ func Test_GetKeysWithPrefix_Entries(t *testing.T) {
 	}
 
 	backend := statemachine.NewMemoryDBTrieBackendFromMap[Hash, Hasher](entries, storage.StateVersionV1)
-	client.EXPECT().Header(header.Hash()).Return(&header, nil)
 	client.EXPECT().StateAt(header.Hash()).Return(backend, nil)
-	client.EXPECT().Info().Return(blockchainInfo)
 
-	root := common.NewHashFromGeneric(header.StateRoot())
+	bhash := common.NewHashFromGeneric(header.Hash())
 
 	t.Run("GetKeysWithPrefix", func(t *testing.T) {
-		keys, err := adapter.GetKeysWithPrefix(&root, []byte("ke"))
+		keys, err := adapter.GetKeysWithPrefix(&bhash, []byte("ke"))
 
 		require.NoError(t, err)
 		require.Len(t, keys, 2)
@@ -999,8 +870,8 @@ func Test_GetKeysWithPrefix_Entries(t *testing.T) {
 		require.Contains(t, keys, []byte("key2"))
 	})
 
-	t.Run("GetKeysWithPrefix", func(t *testing.T) {
-		result, err := adapter.Entries(&root)
+	t.Run("Entries", func(t *testing.T) {
+		result, err := adapter.Entries(&bhash)
 
 		require.NoError(t, err)
 		require.Equal(t, entries, result)
@@ -1070,7 +941,7 @@ func TestGetFirstNonOriginSlotNumber(t *testing.T) {
 	})
 }
 
-func Test_GetStorageFromChild_GetStorageChild(t *testing.T) {
+func Test_GetStorageChild(t *testing.T) {
 	client, _, _, adapter := setupTest(t)
 
 	childInfo := storage.NewDefaultChildInfo([]byte("child1"))
@@ -1106,27 +977,18 @@ func Test_GetStorageFromChild_GetStorageChild(t *testing.T) {
 	)
 	client.EXPECT().StateAt(header.Hash()).Return(backend, nil)
 
-	t.Run("GetStorageFromChild", func(t *testing.T) {
-		value, err := adapter.GetStorageFromChild(nil, []byte("child1"), []byte("key"))
+	storageChild, err := adapter.GetStorageChild(nil, []byte("child1"))
 
-		require.NoError(t, err)
-		require.Equal(t, []byte("value"), value)
-	})
+	require.NoError(t, err)
 
-	t.Run("GetStorageChild", func(t *testing.T) {
-		storageChild, err := adapter.GetStorageChild(nil, []byte("child1"))
-
-		require.NoError(t, err)
-
-		require.Equal(
-			t,
-			map[string][]byte{
-				"key":        []byte("value"),
-				"anotherkey": []byte("anothervalue"),
-			},
-			storageChild.Entries(),
-		)
-	})
+	require.Equal(
+		t,
+		map[string][]byte{
+			"key":        []byte("value"),
+			"anotherkey": []byte("anothervalue"),
+		},
+		storageChild.Entries(),
+	)
 }
 
 func TestAddBlock_MissingParams(t *testing.T) {
