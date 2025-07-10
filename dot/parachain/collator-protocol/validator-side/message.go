@@ -17,7 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -26,18 +25,6 @@ const (
 	AdvertiseCollation
 	CollationSeconded
 )
-
-//nolint:unused
-func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
-	collationMessage := collatorprotocolmessages.CollationProtocol{}
-
-	err := scale.Unmarshal(in, &collationMessage)
-	if err != nil {
-		return nil, fmt.Errorf("cannot decode message: %w", err)
-	}
-
-	return &collationMessage, nil
-}
 
 type ProspectiveCandidate struct {
 	CandidateHash      parachaintypes.CandidateHash
@@ -466,18 +453,8 @@ func (cpvs *CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender
 	return nil
 }
 
-//nolint:unused
-func getCollatorHandshake() (network.Handshake, error) {
-	return &collatorHandshake{}, nil
-}
-
 func decodeCollatorHandshake(_ []byte) (network.Handshake, error) {
 	return &collatorHandshake{}, nil
-}
-
-//nolint:unused
-func validateCollatorHandshake(_ peer.ID, _ network.Handshake) error {
-	return nil
 }
 
 type collatorHandshake struct{}
