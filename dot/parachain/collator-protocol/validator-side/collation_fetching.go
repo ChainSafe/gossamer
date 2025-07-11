@@ -89,7 +89,7 @@ func (mvdt CollationFetchingResponse) Value() (value any, err error) {
 	return
 }
 
-func (mvdt CollationFetchingResponse) ValueAt(index uint) (value any, err error) {
+func (mvdt *CollationFetchingResponse) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 0:
 		return *new(parachaintypes.Collation), nil

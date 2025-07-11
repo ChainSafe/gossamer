@@ -53,7 +53,7 @@ func (mvdt CollationProtocol) Value() (value any, err error) {
 	return
 }
 
-func (mvdt CollationProtocol) ValueAt(index uint) (value any, err error) {
+func (mvdt *CollationProtocol) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 0:
 		return *new(CollatorProtocolMessage), nil
@@ -126,7 +126,7 @@ func (mvdt CollatorProtocolMessage) Value() (value any, err error) {
 	return
 }
 
-func (mvdt CollatorProtocolMessage) ValueAt(index uint) (value any, err error) {
+func (mvdt *CollatorProtocolMessage) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 0:
 		return *new(Declare), nil
