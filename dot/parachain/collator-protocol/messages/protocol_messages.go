@@ -39,7 +39,7 @@ func (mvdt *CollationProtocol) SetValue(value any) (err error) {
 	}
 }
 
-func (mvdt CollationProtocol) IndexValue() (index uint, value any, err error) {
+func (mvdt *CollationProtocol) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case CollatorProtocolMessage:
 		return 0, mvdt.inner, nil
@@ -48,7 +48,7 @@ func (mvdt CollationProtocol) IndexValue() (index uint, value any, err error) {
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt CollationProtocol) Value() (value any, err error) {
+func (mvdt *CollationProtocol) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
@@ -103,7 +103,7 @@ func (mvdt *CollatorProtocolMessage) SetValue(value any) (err error) {
 	}
 }
 
-func (mvdt CollatorProtocolMessage) IndexValue() (index uint, value any, err error) {
+func (mvdt *CollatorProtocolMessage) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case Declare:
 		return 0, mvdt.inner, nil
@@ -121,7 +121,7 @@ func (mvdt CollatorProtocolMessage) IndexValue() (index uint, value any, err err
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt CollatorProtocolMessage) Value() (value any, err error) {
+func (mvdt *CollatorProtocolMessage) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
@@ -176,12 +176,12 @@ type CollationSeconded struct {
 }
 
 // Type returns CollationMsgType
-func (CollationProtocol) Type() network.MessageType {
+func (*CollationProtocol) Type() network.MessageType {
 	return network.CollationMsgType
 }
 
 // Hash returns the hash of the CollationProtocolV1
-func (cp CollationProtocol) Hash() (common.Hash, error) {
+func (cp *CollationProtocol) Hash() (common.Hash, error) {
 	// scale encode each extrinsic
 	encMsg, err := cp.Encode()
 	if err != nil {
@@ -192,7 +192,7 @@ func (cp CollationProtocol) Hash() (common.Hash, error) {
 }
 
 // Encode a collator protocol message using scale encode
-func (cp CollationProtocol) Encode() ([]byte, error) {
+func (cp *CollationProtocol) Encode() ([]byte, error) {
 	enc, err := scale.Marshal(cp)
 	if err != nil {
 		return nil, err

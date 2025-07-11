@@ -75,7 +75,7 @@ func (mvdt *CollationFetchingResponse) SetValue(value any) (err error) {
 	}
 }
 
-func (mvdt CollationFetchingResponse) IndexValue() (index uint, value any, err error) {
+func (mvdt *CollationFetchingResponse) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case parachaintypes.Collation:
 		return 0, mvdt.inner, nil
@@ -84,7 +84,7 @@ func (mvdt CollationFetchingResponse) IndexValue() (index uint, value any, err e
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt CollationFetchingResponse) Value() (value any, err error) {
+func (mvdt *CollationFetchingResponse) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
