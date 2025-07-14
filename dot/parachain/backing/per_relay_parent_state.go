@@ -86,12 +86,12 @@ func (cb *CandidateBacking) constructPerRelayParentState(relayParent common.Hash
 
 	var localValidator *parachaintypes.Validator
 
-	validatorID, validatorIndex := parachainutil.SigningKeyAndIndex(validators, cb.Keystore)
-	if validatorID != nil {
+	validatorPublicKey, validatorIndex := parachainutil.SigningKeyAndIndex(validators, cb.Keystore)
+	if validatorPublicKey != nil {
 		//  local node is a validator
 		localValidator = &parachaintypes.Validator{
 			SigningContext: signingContext,
-			Key:            *validatorID,
+			Key:            *validatorPublicKey,
 			Index:          validatorIndex,
 			Disabled:       slices.Contains(disabledValidators, validatorIndex),
 		}

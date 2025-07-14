@@ -73,11 +73,11 @@ func signedBitfield(
 	require.NoError(t, err)
 
 	publicKeyBytes := keyPair.Public().Encode()
-	validatorID := parachaintypes.ValidatorID(publicKeyBytes)
+	validatorPublicKey := parachaintypes.ValidatorPublicKey(publicKeyBytes)
 
 	validator := parachaintypes.Validator{
 		SigningContext: parachaintypes.SigningContext{},
-		Key:            validatorID,
+		Key:            validatorPublicKey,
 	}
 
 	encoded, err := scale.Marshal(field)

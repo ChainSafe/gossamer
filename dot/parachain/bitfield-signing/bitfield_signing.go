@@ -131,8 +131,8 @@ func handleActiveLeavesUpdate(ctx context.Context, b *BitfieldSigning, activated
 		return fmt.Errorf("getting validators: %w", err)
 
 	}
-	validatorID, validatorIndex := parachainutil.SigningKeyAndIndex(validators, b.keystore)
-	if validatorID == nil {
+	validatorPublicKey, validatorIndex := parachainutil.SigningKeyAndIndex(validators, b.keystore)
+	if validatorPublicKey == nil {
 		// skip the logic if not a validator node
 		return nil
 	}
@@ -146,7 +146,7 @@ func handleActiveLeavesUpdate(ctx context.Context, b *BitfieldSigning, activated
 		ParentHash:   relayParent,
 	}
 	validator := parachaintypes.Validator{
-		Key:            *validatorID,
+		Key:            *validatorPublicKey,
 		Index:          validatorIndex,
 		SigningContext: signingContext,
 	}

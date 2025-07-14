@@ -412,14 +412,14 @@ func generateKeypairs(t *testing.T, n int) []*sr25519.Keypair {
 	return kps
 }
 
-func validatorIDsFromKeypairs(t *testing.T, kps []*sr25519.Keypair) []parachaintypes.ValidatorID {
+func validatorIDsFromKeypairs(t *testing.T, kps []*sr25519.Keypair) []parachaintypes.ValidatorPublicKey {
 	t.Helper()
 
-	validatorIDs := make([]parachaintypes.ValidatorID, len(kps))
+	validatorPublicKeys := make([]parachaintypes.ValidatorPublicKey, len(kps))
 	for i, kp := range kps {
-		validatorIDs[i] = parachaintypes.ValidatorID(kp.Public().Encode())
+		validatorPublicKeys[i] = parachaintypes.ValidatorPublicKey(kp.Public().Encode())
 	}
-	return validatorIDs
+	return validatorPublicKeys
 }
 
 func generateDiscoveryKeys(t *testing.T, n int) []parachaintypes.AuthorityDiscoveryID {
@@ -438,14 +438,14 @@ func generateDiscoveryKeys(t *testing.T, n int) []parachaintypes.AuthorityDiscov
 func setUpKeystoreMock(
 	t *testing.T,
 	ctrl *gomock.Controller,
-	validatorID parachaintypes.ValidatorID,
+	validatorPublicKey parachaintypes.ValidatorPublicKey,
 	keypair *sr25519.Keypair,
 ) keystore.Keystore {
 	t.Helper()
 
 	ks := NewMockKeystore(ctrl)
 
-	ourPubkey, err := sr25519.NewPublicKey(validatorID[:])
+	ourPubkey, err := sr25519.NewPublicKey(validatorPublicKey[:])
 	require.NoError(t, err)
 
 	ks.EXPECT().
@@ -465,7 +465,7 @@ func setUpRuntimeMock(
 	t *testing.T,
 	ctrl *gomock.Controller,
 	sessionIndex parachaintypes.SessionIndex,
-	validators []parachaintypes.ValidatorID,
+	validators []parachaintypes.ValidatorPublicKey,
 	discoveryKeys []parachaintypes.AuthorityDiscoveryID,
 	validatorGroups [][]parachaintypes.ValidatorIndex,
 	nodeFeatures parachaintypes.BitVec,

@@ -130,8 +130,8 @@ func (c *LRUSessionCache) GetSessionInfo(
 		return nil, err
 	}
 
-	validatorID, ourIndex := parachainutil.SigningKeyAndIndex(sessionInfo.Validators, c.keystore)
-	if validatorID == nil {
+	validatorPublicKey, ourIndex := parachainutil.SigningKeyAndIndex(sessionInfo.Validators, c.keystore)
+	if validatorPublicKey == nil {
 		// This node is not a validator.
 		return nil, nil
 	}

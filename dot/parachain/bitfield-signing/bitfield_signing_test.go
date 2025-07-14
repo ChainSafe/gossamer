@@ -219,8 +219,8 @@ func TestProcessActiveLeavesUpdateSignalNotValidator(t *testing.T) {
 
 	blockAPIMock.EXPECT().GetRuntime(common.Hash{1, 2, 3, 4, 5}).Return(runtimeMock, nil).Times(1)
 
-	// validatorIDs is empty
-	runtimeMock.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorID{}, nil).Times(1)
+	// ValidatorPublicKeys is empty
+	runtimeMock.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorPublicKey{}, nil).Times(1)
 
 	// current node is not a validator
 	err = handleActiveLeavesUpdate(context.Background(), testBitfieldSigningSubsystem, testActiveLeaves)
@@ -251,9 +251,9 @@ func TestProcessActiveLeavesUpdateSignalConstructAvailabilityBitfieldError(t *te
 
 	blockAPIMock.EXPECT().GetRuntime(common.Hash{1, 2, 3, 4, 5}).Return(runtimeMock, nil).Times(1)
 
-	// validatorIDs has Alice
-	runtimeMock.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorID{
-		parachaintypes.ValidatorID(aliceKeypair.Public().Encode()),
+	// ValidatorPublicKeys has Alice
+	runtimeMock.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorPublicKey{
+		parachaintypes.ValidatorPublicKey(aliceKeypair.Public().Encode()),
 	}, nil).Times(1)
 
 	runtimeMock.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil).Times(1)
@@ -289,9 +289,9 @@ func TestProcessActiveLeavesUpdateSignalSuccess(t *testing.T) {
 
 	blockAPIMock.EXPECT().GetRuntime(common.Hash{1, 2, 3, 4, 5}).Return(runtimeMock, nil).Times(1)
 
-	// validatorIDs has Alice
-	runtimeMock.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorID{
-		parachaintypes.ValidatorID(aliceKeypair.Public().Encode()),
+	// ValidatorPublicKeys has Alice
+	runtimeMock.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorPublicKey{
+		parachaintypes.ValidatorPublicKey(aliceKeypair.Public().Encode()),
 	}, nil).Times(1)
 
 	cores := parachaintypes.NewAvailabilityCores()

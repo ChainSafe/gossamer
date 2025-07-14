@@ -171,9 +171,9 @@ func (r *ReputationAggregator) singleSend(
 // SigningKeyAndIndex finds the first key we can sign with from the given set of validators,
 // if any, and returns it along with the validator index.
 func SigningKeyAndIndex(
-	validators []parachaintypes.ValidatorID,
+	validators []parachaintypes.ValidatorPublicKey,
 	ks keystore.Keystore,
-) (*parachaintypes.ValidatorID, parachaintypes.ValidatorIndex) {
+) (*parachaintypes.ValidatorPublicKey, parachaintypes.ValidatorIndex) {
 	for i, validator := range validators {
 		publicKey, _ := sr25519.NewPublicKey(validator[:])
 		keypair := ks.GetKeypair(publicKey)
