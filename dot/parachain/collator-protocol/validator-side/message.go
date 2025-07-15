@@ -17,7 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -26,18 +25,6 @@ const (
 	AdvertiseCollation
 	CollationSeconded
 )
-
-//nolint:unused
-func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
-	collationMessage := collatorprotocolmessages.CollationProtocol{}
-
-	err := scale.Unmarshal(in, &collationMessage)
-	if err != nil {
-		return nil, fmt.Errorf("cannot decode message: %w", err)
-	}
-
-	return &collationMessage, nil
-}
 
 type ProspectiveCandidate struct {
 	CandidateHash      parachaintypes.CandidateHash
@@ -156,9 +143,17 @@ func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation Pendi
 		return ErrNotAdvertised
 	}
 
-	// TODO #4711
+	// Convert parachaintypes.CandidateHash to *common.Hash for requestCollation
+	var candidateHashCommon *common.Hash
+	if candidateHash != nil {
+		candidateHashCommon = &candidateHash.Value // Extract the common.Hash from CandidateHash
+	}
+	// TODO: Add it to collation_fetch_timeouts if we can't process this in timeout time.
+	// state
+	// .collation_fetch_timeouts
+	// .push(timeout(id.clone(), candidate_hash, relay_parent).boxed());
 	collation, err := cpvs.requestCollation(pendingCollation.RelayParent, pendingCollation.ParaID,
-		pendingCollation.PeerID)
+		pendingCollation.PeerID, candidateHashCommon)
 	if err != nil {
 		return fmt.Errorf("requesting collation: %w", err)
 	}
@@ -423,8 +418,28 @@ func (cpvs *CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender
 		if err != nil {
 			return fmt.Errorf("handling v1 advertisement: %w", err)
 		}
+		// TODO:
+		// - tracks advertisements received and the source (peer id) of the advertisement
+		// - accept one advertisement per collator per source per relay-parent
+	case 2: // AdvertiseCollationV2
+		advertiseCollationV2Message, ok := collatorProtocolMessageV.(collatorprotocolmessages.AdvertiseCollationV2)
+		if !ok {
+			return errors.New("expected message to be advertise collation v2")
+		}
+		prospectiveCandidate := &ProspectiveCandidate{
+			CandidateHash:      advertiseCollationV2Message.CandidateHash,
+			ParentHeadDataHash: advertiseCollationV2Message.ParentHeadDataHash,
+		}
 
-	case CollationSeconded:
+		err := cpvs.handleAdvertisement(advertiseCollationV2Message.RelayParent, sender, prospectiveCandidate)
+		if err != nil {
+			return fmt.Errorf("handling v2 advertisement: %w", err)
+		}
+
+		logger.Debugf("Peer %s sent V2 advertisement, upgrading to ProtocolV2", sender)
+		cpvs.setPeerProtocolVersion(sender, ProtocolV2)
+
+	case 4: // CollationSeconded
 		logger.Errorf("unexpected collation seconded message from peer %s, decreasing its reputation", sender)
 		cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
 			PeerID: sender,
@@ -438,18 +453,8 @@ func (cpvs *CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender
 	return nil
 }
 
-//nolint:unused
-func getCollatorHandshake() (network.Handshake, error) {
-	return &collatorHandshake{}, nil
-}
-
 func decodeCollatorHandshake(_ []byte) (network.Handshake, error) {
 	return &collatorHandshake{}, nil
-}
-
-//nolint:unused
-func validateCollatorHandshake(_ peer.ID, _ network.Handshake) error {
-	return nil
 }
 
 type collatorHandshake struct{}
