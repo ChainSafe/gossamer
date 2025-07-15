@@ -5,7 +5,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/parachain/grid"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,17 +28,17 @@ func TestBuildSessionTopology(t *testing.T) {
 			CanonicalShuffling: []grid.TopologyPeerInfo{
 				{
 					ValidatorIndex: 0,
-					DiscoveryID:    types.AuthorityID{},
+					DiscoveryID:    parachaintypes.AuthorityDiscoveryID{},
 					Peers:          []peer.ID{},
 				},
 				{
 					ValidatorIndex: 1,
-					DiscoveryID:    types.AuthorityID{},
+					DiscoveryID:    parachaintypes.AuthorityDiscoveryID{},
 					Peers:          []peer.ID{},
 				},
 				{
 					ValidatorIndex: 2,
-					DiscoveryID:    types.AuthorityID{},
+					DiscoveryID:    parachaintypes.AuthorityDiscoveryID{},
 					Peers:          []peer.ID{},
 				},
 			},
@@ -67,7 +66,7 @@ func TestBuildSessionTopology(t *testing.T) {
 		for i := 0; i < 9; i++ {
 			baseTopology.CanonicalShuffling[i] = grid.TopologyPeerInfo{
 				ValidatorIndex: parachaintypes.ValidatorIndex(i),
-				DiscoveryID:    types.AuthorityID{},
+				DiscoveryID:    parachaintypes.AuthorityDiscoveryID{},
 				Peers:          []peer.ID{},
 			}
 		}

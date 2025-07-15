@@ -5,6 +5,7 @@ package events
 
 import (
 	collationprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	"github.com/ChainSafe/gossamer/dot/parachain/grid"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 
@@ -43,7 +44,7 @@ type CanonicalShuffling struct {
 
 type NewGossipTopology struct {
 	Session    parachaintypes.SessionIndex
-	Topology   SessionGridTopology
+	Topology   grid.SessionGridTopology
 	LocalIndex *parachaintypes.ValidatorIndex
 }
 

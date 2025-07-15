@@ -43,7 +43,7 @@ type manifestKindByCandidateHash map[parachaintypes.CandidateHash]manifestKind
 
 type originatorStatementPair struct {
 	validatorIndex parachaintypes.ValidatorIndex
-	statement      parachaintypes.CompactStatement
+	compactStmt    parachaintypes.CompactStatement
 }
 
 type originatorStatementPairSet map[originatorStatementPair]struct{}
@@ -60,7 +60,7 @@ func (o originatorStatementPairSet) remove(
 	statement parachaintypes.CompactStatement,
 ) bool { //nolint:unparam
 	for pair := range o {
-		if pair.validatorIndex == validatorIndex && pair.statement.Equals(statement) {
+		if pair.validatorIndex == validatorIndex && pair.compactStmt.Equals(statement) {
 			delete(o, pair)
 			return true
 		}
@@ -344,7 +344,7 @@ func (g *gridTracker) allPendingStatementsFor(
 	var seconded, valid []originatorStatementPair
 
 	for pair := range g.pendingStatements[validatorIndex] {
-		if _, ok := pair.statement.(*parachaintypes.CompactSeconded); ok {
+		if _, ok := pair.compactStmt.(*parachaintypes.CompactSeconded); ok {
 			seconded = append(seconded, pair)
 		} else {
 			valid = append(valid, pair)
@@ -568,7 +568,7 @@ func decomposeStatementFilter(
 
 			pair := originatorStatementPair{
 				validatorIndex: validatorIndex,
-				statement:      parachaintypes.NewCompactSeconded(candidateHash),
+				compactStmt:    parachaintypes.NewCompactSeconded(candidateHash),
 			}
 
 			result[pair] = struct{}{}
@@ -581,7 +581,7 @@ func decomposeStatementFilter(
 
 			pair := originatorStatementPair{
 				validatorIndex: validatorIndex,
-				statement:      parachaintypes.NewCompactValid(candidateHash),
+				compactStmt:    parachaintypes.NewCompactValid(candidateHash),
 			}
 
 			result[pair] = struct{}{}

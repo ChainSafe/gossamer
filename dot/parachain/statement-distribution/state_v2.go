@@ -15,13 +15,15 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-type candidatesStore interface {
-	getConfirmed(candidateHash parachaintypes.CandidateHash) (*confirmedCandidate, bool)
+// requestManager defines the interface that manages
+// outgoing requests
+type requestManager interface {
+	removeByRelayParent(rp common.Hash)
 }
 
 // skipcq:SCC-U1000
 type perRelayParentState struct {
-	localValidator       *localValidatorStore
+	localValidator       *localValidatorState
 	statementStore       *statementStore
 	secondingLimit       uint
 	session              parachaintypes.SessionIndex
@@ -29,6 +31,14 @@ type perRelayParentState struct {
 	groupsPerPara        map[parachaintypes.ParaID][]parachaintypes.GroupIndex
 	disabledValidators   map[parachaintypes.ValidatorIndex]struct{}
 	assignmentsPerGroup  map[parachaintypes.GroupIndex][]parachaintypes.ParaID
+}
+
+func (p *perRelayParentState) activeValidatorState() *activeValidatorState {
+	if p.localValidator != nil {
+		return p.localValidator.active
+	}
+
+	return nil
 }
 
 // isDisabled returns `true` if the given validator is disabled in the context of the relay parent.
@@ -51,7 +61,7 @@ func (p *perRelayParentState) disabledBitmask(group []parachaintypes.ValidatorIn
 	return bm, err
 }
 
-type localValidatorStore struct {
+type localValidatorState struct {
 	gridTracker *gridTracker
 	active      *activeValidatorState // skipcq:SCC-U1000
 }
@@ -61,12 +71,12 @@ type activeValidatorState struct {
 	index          parachaintypes.ValidatorIndex
 	groupIndex     parachaintypes.GroupIndex
 	assignments    []parachaintypes.ParaID
-	clusterTracker any // TODO: use cluster tracker implementation (#4713)
+	clusterTracker *clusterTracker // TODO: use cluster tracker implementation (#4713)
 }
 
 // skipcq:SCC-U1000
 type perSessionState struct {
-	sessionInfo parachaintypes.SessionInfo
+	sessionInfo *parachaintypes.SessionInfo
 	groups      *groups
 	authLookup  map[parachaintypes.AuthorityDiscoveryID]parachaintypes.ValidatorIndex
 	gridView    *sessionTopologyView
@@ -76,8 +86,8 @@ type perSessionState struct {
 	allowV2Descriptors bool
 }
 
-// skipcq:SCC-U1000
-func newPerSessionState(sessionInfo parachaintypes.SessionInfo,
+func newPerSessionState(
+	sessionInfo *parachaintypes.SessionInfo,
 	keystore keystore.Keystore,
 	backingThreshold uint32,
 	allowV2Descriptor bool,
@@ -213,13 +223,28 @@ func (p *peerState) iterKnownDiscoveryIDs() []parachaintypes.AuthorityDiscoveryI
 
 type v2State struct {
 	implicitView     parachainutil.ImplicitView
-	candidates       candidates
-	perRelayParent   map[common.Hash]perRelayParentState
-	perSession       map[parachaintypes.SessionIndex]perSessionState
+	candidates       *candidates
+	perRelayParent   map[common.Hash]*perRelayParentState
+	perSession       map[parachaintypes.SessionIndex]*perSessionState
 	unusedTopologies map[parachaintypes.SessionIndex]events.NewGossipTopology
 	peers            map[peer.ID]peerState
 	keystore         keystore.Keystore
 	authorities      map[parachaintypes.AuthorityDiscoveryID]string
-	requestManager   any // TODO: #4377
-	responseManager  any // TODO: #4378
+	requestManager   requestManager // TODO: #4377
+	responseManager  any            // TODO: #4378
+}
+
+func newV2State(ks keystore.Keystore, iv parachainutil.ImplicitView) *v2State {
+	return &v2State{
+		implicitView:     iv,
+		candidates:       nil,
+		perRelayParent:   map[common.Hash]*perRelayParentState{},
+		perSession:       map[parachaintypes.SessionIndex]*perSessionState{},
+		unusedTopologies: map[parachaintypes.SessionIndex]events.NewGossipTopology{},
+		peers:            map[peer.ID]peerState{},
+		keystore:         ks,
+		authorities:      map[parachaintypes.AuthorityDiscoveryID]string{},
+		requestManager:   nil,
+		responseManager:  nil,
+	}
 }

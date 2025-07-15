@@ -256,19 +256,18 @@ func (s *statementStore) groupStatements(
 }
 
 // validatorStatement returns the full statement of this kind issued by this validator, if it is known.
-func (s *statementStore) validatorStatement(
-	validatorIndex parachaintypes.ValidatorIndex,
-	statement parachaintypes.CompactStatement,
+func (s *statementStore) validatorStatement( //nolint:unused
+	pair originatorStatementPair,
 ) (*parachaintypes.SignedStatement, bool) {
 	kind := fingerprintKindCompactSeconded // default to Seconded
-	if _, ok := statement.(*parachaintypes.CompactValid); ok {
+	if _, ok := pair.compactStmt.(*parachaintypes.CompactValid); ok {
 		kind = fingerprintKindCompactValid
 	}
 
 	fp := fingerprint{
-		validator:     validatorIndex,
+		validator:     pair.validatorIndex,
 		kind:          kind,
-		candidateHash: statement.CandidateHash(),
+		candidateHash: pair.compactStmt.CandidateHash(),
 	}
 	sst, ok := s.knownStmts[fp]
 	return sst.stmt, ok

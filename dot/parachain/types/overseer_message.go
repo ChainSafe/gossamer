@@ -5,11 +5,6 @@ package parachaintypes
 
 import "github.com/ChainSafe/gossamer/lib/common"
 
-var (
-	_ HypotheticalCandidate = (*HypotheticalCandidateIncomplete)(nil)
-	_ HypotheticalCandidate = (*HypotheticalCandidateComplete)(nil)
-)
-
 // OverseerFuncRes is a result of an overseer function
 type OverseerFuncRes[T any] struct {
 	Err  error

@@ -24,7 +24,7 @@ type NewGossipTopology struct {
 	CanonicalShuffling []events.CanonicalShuffling
 	// The reverse mapping of `canonical_shuffling`: from validator index
 	// to the index in `canonical_shuffling`
-	ShuffledIndices []uint8
+	ShuffledIndices []uint
 }
 
 // UpdateAuthorityIDs is used to inform the distribution subsystems about `AuthorityDiscoveryId` key rotations.

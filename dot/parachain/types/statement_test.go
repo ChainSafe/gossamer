@@ -199,6 +199,8 @@ func TestCompactStatement(t *testing.T) {
 
 	for _, c := range testCases {
 		c := c
+		fmt.Println("spawning test for", c.name)
+
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 

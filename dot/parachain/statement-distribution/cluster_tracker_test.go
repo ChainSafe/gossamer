@@ -229,6 +229,61 @@ func TestClusterTracker_receive_statements(t *testing.T) {
 	})
 }
 
+func TestClusterTracker_noteSent(t *testing.T) {
+	group := []parachaintypes.ValidatorIndex{5, 200, 24, 146}
+	secondingLimit := uint(2)
+	tracker := newClusterTracker(group, secondingLimit)
+
+	secondedStmt := parachaintypes.NewCompactSeconded(
+		parachaintypes.CandidateHash{Value: common.Hash{0xab}})
+
+	// noteSent should not panic if the validator is not in the group
+	tracker.noteSent(
+		parachaintypes.ValidatorIndex(100),
+		parachaintypes.ValidatorIndex(5),
+		secondedStmt,
+	)
+
+	expectedSpecific := outgoingP2P{specific{secondedStmt, parachaintypes.ValidatorIndex(5)}}
+	_, ok := tracker.knowledge[parachaintypes.ValidatorIndex(100)][expectedSpecific]
+	require.True(t, ok)
+
+	expectedGeneral := outgoingP2P{general{secondedStmt.CandidateHash()}}
+	_, ok = tracker.knowledge[parachaintypes.ValidatorIndex(100)][expectedGeneral]
+	require.True(t, ok)
+
+	// since the compact statement is seconded, the originator will also be part of the knowledge
+	expectedSecondedOriginator := seconded{secondedStmt.CandidateHash()}
+	_, ok = tracker.knowledge[parachaintypes.ValidatorIndex(5)][expectedSecondedOriginator]
+	require.True(t, ok)
+
+	// add a pending statement that should be deleted after noteSent.
+	validStmt := parachaintypes.NewCompactValid(
+		parachaintypes.CandidateHash{Value: common.Hash{0xab}})
+	tracker.pending[parachaintypes.ValidatorIndex(5)] = map[originatorStatementPair]struct{}{
+		{
+			validatorIndex: parachaintypes.ValidatorIndex(24),
+			compactStmt:    validStmt,
+		}: {},
+	}
+
+	tracker.noteSent(
+		parachaintypes.ValidatorIndex(5),
+		parachaintypes.ValidatorIndex(24),
+		validStmt,
+	)
+
+	// since the compact statement is valid, we dont add the originator to knowledge
+	expectedSpecific = outgoingP2P{specific{validStmt, parachaintypes.ValidatorIndex(24)}}
+	_, ok = tracker.knowledge[parachaintypes.ValidatorIndex(5)][expectedSpecific]
+	require.True(t, ok)
+
+	_, ok = tracker.knowledge[parachaintypes.ValidatorIndex(24)]
+	require.False(t, ok)
+
+	require.Len(t, tracker.pending[parachaintypes.ValidatorIndex(5)], 0)
+}
+
 // tests that cover clusterTracker.canSend() and clusterTracker.noteSent()
 func TestClusterTracker_send_statements(t *testing.T) {
 	t.Parallel()

@@ -450,7 +450,7 @@ func (gs *GossipSupport) updateGossipTopology(
 ) error {
 	authLen := len(authorities)
 	canonicalShuffling := make([]networkbridgeevents.CanonicalShuffling, authLen)
-	shuffledIndices := make([]uint8, authLen)
+	shuffledIndices := make([]uint, authLen)
 
 	for i, a := range authorities {
 		canonicalShuffling[i] = networkbridgeevents.CanonicalShuffling{AuthorityDiscoveryID: a,
@@ -468,7 +468,7 @@ func (gs *GossipSupport) updateGossipTopology(
 	}
 
 	for i, pair := range canonicalShuffling {
-		shuffledIndices[int(pair.ValidatorIndex)] = uint8(i)
+		shuffledIndices[int(pair.ValidatorIndex)] = uint(i)
 	}
 
 	localIndex := parachaintypes.ValidatorIndex(ourIndex)

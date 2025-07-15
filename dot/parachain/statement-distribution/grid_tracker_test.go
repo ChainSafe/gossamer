@@ -867,7 +867,7 @@ func ensurePendingStatements(
 
 	expectedPair := originatorStatementPair{
 		validatorIndex: originator,
-		statement:      expectedStatement,
+		compactStmt:    expectedStatement,
 	}
 	require.Equal(t, expectedPair, allPendingStatements[0])
 }

@@ -13,12 +13,20 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
+	prospectiveparachainsmessages "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/libp2p/go-libp2p/core/peer"
+)
+
+const (
+	HypotheticalMembershipTimeout = 2 * time.Second
 )
 
 var (
@@ -76,29 +84,24 @@ var (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-statement-distribution"))
 
+type blockState interface {
+	GetHeader(hash common.Hash) (header *types.Header, err error)
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+}
+
 type StatementDistribution struct {
+	blockState          blockState
 	SubSystemToOverseer chan<- any
+	state               *v2State
 }
 
-type MuxedMessage interface {
-	isMuxedMessage()
+func New(overseerChan chan<- any, ks keystore.Keystore, blockState parachainutil.BlockState) *StatementDistribution {
+	return &StatementDistribution{
+		SubSystemToOverseer: overseerChan,
+		blockState:          blockState,
+		state:               newV2State(ks, parachainutil.NewBackingImplicitView(blockState, nil)),
+	}
 }
-
-type overseerMessage struct {
-	inner any
-}
-
-func (*overseerMessage) isMuxedMessage() {}
-
-type responderMessage struct {
-	inner any // should be replaced with AttestedCandidateRequest type
-}
-
-func (*responderMessage) isMuxedMessage() {}
-
-type reputationChangeMessage struct{}
-
-func (*reputationChangeMessage) isMuxedMessage() {}
 
 // Run just receives the ctx and a channel from the overseer to subsystem
 func (s *StatementDistribution) Run(ctx context.Context, overseerToSubSystem <-chan any) {
@@ -117,27 +120,198 @@ func (s *StatementDistribution) Run(ctx context.Context, overseerToSubSystem <-c
 		switch innerMessage := message.(type) {
 		case *reputationChangeMessage:
 			logger.Info("Reputation change triggered.")
+		case *overseerMessage:
+			shouldStop, err := s.handleSubsystemMessage(innerMessage.inner)
+			if err != nil {
+				logger.Errorf("handling subsystem message: %s", err.Error())
+			}
+
+			if shouldStop {
+				logger.Warn("handling subsystem message: should stop statement distribution")
+				break
+			}
 		default:
 			logger.Warn("Unhandled message type: " + fmt.Sprintf("%v", innerMessage))
 		}
 	}
 }
 
-func taskResponder(responderCh chan any) {}
+func (s *StatementDistribution) handleSubsystemMessage(overseerMessage any) (bool, error) {
+	switch message := overseerMessage.(type) {
+	case parachaintypes.ActiveLeavesUpdateSignal:
+		if message.Activated != nil {
+			if err := s.handleActiveLeavesUpdate(message.Activated); err != nil {
+				return false, fmt.Errorf("handling active leaves update: %w", err)
+			}
+		}
+		s.handleDeactivatedLeaves(message.Deactivated)
 
-// awaitMessageFrom waits for messages from either the overseerToSubSystem, responderCh, or reputationDelay
-func (s *StatementDistribution) awaitMessageFrom(
-	overseerToSubSystem <-chan any,
-	responderCh chan any,
-	reputationDelay <-chan time.Time,
-) MuxedMessage {
+	case parachaintypes.Conclude:
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// Send a peer, apparently just becoming aware of a relay-parent, all messages
+// concerning that relay-parent.
+//
+// In particular, we send all statements pertaining to our common cluster,
+// as well as all manifests, acknowledgements, or other grid statements.
+//
+// Note that due to the way we handle views, our knowledge of peers' relay parents
+// may "oscillate" with relay parents repeatedly leaving and entering the
+// view of a peer based on the implicit view of active leaves.
+//
+// This function is designed to be cheap and not to send duplicate messages in repeated
+// cases.
+func (s *StatementDistribution) sendPeerMessagesForRelayParent(pid peer.ID, rp common.Hash) {
+	peerData, ok := s.state.peers[pid]
+	if !ok {
+		return
+	}
+
+	rpState, ok := s.state.perRelayParent[rp]
+	if !ok {
+		return
+	}
+
+	perSessionState, ok := s.state.perSession[rpState.session]
+	if !ok {
+		return
+	}
+
+	for _, vID := range peerData.iterKnownDiscoveryIDs() {
+		vIndex, ok := perSessionState.authLookup[vID]
+		if !ok {
+			continue
+		}
+
+		active := rpState.activeValidatorState()
+		if active != nil {
+			s.sendPendingClusterStatements(rp,
+				peer.ID(pid), peerData.protocolVersion,
+				vIndex,
+				active.clusterTracker,
+				s.state.candidates,
+				rpState.statementStore,
+			)
+		}
+
+		s.sendPendingGridMessages(rp,
+			peer.ID(pid), peerData.protocolVersion,
+			vIndex,
+			perSessionState.groups,
+			rpState,
+			s.state.candidates,
+		)
+	}
+}
+
+func (s *StatementDistribution) fragmentChainUpdateInner(rp *common.Hash,
+	parent *hashAndParaID, knowHypotheticals *[]parachaintypes.HypotheticalCandidate) {
+
+	// 1. get hypothetical candidates
+	var hypotheticals []parachaintypes.HypotheticalCandidate
+
+	if knowHypotheticals != nil {
+		hypotheticals = *knowHypotheticals
+	} else {
+		hypotheticals = s.state.candidates.frontierHypotheticals(parent)
+	}
+
+	// 2. find out which are in the frontier
+	response := make(chan []*prospectiveparachainsmessages.HypotheticalMembershipResponseItem)
+	hypotheticalMembershipRequest := prospectiveparachainsmessages.GetHypotheticalMembership{
+		Candidates:               hypotheticals,
+		FragmentChainRelayParent: rp,
+		Response:                 response,
+	}
+
+	s.SubSystemToOverseer <- hypotheticalMembershipRequest
+
+	var candidateMemberships []*prospectiveparachainsmessages.HypotheticalMembershipResponseItem
 	select {
-	case msg := <-overseerToSubSystem:
-		return &overseerMessage{inner: msg}
-	case msg := <-responderCh:
-		return &responderMessage{inner: msg}
-	case <-reputationDelay:
-		return &reputationChangeMessage{}
+	case <-time.After(HypotheticalMembershipTimeout):
+		logger.Warnf("timed out waiting for hypothetical membership response for relay-parent %s", rp.String())
+		return
+	case resp := <-response:
+		candidateMemberships = resp
+	}
+
+	// 3. note that they are importable under a given leaf hash.
+	for _, item := range candidateMemberships {
+		// skip parablocks which aren't potential candidates
+		if len(item.HypotheticalMembership) == 0 {
+			continue
+		}
+
+		for _, leafHash := range item.HypotheticalMembership {
+			s.state.candidates.noteImportableUnder(item.HypotheticalCandidate, leafHash)
+		}
+
+		// 4. for confirmed candidates, send all statements which are new to backing.
+		if complete, ok := item.HypotheticalCandidate.(*parachaintypes.HypotheticalCandidateComplete); ok {
+			confirmedCandidate, ok := s.state.candidates.getConfirmed(complete.ClaimedCandidateHash)
+			if !ok {
+				continue
+			}
+
+			perRelayParentState, ok := s.state.perRelayParent[complete.CommittedCandidateReceipt.Descriptor.RelayParent]
+			if confirmedCandidate == nil || !ok {
+				continue
+			}
+
+			groupIndex := confirmedCandidate.assignedGroup
+			perSessionState, ok := s.state.perSession[perRelayParentState.session]
+			if !ok {
+				continue
+			}
+
+			// Sanity check if group_index is valid for this para at relay parent.
+			expectedGroups, ok := perRelayParentState.groupsPerPara[complete.CommittedCandidateReceipt.Descriptor.ParaID]
+			if !ok {
+				continue
+			}
+
+			if !slices.Contains(expectedGroups, groupIndex) {
+				logger.Warnf("group index %d not found for para %d at relay parent %s",
+					groupIndex, complete.CommittedCandidateReceipt.Descriptor.ParaID, rp.String())
+				continue
+			}
+
+			s.sendBackingFreshStatements(
+				complete.ClaimedCandidateHash,
+				confirmedCandidate.assignedGroup,
+				complete.CommittedCandidateReceipt.Descriptor.RelayParent,
+				perRelayParentState,
+				confirmedCandidate,
+				perSessionState,
+			)
+		}
+	}
+}
+
+// Send a peer all pending cluster statements for a relay parent.
+func (s *StatementDistribution) sendPendingClusterStatements(rp common.Hash,
+	peerID peer.ID, validationVersion validationprotocol.ValidationVersion,
+	peerValidatorIdx parachaintypes.ValidatorIndex,
+	clusterTracker *clusterTracker,
+	candidates *candidates,
+	statementStore *statementStore,
+) {
+	pendingStmts := clusterTracker.pendingStatementsFor(peerValidatorIdx)
+	for _, stmt := range pendingStmts {
+		if !candidates.isConfirmed(stmt.compactStmt.CandidateHash()) {
+			continue
+		}
+
+		msg := pendingStatementNetworkMessage(statementStore, rp, peerID, validationVersion, stmt)
+		if msg != nil {
+			clusterTracker.noteSent(peerValidatorIdx, stmt.validatorIndex, stmt.compactStmt)
+			// TODO: create a SendValidationMessages to send a batch of messages
+			s.SubSystemToOverseer <- msg
+		}
 	}
 }
 
@@ -150,7 +324,7 @@ func (s *StatementDistribution) sendPendingGridMessages(
 	peerValidatorID parachaintypes.ValidatorIndex,
 	groups *groups,
 	rpState *perRelayParentState,
-	candidates candidatesStore,
+	candidates *candidates,
 ) error {
 	if rpState.localValidator == nil {
 		return errUnkownLocalValidator
@@ -255,7 +429,7 @@ func (s *StatementDistribution) sendPendingGridMessages(
 				*groups,
 				ps.validatorIndex,
 				peerValidatorID,
-				ps.statement,
+				ps.compactStmt,
 				false,
 			)
 
@@ -341,8 +515,8 @@ func (s *StatementDistribution) sendBackingFreshStatements(
 }
 
 type manifestImportSuccess struct {
-	relayParentState perRelayParentState
-	perSession       perSessionState
+	relayParentState *perRelayParentState
+	perSession       *perSessionState
 	acknowledge      bool
 	senderIndex      parachaintypes.ValidatorIndex
 }
@@ -354,9 +528,9 @@ type manifestImportSuccess struct {
 func (s *StatementDistribution) handleIncomingManifestCommon(
 	peerID peer.ID,
 	peers map[peer.ID]peerState,
-	perRelayParent map[common.Hash]perRelayParentState,
-	perSession map[parachaintypes.SessionIndex]perSessionState,
-	candidates candidates,
+	perRelayParent map[common.Hash]*perRelayParentState,
+	perSession map[parachaintypes.SessionIndex]*perSessionState,
+	candidates *candidates,
 	candidateHash parachaintypes.CandidateHash,
 	relayParent common.Hash,
 	paraID parachaintypes.ParaID,
@@ -589,7 +763,7 @@ func (s *StatementDistribution) handleIncomingManifest(
 			validationVersion,
 			senderIndex,
 			perSession.groups,
-			&rpState,
+			rpState,
 			manifest.RelayParent,
 			manifest.GroupIndex,
 			manifest.CandidateHash,
@@ -870,7 +1044,12 @@ func pendingStatementNetworkMessage(
 	pending originatorStatementPair,
 ) *networkbridgemessages.SendValidationMessage {
 	if validationVersion == validationprotocol.ValidationVersionV3 {
-		signed, known := stmtStore.validatorStatement(pending.validatorIndex, pending.statement)
+		pair := originatorStatementPair{
+			validatorIndex: pending.validatorIndex,
+			compactStmt:    pending.compactStmt,
+		}
+
+		signed, known := stmtStore.validatorStatement(pair)
 		if !known || signed == nil {
 			return nil
 		}
@@ -884,7 +1063,6 @@ func pendingStatementNetworkMessage(
 			panic(fmt.Sprintf("unexpected error setting value in StatementDistributionMessageV3: %s", err))
 		}
 
-		// TODO: this will panic as validation protocol does not support V3 yet
 		vp := validationprotocol.NewValidationProtocolVDT()
 		err = vp.SetValue(validationprotocol.StatementDistribution{StatementDistributionMessage: sdmV3})
 		if err != nil {
@@ -899,3 +1077,6 @@ func pendingStatementNetworkMessage(
 
 	return nil
 }
+
+// TODO: https://github.com/ChainSafe/gossamer/issues/4285
+func taskResponder(responderCh chan any) {}

@@ -925,20 +925,27 @@ type Subsystem interface {
 	Stop()
 }
 
-// AvailabilityChunkMapping tells if the chunk mapping feature is enabled.
-// Enables the implementation of
-// [RFC-47](https://github.com/polkadot-fellows/RFCs/blob/main/text/0047-assignment-of-availability-chunks.md).
-// Must not be enabled unless all validators and collators have stopped using `req_chunk`
-// protocol version 1. If it is enabled, validators can start systematic chunk recovery.
-const AvailabilityChunkMapping NodeFeatureIndex = 2
-
 // NodeFeatureIndex represents the index of a feature in a bitvector of node features fetched from runtime.
 type NodeFeatureIndex byte
 
-// This feature enables the extension of `BackedCandidate.ValidatorIndices` by 8 bits.
-// The value stored there represents the assumed core index where the candidates
-// are backed. This is needed for the elastic scaling MVP.
-const ElasticScalingMVP NodeFeatureIndex = 1
+const (
+	// This feature enables the extension of `BackedCandidate.ValidatorIndices` by 8 bits.
+	// The value stored there represents the assumed core index where the candidates
+	// are backed. This is needed for the elastic scaling MVP.
+	ElasticScalingMVP NodeFeatureIndex = 1
+
+	// AvailabilityChunkMapping tells if the chunk mapping feature is enabled.
+	// Enables the implementation of
+	// [RFC-47](https://github.com/polkadot-fellows/RFCs/blob/main/text/0047-assignment-of-availability-chunks.md).
+	// Must not be enabled unless all validators and collators have stopped using `req_chunk`
+	// protocol version 1. If it is enabled, validators can start systematic chunk recovery.
+	AvailabilityChunkMapping NodeFeatureIndex = 2
+
+	// Enables node side support of `CoreIndex` committed candidate receipts.
+	// See [RFC-103](https://github.com/polkadot-fellows/RFCs/pull/103) for details.
+	// Only enable if at least 2/3 of nodes support the feature.
+	CandidateReceiptV2Feature NodeFeatureIndex = 3
+)
 
 // TransposedClaimQueue represents a mapping between ParaID and the cores assigned per depth
 type TransposedClaimQueue map[ParaID]map[uint8]map[CoreIndex]struct{}

@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 func TestSendBackingFreshStatements(t *testing.T) {
@@ -244,7 +243,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 		validationVersion := validationprotocol.ValidationVersionV3
 		peerValidatorID := parachaintypes.ValidatorIndex(0)
 		rpState := &perRelayParentState{
-			localValidator: &localValidatorStore{
+			localValidator: &localValidatorState{
 				gridTracker: gt,
 			},
 		}
@@ -261,7 +260,6 @@ func TestSendPendingGridMessages(t *testing.T) {
 	t.Run("pending_stmts_but_none_confirmed", func(t *testing.T) {
 		t.Parallel()
 
-		ctrl := gomock.NewController(t)
 		peerValidatorID := parachaintypes.ValidatorIndex(0)
 
 		gt := newGridTracker()
@@ -276,24 +274,16 @@ func TestSendPendingGridMessages(t *testing.T) {
 		peerID := peer.ID("peer-ex")
 		validationVersion := validationprotocol.ValidationVersionV3
 		rpState := &perRelayParentState{
-			localValidator: &localValidatorStore{
+			localValidator: &localValidatorState{
 				gridTracker: gt,
 			},
 		}
-
-		candidatesMock := NewMockcandidatesStore(ctrl)
-		candidatesMock.EXPECT().
-			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0x12}}).
-			Return(nil, false)
-		candidatesMock.EXPECT().
-			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0xab}}).
-			Return(nil, false)
 
 		sd := StatementDistribution{}
 
 		err := sd.sendPendingGridMessages(rpHash, peerID,
 			validationVersion, peerValidatorID, nil,
-			rpState, candidatesMock,
+			rpState, &candidates{},
 		)
 		require.Nil(t, err)
 	})
@@ -301,7 +291,6 @@ func TestSendPendingGridMessages(t *testing.T) {
 	t.Run("pending_full_manifest_confirmed", func(t *testing.T) {
 		t.Parallel()
 
-		ctrl := gomock.NewController(t)
 		peerValidatorID := parachaintypes.ValidatorIndex(4)
 
 		gt := newGridTracker()
@@ -312,21 +301,19 @@ func TestSendPendingGridMessages(t *testing.T) {
 			},
 		)
 
-		candidatesMock := NewMockcandidatesStore(ctrl)
-		candidatesMock.EXPECT().
-			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0x12}}).
-			Return(&confirmedCandidate{
-				assignedGroup: parachaintypes.GroupIndex(1),
-				receipt: parachaintypes.CommittedCandidateReceiptV2{
-					Descriptor: parachaintypes.CandidateDescriptorV2{
-						ParaID: parachaintypes.ParaID(10),
+		candidatesTracker := &candidates{
+			candidates: map[parachaintypes.CandidateHash]candidateState{
+				parachaintypes.CandidateHash{Value: common.Hash{0x12}}: &confirmedCandidate{
+					assignedGroup: parachaintypes.GroupIndex(1),
+					receipt: parachaintypes.CommittedCandidateReceiptV2{
+						Descriptor: parachaintypes.CandidateDescriptorV2{
+							ParaID: parachaintypes.ParaID(10),
+						},
 					},
+					parentHash: common.Hash(bytes.Repeat([]byte{0xbc}, 32)),
 				},
-				parentHash: common.Hash(bytes.Repeat([]byte{0xbc}, 32)),
-			}, true)
-		candidatesMock.EXPECT().
-			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0xab}}).
-			Return(nil, false)
+			},
+		}
 
 		gps := newGroups([][]parachaintypes.ValidatorIndex{
 			{0, 1, 2},
@@ -354,7 +341,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 		}
 
 		rpState := &perRelayParentState{
-			localValidator: &localValidatorStore{
+			localValidator: &localValidatorState{
 				gridTracker: gt,
 			},
 			statementStore: stmtStore,
@@ -367,7 +354,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 
 		err = sd.sendPendingGridMessages(rpHash, peerID,
 			v3, peerValidatorID, gps,
-			rpState, candidatesMock,
+			rpState, candidatesTracker,
 		)
 		require.Nil(t, err)
 
@@ -400,7 +387,6 @@ func TestSendPendingGridMessages(t *testing.T) {
 	t.Run("pending_full_and_ack_manifest_confirmed", func(t *testing.T) {
 		t.Parallel()
 
-		ctrl := gomock.NewController(t)
 		peerValidatorID := parachaintypes.ValidatorIndex(4)
 
 		gt := newGridTracker()
@@ -411,29 +397,28 @@ func TestSendPendingGridMessages(t *testing.T) {
 			},
 		)
 
-		candidatesMock := NewMockcandidatesStore(ctrl)
-		candidatesMock.EXPECT().
-			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0x12}}).
-			Return(&confirmedCandidate{
-				assignedGroup: parachaintypes.GroupIndex(1),
-				receipt: parachaintypes.CommittedCandidateReceiptV2{
-					Descriptor: parachaintypes.CandidateDescriptorV2{
-						ParaID: parachaintypes.ParaID(10),
+		candidatesTracker := &candidates{
+			candidates: map[parachaintypes.CandidateHash]candidateState{
+				parachaintypes.CandidateHash{Value: common.Hash{0x12}}: &confirmedCandidate{
+					assignedGroup: parachaintypes.GroupIndex(1),
+					receipt: parachaintypes.CommittedCandidateReceiptV2{
+						Descriptor: parachaintypes.CandidateDescriptorV2{
+							ParaID: parachaintypes.ParaID(10),
+						},
 					},
+					parentHash: common.Hash(bytes.Repeat([]byte{0xbc}, 32)),
 				},
-				parentHash: common.Hash(bytes.Repeat([]byte{0xbc}, 32)),
-			}, true)
-		candidatesMock.EXPECT().
-			getConfirmed(parachaintypes.CandidateHash{Value: common.Hash{0xab}}).
-			Return(&confirmedCandidate{
-				assignedGroup: parachaintypes.GroupIndex(0),
-				receipt: parachaintypes.CommittedCandidateReceiptV2{
-					Descriptor: parachaintypes.CandidateDescriptorV2{
-						ParaID: parachaintypes.ParaID(11),
+				parachaintypes.CandidateHash{Value: common.Hash{0xab}}: &confirmedCandidate{
+					assignedGroup: parachaintypes.GroupIndex(0),
+					receipt: parachaintypes.CommittedCandidateReceiptV2{
+						Descriptor: parachaintypes.CandidateDescriptorV2{
+							ParaID: parachaintypes.ParaID(11),
+						},
 					},
+					parentHash: common.Hash(bytes.Repeat([]byte{0xee}, 32)),
 				},
-				parentHash: common.Hash(bytes.Repeat([]byte{0xee}, 32)),
-			}, true)
+			},
+		}
 
 		gps := newGroups([][]parachaintypes.ValidatorIndex{
 			{0, 1, 2},
@@ -472,7 +457,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 		}
 
 		rpState := &perRelayParentState{
-			localValidator: &localValidatorStore{
+			localValidator: &localValidatorState{
 				gridTracker: gt,
 			},
 			statementStore: stmtStore,
@@ -485,7 +470,7 @@ func TestSendPendingGridMessages(t *testing.T) {
 
 		err = sd.sendPendingGridMessages(rpHash, peerID,
 			v3, peerValidatorID, gps,
-			rpState, candidatesMock,
+			rpState, candidatesTracker,
 		)
 		require.Nil(t, err)
 
@@ -559,9 +544,9 @@ func TestHandleIncomingManifestCommon(t *testing.T) {
 		importSuccess := sd.handleIncomingManifestCommon(
 			pierre,
 			make(map[peer.ID]peerState),
-			make(map[common.Hash]perRelayParentState),
-			make(map[parachaintypes.SessionIndex]perSessionState),
-			candidates{},
+			make(map[common.Hash]*perRelayParentState),
+			make(map[parachaintypes.SessionIndex]*perSessionState),
+			&candidates{},
 			candidateHash,
 			relayParent,
 			paraID,
@@ -590,9 +575,9 @@ func TestHandleIncomingManifestCommon(t *testing.T) {
 		importSuccess := sd.handleIncomingManifestCommon(
 			pierre,
 			peers,
-			make(map[common.Hash]perRelayParentState),
-			make(map[parachaintypes.SessionIndex]perSessionState),
-			candidates{},
+			make(map[common.Hash]*perRelayParentState),
+			make(map[parachaintypes.SessionIndex]*perSessionState),
+			&candidates{},
 			candidateHash,
 			relayParent,
 			paraID,
@@ -650,7 +635,7 @@ func TestHandleIncomingManifestCommon(t *testing.T) {
 		}
 
 		gt := newGridTracker()
-		localValidator := &localValidatorStore{
+		localValidator := &localValidatorState{
 			gridTracker: gt,
 		}
 
@@ -660,7 +645,7 @@ func TestHandleIncomingManifestCommon(t *testing.T) {
 		}
 		groups := newGroups(initGroups, 2)
 
-		relayParentState := perRelayParentState{
+		relayParentState := &perRelayParentState{
 			session:        1,
 			localValidator: localValidator,
 			groupsPerPara:  map[parachaintypes.ParaID][]parachaintypes.GroupIndex{paraID: {groupIndex}},
@@ -668,7 +653,7 @@ func TestHandleIncomingManifestCommon(t *testing.T) {
 				groupIndex: {paraID},
 			},
 		}
-		perRelayParent := map[common.Hash]perRelayParentState{
+		perRelayParent := map[common.Hash]*perRelayParentState{
 			relayParent: relayParentState,
 		}
 
@@ -690,17 +675,17 @@ func TestHandleIncomingManifestCommon(t *testing.T) {
 			},
 		}
 
-		sessionState := perSessionState{
+		sessionState := &perSessionState{
 			gridView:       gridTopology,
 			groups:         groups,
-			sessionInfo:    sessionInfo,
+			sessionInfo:    &sessionInfo,
 			localValidator: &validatorIndex,
 		}
-		perSession := map[parachaintypes.SessionIndex]perSessionState{
+		perSession := map[parachaintypes.SessionIndex]*perSessionState{
 			1: sessionState,
 		}
 
-		candidates := candidates{
+		candidates := &candidates{
 			candidates: make(map[parachaintypes.CandidateHash]candidateState),
 			byParent:   make(map[hashAndParaID]map[parachaintypes.CandidateHash]struct{}),
 		}
@@ -798,10 +783,10 @@ func TestHandleIncomingManifest(t *testing.T) {
 				discoveryIds:    &map[parachaintypes.AuthorityDiscoveryID]struct{}{authKey: {}},
 			},
 		},
-		perRelayParent: map[common.Hash]perRelayParentState{
+		perRelayParent: map[common.Hash]*perRelayParentState{
 			relayParent: {
 				session: 1,
-				localValidator: &localValidatorStore{
+				localValidator: &localValidatorState{
 					gridTracker: gt,
 				},
 				groupsPerPara: map[parachaintypes.ParaID][]parachaintypes.GroupIndex{
@@ -813,7 +798,7 @@ func TestHandleIncomingManifest(t *testing.T) {
 				statementStore: newStatementStore(groups),
 			},
 		},
-		perSession: map[parachaintypes.SessionIndex]perSessionState{
+		perSession: map[parachaintypes.SessionIndex]*perSessionState{
 			1: {
 				localValidator: &validatorIndex,
 				gridView: &sessionTopologyView{
@@ -825,7 +810,7 @@ func TestHandleIncomingManifest(t *testing.T) {
 					},
 				},
 				groups: groups,
-				sessionInfo: parachaintypes.SessionInfo{
+				sessionInfo: &parachaintypes.SessionInfo{
 					DiscoveryKeys: []parachaintypes.AuthorityDiscoveryID{
 						{0x0a},  // Validator 0
 						authKey, // Validator 1 - matches our peer's authority key
@@ -834,7 +819,7 @@ func TestHandleIncomingManifest(t *testing.T) {
 				},
 			},
 		},
-		candidates: candidates{
+		candidates: &candidates{
 			candidates: map[parachaintypes.CandidateHash]candidateState{
 				candidateHash: &confirmedCandidate{
 					receipt: parachaintypes.CommittedCandidateReceiptV2{

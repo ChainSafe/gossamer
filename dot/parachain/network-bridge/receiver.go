@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	"github.com/ChainSafe/gossamer/dot/parachain/grid"
 	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
@@ -373,7 +374,7 @@ func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 
 		newGossipTopology := events.NewGossipTopology{
 			Session: msg.Session,
-			Topology: events.SessionGridTopology{
+			Topology: grid.SessionGridTopology{
 				ShuffledIndices:    msg.ShuffledIndices,
 				CanonicalShuffling: peerTopologies,
 			},
@@ -395,14 +396,14 @@ func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 }
 
 func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService,
-	neighbours []events.CanonicalShuffling) []events.TopologyPeerInfo {
+	neighbours []events.CanonicalShuffling) []grid.TopologyPeerInfo {
 
-	peers := make([]events.TopologyPeerInfo, len(neighbours))
+	peers := make([]grid.TopologyPeerInfo, len(neighbours))
 
 	for _, neighbour := range neighbours {
 		peerID := authorityDiscoveryService.GetPeerIDByAuthorityID(neighbour.AuthorityDiscoveryID)
-		peers = append(peers, events.TopologyPeerInfo{
-			PeerID:         []peer.ID{peerID},
+		peers = append(peers, grid.TopologyPeerInfo{
+			Peers:          peer.IDSlice{peerID},
 			ValidatorIndex: neighbour.ValidatorIndex,
 			DiscoveryID:    neighbour.AuthorityDiscoveryID,
 		})

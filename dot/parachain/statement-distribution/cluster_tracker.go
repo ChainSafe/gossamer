@@ -435,11 +435,12 @@ func (c *clusterTracker) noteSent(
 ) {
 	targetKnowledge, ok := c.knowledge[target]
 	if !ok {
-		targetKnowledge = map[taggedKnowledge]struct{}{
-			outgoingP2P{specific{statement, originator}}: {},
-		}
+		targetKnowledge = map[taggedKnowledge]struct{}{}
 		c.knowledge[target] = targetKnowledge
 	}
+
+	targetKnowledge[outgoingP2P{specific{statement, originator}}] = struct{}{}
+	c.knowledge[target] = targetKnowledge
 
 	if _, ok := statement.(*parachaintypes.CompactSeconded); ok {
 		targetKnowledge[outgoingP2P{general{statement.CandidateHash()}}] = struct{}{}
@@ -469,7 +470,7 @@ func (c *clusterTracker) pendingStatementsFor(target parachaintypes.ValidatorInd
 	}
 
 	for pair := range pending {
-		switch pair.statement.(type) {
+		switch pair.compactStmt.(type) {
 		case *parachaintypes.CompactSeconded:
 			seconded = append(seconded, pair)
 		case *parachaintypes.CompactValid:
@@ -489,7 +490,7 @@ func (c *clusterTracker) pendingStatementsFor(target parachaintypes.ValidatorInd
 // in backing. Occasional pending statements are expected if two authorities
 // can't detect each other or after restart, where it takes a while to discover
 // the whole network.
-func (c *clusterTracker) warnIfTooManyStatements(parentHash common.Hash) { //nolint:unused
+func (c *clusterTracker) warningIfTooManyPendingStatements(parentHash common.Hash) { //nolint:unused
 	count := 0
 	for _, set := range c.pending {
 		if len(set) > 0 {
