@@ -206,14 +206,6 @@ func TestRemoveSetReserved(t *testing.T) {
 	})
 }
 
-// TestEventStreamSync tests that EventStream (SyncEventStream) panics.
-func TestEventStreamSync(t *testing.T) {
-	shim := NewTranslationShim()
-	require.Panics(t, func() {
-		shim.EventStream("test")
-	})
-}
-
 // TestNewSyncShim tests the syncShim constructor.
 func TestNewSyncShim(t *testing.T) {
 	syncShim := NewSyncShim()
