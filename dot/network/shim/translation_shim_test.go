@@ -4,8 +4,11 @@
 package shim
 
 import (
+	"context"
 	"testing"
+	"time"
 
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/internal/client/network"
 	gossip "github.com/ChainSafe/gossamer/internal/client/network-gossip"
 	"github.com/ChainSafe/gossamer/internal/client/network/config"
@@ -21,20 +24,20 @@ func TestTranslationShImplementsInterfaces(t *testing.T) {
 	var _ gossip.Network = (*TranslationShim)(nil)
 	var _ gossip.Syncing[common.Hash, uint] = (*syncShim)(nil)
 
-	require.NotNil(t, NewTranslationShim())
-	require.NotNil(t, NewSyncShim())
+	require.NotNil(t, NewTranslationShim(nil))
+	require.NotNil(t, NewSyncShim(nil))
 }
 
 // TestNewTranslationShim tests the constructor.
 func TestNewTranslationShim(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	require.NotNil(t, shim)
 	require.IsType(t, &TranslationShim{}, shim)
 }
 
 // TestSetAuthorizedPeers tests that SetAuthorizedPeers panics.
 func TestSetAuthorizedPeers(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	require.Panics(t, func() {
 		shim.SetAuthorizedPeers(map[peerid.PeerID]struct{}{})
 	})
@@ -42,7 +45,7 @@ func TestSetAuthorizedPeers(t *testing.T) {
 
 // TestSetAuthorizedOnly tests that SetAuthorizedOnly panics.
 func TestSetAuthorizedOnly(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	require.Panics(t, func() {
 		shim.SetAuthorizedOnly(true)
 	})
@@ -53,7 +56,7 @@ func TestSetAuthorizedOnly(t *testing.T) {
 
 // TestAddKnownAddress tests that AddKnownAddress panics.
 func TestAddKnownAddress(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	peerID := peerid.NewRandomPeerID()
 	var addr multiaddr.Multiaddr
 
@@ -62,9 +65,9 @@ func TestAddKnownAddress(t *testing.T) {
 	})
 }
 
-// TestReportPeer tests that ReportPeer panics.
-func TestReportPeer(t *testing.T) {
-	shim := NewTranslationShim()
+// TestReportPeerNilHandler tests that ReportPeer panics when handler is nil.
+func TestReportPeerNilHandler(t *testing.T) {
+	shim := NewTranslationShim(nil)
 	peerID := peerid.NewRandomPeerID()
 
 	require.Panics(t, func() {
@@ -72,9 +75,34 @@ func TestReportPeer(t *testing.T) {
 	})
 }
 
+// TestReportPeer tests that ReportPeer correctly translates types and calls the handler.
+func TestReportPeer(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cfg := peerset.NewConfigSet(10, 10, false, time.Second)
+	handler, err := peerset.NewPeerSetHandler(cfg)
+	require.NoError(t, err)
+	require.NotNil(t, handler)
+
+	// Start the handler
+	handler.Start(ctx)
+
+	shim := NewTranslationShim(handler)
+	peerID := peerid.NewRandomPeerID()
+
+	// This should not panic and should successfully call the handler
+	require.NotPanics(t, func() {
+		shim.ReportPeer(peerID, network.ReputationChange{
+			Value:  100,
+			Reason: "test reputation change",
+		})
+	})
+}
+
 // TestPeerReputation tests that PeerReputation panics.
 func TestPeerReputation(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	peerID := peerid.NewRandomPeerID()
 
 	require.Panics(t, func() {
@@ -84,7 +112,7 @@ func TestPeerReputation(t *testing.T) {
 
 // TestDisconnectPeer tests that DisconnectPeer panics.
 func TestDisconnectPeer(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	peerID := peerid.NewRandomPeerID()
 
 	require.Panics(t, func() {
@@ -94,7 +122,7 @@ func TestDisconnectPeer(t *testing.T) {
 
 // TestAcceptUnreservedPeers tests that AcceptUnreservedPeers panics.
 func TestAcceptUnreservedPeers(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	require.Panics(t, func() {
 		shim.AcceptUnreservedPeers()
 	})
@@ -102,7 +130,7 @@ func TestAcceptUnreservedPeers(t *testing.T) {
 
 // TestDenyUnreservedPeers tests that DenyUnreservedPeers panics.
 func TestDenyUnreservedPeers(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	require.Panics(t, func() {
 		shim.DenyUnreservedPeers()
 	})
@@ -110,7 +138,7 @@ func TestDenyUnreservedPeers(t *testing.T) {
 
 // TestAddReservedPeer tests that AddReservedPeer panics.
 func TestAddReservedPeer(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	require.Panics(t, func() {
 		shim.AddReservedPeer(config.MultiaddrPeerId{})
 	})
@@ -118,7 +146,7 @@ func TestAddReservedPeer(t *testing.T) {
 
 // TestRemoveReservedPeer tests that RemoveReservedPeer panics.
 func TestRemoveReservedPeer(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	peerID := peerid.NewRandomPeerID()
 
 	require.Panics(t, func() {
@@ -128,7 +156,7 @@ func TestRemoveReservedPeer(t *testing.T) {
 
 // TestSetReservedPeers tests that SetReservedPeers panics.
 func TestSetReservedPeers(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	require.Panics(t, func() {
 		shim.SetReservedPeers(network.ProtocolName(""), map[multiaddr.Multiaddr]struct{}{})
 	})
@@ -136,7 +164,7 @@ func TestSetReservedPeers(t *testing.T) {
 
 // TestAddPeersToReservedSet tests that AddPeersToReservedSet panics.
 func TestAddPeersToReservedSet(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	require.Panics(t, func() {
 		shim.AddPeersToReservedSet(network.ProtocolName(""), map[multiaddr.Multiaddr]struct{}{})
 	})
@@ -144,7 +172,7 @@ func TestAddPeersToReservedSet(t *testing.T) {
 
 // TestRemovePeersFromReservedSet tests that RemovePeersFromReservedSet panics.
 func TestRemovePeersFromReservedSet(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	peerID := peerid.NewRandomPeerID()
 
 	require.Panics(t, func() {
@@ -154,7 +182,7 @@ func TestRemovePeersFromReservedSet(t *testing.T) {
 
 // TestSyncNumConnected tests that SyncNumConnected panics.
 func TestSyncNumConnected(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	require.Panics(t, func() {
 		shim.SyncNumConnected()
 	})
@@ -162,7 +190,7 @@ func TestSyncNumConnected(t *testing.T) {
 
 // TestPeerRole tests that PeerRole panics.
 func TestPeerRole(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	peerID := peerid.NewRandomPeerID()
 
 	require.Panics(t, func() {
@@ -172,7 +200,7 @@ func TestPeerRole(t *testing.T) {
 
 // TestReservedPeers tests that ReservedPeers panics.
 func TestReservedPeers(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	require.Panics(t, func() {
 		shim.ReservedPeers()
 	})
@@ -180,7 +208,7 @@ func TestReservedPeers(t *testing.T) {
 
 // TestEventStreamNetwork tests that EventStream (NetworkEventStream) panics.
 func TestEventStreamNetwork(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	require.Panics(t, func() {
 		shim.EventStream("test")
 	})
@@ -188,7 +216,7 @@ func TestEventStreamNetwork(t *testing.T) {
 
 // TestAddSetReserved tests that AddSetReserved panics.
 func TestAddSetReserved(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	peerID := peerid.NewRandomPeerID()
 
 	require.Panics(t, func() {
@@ -198,7 +226,7 @@ func TestAddSetReserved(t *testing.T) {
 
 // TestRemoveSetReserved tests that RemoveSetReserved panics.
 func TestRemoveSetReserved(t *testing.T) {
-	shim := NewTranslationShim()
+	shim := NewTranslationShim(nil)
 	peerID := peerid.NewRandomPeerID()
 
 	require.Panics(t, func() {
@@ -208,14 +236,14 @@ func TestRemoveSetReserved(t *testing.T) {
 
 // TestNewSyncShim tests the syncShim constructor.
 func TestNewSyncShim(t *testing.T) {
-	syncShim := NewSyncShim()
+	syncShim := NewSyncShim(nil)
 	require.NotNil(t, syncShim)
 	require.NotNil(t, syncShim.TranslationShim)
 }
 
 // TestEventStreamSyncShim tests that EventStream (SyncEventStream) panics on syncShim.
 func TestEventStreamSyncShim(t *testing.T) {
-	syncShim := NewSyncShim()
+	syncShim := NewSyncShim(nil)
 	require.Panics(t, func() {
 		syncShim.EventStream("test")
 	})
@@ -223,7 +251,7 @@ func TestEventStreamSyncShim(t *testing.T) {
 
 // TestAnnounceBlockSyncShim tests that AnnounceBlock panics on syncShim.
 func TestAnnounceBlockSyncShim(t *testing.T) {
-	syncShim := NewSyncShim()
+	syncShim := NewSyncShim(nil)
 	hash := common.Hash{}
 
 	require.Panics(t, func() {
@@ -233,7 +261,7 @@ func TestAnnounceBlockSyncShim(t *testing.T) {
 
 // TestNewBestBlockImportedSyncShim tests that NewBestBlockImported panics on syncShim.
 func TestNewBestBlockImportedSyncShim(t *testing.T) {
-	syncShim := NewSyncShim()
+	syncShim := NewSyncShim(nil)
 	hash := common.Hash{}
 
 	require.Panics(t, func() {

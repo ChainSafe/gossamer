@@ -4,6 +4,7 @@
 package shim
 
 import (
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/internal/client/network"
 	gossip "github.com/ChainSafe/gossamer/internal/client/network-gossip"
 	"github.com/ChainSafe/gossamer/internal/client/network/config"
@@ -17,8 +18,7 @@ import (
 
 // TranslationShim implements the gossip.Network and gossip.Syncing interfaces.
 // This shim type provides a bridge between the new Network and Syncing interfaces
-// and the existing Gossamer network implementation. Currently, all methods panic
-// as this is a foundation implementation that will be expanded incrementally.
+// and the existing Gossamer network implementation.
 //
 // The shim is placed in a separate package to avoid circular dependencies between
 // internal/client/network and dot/network packages.
@@ -26,11 +26,13 @@ import (
 // Since both Network and Syncing interfaces have an EventStream method with different
 // return types, we cannot implement both in the same type directly. Instead, we provide
 // two separate types that can be used together.
-type TranslationShim struct{}
+type TranslationShim struct {
+	handler *peerset.Handler
+}
 
 // NewTranslationShim creates a new TranslationShim instance.
-func NewTranslationShim() *TranslationShim {
-	return &TranslationShim{}
+func NewTranslationShim(handler *peerset.Handler) *TranslationShim {
+	return &TranslationShim{handler: handler}
 }
 
 // Compile-time interface check for Network
@@ -57,8 +59,20 @@ func (s *TranslationShim) AddKnownAddress(peerID peerid.PeerID, addr multiaddr.M
 }
 
 // ReportPeer reports a given peer as either beneficial (+) or costly (-).
+// It translates the network types to peerset types and calls the underlying handler.
 func (s *TranslationShim) ReportPeer(peerID peerid.PeerID, costBenefit network.ReputationChange) {
-	panic("ReportPeer: not implemented yet")
+	if s.handler == nil {
+		panic("ReportPeer: handler is nil")
+	}
+
+	// Translate network.ReputationChange to peerset.ReputationChange
+	peersetChange := peerset.ReputationChange{
+		Value:  peerset.Reputation(costBenefit.Value),
+		Reason: costBenefit.Reason,
+	}
+
+	// Translate peerid.PeerID to peer.ID and call the handler
+	s.handler.ReportPeer(peersetChange, peerID.ID)
 }
 
 // PeerReputation gets the reputation of a peer.
@@ -159,9 +173,9 @@ type syncShim struct {
 }
 
 // NewSyncShim creates a new syncShim instance.
-func NewSyncShim() *syncShim {
+func NewSyncShim(handler *peerset.Handler) *syncShim {
 	return &syncShim{
-		TranslationShim: NewTranslationShim(),
+		TranslationShim: NewTranslationShim(handler),
 	}
 }
 
