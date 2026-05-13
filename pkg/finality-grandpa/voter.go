@@ -6,6 +6,7 @@ package grandpa
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/tidwall/btree"
@@ -15,14 +16,13 @@ import (
 type wakerChan[Item any] struct {
 	in    chan Item
 	out   chan Item
-	waker *waker
+	waker atomic.Pointer[waker]
 }
 
 func newWakerChan[Item any](in chan Item) *wakerChan[Item] {
 	wc := &wakerChan[Item]{
-		in:    in,
-		out:   make(chan Item),
-		waker: nil,
+		in:  in,
+		out: make(chan Item),
 	}
 	go wc.start()
 	return wc
@@ -34,15 +34,15 @@ func (wc *wakerChan[Item]) start() {
 		return
 	}
 	for item := range wc.in {
-		if wc.waker != nil {
-			wc.waker.wake()
+		if w := wc.waker.Load(); w != nil {
+			w.wake()
 		}
 		wc.out <- item
 	}
 }
 
 func (wc *wakerChan[Item]) setWaker(waker *waker) {
-	wc.waker = waker
+	wc.waker.Store(waker)
 }
 
 // Chan returns a channel to consume `Item`.  Not thread safe, only supports one consumer

@@ -5,13 +5,15 @@ package grandpa
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type timer struct {
 	wakerChan *wakerChan[error]
 	mtx       sync.Mutex
-	expired   bool
+	closed    bool // guards the one-shot close of wakerChan.in
+	expired   atomic.Bool
 }
 
 func newTimer(in <-chan time.Time) *timer {
@@ -26,12 +28,12 @@ func (t *timer) poll(in <-chan time.Time) {
 	<-in
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	if t.wakerChan.in != nil {
+	if !t.closed {
 		t.wakerChan.in <- nil
 		close(t.wakerChan.in)
-		t.wakerChan.in = nil
+		t.closed = true
 	}
-	t.expired = true
+	t.expired.Store(true)
 }
 
 func (t *timer) SetWaker(waker *waker) {
@@ -39,14 +41,14 @@ func (t *timer) SetWaker(waker *waker) {
 }
 
 func (t *timer) Elapsed() (bool, error) {
-	return t.expired, nil
+	return t.expired.Load(), nil
 }
 
 func (t *timer) Close() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	if t.wakerChan.in != nil {
+	if !t.closed {
 		close(t.wakerChan.in)
-		t.wakerChan.in = nil
+		t.closed = true
 	}
 }
