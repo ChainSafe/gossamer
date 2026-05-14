@@ -187,63 +187,108 @@ func (*environment) PrecommitEquivocation(
 
 // p2p network data for a round.
 type BroadcastNetwork[M, N any] struct {
-	receiver chan M
-	senders  []chan M
-	history  []M
-	routing  bool
-	wg       sync.WaitGroup
+	receiver     chan M
+	stop         chan struct{}
+	mu           sync.Mutex
+	senders      []chan M
+	history      []M
+	routing      bool
+	stopped      bool
+	routeWG      sync.WaitGroup
+	forwarderWG  sync.WaitGroup
 }
 
 func NewBroadcastNetwork[M, N any]() *BroadcastNetwork[M, N] {
 	bn := BroadcastNetwork[M, N]{
 		receiver: make(chan M, 10000),
+		stop:     make(chan struct{}),
 	}
 	return &bn
 }
 
 func (bm *BroadcastNetwork[M, N]) SendMessage(message M) {
-	bm.receiver <- message
+	select {
+	case bm.receiver <- message:
+	case <-bm.stop:
+	}
 }
 
 func (bm *BroadcastNetwork[M, N]) AddNode(f func(N) M, out chan N) (in chan M) {
 	// buffer to 100 messages for now
 	in = make(chan M, 10000)
 
+	bm.mu.Lock()
 	// get history to the node.
 	for _, priorMessage := range bm.history {
 		in <- priorMessage
 	}
-
 	bm.senders = append(bm.senders, in)
-
-	if !bm.routing {
+	startRoute := !bm.routing
+	if startRoute {
 		bm.routing = true
-		bm.wg.Add(1)
+		bm.routeWG.Add(1)
+	}
+	bm.mu.Unlock()
+
+	if startRoute {
 		go bm.route()
 	}
 
+	bm.forwarderWG.Add(1)
 	go func() {
-		for n := range out {
-			bm.receiver <- f(n)
+		defer bm.forwarderWG.Done()
+		for {
+			select {
+			case n, ok := <-out:
+				if !ok {
+					return
+				}
+				select {
+				case bm.receiver <- f(n):
+				case <-bm.stop:
+					return
+				}
+			case <-bm.stop:
+				return
+			}
 		}
 	}()
 	return in
 }
 
 func (bm *BroadcastNetwork[M, N]) route() {
-	defer bm.wg.Done()
+	defer bm.routeWG.Done()
 	for msg := range bm.receiver {
+		bm.mu.Lock()
 		bm.history = append(bm.history, msg)
-		for _, sender := range bm.senders {
+		senders := append([]chan M(nil), bm.senders...)
+		bm.mu.Unlock()
+		for _, sender := range senders {
 			sender <- msg
 		}
 	}
 }
 
 func (bm *BroadcastNetwork[M, N]) Stop() {
+	bm.mu.Lock()
+	if bm.stopped {
+		bm.mu.Unlock()
+		return
+	}
+	bm.stopped = true
+	close(bm.stop)
+	bm.mu.Unlock()
+
+	// Order matters: drain forwarders first so they stop sending into receiver,
+	// then close receiver so route can exit, then close per-node senders.
+	bm.forwarderWG.Wait()
 	close(bm.receiver)
-	bm.wg.Wait()
-	for _, sender := range bm.senders {
+	bm.routeWG.Wait()
+	bm.mu.Lock()
+	senders := bm.senders
+	bm.senders = nil
+	bm.mu.Unlock()
+	for _, sender := range senders {
 		close(sender)
 	}
 }

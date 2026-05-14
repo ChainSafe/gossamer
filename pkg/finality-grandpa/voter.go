@@ -538,6 +538,12 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	stopTimeout time.Duration
 	stopChan    chan struct{}
 	wg          sync.WaitGroup
+
+	// voterStateSnapshot holds the latest VoterStateReport published by the
+	// voter loop after each poll. Concurrent callers of VoterState().Get()
+	// read this atomically without taking inner.Mutex, which avoids deadlock
+	// when the voter is inside an environment callback under that lock.
+	voterStateSnapshot atomic.Pointer[VoterStateReport[ID]]
 }
 
 // NewVoter creates a new `Voter` tracker with given round number and base block.
@@ -818,6 +824,7 @@ func (v *Voter[Hash, Number, Signature, ID]) processBestRound(waker *waker) (boo
 		var shouldStartNext bool
 		completable, err := v.inner.bestRound.poll(waker)
 		if err != nil {
+			v.inner.Unlock()
 			return true, err
 		}
 
@@ -964,6 +971,8 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) poll(waker *waker) (bool, error) { //skipcq: RVV-B0001
+	defer v.publishVoterStateSnapshot()
+
 	err := v.processIncoming(waker)
 	if err != nil {
 		return true, err
@@ -990,27 +999,44 @@ type sharedVoteState[
 	ID constraints.Ordered,
 	E Environment[Hash, Number, Signature, ID],
 ] struct {
-	inner *innerVoterState[Hash, Number, Signature, ID, E]
-	mtx   sync.Mutex
+	snapshot *atomic.Pointer[VoterStateReport[ID]]
 }
 
+// Get returns the latest snapshot published by the voter. The voter loop
+// rebuilds and stores the snapshot under inner.Mutex after each poll, so
+// concurrent readers never need to acquire that mutex (which the voter holds
+// while invoking environment callbacks that may block).
 func (svs *sharedVoteState[Hash, Number, Signature, ID, E]) Get() VoterStateReport[ID] {
-	toRoundState := func(votingRound votingRound[Hash, Number, Signature, ID, E]) (uint64, RoundStateReport[ID]) {
-		return votingRound.roundNumber(), RoundStateReport[ID]{
-			TotalWeight:            votingRound.voters().TotalWeight(),
-			ThresholdWeight:        votingRound.voters().Threshold(),
-			PrevoteCurrentWeight:   votingRound.preVoteWeight(),
-			PrevoteIDs:             votingRound.prevoteIDs(),
-			PrecommitCurrentWeight: votingRound.precommitWeight(),
-			PrecommitIDs:           votingRound.precommitIDs(),
+	if r := svs.snapshot.Load(); r != nil {
+		return *r
+	}
+	return VoterStateReport[ID]{
+		BackgroundRounds: map[uint64]RoundStateReport[ID]{},
+	}
+}
+
+// buildVoterStateReport produces a VoterStateReport from the current inner
+// state. The caller must hold inner.Mutex.
+func buildVoterStateReport[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+	E Environment[Hash, Number, Signature, ID],
+](inner *innerVoterState[Hash, Number, Signature, ID, E]) VoterStateReport[ID] {
+	toRoundState := func(vr votingRound[Hash, Number, Signature, ID, E]) (uint64, RoundStateReport[ID]) {
+		return vr.roundNumber(), RoundStateReport[ID]{
+			TotalWeight:            vr.voters().TotalWeight(),
+			ThresholdWeight:        vr.voters().Threshold(),
+			PrevoteCurrentWeight:   vr.preVoteWeight(),
+			PrevoteIDs:             vr.prevoteIDs(),
+			PrecommitCurrentWeight: vr.precommitWeight(),
+			PrecommitIDs:           vr.precommitIDs(),
 		}
 	}
 
-	svs.mtx.Lock()
-	defer svs.mtx.Unlock()
-
-	bestRoundNum, bestRound := toRoundState(svs.inner.bestRound)
-	backgroundRounds := svs.inner.pastRounds.votingRounds()
+	bestRoundNum, bestRound := toRoundState(inner.bestRound)
+	backgroundRounds := inner.pastRounds.votingRounds()
 	mappedBackgroundRounds := make(map[uint64]RoundStateReport[ID])
 	for _, backgroundRound := range backgroundRounds {
 		num, round := toRoundState(backgroundRound)
@@ -1030,9 +1056,23 @@ func (svs *sharedVoteState[Hash, Number, Signature, ID, E]) Get() VoterStateRepo
 
 // VoterState returns an object allowing to query the voter state.
 func (v *Voter[Hash, Number, Signature, ID]) VoterState() VoterState[ID] {
+	// Ensure callers see a non-nil snapshot on the very first Get() even if
+	// the voter loop hasn't run yet. Safe to lock here: this is invoked
+	// before Start(), so no concurrent writer exists.
+	v.publishVoterStateSnapshot()
 	return &sharedVoteState[Hash, Number, Signature, ID, Environment[Hash, Number, Signature, ID]]{
-		inner: v.inner,
+		snapshot: &v.voterStateSnapshot,
 	}
+}
+
+// publishVoterStateSnapshot rebuilds the public VoterStateReport from the
+// current inner state and stores it atomically. Callers must NOT hold
+// inner.Mutex when invoking this; the method acquires it.
+func (v *Voter[Hash, Number, Signature, ID]) publishVoterStateSnapshot() {
+	v.inner.Lock()
+	report := buildVoterStateReport[Hash, Number, Signature, ID, Environment[Hash, Number, Signature, ID]](v.inner)
+	v.inner.Unlock()
+	v.voterStateSnapshot.Store(&report)
 }
 
 // VoterState interface for querying the state of the voter. Used by `Voter` to return a queryable object
