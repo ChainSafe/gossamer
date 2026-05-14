@@ -618,8 +618,11 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) pruneBackgroundRounds(waker *waker) error {
+	// Collect finalize notifications under the lock, then invoke
+	// env.FinalizeBlock outside it. Holding inner.Mutex across user-supplied
+	// callbacks is a deadlock hazard: a slow environment can block readers
+	// of the voter state and stall Stop().
 	v.inner.Lock()
-	defer v.inner.Unlock()
 
 pastRounds:
 	for {
@@ -628,6 +631,7 @@ pastRounds:
 		switch ready {
 		case true:
 			if err != nil {
+				v.inner.Unlock()
 				return err
 			}
 			if nc != nil {
@@ -642,31 +646,36 @@ pastRounds:
 	}
 
 	v.finalizedNotifications.setWaker(waker)
+	var toFinalize []finalizedNotification[Hash, Number, Signature, ID]
 finalizedNotifications:
 	for {
 		select {
 		case notif := <-v.finalizedNotifications.channel():
-			fHash := notif.Hash
 			fNum := notif.Number
-			round := notif.Round
-			commit := notif.Commit
-
 			v.inner.pastRounds.UpdateFinalized(fNum)
 			if v.setLastFinalizedNumber(fNum) {
-				err := v.env.FinalizeBlock(fHash, fNum, round, commit)
-				if err != nil {
-					return err
-				}
+				toFinalize = append(toFinalize, notif)
 			}
-
 			if fNum > v.lastFinalizedInRounds.Number {
-				v.lastFinalizedInRounds = HashNumber[Hash, Number]{fHash, fNum}
+				v.lastFinalizedInRounds = HashNumber[Hash, Number]{notif.Hash, fNum}
 			}
 		default:
 			break finalizedNotifications
 		}
 	}
 
+	v.inner.Unlock()
+
+	// Publish a snapshot before potentially blocking on env.FinalizeBlock so
+	// concurrent readers of VoterState see the post-prune state even while
+	// we're stuck inside a slow environment callback.
+	v.publishVoterStateSnapshot()
+
+	for _, n := range toFinalize {
+		if err := v.env.FinalizeBlock(n.Hash, n.Number, n.Round, n.Commit); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

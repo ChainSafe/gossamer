@@ -11,8 +11,7 @@ import (
 
 type timer struct {
 	wakerChan *wakerChan[error]
-	mtx       sync.Mutex
-	closed    bool // guards the one-shot close of wakerChan.in
+	closeOnce sync.Once
 	expired   atomic.Bool
 }
 
@@ -26,13 +25,10 @@ func newTimer(in <-chan time.Time) *timer {
 
 func (t *timer) poll(in <-chan time.Time) {
 	<-in
-	t.mtx.Lock()
-	defer t.mtx.Unlock()
-	if !t.closed {
+	t.closeOnce.Do(func() {
 		t.wakerChan.in <- nil
 		close(t.wakerChan.in)
-		t.closed = true
-	}
+	})
 	t.expired.Store(true)
 }
 
@@ -45,10 +41,7 @@ func (t *timer) Elapsed() (bool, error) {
 }
 
 func (t *timer) Close() {
-	t.mtx.Lock()
-	defer t.mtx.Unlock()
-	if !t.closed {
+	t.closeOnce.Do(func() {
 		close(t.wakerChan.in)
-		t.closed = true
-	}
+	})
 }
