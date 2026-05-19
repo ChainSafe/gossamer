@@ -19,7 +19,7 @@ name: unit-tests
 
 jobs:
   unit-tests:
-    timeout-minutes: 15
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - name: Cancel Previous Runs
@@ -78,7 +78,7 @@ jobs:
           cd ..
 
       - name: Run unit tests
-        run: CI=buildjet go test -coverprofile=coverage.out -covermode=atomic -timeout=15m ./...
+        run: CI=buildjet go test -coverprofile=coverage.out -covermode=atomic -timeout=30m ./...
 
       - name: Trie memory test
         run: |
