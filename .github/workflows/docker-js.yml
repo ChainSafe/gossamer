@@ -18,7 +18,7 @@ name: docker-js
 
 jobs:
   docker-polkadotjs-tests:
-    runs-on: buildjet-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     env:
       DOCKER_BUILDKIT: "1"
     steps:

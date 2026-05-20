@@ -18,7 +18,7 @@ name: docker-grandpa
 
 jobs:
   docker-grandpa-tests:
-    runs-on: buildjet-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     env:
       DOCKER_BUILDKIT: "1"
     steps:
