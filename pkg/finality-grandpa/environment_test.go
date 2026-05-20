@@ -187,15 +187,15 @@ func (*environment) PrecommitEquivocation(
 
 // p2p network data for a round.
 type BroadcastNetwork[M, N any] struct {
-	receiver     chan M
-	stop         chan struct{}
-	mu           sync.Mutex
-	senders      []chan M
-	history      []M
-	routing      bool
-	stopped      bool
-	routeWG      sync.WaitGroup
-	forwarderWG  sync.WaitGroup
+	receiver    chan M
+	stop        chan struct{}
+	mu          sync.Mutex
+	senders     []chan M
+	history     []M
+	routing     bool
+	stopped     bool
+	routeWG     sync.WaitGroup
+	forwarderWG sync.WaitGroup
 }
 
 func NewBroadcastNetwork[M, N any]() *BroadcastNetwork[M, N] {
