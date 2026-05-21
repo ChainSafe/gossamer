@@ -6,6 +6,7 @@ package grandpa
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/tidwall/btree"
@@ -15,14 +16,13 @@ import (
 type wakerChan[Item any] struct {
 	in    chan Item
 	out   chan Item
-	waker *waker
+	waker atomic.Pointer[waker]
 }
 
 func newWakerChan[Item any](in chan Item) *wakerChan[Item] {
 	wc := &wakerChan[Item]{
-		in:    in,
-		out:   make(chan Item),
-		waker: nil,
+		in:  in,
+		out: make(chan Item),
 	}
 	go wc.start()
 	return wc
@@ -34,15 +34,15 @@ func (wc *wakerChan[Item]) start() {
 		return
 	}
 	for item := range wc.in {
-		if wc.waker != nil {
-			wc.waker.wake()
+		if w := wc.waker.Load(); w != nil {
+			w.wake()
 		}
 		wc.out <- item
 	}
 }
 
 func (wc *wakerChan[Item]) setWaker(waker *waker) {
-	wc.waker = waker
+	wc.waker.Store(waker)
 }
 
 // Chan returns a channel to consume `Item`.  Not thread safe, only supports one consumer
@@ -612,8 +612,11 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) pruneBackgroundRounds(waker *waker) error {
+	// Collect finalize notifications under the lock, then invoke
+	// env.FinalizeBlock outside it. Holding inner.Mutex across user-supplied
+	// callbacks is a deadlock hazard: a slow environment can block readers
+	// of the voter state and stall Stop().
 	v.inner.Lock()
-	defer v.inner.Unlock()
 
 pastRounds:
 	for {
@@ -622,6 +625,7 @@ pastRounds:
 		switch ready {
 		case true:
 			if err != nil {
+				v.inner.Unlock()
 				return err
 			}
 			if nc != nil {
@@ -636,31 +640,31 @@ pastRounds:
 	}
 
 	v.finalizedNotifications.setWaker(waker)
+	var toFinalize []finalizedNotification[Hash, Number, Signature, ID]
 finalizedNotifications:
 	for {
 		select {
 		case notif := <-v.finalizedNotifications.channel():
-			fHash := notif.Hash
 			fNum := notif.Number
-			round := notif.Round
-			commit := notif.Commit
-
 			v.inner.pastRounds.UpdateFinalized(fNum)
 			if v.setLastFinalizedNumber(fNum) {
-				err := v.env.FinalizeBlock(fHash, fNum, round, commit)
-				if err != nil {
-					return err
-				}
+				toFinalize = append(toFinalize, notif)
 			}
-
 			if fNum > v.lastFinalizedInRounds.Number {
-				v.lastFinalizedInRounds = HashNumber[Hash, Number]{fHash, fNum}
+				v.lastFinalizedInRounds = HashNumber[Hash, Number]{notif.Hash, fNum}
 			}
 		default:
 			break finalizedNotifications
 		}
 	}
 
+	v.inner.Unlock()
+
+	for _, n := range toFinalize {
+		if err := v.env.FinalizeBlock(n.Hash, n.Number, n.Round, n.Commit); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -818,6 +822,7 @@ func (v *Voter[Hash, Number, Signature, ID]) processBestRound(waker *waker) (boo
 		var shouldStartNext bool
 		completable, err := v.inner.bestRound.poll(waker)
 		if err != nil {
+			v.inner.Unlock()
 			return true, err
 		}
 
@@ -991,7 +996,6 @@ type sharedVoteState[
 	E Environment[Hash, Number, Signature, ID],
 ] struct {
 	inner *innerVoterState[Hash, Number, Signature, ID, E]
-	mtx   sync.Mutex
 }
 
 func (svs *sharedVoteState[Hash, Number, Signature, ID, E]) Get() VoterStateReport[ID] {
@@ -1006,8 +1010,8 @@ func (svs *sharedVoteState[Hash, Number, Signature, ID, E]) Get() VoterStateRepo
 		}
 	}
 
-	svs.mtx.Lock()
-	defer svs.mtx.Unlock()
+	svs.inner.Lock()
+	defer svs.inner.Unlock()
 
 	bestRoundNum, bestRound := toRoundState(svs.inner.bestRound)
 	backgroundRounds := svs.inner.pastRounds.votingRounds()

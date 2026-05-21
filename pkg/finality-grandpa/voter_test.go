@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -700,12 +701,13 @@ func TestBuffered(t *testing.T) {
 		return nil
 	})
 
-	run := true
+	var run atomic.Bool
+	run.Store(true)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for run {
+		for run.Load() {
 			buffered.Push(999)
 			time.Sleep(1 * time.Millisecond)
 		}
@@ -714,7 +716,7 @@ func TestBuffered(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for run {
+		for run.Load() {
 			buffered.flush(newWaker())
 			time.Sleep(1 * time.Millisecond)
 		}
@@ -723,6 +725,6 @@ func TestBuffered(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	buffered.Close()
 
-	run = false
+	run.Store(false)
 	wg.Wait()
 }
