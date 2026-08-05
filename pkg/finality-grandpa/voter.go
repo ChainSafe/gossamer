@@ -544,24 +544,19 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	// assumptions from round-to-round.
 	lastFinalizedInRounds HashNumber[Hash, Number]
 
-	// waitTimeout bounds how long Wait will block for the Start loop to return.
+	// waitTimeout bounds how long Wait blocks for the run loop to finish.
 	waitTimeout time.Duration
-	// wg holds a single token, taken out in NewVoter. Start releases it when its
-	// loop returns; Wait releases it instead when Start never ran. Taking it in
-	// Start would race Wait, which reaches wg.Wait as soon as it is called.
-	wg       sync.WaitGroup
-	waitOnce sync.Once
-	waitErr  error
-	// runState decides which of Start and Wait owns releasing the wg token.
-	runState atomic.Int32
+	// done is closed by the run loop as it returns, publishing runErr with it.
+	done chan struct{}
+	// runErr is written by the run loop before done is closed, so a read after
+	// receiving from done is ordered.
+	runErr error
+	// teardownOnce keeps the teardown to a single run: it closes channels, so a
+	// second pass would panic, and an owner that both supervises the voter and
+	// shuts the node down can reach Wait twice.
+	teardownOnce sync.Once
+	teardownErr  error
 }
-
-// Voter lifecycle states for Voter.runState.
-const (
-	voterFresh int32 = iota
-	voterRunning
-	voterDone
-)
 
 // errVoterShutdown travels back through the poll path when the globalIn channel
 // given to NewVoter is closed, which is how a caller asks the voter to stop. It
@@ -569,7 +564,15 @@ const (
 // error; it never reaches the caller.
 var errVoterShutdown = errors.New("voter shutdown: global incoming stream closed")
 
-// NewVoter creates a new `Voter` tracker with given round number and base block.
+// NewVoter creates a new `Voter` tracker with given round number and base block
+// and starts it running. There is no separate start step, so a voter is never
+// observable in a constructed-but-idle state.
+//
+// The voter runs until globalIn is closed, which is how a caller asks it to shut
+// down. Closing it belongs to the caller, who must therefore be the only writer
+// to it by that point, or must serialise its writers against the close. Wait
+// then blocks for the voter to finish and releases what it owns; Done offers the
+// same signal without blocking.
 //
 // Provide data about the last completed round. If there is no
 // known last completed round, the genesis state (round number 0, no votes, genesis base),
@@ -636,10 +639,12 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		globalIn:               newWakerChan(globalIn),
 		globalOut:              newBuffered(globalOutPresend),
 		waitTimeout:            30 * time.Second,
+		done:                   make(chan struct{}),
 	}
-	// Held until Start's loop returns, or until Wait claims it because Start
-	// never ran.
-	v.wg.Add(1)
+	go func() {
+		defer close(v.done)
+		v.runErr = v.run()
+	}()
 	return v
 }
 
@@ -945,17 +950,9 @@ func (v *Voter[Hash, Number, Signature, ID]) setLastFinalizedNumber(finalizedNum
 	return false
 }
 
-// Start runs the voter until the globalIn channel given to NewVoter is closed,
-// which is how a caller asks it to shut down. It blocks, so callers run it in a
-// goroutine and join it with Wait. It returns nil on an orderly shutdown, and an
-// error if the voter failed.
-//
-// A voter runs once: a second Start, or a Start after Wait, declines.
-func (v *Voter[Hash, Number, Signature, ID]) Start() error { //skipcq: RVV-B0001
-	if !v.runState.CompareAndSwap(voterFresh, voterRunning) {
-		return fmt.Errorf("voter has already been started")
-	}
-	defer v.wg.Done()
+// run is the voter's poll loop. NewVoter starts it; it ends when the globalIn
+// channel closes, or on the first error.
+func (v *Voter[Hash, Number, Signature, ID]) run() error {
 	waker := newWaker()
 	for {
 		ready, err := v.poll(waker)
@@ -972,40 +969,43 @@ func (v *Voter[Hash, Number, Signature, ID]) Start() error { //skipcq: RVV-B0001
 	}
 }
 
-// Wait blocks until the Start loop has returned, then releases what the voter
-// itself owns: its finalization channel and every round timer.
+// Wait blocks until the voter has finished, then releases what it owns: its
+// finalization channel and every round timer. It returns nil on an orderly
+// shutdown, and the voter's error if it failed.
 //
 // Wait does not signal shutdown — close the globalIn channel passed to NewVoter
-// to do that. Calling Wait without closing it blocks until waitTimeout and
-// reports an error, leaving the voter running.
+// to do that. Calling Wait without closing it reports a timeout and leaves the
+// voter running.
 //
-// Idempotent: later calls block until the first has finished and return the same
-// result.
+// Idempotent, and safe to call from several goroutines: the teardown runs once
+// and every caller gets the same result.
 func (v *Voter[Hash, Number, Signature, ID]) Wait() error {
-	v.waitOnce.Do(func() { v.waitErr = v.wait() })
-	return v.waitErr
-}
-
-func (v *Voter[Hash, Number, Signature, ID]) wait() error {
-	v.globalOut.Close()
-	// Start never ran and now never will, so release its token or the wait below
-	// would block for the whole timeout.
-	if v.runState.CompareAndSwap(voterFresh, voterDone) {
-		v.wg.Done()
-	}
 	timeout := time.NewTimer(v.waitTimeout)
 	defer timeout.Stop()
-	wgDone := make(chan struct{})
-	go func() {
-		defer close(wgDone)
-		v.wg.Wait()
-	}()
 	select {
+	case <-v.done:
 	case <-timeout.C:
+		// Deliberately does not touch runErr: the loop is still running and still
+		// owns it.
 		return fmt.Errorf("timeout waiting for the voter to stop: was globalIn closed?")
-	case <-wgDone:
 	}
+	v.teardownOnce.Do(func() { v.teardownErr = v.teardown() })
+	if v.teardownErr != nil {
+		return v.teardownErr
+	}
+	// Ordered by the receive from done above.
+	return v.runErr
+}
 
+// Done is closed when the run loop has finished. It lets an owner select on the
+// voter's termination alongside its own work; call Wait afterwards for the
+// result and to release what the voter owns.
+func (v *Voter[Hash, Number, Signature, ID]) Done() <-chan struct{} {
+	return v.done
+}
+
+func (v *Voter[Hash, Number, Signature, ID]) teardown() error {
+	v.globalOut.Close()
 	close(v.finalizedNotifications.in)
 	switch state := v.inner.bestRound.state.(type) {
 	case statePrecommitted:

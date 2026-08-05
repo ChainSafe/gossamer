@@ -17,7 +17,7 @@ import (
 type lifecycleItem = GlobalInItem[string, uint32, Signature, ID]
 
 // newLifecycleVoter builds a voter over its own inbound channel, for tests about
-// starting and stopping rather than about voting.
+// shutting down rather than about voting. NewVoter starts it.
 func newLifecycleVoter(t *testing.T, network *Network, globalIn chan lifecycleItem,
 ) *Voter[string, uint32, Signature, ID] {
 	t.Helper()
@@ -58,46 +58,64 @@ func forwardersInState(state string) int {
 	return count
 }
 
-// Closing globalIn is the shutdown signal: Start returns of its own accord, and
-// reports nil because an orderly shutdown is not a failure.
+// Closing globalIn is the shutdown signal: the voter stops of its own accord and
+// Wait reports nil, because an orderly shutdown is not a failure.
 func TestVoter_CloseGlobalInShutsDown(t *testing.T) {
 	network := NewNetwork()
 	defer network.Stop()
 
 	globalIn := make(chan lifecycleItem, 10)
 	v := newLifecycleVoter(t, network, globalIn)
-
-	errCh := make(chan error, 1)
-	go func() { errCh <- v.Start() }()
 	time.Sleep(50 * time.Millisecond)
 
 	close(globalIn)
 	select {
-	case err := <-errCh:
-		assert.NoError(t, err, "an orderly shutdown is not an error")
+	case <-v.Done():
 	case <-time.After(5 * time.Second):
-		t.Fatal("Start did not return after globalIn was closed")
+		t.Fatal("the voter did not stop after globalIn was closed")
 	}
 	assert.NoError(t, v.Wait())
 }
 
+// Done lets an owner observe termination without committing to a blocking Wait,
+// and is still closed for a voter that has already been waited on.
+func TestVoter_DoneSignalsTermination(t *testing.T) {
+	network := NewNetwork()
+	defer network.Stop()
+
+	globalIn := make(chan lifecycleItem, 10)
+	v := newLifecycleVoter(t, network, globalIn)
+	time.Sleep(50 * time.Millisecond)
+
+	select {
+	case <-v.Done():
+		t.Fatal("Done fired while the voter was still running")
+	default:
+	}
+
+	close(globalIn)
+	require.NoError(t, v.Wait())
+
+	select {
+	case <-v.Done():
+	default:
+		t.Fatal("Done was not closed after the voter stopped")
+	}
+}
+
 // The retired voter's forwarder must be gone once Wait returns. There is no
-// stopChan any more, so the poll loop cannot exit before it has drained what the
-// forwarder is holding: it only leaves by observing the close.
+// early exit from the poll loop, so it can only leave by observing the close,
+// which means first draining whatever the forwarder is holding.
 func TestVoter_RotationLeavesNoForwarder(t *testing.T) {
 	network := NewNetwork()
 	defer network.Stop()
 
 	baseSend := forwardersInState("chan send")
-	baseRecv := forwardersInState("chan receive")
 
 	const rotations = 10
 	for i := 0; i < rotations; i++ {
 		globalIn := make(chan lifecycleItem, 100)
 		v := newLifecycleVoter(t, network, globalIn)
-
-		done := make(chan struct{})
-		go func() { defer close(done); _ = v.Start() }()
 		time.Sleep(30 * time.Millisecond)
 
 		// Inbound traffic in flight when the set rotates.
@@ -109,30 +127,22 @@ func TestVoter_RotationLeavesNoForwarder(t *testing.T) {
 		}
 
 		close(globalIn)
-		<-done
 		require.NoError(t, v.Wait())
 	}
 
 	time.Sleep(300 * time.Millisecond)
-	send := forwardersInState("chan send") - baseSend
-	recv := forwardersInState("chan receive") - baseRecv
-	t.Logf("after %d rotations: send-parked=%+d recv-parked=%+d", rotations, send, recv)
-	assert.Zero(t, send, "a retired voter's globalIn forwarder is still holding an item")
+	assert.Equal(t, baseSend, forwardersInState("chan send"),
+		"a retired voter's globalIn forwarder is still holding an item")
 }
 
-// Rebuilding the voter across an authority-set rotation: close, wait, build the
-// next one, start it. Start is launched from a goroutine, so a rotation can reach
-// the next Wait before that Start has begun.
+// Rebuilding the voter across an authority-set rotation. With no separate start
+// step there is no window in which a half-live voter can be torn down.
 func TestVoter_RebuildAcrossRotations(t *testing.T) {
 	network := NewNetwork()
 	defer network.Stop()
 
-	var starts sync.WaitGroup
 	globalIn := make(chan lifecycleItem, 100)
-	first := newLifecycleVoter(t, network, globalIn)
-	voter := first
-	starts.Add(1)
-	go func() { defer starts.Done(); _ = first.Start() }()
+	voter := newLifecycleVoter(t, network, globalIn)
 
 	const rotations = 100
 	for i := 0; i < rotations; i++ {
@@ -140,25 +150,15 @@ func TestVoter_RebuildAcrossRotations(t *testing.T) {
 		require.NoError(t, voter.Wait())
 
 		globalIn = make(chan lifecycleItem, 100)
-		v := newLifecycleVoter(t, network, globalIn)
-		voter = v
-		starts.Add(1)
-		go func() { defer starts.Done(); _ = v.Start() }()
+		voter = newLifecycleVoter(t, network, globalIn)
 	}
 	close(globalIn)
 	require.NoError(t, voter.Wait())
-
-	done := make(chan struct{})
-	go func() { starts.Wait(); close(done) }()
-	select {
-	case <-done:
-	case <-time.After(30 * time.Second):
-		t.Fatal("a Start goroutine never returned")
-	}
 }
 
 // Wait does not signal shutdown. Calling it without closing globalIn must report
-// a timeout rather than block forever or claim success.
+// a timeout rather than block forever or claim success, and must leave the voter
+// running.
 func TestVoter_WaitWithoutCloseTimesOut(t *testing.T) {
 	network := NewNetwork()
 	defer network.Stop()
@@ -166,15 +166,19 @@ func TestVoter_WaitWithoutCloseTimesOut(t *testing.T) {
 	globalIn := make(chan lifecycleItem, 10)
 	v := newLifecycleVoter(t, network, globalIn)
 	v.waitTimeout = 200 * time.Millisecond
-
-	done := make(chan struct{})
-	go func() { defer close(done); _ = v.Start() }()
 	time.Sleep(50 * time.Millisecond)
 
 	assert.ErrorContains(t, v.Wait(), "timeout waiting for the voter to stop")
+	select {
+	case <-v.Done():
+		t.Fatal("a timed-out Wait stopped the voter")
+	default:
+	}
 
+	// The voter is still live, so the real shutdown still works.
+	v.waitTimeout = 5 * time.Second
 	close(globalIn)
-	<-done
+	assert.NoError(t, v.Wait())
 }
 
 // Wait is idempotent, and concurrent callers all get the same answer.
@@ -184,12 +188,8 @@ func TestVoter_WaitIsIdempotent(t *testing.T) {
 
 	globalIn := make(chan lifecycleItem, 10)
 	v := newLifecycleVoter(t, network, globalIn)
-
-	done := make(chan struct{})
-	go func() { defer close(done); _ = v.Start() }()
 	time.Sleep(50 * time.Millisecond)
 	close(globalIn)
-	<-done
 
 	const callers = 4
 	errs := make([]error, callers)
@@ -206,21 +206,4 @@ func TestVoter_WaitIsIdempotent(t *testing.T) {
 		assert.Equal(t, errs[0], err, "Wait caller %d saw a different result", i)
 	}
 	assert.NoError(t, v.Wait())
-}
-
-// A voter runs once. Waiting on one that never started must not sit out the whole
-// timeout, and a later Start must decline rather than come up into a torn-down
-// voter.
-func TestVoter_WaitBeforeStart(t *testing.T) {
-	network := NewNetwork()
-	defer network.Stop()
-
-	globalIn := make(chan lifecycleItem, 10)
-	v := newLifecycleVoter(t, network, globalIn)
-	v.waitTimeout = 10 * time.Second
-
-	began := time.Now()
-	assert.NoError(t, v.Wait())
-	assert.Less(t, time.Since(began), time.Second, "Wait sat out its timeout for a Start that never ran")
-	assert.Error(t, v.Start(), "a voter that has been waited on must not start")
 }
