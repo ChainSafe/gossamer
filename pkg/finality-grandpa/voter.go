@@ -552,8 +552,8 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 
 // errVoterShutdown travels back through the poll path when the globalIn channel
 // given to NewVoter is closed, which is how a caller asks the voter to stop. It
-// is a shutdown signal rather than a failure, so Start reports it as a nil
-// error; it never reaches the caller.
+// is a shutdown signal rather than a failure, so the run loop reports it as a
+// nil error; it never reaches the caller.
 var errVoterShutdown = errors.New("voter shutdown: global incoming stream closed")
 
 // NewVoter creates a new `Voter` tracker with given round number and base block
@@ -562,9 +562,8 @@ var errVoterShutdown = errors.New("voter shutdown: global incoming stream closed
 //
 // The voter runs until globalIn is closed, which is how a caller asks it to shut
 // down. Closing it belongs to the caller, who must therefore be the only writer
-// to it by that point, or must serialise its writers against the close. Wait
-// then blocks for the voter to finish and releases what it owns; Done offers the
-// same signal without blocking.
+// to it by that point, or must serialise its writers against the close. Done
+// then yields why the voter stopped, once it has released what it owned.
 //
 // Provide data about the last completed round. If there is no
 // known last completed round, the genesis state (round number 0, no votes, genesis base),
@@ -647,7 +646,7 @@ func (v *Voter[Hash, Number, Signature, ID]) pruneBackgroundRounds(waker *waker)
 	// Collect finalize notifications under the lock, then invoke
 	// env.FinalizeBlock outside it. Holding inner.Mutex across user-supplied
 	// callbacks is a deadlock hazard: a slow environment can block readers
-	// of the voter state and stall Stop().
+	// of the voter state and stall the voter's teardown.
 	v.inner.Lock()
 
 pastRounds:
@@ -677,10 +676,11 @@ finalizedNotifications:
 	for {
 		select {
 		case notif, ok := <-v.finalizedNotifications.channel():
-			// This channel is the voter's own, and Stop closes it only after Start
-			// has returned, so a live poll loop cannot legitimately see it closed:
-			// that means the voter was torn down and is being polled anyway. The
-			// stream carrying finalization is gone and cannot be reopened.
+			// This channel is the voter's own, and the teardown closes it only once
+			// the run loop has returned, so a live poll loop cannot legitimately see
+			// it closed: that means the voter was torn down and is being polled
+			// anyway. The stream carrying finalization is gone and cannot be
+			// reopened.
 			// (Unchecked, the receive would also stay ready forever, yielding
 			// zero-value notifications that change nothing, spinning here while
 			// holding v.inner — which blocks VoterState too.)
@@ -727,7 +727,7 @@ loop:
 		case item, ok := <-v.globalIn.channel():
 			// The forwarder closes this channel when globalIn ends, which is how a
 			// caller shuts the voter down. Unwinding through the poll path is what
-			// ends the Start loop. (Unchecked, the receive would also stay ready
+			// ends the run loop. (Unchecked, the receive would also stay ready
 			// forever, handing out zero-value items that match no case below and
 			// spinning the loop.)
 			if !ok {
