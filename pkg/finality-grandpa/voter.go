@@ -127,6 +127,12 @@ type Environment[Hash comparable, Number constraints.Unsigned, Signature compara
 	//
 	// Furthermore, this means that actual logic of creating and verifying
 	// signatures is flexible and can be maintained outside this crate.
+	//
+	// The Incoming channel belongs to the implementation, which must close it once
+	// the round has concluded, and release any still open when it shuts down. The
+	// voter reads it through a forwarding goroutine that ends only when the
+	// channel does, so a round input left open outlives its round. RoundData may
+	// be called more than once for a round number; each call owns its channel.
 	RoundData(
 		round uint64,
 	) RoundData[Hash, Number, Signature, ID, Message[Hash, Number]]

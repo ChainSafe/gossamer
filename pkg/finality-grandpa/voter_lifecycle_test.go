@@ -180,3 +180,42 @@ func TestVoter_RebuildAcrossRotations(t *testing.T) {
 	close(globalIn)
 	require.NoError(t, <-voter.Done())
 }
+
+// A voter that keeps running must not accumulate goroutines. Every round wraps
+// its inbound stream and its timers, and both have to be released as rounds
+// advance rather than only at shutdown.
+func TestVoter_RoundsDoNotAccumulateForwarders(t *testing.T) {
+	network := NewNetwork()
+	defer network.Stop()
+
+	globalIn := make(chan lifecycleItem, 10)
+	v := newLifecycleVoter(t, network, globalIn)
+	defer func() {
+		close(globalIn)
+		<-v.Done()
+	}()
+
+	live := func() int {
+		return forwardersInState("chan receive") + forwardersInState("chan send")
+	}
+
+	// Let the voter settle into a steady state before taking the baseline, so
+	// start-up rounds are not counted as growth.
+	time.Sleep(2 * time.Second)
+	v.inner.Lock()
+	firstRound := v.inner.bestRound.roundNumber()
+	v.inner.Unlock()
+	base := live()
+
+	time.Sleep(8 * time.Second)
+	v.inner.Lock()
+	lastRound := v.inner.bestRound.roundNumber()
+	v.inner.Unlock()
+	grew := live() - base
+
+	rounds := lastRound - firstRound
+	require.Greater(t, rounds, uint64(2), "test needs several rounds to have elapsed")
+	t.Logf("%d rounds elapsed, forwarders grew by %+d", rounds, grew)
+	assert.LessOrEqual(t, grew, 2,
+		"forwarders grow with rounds: %d over %d rounds", grew, rounds)
+}
