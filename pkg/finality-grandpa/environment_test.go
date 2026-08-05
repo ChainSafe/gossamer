@@ -259,12 +259,29 @@ func (bm *BroadcastNetwork[M, N]) AddNode(f func(N) M, out chan N) (in chan M) {
 func (bm *BroadcastNetwork[M, N]) route() {
 	defer bm.routeWG.Done()
 	for msg := range bm.receiver {
+		// Deliver under the lock. RemoveNode closes a node's channel, and closing a
+		// channel a producer is about to send on panics, so the two have to be
+		// serialised. Senders are buffered, so this does not block in practice.
 		bm.mu.Lock()
 		bm.history = append(bm.history, msg)
-		senders := append([]chan M(nil), bm.senders...)
-		bm.mu.Unlock()
-		for _, sender := range senders {
+		for _, sender := range bm.senders {
 			sender <- msg
+		}
+		bm.mu.Unlock()
+	}
+}
+
+// RemoveNode deregisters a node's inbound channel and closes it. Closing that
+// channel is how the voter reading it is asked to shut down; it happens under
+// bm.mu so it cannot race a delivery in route.
+func (bm *BroadcastNetwork[M, N]) RemoveNode(in chan M) {
+	bm.mu.Lock()
+	defer bm.mu.Unlock()
+	for i, sender := range bm.senders {
+		if sender == in {
+			bm.senders = append(bm.senders[:i], bm.senders[i+1:]...)
+			close(in)
+			return
 		}
 	}
 }
@@ -400,6 +417,15 @@ func (n *Network) MakeGlobalComms(
 				panic("invalid CommunicationOut variant")
 			}
 		}, out)
+}
+
+// StopGlobalComms closes the inbound channel handed to a voter by
+// MakeGlobalComms, which is how that voter is shut down.
+func (n *Network) StopGlobalComms(in chan GlobalInItem[string, uint32, Signature, ID]) {
+	n.mtx.Lock()
+	defer n.mtx.Unlock()
+
+	n.globalMessages.RemoveNode(in)
 }
 
 func (n *Network) SendMessage(message CommunicationIn[string, uint32, Signature, ID]) {

@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"time"
 
 	"golang.org/x/exp/constraints"
@@ -459,7 +460,15 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) processIncoming(waker *wa
 while:
 	for {
 		select {
-		case incoming := <-vr.incoming.channel():
+		case incoming, ok := <-vr.incoming.channel():
+			// roundData.Incoming belongs to the environment. A round that is still
+			// voting cannot recover from losing it, and the zero value would carry a
+			// nil Message interface, which handleVote dereferences. Unchecked, the
+			// receive also stays permanently ready, so the default arm never runs
+			// and the 1ms timerChan escape below is never armed.
+			if !ok {
+				return fmt.Errorf("round %d: incoming message stream closed", vr.roundNumber())
+			}
 			log.Tracef("Round %d: Got incoming message", vr.roundNumber())
 			if timer != nil {
 				timer.Stop()
@@ -590,8 +599,15 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 		wakerChan := newWakerChan(bestChain)
 		wakerChan.setWaker(waker)
 		var best *HashNumber[Hash, Number]
-		res := <-wakerChan.channel()
+		res, ok := <-wakerChan.channel()
 		switch {
+		case !ok:
+			// The environment owns bestChain and always sends one value before
+			// closing, so an empty closed channel means the stream went away. Kept
+			// distinct from the default arm below: a real {nil, nil} value means
+			// "no best chain yet" and legitimately parks the round in prevoting,
+			// whereas a closed channel would park it there forever.
+			return fmt.Errorf("round %d: best chain stream closed", vr.roundNumber())
 		case res.Error != nil:
 			return res.Error
 		case res.Value != nil:

@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -29,7 +30,15 @@ func newWakerChan[Item any](in chan Item) *wakerChan[Item] {
 }
 
 func (wc *wakerChan[Item]) start() {
-	defer close(wc.out)
+	defer func() {
+		close(wc.out)
+		// Wake the consumer so it observes the close on its next poll. Closing the
+		// input is how a caller shuts the voter down, so without this the poll loop
+		// would sit on the waker until some unrelated source happened to fire.
+		if w := wc.waker.Load(); w != nil {
+			w.wake()
+		}
+	}()
 	if wc.in == nil {
 		return
 	}
@@ -535,10 +544,30 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	// assumptions from round-to-round.
 	lastFinalizedInRounds HashNumber[Hash, Number]
 
-	stopTimeout time.Duration
-	stopChan    chan struct{}
-	wg          sync.WaitGroup
+	// waitTimeout bounds how long Wait will block for the Start loop to return.
+	waitTimeout time.Duration
+	// wg holds a single token, taken out in NewVoter. Start releases it when its
+	// loop returns; Wait releases it instead when Start never ran. Taking it in
+	// Start would race Wait, which reaches wg.Wait as soon as it is called.
+	wg       sync.WaitGroup
+	waitOnce sync.Once
+	waitErr  error
+	// runState decides which of Start and Wait owns releasing the wg token.
+	runState atomic.Int32
 }
+
+// Voter lifecycle states for Voter.runState.
+const (
+	voterFresh int32 = iota
+	voterRunning
+	voterDone
+)
+
+// errVoterShutdown travels back through the poll path when the globalIn channel
+// given to NewVoter is closed, which is how a caller asks the voter to stop. It
+// is a shutdown signal rather than a failure, so Start reports it as a nil
+// error; it never reaches the caller.
+var errVoterShutdown = errors.New("voter shutdown: global incoming stream closed")
 
 // NewVoter creates a new `Voter` tracker with given round number and base block.
 //
@@ -597,7 +626,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		bestRound:  bestRound,
 		pastRounds: *pastRounds,
 	}
-	return &Voter[Hash, Number, Signature, ID]{
+	v := &Voter[Hash, Number, Signature, ID]{
 		env:                    env,
 		voters:                 voters,
 		inner:                  inner,
@@ -606,9 +635,12 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		lastFinalizedInRounds:  lastFinalized,
 		globalIn:               newWakerChan(globalIn),
 		globalOut:              newBuffered(globalOutPresend),
-		stopChan:               make(chan struct{}),
-		stopTimeout:            30 * time.Second,
+		waitTimeout:            30 * time.Second,
 	}
+	// Held until Start's loop returns, or until Wait claims it because Start
+	// never ran.
+	v.wg.Add(1)
+	return v
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) pruneBackgroundRounds(waker *waker) error {
@@ -644,7 +676,18 @@ pastRounds:
 finalizedNotifications:
 	for {
 		select {
-		case notif := <-v.finalizedNotifications.channel():
+		case notif, ok := <-v.finalizedNotifications.channel():
+			// This channel is the voter's own, and Stop closes it only after Start
+			// has returned, so a live poll loop cannot legitimately see it closed:
+			// that means the voter was torn down and is being polled anyway. The
+			// stream carrying finalization is gone and cannot be reopened.
+			// (Unchecked, the receive would also stay ready forever, yielding
+			// zero-value notifications that change nothing, spinning here while
+			// holding v.inner — which blocks VoterState too.)
+			if !ok {
+				v.inner.Unlock()
+				return fmt.Errorf("finalization notification stream closed")
+			}
 			fNum := notif.Number
 			v.inner.pastRounds.UpdateFinalized(fNum)
 			if v.setLastFinalizedNumber(fNum) {
@@ -681,7 +724,15 @@ func (v *Voter[Hash, Number, Signature, ID]) processIncoming(waker *waker) error
 loop:
 	for {
 		select {
-		case item := <-v.globalIn.channel():
+		case item, ok := <-v.globalIn.channel():
+			// The forwarder closes this channel when globalIn ends, which is how a
+			// caller shuts the voter down. Unwinding through the poll path is what
+			// ends the Start loop. (Unchecked, the receive would also stay ready
+			// forever, handing out zero-value items that match no case below and
+			// spinning the loop.)
+			if !ok {
+				return errVoterShutdown
+			}
 			if item.Error != nil {
 				return item.Error
 			}
@@ -894,30 +945,56 @@ func (v *Voter[Hash, Number, Signature, ID]) setLastFinalizedNumber(finalizedNum
 	return false
 }
 
+// Start runs the voter until the globalIn channel given to NewVoter is closed,
+// which is how a caller asks it to shut down. It blocks, so callers run it in a
+// goroutine and join it with Wait. It returns nil on an orderly shutdown, and an
+// error if the voter failed.
+//
+// A voter runs once: a second Start, or a Start after Wait, declines.
 func (v *Voter[Hash, Number, Signature, ID]) Start() error { //skipcq: RVV-B0001
-	v.wg.Add(1)
+	if !v.runState.CompareAndSwap(voterFresh, voterRunning) {
+		return fmt.Errorf("voter has already been started")
+	}
 	defer v.wg.Done()
 	waker := newWaker()
 	for {
 		ready, err := v.poll(waker)
 		if err != nil {
+			if errors.Is(err, errVoterShutdown) {
+				return nil
+			}
 			return err
 		}
 		if ready {
 			return nil
 		}
-		select {
-		case <-waker.channel():
-		case <-v.stopChan:
-			return fmt.Errorf("early voter stop")
-		}
+		<-waker.channel()
 	}
 }
 
-func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
-	close(v.stopChan)
+// Wait blocks until the Start loop has returned, then releases what the voter
+// itself owns: its finalization channel and every round timer.
+//
+// Wait does not signal shutdown — close the globalIn channel passed to NewVoter
+// to do that. Calling Wait without closing it blocks until waitTimeout and
+// reports an error, leaving the voter running.
+//
+// Idempotent: later calls block until the first has finished and return the same
+// result.
+func (v *Voter[Hash, Number, Signature, ID]) Wait() error {
+	v.waitOnce.Do(func() { v.waitErr = v.wait() })
+	return v.waitErr
+}
+
+func (v *Voter[Hash, Number, Signature, ID]) wait() error {
 	v.globalOut.Close()
-	timeout := time.NewTimer(v.stopTimeout)
+	// Start never ran and now never will, so release its token or the wait below
+	// would block for the whole timeout.
+	if v.runState.CompareAndSwap(voterFresh, voterDone) {
+		v.wg.Done()
+	}
+	timeout := time.NewTimer(v.waitTimeout)
+	defer timeout.Stop()
 	wgDone := make(chan struct{})
 	go func() {
 		defer close(wgDone)
@@ -925,7 +1002,7 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 	}()
 	select {
 	case <-timeout.C:
-		return fmt.Errorf("timeout for Voter.Stop()")
+		return fmt.Errorf("timeout waiting for the voter to stop: was globalIn closed?")
 	case <-wgDone:
 	}
 

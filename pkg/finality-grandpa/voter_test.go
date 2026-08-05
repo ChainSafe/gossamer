@@ -50,12 +50,13 @@ func TestVoter_TalkingToMyself(t *testing.T) {
 	go func() {
 		defer close(done)
 		err := voter.Start()
-		// stops early, so this should return an error
-		assert.Error(t, err)
+		// closing globalIn is an orderly shutdown, not a failure
+		assert.NoError(t, err)
 	}()
 
 	<-finalized
-	err := voter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := voter.Wait()
 	assert.NoError(t, err)
 	<-done
 }
@@ -104,7 +105,8 @@ func TestVoter_FinalizingAtFaultThreshold(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			<-finalized
-			err := voter.Stop()
+			network.StopGlobalComms(globalIn)
+			err := voter.Wait()
 			assert.NoError(t, err)
 		}()
 	}
@@ -127,6 +129,7 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 	var wg sync.WaitGroup
 	voters := make([]*Voter[string, uint32, Signature, ID], votersOnline)
 	voterStates := make([]VoterState[ID], votersOnline)
+	globalIns := make([]chan GlobalInItem[string, uint32, Signature, ID], votersOnline)
 	// some voters offline
 	for i := 0; i < votersOnline; i++ {
 		localID := ID(i)
@@ -157,6 +160,7 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 
 		voters[i] = voter
 		voterStates[i] = voter.VoterState()
+		globalIns[i] = globalIn
 
 		wg.Add(1)
 		go func() {
@@ -203,8 +207,9 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 		}{2, expectedRoundState},
 	)
 
-	for _, v := range voters {
-		err := v.Stop()
+	for i, v := range voters {
+		network.StopGlobalComms(globalIns[i])
+		err := v.Wait()
 		assert.NoError(t, err)
 	}
 }
@@ -246,7 +251,8 @@ func TestVoter_BroadcastCommit(t *testing.T) {
 	go voter.Start()
 	<-commitsIn
 
-	err := voter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := voter.Wait()
 	assert.NoError(t, err)
 }
 
@@ -351,7 +357,8 @@ waitForCommits:
 	}
 	assert.Equal(t, 1, commitCount)
 
-	err := voter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := voter.Wait()
 	assert.NoError(t, err)
 }
 
@@ -417,7 +424,8 @@ func TestVoter_ImportCommitForAnyRound(t *testing.T) {
 	finalized := <-env.FinalizedStream()
 	assert.Equal(t, finalized.Commit, commit)
 
-	err := voter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := voter.Wait()
 	assert.NoError(t, err)
 }
 
@@ -542,7 +550,8 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 		},
 		voterState.Get().BackgroundRounds[5])
 
-	err := unsyncedVoter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := unsyncedVoter.Wait()
 	assert.NoError(t, err)
 }
 
@@ -584,7 +593,8 @@ func TestVoter_PickUpFromPriorWithoutGrandparentState(t *testing.T) {
 		}
 	}
 
-	err := voter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := voter.Wait()
 	assert.NoError(t, err)
 }
 
@@ -690,7 +700,8 @@ waitForPrevote:
 	<-env.concludedCalled
 	assert.Equal(t, [2]uint64{2, 1}, env.LastCompletedAndConcluded())
 
-	err := voter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := voter.Wait()
 	assert.NoError(t, err)
 }
 

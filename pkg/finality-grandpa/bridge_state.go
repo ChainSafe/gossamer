@@ -17,13 +17,17 @@ func newWaker() *waker {
 }
 
 func (w *waker) wake() {
+	// Read the channel under the lock and hand the value to the goroutine. Reading
+	// w.wakeCh inside the goroutine would be unsynchronised: it runs after wake has
+	// returned and released the lock, so it can race register's write.
 	w.RLock()
-	defer w.RUnlock()
-	if w.wakeCh == nil {
+	ch := w.wakeCh
+	w.RUnlock()
+	if ch == nil {
 		return
 	}
 	go func() {
-		w.wakeCh <- struct{}{}
+		ch <- struct{}{}
 	}()
 }
 
