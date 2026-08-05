@@ -728,3 +728,96 @@ func TestBuffered(t *testing.T) {
 	run.Store(false)
 	wg.Wait()
 }
+
+// newLifecycleVoter builds a voter over its own inbound channel, for tests about
+// starting and stopping rather than about voting.
+func newLifecycleVoter(
+	t *testing.T,
+	network *Network,
+	globalIn chan GlobalInItem[string, uint32, Signature, ID],
+) *Voter[string, uint32, Signature, ID] {
+	t.Helper()
+	var localID ID = 5
+	voters := NewVoterSet([]IDWeight[ID]{{localID, 100}})
+
+	env := newEnvironment(network, localID)
+	var lastFinalized HashNumber[string, uint32]
+	env.WithChain(func(chain *dummyChain) {
+		chain.PushBlocks(GenesisHash, []string{"A", "B", "C"})
+		lastFinalized.Hash, lastFinalized.Number = chain.LastFinalized()
+	})
+
+	return NewVoter[string, uint32, Signature, ID](
+		&env,
+		*voters,
+		globalIn,
+		func(CommunicationOut[string, uint32, Signature, ID]) error { return nil },
+		0,
+		nil,
+		lastFinalized,
+		lastFinalized,
+	)
+}
+
+// Start runs in its own goroutine — it blocks — so an owner that shuts down right
+// after starting up can reach Stop first. The WaitGroup token is taken in NewVoter
+// so that ordering is safe: taking it in Start raced Stop's Wait, and a Stop that
+// won could close channels the voter was about to poll.
+func TestVoter_StartAndStopRace(t *testing.T) {
+	network := NewNetwork()
+	defer network.Stop()
+
+	for i := 0; i < 50; i++ {
+		voter := newLifecycleVoter(t, network, make(chan GlobalInItem[string, uint32, Signature, ID]))
+		voter.stopTimeout = 5 * time.Second
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = voter.Start()
+		}()
+		assert.NoError(t, voter.Stop())
+		wg.Wait()
+	}
+}
+
+// A voter that was stopped before it ever started must decline to start, and Stop
+// must not sit out its whole timeout waiting for a Start that will never come.
+func TestVoter_StopBeforeStart(t *testing.T) {
+	network := NewNetwork()
+	defer network.Stop()
+
+	voter := newLifecycleVoter(t, network, make(chan GlobalInItem[string, uint32, Signature, ID]))
+	voter.stopTimeout = 10 * time.Second
+
+	start := time.Now()
+	assert.NoError(t, voter.Stop())
+	assert.Less(t, time.Since(start), time.Second, "Stop waited on a Start that never ran")
+	assert.Error(t, voter.Start(), "a stopped voter must not start")
+}
+
+// globalIn belongs to the caller, so Stop cannot close it — but the forwarder
+// reading it has to go, or it outlives the voter and keeps taking items off a
+// channel the caller may well hand to the next voter.
+func TestVoter_StopReleasesGlobalIn(t *testing.T) {
+	network := NewNetwork()
+	defer network.Stop()
+
+	globalIn := make(chan GlobalInItem[string, uint32, Signature, ID], 2)
+	voter := newLifecycleVoter(t, network, globalIn)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = voter.Start()
+	}()
+	time.Sleep(50 * time.Millisecond)
+	assert.NoError(t, voter.Stop())
+	<-done
+
+	globalIn <- GlobalInItem[string, uint32, Signature, ID]{}
+	globalIn <- GlobalInItem[string, uint32, Signature, ID]{}
+	time.Sleep(200 * time.Millisecond)
+	assert.Len(t, globalIn, 2, "something is still reading globalIn after Stop")
+}

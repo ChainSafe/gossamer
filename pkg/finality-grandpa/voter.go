@@ -16,13 +16,16 @@ import (
 type wakerChan[Item any] struct {
 	in    chan Item
 	out   chan Item
+	stop  chan struct{}
+	once  sync.Once
 	waker atomic.Pointer[waker]
 }
 
 func newWakerChan[Item any](in chan Item) *wakerChan[Item] {
 	wc := &wakerChan[Item]{
-		in:  in,
-		out: make(chan Item),
+		in:   in,
+		out:  make(chan Item),
+		stop: make(chan struct{}),
 	}
 	go wc.start()
 	return wc
@@ -33,12 +36,37 @@ func (wc *wakerChan[Item]) start() {
 	if wc.in == nil {
 		return
 	}
-	for item := range wc.in {
+	for {
+		var (
+			item Item
+			ok   bool
+		)
+		select {
+		case <-wc.stop:
+			return
+		case item, ok = <-wc.in:
+			if !ok {
+				return
+			}
+		}
 		if w := wc.waker.Load(); w != nil {
 			w.wake()
 		}
-		wc.out <- item
+		// Also selects on stop: out is unbuffered, so a forwarder parked here with
+		// no consumer left would otherwise never return.
+		select {
+		case wc.out <- item:
+		case <-wc.stop:
+			return
+		}
 	}
+}
+
+// close releases the forwarding goroutine. The input channel belongs to whoever
+// constructed the wakerChan, so when that channel is not closed this is the only
+// way to stop reading from it. Idempotent.
+func (wc *wakerChan[Item]) close() {
+	wc.once.Do(func() { close(wc.stop) })
 }
 
 func (wc *wakerChan[Item]) setWaker(waker *waker) {
@@ -538,7 +566,19 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	stopTimeout time.Duration
 	stopChan    chan struct{}
 	wg          sync.WaitGroup
+	// runState claims the single wg token NewVoter takes out; whichever of Start
+	// and Stop reaches it first owns releasing it. Taking the token in Start
+	// instead raced Stop's Wait, and a Stop that won the race would tear the voter
+	// down — closing channels it still polls — while Start was coming up.
+	runState atomic.Int32
 }
+
+// Voter lifecycle states for Voter.runState.
+const (
+	voterFresh int32 = iota
+	voterRunning
+	voterStopped
+)
 
 // NewVoter creates a new `Voter` tracker with given round number and base block.
 //
@@ -597,7 +637,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		bestRound:  bestRound,
 		pastRounds: *pastRounds,
 	}
-	return &Voter[Hash, Number, Signature, ID]{
+	v := &Voter[Hash, Number, Signature, ID]{
 		env:                    env,
 		voters:                 voters,
 		inner:                  inner,
@@ -609,6 +649,9 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		stopChan:               make(chan struct{}),
 		stopTimeout:            30 * time.Second,
 	}
+	// Held until Start returns, or until Stop claims it because Start never ran.
+	v.wg.Add(1)
+	return v
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) pruneBackgroundRounds(waker *waker) error {
@@ -895,7 +938,9 @@ func (v *Voter[Hash, Number, Signature, ID]) setLastFinalizedNumber(finalizedNum
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) Start() error { //skipcq: RVV-B0001
-	v.wg.Add(1)
+	if !v.runState.CompareAndSwap(voterFresh, voterRunning) {
+		return fmt.Errorf("voter was stopped before it started")
+	}
 	defer v.wg.Done()
 	waker := newWaker()
 	for {
@@ -917,6 +962,11 @@ func (v *Voter[Hash, Number, Signature, ID]) Start() error { //skipcq: RVV-B0001
 func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 	close(v.stopChan)
 	v.globalOut.Close()
+	// Start never ran and now never will, so release its token or Wait would block
+	// for the whole stop timeout.
+	if v.runState.CompareAndSwap(voterFresh, voterStopped) {
+		v.wg.Done()
+	}
 	timeout := time.NewTimer(v.stopTimeout)
 	wgDone := make(chan struct{})
 	go func() {
@@ -930,6 +980,10 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 	}
 
 	close(v.finalizedNotifications.in)
+	// globalIn belongs to the caller and is not ours to close, so the forwarder
+	// reading it has to be released explicitly or it outlives the voter — still
+	// taking items off a channel the caller may reuse for the next voter.
+	v.globalIn.close()
 	switch state := v.inner.bestRound.state.(type) {
 	case statePrecommitted:
 	case statePrevoted[timerI]:
