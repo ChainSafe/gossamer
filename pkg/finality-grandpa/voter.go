@@ -32,9 +32,8 @@ func newWakerChan[Item any](in chan Item) *wakerChan[Item] {
 func (wc *wakerChan[Item]) start() {
 	defer func() {
 		close(wc.out)
-		// Wake the consumer so it observes the close on its next poll. Closing the
-		// input is how a caller shuts the voter down, so without this the poll loop
-		// would sit on the waker until some unrelated source happened to fire.
+		// Wake the consumer so it polls once more and sees the close, which is how
+		// a shutdown reaches it.
 		if w := wc.waker.Load(); w != nil {
 			w.wake()
 		}
@@ -544,26 +543,22 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	// assumptions from round-to-round.
 	lastFinalizedInRounds HashNumber[Hash, Number]
 
-	// done carries the voter's terminal error, published once the voter has torn
-	// itself down, and is closed straight after. Buffered so the voter never waits
-	// on an owner that has stopped listening.
+	// done carries the terminal error, published after teardown and closed behind
+	// it. Buffered, so the voter never waits on an owner that has stopped
+	// listening.
 	done chan error
 }
 
-// errVoterShutdown travels back through the poll path when the globalIn channel
-// given to NewVoter is closed, which is how a caller asks the voter to stop. It
-// is a shutdown signal rather than a failure, so the run loop reports it as a
-// nil error; it never reaches the caller.
+// errVoterShutdown marks an orderly shutdown as it unwinds through the poll
+// path. The run loop translates it to a nil error, so it never reaches a caller.
 var errVoterShutdown = errors.New("voter shutdown: global incoming stream closed")
 
-// NewVoter creates a new `Voter` tracker with given round number and base block
-// and starts it running. There is no separate start step, so a voter is never
-// observable in a constructed-but-idle state.
+// NewVoter creates a new `Voter` tracker with given round number and base block,
+// and starts it running.
 //
-// The voter runs until globalIn is closed, which is how a caller asks it to shut
-// down. Closing it belongs to the caller, who must therefore be the only writer
-// to it by that point, or must serialise its writers against the close. Done
-// then yields why the voter stopped, once it has released what it owned.
+// Close globalIn to shut the voter down. It belongs to the caller, who must be
+// its only writer by that point or must serialise its writers against the close.
+// Done then yields why the voter stopped.
 //
 // Provide data about the last completed round. If there is no
 // known last completed round, the genesis state (round number 0, no votes, genesis base),
@@ -633,8 +628,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 	}
 	go func() {
 		err := v.run()
-		// Tear down before publishing, so that receiving from done means the voter
-		// has not merely stopped but finished releasing what it owned.
+		// Before publishing, so a receive on done means teardown is complete.
 		v.teardown()
 		v.done <- err
 		close(v.done)
@@ -676,14 +670,10 @@ finalizedNotifications:
 	for {
 		select {
 		case notif, ok := <-v.finalizedNotifications.channel():
-			// This channel is the voter's own, and the teardown closes it only once
-			// the run loop has returned, so a live poll loop cannot legitimately see
-			// it closed: that means the voter was torn down and is being polled
-			// anyway. The stream carrying finalization is gone and cannot be
-			// reopened.
-			// (Unchecked, the receive would also stay ready forever, yielding
-			// zero-value notifications that change nothing, spinning here while
-			// holding v.inner — which blocks VoterState too.)
+			// The voter's own channel, closed only by teardown, so a live poll loop
+			// cannot legitimately see it closed: finalization is gone and cannot be
+			// reopened. A closed channel is permanently ready, so this check is what
+			// ends the loop rather than the default arm.
 			if !ok {
 				v.inner.Unlock()
 				return fmt.Errorf("finalization notification stream closed")
@@ -725,11 +715,9 @@ loop:
 	for {
 		select {
 		case item, ok := <-v.globalIn.channel():
-			// The forwarder closes this channel when globalIn ends, which is how a
-			// caller shuts the voter down. Unwinding through the poll path is what
-			// ends the run loop. (Unchecked, the receive would also stay ready
-			// forever, handing out zero-value items that match no case below and
-			// spinning the loop.)
+			// Closed once globalIn is: the caller's shutdown signal. A closed channel
+			// is permanently ready, so this check is what ends the loop rather than
+			// the default arm.
 			if !ok {
 				return errVoterShutdown
 			}
@@ -964,11 +952,9 @@ func (v *Voter[Hash, Number, Signature, ID]) run() error {
 	}
 }
 
-// Done yields the voter's terminal error once it has stopped: nil if it was shut
-// down by closing the globalIn channel given to NewVoter, otherwise the error it
-// failed with. Every error is terminal — the voter does not recover from one and
-// carry on — so receiving here means the voter has finished and has already
-// released what it owned.
+// Done yields why the voter stopped: nil if globalIn was closed, otherwise the
+// error it failed with. Every error is terminal. Receiving here means the voter
+// has finished and released what it owned, so there is nothing further to call.
 //
 // Select on it to supervise the voter alongside other work:
 //
@@ -978,16 +964,16 @@ func (v *Voter[Hash, Number, Signature, ID]) run() error {
 //	case cmd := <-commands:
 //	}
 //
-// The error is delivered to one receiver, and the channel is closed immediately
-// after, so later receives yield nil. A voter has a single owner; if more than
-// one party needs the outcome, that owner must fan it out.
+// The error goes to one receiver and the channel closes behind it, so later
+// receives yield nil. A voter has a single owner; if others need the outcome,
+// that owner fans it out.
 func (v *Voter[Hash, Number, Signature, ID]) Done() <-chan error {
 	return v.done
 }
 
 // teardown releases what the voter owns: its finalization channel and every
-// round timer. It runs on the voter's own goroutine once the run loop is done,
-// so callers have no teardown obligation.
+// round timer. It runs on the voter's own goroutine, so callers have no teardown
+// obligation.
 func (v *Voter[Hash, Number, Signature, ID]) teardown() {
 	v.globalOut.Close()
 	close(v.finalizedNotifications.in)

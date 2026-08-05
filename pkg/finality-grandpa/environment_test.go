@@ -259,9 +259,9 @@ func (bm *BroadcastNetwork[M, N]) AddNode(f func(N) M, out chan N) (in chan M) {
 func (bm *BroadcastNetwork[M, N]) route() {
 	defer bm.routeWG.Done()
 	for msg := range bm.receiver {
-		// Deliver under the lock. RemoveNode closes a node's channel, and closing a
-		// channel a producer is about to send on panics, so the two have to be
-		// serialised. Senders are buffered, so this does not block in practice.
+		// Under the lock: RemoveNode closes a node's channel, and closing one a
+		// producer is about to send on panics. Senders are buffered, so holding it
+		// across the delivery does not block.
 		bm.mu.Lock()
 		bm.history = append(bm.history, msg)
 		for _, sender := range bm.senders {
@@ -271,9 +271,8 @@ func (bm *BroadcastNetwork[M, N]) route() {
 	}
 }
 
-// RemoveNode deregisters a node's inbound channel and closes it. Closing that
-// channel is how the voter reading it is asked to shut down; it happens under
-// bm.mu so it cannot race a delivery in route.
+// RemoveNode deregisters a node's inbound channel and closes it, shutting down
+// the voter reading it. Held under bm.mu so it cannot race a delivery in route.
 func (bm *BroadcastNetwork[M, N]) RemoveNode(in chan M) {
 	bm.mu.Lock()
 	defer bm.mu.Unlock()

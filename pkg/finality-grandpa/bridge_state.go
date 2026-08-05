@@ -17,9 +17,8 @@ func newWaker() *waker {
 }
 
 func (w *waker) wake() {
-	// Read the channel under the lock and hand the value to the goroutine. Reading
-	// w.wakeCh inside the goroutine would be unsynchronised: it runs after wake has
-	// returned and released the lock, so it can race register's write.
+	// Read under the lock and hand the value to the goroutine, which outlives the
+	// lock and would otherwise race register's write.
 	w.RLock()
 	ch := w.wakeCh
 	w.RUnlock()

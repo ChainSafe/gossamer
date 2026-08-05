@@ -461,11 +461,9 @@ while:
 	for {
 		select {
 		case incoming, ok := <-vr.incoming.channel():
-			// roundData.Incoming belongs to the environment. A round that is still
-			// voting cannot recover from losing it, and the zero value would carry a
-			// nil Message interface, which handleVote dereferences. Unchecked, the
-			// receive also stays permanently ready, so the default arm never runs
-			// and the 1ms timerChan escape below is never armed.
+			// roundData.Incoming belongs to the environment. A round still voting
+			// cannot recover from losing it, and the zero value carries a nil Message
+			// that handleVote would dereference.
 			if !ok {
 				return fmt.Errorf("round %d: incoming message stream closed", vr.roundNumber())
 			}
@@ -602,11 +600,9 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 		res, ok := <-wakerChan.channel()
 		switch {
 		case !ok:
-			// The environment owns bestChain and always sends one value before
-			// closing, so an empty closed channel means the stream went away. Kept
-			// distinct from the default arm below: a real {nil, nil} value means
-			// "no best chain yet" and legitimately parks the round in prevoting,
-			// whereas a closed channel would park it there forever.
+			// An empty closed channel means the stream went away. Distinct from the
+			// default arm below, where a real {nil, nil} value means "no best chain
+			// yet" and legitimately parks the round in prevoting.
 			return fmt.Errorf("round %d: best chain stream closed", vr.roundNumber())
 		case res.Error != nil:
 			return res.Error
