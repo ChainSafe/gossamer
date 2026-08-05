@@ -566,6 +566,11 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	stopTimeout time.Duration
 	stopChan    chan struct{}
 	wg          sync.WaitGroup
+	// stopOnce keeps the teardown to a single run. Stop closes channels, so a
+	// second call used to panic; an owner that both supervises the voter and
+	// shuts down can reach it twice.
+	stopOnce sync.Once
+	stopErr  error
 	// runState claims the single wg token NewVoter takes out; whichever of Start
 	// and Stop reaches it first owns releasing it. Taking the token in Start
 	// instead raced Stop's Wait, and a Stop that won the race would tear the voter
@@ -959,7 +964,14 @@ func (v *Voter[Hash, Number, Signature, ID]) Start() error { //skipcq: RVV-B0001
 	}
 }
 
+// Stop tears the voter down and waits for its loop to return. It is idempotent:
+// later calls block until the first has finished and return the same result.
 func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
+	v.stopOnce.Do(func() { v.stopErr = v.stop() })
+	return v.stopErr
+}
+
+func (v *Voter[Hash, Number, Signature, ID]) stop() error {
 	close(v.stopChan)
 	v.globalOut.Close()
 	// Start never ran and now never will, so release its token or Wait would block

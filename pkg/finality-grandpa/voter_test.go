@@ -821,3 +821,39 @@ func TestVoter_StopReleasesGlobalIn(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 	assert.Len(t, globalIn, 2, "something is still reading globalIn after Stop")
 }
+
+// Stop closes channels, so it has to be single-shot: an owner that both supervises
+// the voter and shuts the node down can reach it twice, and the second call used to
+// panic on a closed channel. Concurrent callers must all get the same answer.
+func TestVoter_StopIsIdempotent(t *testing.T) {
+	network := NewNetwork()
+	defer network.Stop()
+
+	voter := newLifecycleVoter(t, network, make(chan GlobalInItem[string, uint32, Signature, ID]))
+	voter.stopTimeout = 5 * time.Second
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = voter.Start()
+	}()
+	time.Sleep(50 * time.Millisecond)
+
+	const callers = 4
+	errs := make([]error, callers)
+	var wg sync.WaitGroup
+	for i := 0; i < callers; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			errs[i] = voter.Stop()
+		}(i)
+	}
+	wg.Wait()
+	<-done
+
+	for i, err := range errs {
+		assert.Equal(t, errs[0], err, "Stop caller %d saw a different result", i)
+	}
+	assert.NoError(t, voter.Stop())
+}
