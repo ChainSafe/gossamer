@@ -47,7 +47,7 @@ func TestVoter_TalkingToMyself(t *testing.T) {
 	<-finalized
 	network.StopGlobalComms(globalIn)
 	// closing globalIn is an orderly shutdown, not a failure
-	err := voter.Wait()
+	err := <-voter.Done()
 	assert.NoError(t, err)
 }
 
@@ -93,7 +93,7 @@ func TestVoter_FinalizingAtFaultThreshold(t *testing.T) {
 			defer wg.Done()
 			<-finalized
 			network.StopGlobalComms(globalIn)
-			err := voter.Wait()
+			err := <-voter.Done()
 			assert.NoError(t, err)
 		}()
 	}
@@ -191,7 +191,7 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 
 	for i, v := range voters {
 		network.StopGlobalComms(globalIns[i])
-		err := v.Wait()
+		err := <-v.Done()
 		assert.NoError(t, err)
 	}
 }
@@ -231,7 +231,7 @@ func TestVoter_BroadcastCommit(t *testing.T) {
 	<-commitsIn
 
 	network.StopGlobalComms(globalIn)
-	err := voter.Wait()
+	err := <-voter.Done()
 	assert.NoError(t, err)
 }
 
@@ -332,7 +332,7 @@ waitForCommits:
 	assert.Equal(t, 1, commitCount)
 
 	network.StopGlobalComms(globalIn)
-	err := voter.Wait()
+	err := <-voter.Done()
 	assert.NoError(t, err)
 }
 
@@ -393,7 +393,7 @@ func TestVoter_ImportCommitForAnyRound(t *testing.T) {
 	assert.Equal(t, finalized.Commit, commit)
 
 	network.StopGlobalComms(globalIn)
-	err := voter.Wait()
+	err := <-voter.Done()
 	assert.NoError(t, err)
 }
 
@@ -515,7 +515,7 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 		voterState.Get().BackgroundRounds[5])
 
 	network.StopGlobalComms(globalIn)
-	err := unsyncedVoter.Wait()
+	err := <-unsyncedVoter.Done()
 	assert.NoError(t, err)
 }
 
@@ -556,7 +556,7 @@ func TestVoter_PickUpFromPriorWithoutGrandparentState(t *testing.T) {
 	}
 
 	network.StopGlobalComms(globalIn)
-	err := voter.Wait()
+	err := <-voter.Done()
 	assert.NoError(t, err)
 }
 
@@ -661,7 +661,7 @@ waitForPrevote:
 	assert.Equal(t, [2]uint64{2, 1}, env.LastCompletedAndConcluded())
 
 	network.StopGlobalComms(globalIn)
-	err := voter.Wait()
+	err := <-voter.Done()
 	assert.NoError(t, err)
 }
 

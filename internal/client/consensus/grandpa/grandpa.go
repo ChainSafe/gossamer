@@ -436,7 +436,7 @@ type voterWork[
 	E runtime.Extrinsic,
 ] struct {
 	voter            *grandpa.Voter[H, N, primitives.AuthoritySignature, primitives.AuthorityID]
-	voterDone        <-chan struct{}
+	voterDone        <-chan error
 	sharedVoterState *SharedVoterState[primitives.AuthorityID]
 	env              *environment[H, N, Hasher, Header, E]
 	voterCommandsRx  <-chan voterCommand
@@ -554,7 +554,7 @@ func (vw *voterWork[H, N, Hasher, Header, E]) rebuildVoter() {
 		// Repoint shared_voter_state so that the RPC endpoint can query the state
 		vw.sharedVoterState.reset(voter.VoterState())
 
-		// NewVoter runs the voter; Done fires when it stops, and Wait yields why.
+		// NewVoter runs the voter; Done yields why it stopped, once it has.
 		vw.voter = voter
 		vw.voterDone = voter.Done()
 	case voterSetStatePaused[H, N]:
@@ -646,8 +646,7 @@ func (vw *voterWork[H, N, Hasher, Header, E]) handleVoterCommand(command voterCo
 
 func (vw *voterWork[H, N, Hasher, Header, E]) poll() error {
 	select {
-	case <-vw.voterDone:
-		err := vw.voter.Wait()
+	case err := <-vw.voterDone:
 		if err == nil {
 			// nothing here closes globalIn, so the voter has no orderly way to stop
 			return fmt.Errorf("consensus-grandpa inner voter has concluded: %w", ErrSafety)

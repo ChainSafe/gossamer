@@ -544,18 +544,10 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	// assumptions from round-to-round.
 	lastFinalizedInRounds HashNumber[Hash, Number]
 
-	// waitTimeout bounds how long Wait blocks for the run loop to finish.
-	waitTimeout time.Duration
-	// done is closed by the run loop as it returns, publishing runErr with it.
-	done chan struct{}
-	// runErr is written by the run loop before done is closed, so a read after
-	// receiving from done is ordered.
-	runErr error
-	// teardownOnce keeps the teardown to a single run: it closes channels, so a
-	// second pass would panic, and an owner that both supervises the voter and
-	// shuts the node down can reach Wait twice.
-	teardownOnce sync.Once
-	teardownErr  error
+	// done carries the voter's terminal error, published once the voter has torn
+	// itself down, and is closed straight after. Buffered so the voter never waits
+	// on an owner that has stopped listening.
+	done chan error
 }
 
 // errVoterShutdown travels back through the poll path when the globalIn channel
@@ -638,12 +630,15 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		lastFinalizedInRounds:  lastFinalized,
 		globalIn:               newWakerChan(globalIn),
 		globalOut:              newBuffered(globalOutPresend),
-		waitTimeout:            30 * time.Second,
-		done:                   make(chan struct{}),
+		done:                   make(chan error, 1),
 	}
 	go func() {
-		defer close(v.done)
-		v.runErr = v.run()
+		err := v.run()
+		// Tear down before publishing, so that receiving from done means the voter
+		// has not merely stopped but finished releasing what it owned.
+		v.teardown()
+		v.done <- err
+		close(v.done)
 	}()
 	return v
 }
@@ -969,42 +964,31 @@ func (v *Voter[Hash, Number, Signature, ID]) run() error {
 	}
 }
 
-// Wait blocks until the voter has finished, then releases what it owns: its
-// finalization channel and every round timer. It returns nil on an orderly
-// shutdown, and the voter's error if it failed.
+// Done yields the voter's terminal error once it has stopped: nil if it was shut
+// down by closing the globalIn channel given to NewVoter, otherwise the error it
+// failed with. Every error is terminal — the voter does not recover from one and
+// carry on — so receiving here means the voter has finished and has already
+// released what it owned.
 //
-// Wait does not signal shutdown — close the globalIn channel passed to NewVoter
-// to do that. Calling Wait without closing it reports a timeout and leaves the
-// voter running.
+// Select on it to supervise the voter alongside other work:
 //
-// Idempotent, and safe to call from several goroutines: the teardown runs once
-// and every caller gets the same result.
-func (v *Voter[Hash, Number, Signature, ID]) Wait() error {
-	timeout := time.NewTimer(v.waitTimeout)
-	defer timeout.Stop()
-	select {
-	case <-v.done:
-	case <-timeout.C:
-		// Deliberately does not touch runErr: the loop is still running and still
-		// owns it.
-		return fmt.Errorf("timeout waiting for the voter to stop: was globalIn closed?")
-	}
-	v.teardownOnce.Do(func() { v.teardownErr = v.teardown() })
-	if v.teardownErr != nil {
-		return v.teardownErr
-	}
-	// Ordered by the receive from done above.
-	return v.runErr
-}
-
-// Done is closed when the run loop has finished. It lets an owner select on the
-// voter's termination alongside its own work; call Wait afterwards for the
-// result and to release what the voter owns.
-func (v *Voter[Hash, Number, Signature, ID]) Done() <-chan struct{} {
+//	select {
+//	case err := <-voter.Done():
+//	        // the voter has stopped; err says why
+//	case cmd := <-commands:
+//	}
+//
+// The error is delivered to one receiver, and the channel is closed immediately
+// after, so later receives yield nil. A voter has a single owner; if more than
+// one party needs the outcome, that owner must fan it out.
+func (v *Voter[Hash, Number, Signature, ID]) Done() <-chan error {
 	return v.done
 }
 
-func (v *Voter[Hash, Number, Signature, ID]) teardown() error {
+// teardown releases what the voter owns: its finalization channel and every
+// round timer. It runs on the voter's own goroutine once the run loop is done,
+// so callers have no teardown obligation.
+func (v *Voter[Hash, Number, Signature, ID]) teardown() {
 	v.globalOut.Close()
 	close(v.finalizedNotifications.in)
 	switch state := v.inner.bestRound.state.(type) {
@@ -1041,8 +1025,6 @@ func (v *Voter[Hash, Number, Signature, ID]) teardown() error {
 			close(round.roundCommitter.importCommits.in)
 		}
 	}
-
-	return nil
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) poll(waker *waker) (bool, error) { //skipcq: RVV-B0001
