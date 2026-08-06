@@ -585,6 +585,13 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 	lastRoundBase HashNumber[Hash, Number],
 	lastFinalized HashNumber[Hash, Number],
 ) *Voter[Hash, Number, Signature, ID] {
+	// A nil globalIn would otherwise yield a voter that stops immediately and
+	// reports a clean shutdown, since closing that channel is the shutdown signal
+	// and a nil one reads as already closed.
+	if globalIn == nil {
+		panic("grandpa: NewVoter requires a non-nil globalIn; closing it is how the voter is shut down")
+	}
+
 	finalizedSender := make(chan finalizedNotification[Hash, Number, Signature, ID], 1)
 	finalizedNotifications := finalizedSender
 	lastFinalizedNumber := lastFinalized.Number

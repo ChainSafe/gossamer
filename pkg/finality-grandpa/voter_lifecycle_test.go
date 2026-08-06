@@ -219,3 +219,15 @@ func TestVoter_RoundsDoNotAccumulateForwarders(t *testing.T) {
 	assert.LessOrEqual(t, grew, 2,
 		"forwarders grow with rounds: %d over %d rounds", grew, rounds)
 }
+
+// globalIn is mandatory: closing it is the shutdown signal, and a nil channel
+// reads as already closed, so a voter built on one would stop immediately and
+// report a clean shutdown.
+func TestVoter_NilGlobalInPanics(t *testing.T) {
+	network := NewNetwork()
+	defer network.Stop()
+
+	assert.PanicsWithValue(t,
+		"grandpa: NewVoter requires a non-nil globalIn; closing it is how the voter is shut down",
+		func() { newLifecycleVoter(t, network, nil) })
+}
