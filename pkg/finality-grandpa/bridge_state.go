@@ -17,13 +17,16 @@ func newWaker() *waker {
 }
 
 func (w *waker) wake() {
+	// Read under the lock and hand the value to the goroutine, which outlives the
+	// lock and would otherwise race register's write.
 	w.RLock()
-	defer w.RUnlock()
-	if w.wakeCh == nil {
+	ch := w.wakeCh
+	w.RUnlock()
+	if ch == nil {
 		return
 	}
 	go func() {
-		w.wakeCh <- struct{}{}
+		ch <- struct{}{}
 	}()
 }
 

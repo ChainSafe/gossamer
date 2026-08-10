@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"time"
 
 	"golang.org/x/exp/constraints"
@@ -459,7 +460,13 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) processIncoming(waker *wa
 while:
 	for {
 		select {
-		case incoming := <-vr.incoming.channel():
+		case incoming, ok := <-vr.incoming.channel():
+			// roundData.Incoming belongs to the environment. A round still voting
+			// cannot recover from losing it, and the zero value carries a nil Message
+			// that handleVote would dereference.
+			if !ok {
+				return fmt.Errorf("round %d: incoming message stream closed", vr.roundNumber())
+			}
 			log.Tracef("Round %d: Got incoming message", vr.roundNumber())
 			if timer != nil {
 				timer.Stop()
@@ -590,8 +597,13 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 		wakerChan := newWakerChan(bestChain)
 		wakerChan.setWaker(waker)
 		var best *HashNumber[Hash, Number]
-		res := <-wakerChan.channel()
+		res, ok := <-wakerChan.channel()
 		switch {
+		case !ok:
+			// An empty closed channel means the stream went away. Distinct from the
+			// default arm below, where a real {nil, nil} value means "no best chain
+			// yet" and legitimately parks the round in prevoting.
+			return fmt.Errorf("round %d: best chain stream closed", vr.roundNumber())
 		case res.Error != nil:
 			return res.Error
 		case res.Value != nil:

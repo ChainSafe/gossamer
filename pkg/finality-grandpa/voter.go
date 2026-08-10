@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -29,7 +30,14 @@ func newWakerChan[Item any](in chan Item) *wakerChan[Item] {
 }
 
 func (wc *wakerChan[Item]) start() {
-	defer close(wc.out)
+	defer func() {
+		close(wc.out)
+		// Wake the consumer so it polls once more and sees the close, which is how
+		// a shutdown reaches it.
+		if w := wc.waker.Load(); w != nil {
+			w.wake()
+		}
+	}()
 	if wc.in == nil {
 		return
 	}
@@ -119,6 +127,12 @@ type Environment[Hash comparable, Number constraints.Unsigned, Signature compara
 	//
 	// Furthermore, this means that actual logic of creating and verifying
 	// signatures is flexible and can be maintained outside this crate.
+	//
+	// The Incoming channel belongs to the implementation, which must close it once
+	// the round has concluded, and release any still open when it shuts down. The
+	// voter reads it through a forwarding goroutine that ends only when the
+	// channel does, so a round input left open outlives its round. RoundData may
+	// be called more than once for a round number; each call owns its channel.
 	RoundData(
 		round uint64,
 	) RoundData[Hash, Number, Signature, ID, Message[Hash, Number]]
@@ -535,12 +549,22 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	// assumptions from round-to-round.
 	lastFinalizedInRounds HashNumber[Hash, Number]
 
-	stopTimeout time.Duration
-	stopChan    chan struct{}
-	wg          sync.WaitGroup
+	// done carries the terminal error, published after teardown and closed behind
+	// it. Buffered, so the voter never waits on an owner that has stopped
+	// listening.
+	done chan error
 }
 
-// NewVoter creates a new `Voter` tracker with given round number and base block.
+// errVoterShutdown marks an orderly shutdown as it unwinds through the poll
+// path. The run loop translates it to a nil error, so it never reaches a caller.
+var errVoterShutdown = errors.New("voter shutdown: global incoming stream closed")
+
+// NewVoter creates a new `Voter` tracker with given round number and base block,
+// and starts it running.
+//
+// Close globalIn to shut the voter down. It belongs to the caller, who must be
+// its only writer by that point or must serialise its writers against the close.
+// Done then yields why the voter stopped.
 //
 // Provide data about the last completed round. If there is no
 // known last completed round, the genesis state (round number 0, no votes, genesis base),
@@ -561,6 +585,13 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 	lastRoundBase HashNumber[Hash, Number],
 	lastFinalized HashNumber[Hash, Number],
 ) *Voter[Hash, Number, Signature, ID] {
+	// A nil globalIn would otherwise yield a voter that stops immediately and
+	// reports a clean shutdown, since closing that channel is the shutdown signal
+	// and a nil one reads as already closed.
+	if globalIn == nil {
+		panic("grandpa: NewVoter requires a non-nil globalIn; closing it is how the voter is shut down")
+	}
+
 	finalizedSender := make(chan finalizedNotification[Hash, Number, Signature, ID], 1)
 	finalizedNotifications := finalizedSender
 	lastFinalizedNumber := lastFinalized.Number
@@ -597,7 +628,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		bestRound:  bestRound,
 		pastRounds: *pastRounds,
 	}
-	return &Voter[Hash, Number, Signature, ID]{
+	v := &Voter[Hash, Number, Signature, ID]{
 		env:                    env,
 		voters:                 voters,
 		inner:                  inner,
@@ -606,16 +637,23 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		lastFinalizedInRounds:  lastFinalized,
 		globalIn:               newWakerChan(globalIn),
 		globalOut:              newBuffered(globalOutPresend),
-		stopChan:               make(chan struct{}),
-		stopTimeout:            30 * time.Second,
+		done:                   make(chan error, 1),
 	}
+	go func() {
+		err := v.run()
+		// Before publishing, so a receive on done means teardown is complete.
+		v.teardown()
+		v.done <- err
+		close(v.done)
+	}()
+	return v
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) pruneBackgroundRounds(waker *waker) error {
 	// Collect finalize notifications under the lock, then invoke
 	// env.FinalizeBlock outside it. Holding inner.Mutex across user-supplied
 	// callbacks is a deadlock hazard: a slow environment can block readers
-	// of the voter state and stall Stop().
+	// of the voter state and stall the voter's teardown.
 	v.inner.Lock()
 
 pastRounds:
@@ -644,7 +682,15 @@ pastRounds:
 finalizedNotifications:
 	for {
 		select {
-		case notif := <-v.finalizedNotifications.channel():
+		case notif, ok := <-v.finalizedNotifications.channel():
+			// The voter's own channel, closed only by teardown, so a live poll loop
+			// cannot legitimately see it closed: finalization is gone and cannot be
+			// reopened. A closed channel is permanently ready, so this check is what
+			// ends the loop rather than the default arm.
+			if !ok {
+				v.inner.Unlock()
+				return fmt.Errorf("finalization notification stream closed")
+			}
 			fNum := notif.Number
 			v.inner.pastRounds.UpdateFinalized(fNum)
 			if v.setLastFinalizedNumber(fNum) {
@@ -681,7 +727,13 @@ func (v *Voter[Hash, Number, Signature, ID]) processIncoming(waker *waker) error
 loop:
 	for {
 		select {
-		case item := <-v.globalIn.channel():
+		case item, ok := <-v.globalIn.channel():
+			// Closed once globalIn is: the caller's shutdown signal. A closed channel
+			// is permanently ready, so this check is what ends the loop rather than
+			// the default arm.
+			if !ok {
+				return errVoterShutdown
+			}
 			if item.Error != nil {
 				return item.Error
 			}
@@ -894,41 +946,49 @@ func (v *Voter[Hash, Number, Signature, ID]) setLastFinalizedNumber(finalizedNum
 	return false
 }
 
-func (v *Voter[Hash, Number, Signature, ID]) Start() error { //skipcq: RVV-B0001
-	v.wg.Add(1)
-	defer v.wg.Done()
+// run is the voter's poll loop. NewVoter starts it; it ends when the globalIn
+// channel closes, or on the first error.
+func (v *Voter[Hash, Number, Signature, ID]) run() error {
 	waker := newWaker()
 	for {
 		ready, err := v.poll(waker)
 		if err != nil {
+			if errors.Is(err, errVoterShutdown) {
+				return nil
+			}
 			return err
 		}
 		if ready {
 			return nil
 		}
-		select {
-		case <-waker.channel():
-		case <-v.stopChan:
-			return fmt.Errorf("early voter stop")
-		}
+		<-waker.channel()
 	}
 }
 
-func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
-	close(v.stopChan)
-	v.globalOut.Close()
-	timeout := time.NewTimer(v.stopTimeout)
-	wgDone := make(chan struct{})
-	go func() {
-		defer close(wgDone)
-		v.wg.Wait()
-	}()
-	select {
-	case <-timeout.C:
-		return fmt.Errorf("timeout for Voter.Stop()")
-	case <-wgDone:
-	}
+// Done yields why the voter stopped: nil if globalIn was closed, otherwise the
+// error it failed with. Every error is terminal. Receiving here means the voter
+// has finished and released what it owned, so there is nothing further to call.
+//
+// Select on it to supervise the voter alongside other work:
+//
+//	select {
+//	case err := <-voter.Done():
+//	        // the voter has stopped; err says why
+//	case cmd := <-commands:
+//	}
+//
+// The error goes to one receiver and the channel closes behind it, so later
+// receives yield nil. A voter has a single owner; if others need the outcome,
+// that owner fans it out.
+func (v *Voter[Hash, Number, Signature, ID]) Done() <-chan error {
+	return v.done
+}
 
+// teardown releases what the voter owns: its finalization channel and every
+// round timer. It runs on the voter's own goroutine, so callers have no teardown
+// obligation.
+func (v *Voter[Hash, Number, Signature, ID]) teardown() {
+	v.globalOut.Close()
 	close(v.finalizedNotifications.in)
 	switch state := v.inner.bestRound.state.(type) {
 	case statePrecommitted:
@@ -964,8 +1024,6 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 			close(round.roundCommitter.importCommits.in)
 		}
 	}
-
-	return nil
 }
 
 func (v *Voter[Hash, Number, Signature, ID]) poll(waker *waker) (bool, error) { //skipcq: RVV-B0001

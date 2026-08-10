@@ -26,7 +26,11 @@ type environment struct {
 	network                  *Network
 	listeners                []chan listenerItem
 	lastCompleteAndConcluded [2]uint64
-	mtx                      sync.Mutex
+	// roundIn holds the inbound channels handed to the voter, per round, so they
+	// can be closed once the round concludes. RoundData is called more than once
+	// for a round number, hence a slice.
+	roundIn map[uint64][]chan SignedMessageError[string, uint32, Signature, ID]
+	mtx     sync.Mutex
 
 	concludedCalled chan struct{}
 }
@@ -36,6 +40,7 @@ func newEnvironment(network *Network, localID ID) environment {
 		chain:           newDummyChain(),
 		localID:         localID,
 		network:         network,
+		roundIn:         make(map[uint64][]chan SignedMessageError[string, uint32, Signature, ID]),
 		concludedCalled: make(chan struct{}),
 	}
 }
@@ -84,6 +89,12 @@ func (e *environment) RoundData(
 	outgoing := make(Output[string, uint32])
 	incoming := e.network.MakeRoundComms(round, e.localID, outgoing)
 
+	// Remember it so Concluded can close it: the voter reads this channel through
+	// a forwarding goroutine that ends only when the channel does.
+	e.mtx.Lock()
+	e.roundIn[round] = append(e.roundIn[round], incoming)
+	e.mtx.Unlock()
+
 	var outgoingFunc = func(m Message[string, uint32]) error {
 		outgoing <- m
 		return nil
@@ -123,8 +134,16 @@ func (e *environment) Concluded(
 	_ HistoricalVotes[string, uint32, Signature, ID],
 ) error {
 	e.mtx.Lock()
-	defer e.mtx.Unlock()
 	e.lastCompleteAndConcluded[1] = round
+	incoming := e.roundIn[round]
+	delete(e.roundIn, round)
+	e.mtx.Unlock()
+
+	// The round is over, so release the inbound channels handed out for it.
+	for _, in := range incoming {
+		e.network.StopRoundComms(round, in)
+	}
+
 	go func() {
 		e.concludedCalled <- struct{}{}
 	}()
@@ -259,12 +278,28 @@ func (bm *BroadcastNetwork[M, N]) AddNode(f func(N) M, out chan N) (in chan M) {
 func (bm *BroadcastNetwork[M, N]) route() {
 	defer bm.routeWG.Done()
 	for msg := range bm.receiver {
+		// Under the lock: RemoveNode closes a node's channel, and closing one a
+		// producer is about to send on panics. Senders are buffered, so holding it
+		// across the delivery does not block.
 		bm.mu.Lock()
 		bm.history = append(bm.history, msg)
-		senders := append([]chan M(nil), bm.senders...)
-		bm.mu.Unlock()
-		for _, sender := range senders {
+		for _, sender := range bm.senders {
 			sender <- msg
+		}
+		bm.mu.Unlock()
+	}
+}
+
+// RemoveNode deregisters a node's inbound channel and closes it, shutting down
+// the voter reading it. Held under bm.mu so it cannot race a delivery in route.
+func (bm *BroadcastNetwork[M, N]) RemoveNode(in chan M) {
+	bm.mu.Lock()
+	defer bm.mu.Unlock()
+	for i, sender := range bm.senders {
+		if sender == in {
+			bm.senders = append(bm.senders[:i], bm.senders[i+1:]...)
+			close(in)
+			return
 		}
 	}
 }
@@ -400,6 +435,31 @@ func (n *Network) MakeGlobalComms(
 				panic("invalid CommunicationOut variant")
 			}
 		}, out)
+}
+
+// StopRoundComms closes one inbound channel handed out by MakeRoundComms. Only
+// that node's channel: the round network is shared, and other voters may still
+// be in this round.
+func (n *Network) StopRoundComms(
+	roundNumber uint64,
+	in chan SignedMessageError[string, uint32, Signature, ID],
+) {
+	n.mtx.Lock()
+	round, ok := n.rounds[roundNumber]
+	n.mtx.Unlock()
+
+	if ok {
+		round.RemoveNode(in)
+	}
+}
+
+// StopGlobalComms closes the inbound channel handed to a voter by
+// MakeGlobalComms, which is how that voter is shut down.
+func (n *Network) StopGlobalComms(in chan GlobalInItem[string, uint32, Signature, ID]) {
+	n.mtx.Lock()
+	defer n.mtx.Unlock()
+
+	n.globalMessages.RemoveNode(in)
 }
 
 func (n *Network) SendMessage(message CommunicationIn[string, uint32, Signature, ID]) {

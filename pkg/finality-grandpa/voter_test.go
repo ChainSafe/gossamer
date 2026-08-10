@@ -31,11 +31,12 @@ func TestVoter_TalkingToMyself(t *testing.T) {
 	})
 
 	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	globalIn := network.MakeGlobalComms(globalOut)
 	finalized := env.FinalizedStream()
 	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voters,
-		nil,
+		globalIn,
 		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		0,
 		nil,
@@ -43,21 +44,11 @@ func TestVoter_TalkingToMyself(t *testing.T) {
 		lastFinalized,
 	)
 
-	globalIn := network.MakeGlobalComms(globalOut)
-	voter.globalIn = newWakerChan(globalIn)
-
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		err := voter.Start()
-		// stops early, so this should return an error
-		assert.Error(t, err)
-	}()
-
 	<-finalized
-	err := voter.Stop()
+	network.StopGlobalComms(globalIn)
+	// closing globalIn is an orderly shutdown, not a failure
+	err := <-voter.Done()
 	assert.NoError(t, err)
-	<-done
 }
 
 func TestVoter_FinalizingAtFaultThreshold(t *testing.T) {
@@ -85,10 +76,11 @@ func TestVoter_FinalizingAtFaultThreshold(t *testing.T) {
 		// run voter in background. scheduling it to shut down at the end.
 		finalized := env.FinalizedStream()
 		globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+		globalIn := network.MakeGlobalComms(globalOut)
 		voter := NewVoter[string, uint32, Signature, ID](
 			&env,
 			*voters,
-			make(chan GlobalInItem[string, uint32, Signature, ID]),
+			globalIn,
 			func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 			0,
 			nil,
@@ -96,15 +88,12 @@ func TestVoter_FinalizingAtFaultThreshold(t *testing.T) {
 			lastFinalized,
 		)
 
-		globalIn := network.MakeGlobalComms(globalOut)
-		voter.globalIn = newWakerChan(globalIn)
-
 		wg.Add(1)
-		go voter.Start()
 		go func() {
 			defer wg.Done()
 			<-finalized
-			err := voter.Stop()
+			network.StopGlobalComms(globalIn)
+			err := <-voter.Done()
 			assert.NoError(t, err)
 		}()
 	}
@@ -127,6 +116,7 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 	var wg sync.WaitGroup
 	voters := make([]*Voter[string, uint32, Signature, ID], votersOnline)
 	voterStates := make([]VoterState[ID], votersOnline)
+	globalIns := make([]chan GlobalInItem[string, uint32, Signature, ID], votersOnline)
 	// some voters offline
 	for i := 0; i < votersOnline; i++ {
 		localID := ID(i)
@@ -141,10 +131,11 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 		// run voter in background. scheduling it to shut down at the end.
 		finalized := env.FinalizedStream()
 		globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+		globalIn := network.MakeGlobalComms(globalOut)
 		voter := NewVoter[string, uint32, Signature, ID](
 			&env,
 			*voterSet,
-			make(chan GlobalInItem[string, uint32, Signature, ID]),
+			globalIn,
 			func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 			0,
 			nil,
@@ -152,11 +143,9 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 			lastFinalized,
 		)
 
-		globalIn := network.MakeGlobalComms(globalOut)
-		voter.globalIn = newWakerChan(globalIn)
-
 		voters[i] = voter
 		voterStates[i] = voter.VoterState()
+		globalIns[i] = globalIn
 
 		wg.Add(1)
 		go func() {
@@ -190,9 +179,6 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 		voterState.Get(),
 	)
 
-	for _, v := range voters {
-		go v.Start()
-	}
 	wg.Wait()
 
 	assert.Equal(t,
@@ -203,8 +189,9 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 		}{2, expectedRoundState},
 	)
 
-	for _, v := range voters {
-		err := v.Stop()
+	for i, v := range voters {
+		network.StopGlobalComms(globalIns[i])
+		err := <-v.Done()
 		assert.NoError(t, err)
 	}
 }
@@ -227,10 +214,11 @@ func TestVoter_BroadcastCommit(t *testing.T) {
 
 	// run voter in background. scheduling it to shut down at the end.
 	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	globalIn := network.MakeGlobalComms(globalOut)
 	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
-		make(chan GlobalInItem[string, uint32, Signature, ID]),
+		globalIn,
 		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		0,
 		nil,
@@ -240,13 +228,10 @@ func TestVoter_BroadcastCommit(t *testing.T) {
 
 	commitsIn := network.MakeGlobalComms(globalOut)
 
-	globalIn := network.MakeGlobalComms(globalOut)
-	voter.globalIn = newWakerChan(globalIn)
-
-	go voter.Start()
 	<-commitsIn
 
-	err := voter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := <-voter.Done()
 	assert.NoError(t, err)
 }
 
@@ -292,22 +277,17 @@ func TestVoter_BroadcastCommitOnlyIfNewer(t *testing.T) {
 
 	// run voter in background. scheduling it to shut down at the end.
 	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	globalIn := network.MakeGlobalComms(globalOut)
 	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
-		nil,
+		globalIn,
 		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		0,
 		nil,
 		lastFinalized,
 		lastFinalized,
 	)
-	globalIn := network.MakeGlobalComms(globalOut)
-	voter.globalIn = newWakerChan(globalIn)
-
-	go func() {
-		voter.Start()
-	}()
 
 	item := <-roundIn
 	// wait for a prevote
@@ -351,7 +331,8 @@ waitForCommits:
 	}
 	assert.Equal(t, 1, commitCount)
 
-	err := voter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := <-voter.Done()
 	assert.NoError(t, err)
 }
 
@@ -389,23 +370,17 @@ func TestVoter_ImportCommitForAnyRound(t *testing.T) {
 
 	// run voter in background. scheduling it to shut down at the end.
 	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	globalIn := network.MakeGlobalComms(globalOut)
 	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
-		nil,
+		globalIn,
 		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		0,
 		nil,
 		lastFinalized,
 		lastFinalized,
 	)
-
-	globalIn := network.MakeGlobalComms(globalOut)
-	voter.globalIn = newWakerChan(globalIn)
-
-	go func() {
-		voter.Start()
-	}()
 
 	// Send the commit message
 	co := CommunicationOutCommit[string, uint32, Signature, ID]{
@@ -417,7 +392,8 @@ func TestVoter_ImportCommitForAnyRound(t *testing.T) {
 	finalized := <-env.FinalizedStream()
 	assert.Equal(t, finalized.Commit, commit)
 
-	err := voter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := <-voter.Done()
 	assert.NoError(t, err)
 }
 
@@ -447,18 +423,17 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 	})
 
 	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	globalIn := network.MakeGlobalComms(globalOut)
 	unsyncedVoter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
-		nil,
+		globalIn,
 		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		0,
 		nil,
 		lastFinalized,
 		lastFinalized,
 	)
-	globalIn := network.MakeGlobalComms(globalOut)
-	unsyncedVoter.globalIn = newWakerChan(globalIn)
 
 	prevote := func(id uint32) SignedPrevote[string, uint32, Signature, ID] {
 		return SignedPrevote[string, uint32, Signature, ID]{
@@ -491,9 +466,6 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 	voterState := unsyncedVoter.VoterState()
 	_, ok := voterState.Get().BackgroundRounds[5]
 	assert.False(t, ok)
-
-	// spawn the voter in the background
-	go unsyncedVoter.Start()
 
 	finalized := env.FinalizedStream()
 
@@ -542,7 +514,8 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 		},
 		voterState.Get().BackgroundRounds[5])
 
-	err := unsyncedVoter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := <-unsyncedVoter.Done()
 	assert.NoError(t, err)
 }
 
@@ -564,27 +537,26 @@ func TestVoter_PickUpFromPriorWithoutGrandparentState(t *testing.T) {
 
 	// run voter in background. scheduling it to shut down at the end.
 	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	globalIn := network.MakeGlobalComms(globalOut)
 	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
-		nil,
+		globalIn,
 		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		10,
 		nil,
 		lastFinalized,
 		lastFinalized,
 	)
-	globalIn := network.MakeGlobalComms(globalOut)
-	voter.globalIn = newWakerChan(globalIn)
 
-	go voter.Start()
 	for finalized := range env.FinalizedStream() {
 		if finalized.Number >= 6 {
 			break
 		}
 	}
 
-	err := voter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := <-voter.Done()
 	assert.NoError(t, err)
 }
 
@@ -655,19 +627,17 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 
 	// run voter in background. scheduling it to shut down at the end.
 	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	globalIn := network.MakeGlobalComms(globalOut)
 	voter := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
-		nil,
+		globalIn,
 		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
 		1,
 		lastRoundVotes,
 		lastFinalized,
 		lastFinalized,
 	)
-	globalIn := network.MakeGlobalComms(globalOut)
-	voter.globalIn = newWakerChan(globalIn)
-	go voter.Start()
 
 	// wait until we see a prevote on round 3 from our local ID,
 	// indicating that the round 3 has started.
@@ -690,7 +660,8 @@ waitForPrevote:
 	<-env.concludedCalled
 	assert.Equal(t, [2]uint64{2, 1}, env.LastCompletedAndConcluded())
 
-	err := voter.Stop()
+	network.StopGlobalComms(globalIn)
+	err := <-voter.Done()
 	assert.NoError(t, err)
 }
 
