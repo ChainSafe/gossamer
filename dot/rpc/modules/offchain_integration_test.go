@@ -16,6 +16,71 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+func Test_OffchainModule_LocalStorageClear(t *testing.T) {
+	t.Run("clear_local_error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+
+		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
+		offchainModule := &OffchainModule{
+			nodeStorage: runtimeStorage,
+		}
+
+		const keyHex = "0x11111111111111"
+		request := &OffchainLocalStorageClear{
+			Kind: offchainLocal,
+			Key:  keyHex,
+		}
+		errTest := errors.New("test error")
+		runtimeStorage.EXPECT().ClearLocal(common.MustHexToBytes(keyHex)).
+			Return(errTest)
+
+		err := offchainModule.LocalStorageClear(nil, request, nil)
+		assert.ErrorIs(t, err, errTest)
+	})
+
+	t.Run("local_kind", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+
+		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
+		offchainModule := &OffchainModule{
+			nodeStorage: runtimeStorage,
+		}
+
+		const keyHex = "0x11111111111111"
+		request := &OffchainLocalStorageClear{
+			Kind: offchainLocal,
+			Key:  keyHex,
+		}
+		runtimeStorage.EXPECT().ClearLocal(common.MustHexToBytes(keyHex)).
+			Return(nil)
+		var response StringResponse
+		err := offchainModule.LocalStorageClear(nil, request, &response)
+		require.NoError(t, err)
+		assert.Empty(t, response)
+	})
+
+	t.Run("persistent_kind", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+
+		runtimeStorage := mocks.NewMockRuntimeStorageAPI(ctrl)
+		offchainModule := &OffchainModule{
+			nodeStorage: runtimeStorage,
+		}
+
+		const keyHex = "0x11111111111111"
+		request := &OffchainLocalStorageClear{
+			Kind: offchainPersistent,
+			Key:  keyHex,
+		}
+		runtimeStorage.EXPECT().ClearPersistent(common.MustHexToBytes(keyHex)).
+			Return(nil)
+		var response StringResponse
+		err := offchainModule.LocalStorageClear(nil, request, &response)
+		require.NoError(t, err)
+		assert.Empty(t, response)
+	})
+}
+
 func Test_OffchainModule_LocalStorageGet(t *testing.T) {
 	t.Run("get_local_error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
@@ -94,10 +159,17 @@ func TestOffchainStorage_OtherKind(t *testing.T) {
 		Kind: "another kind",
 		Key:  "0x11111111111111",
 	}
+	clearReq := &OffchainLocalStorageClear{
+		Kind: "another kind",
+		Key:  "0x11111111111111",
+	}
 	err := m.LocalStorageSet(nil, setReq, nil)
 	require.Error(t, err, "storage kind not found: another kind")
 
 	err = m.LocalStorageGet(nil, getReq, nil)
+	require.Error(t, err, "storage kind not found: another kind")
+
+	err = m.LocalStorageClear(nil, clearReq, nil)
 	require.Error(t, err, "storage kind not found: another kind")
 }
 
