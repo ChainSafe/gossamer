@@ -1,0 +1,2019 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The Official Documentation for Gossamer | A Go Implementation of the Polkadot Host">
+      
+      
+      
+      
+        <link rel="prev" href="../availability-recovery/">
+      
+      
+        <link rel="next" href="../statement-distribution/">
+      
+      
+      <link rel="icon" href="../../assets/favicon.ico">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>Authority Discovery Overview - Gossamer Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="pink" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#authority-discovery-design" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Gossamer Docs" class="md-header__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gossamer Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Authority Discovery Overview
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../usage/running-nodes/" class="md-tabs__link">
+          
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../integrate/connect-to-polkadot-js/" class="md-tabs__link">
+          
+  
+  Integrate
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../testing-and-debugging/test-suite/" class="md-tabs__link">
+          
+  
+  Testing and Debugging
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../advanced/scale-examples/" class="md-tabs__link">
+          
+  
+  Advanced
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../parachain-protocol-overview/" class="md-tabs__link">
+          
+  
+  Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing.md" class="md-tabs__link">
+          
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Gossamer Docs" class="md-nav__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Gossamer Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/host-architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Host Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/package-library/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Package Library
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/general-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/developer-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Developer Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Usage
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/running-nodes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running Nodes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/command-line/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command Line
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-runtime/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import Runtime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-state/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import State
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Integrate
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Integrate
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrate/connect-to-polkadot-js/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connect to Polkadot.js
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Testing and Debugging
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Testing and Debugging
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/test-suite/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Suite
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/debugging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Debugging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Advanced
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Advanced
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced/scale-examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SCALE Examples
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parachain-protocol-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Parachain Protocol Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../candidate-backing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Candidate Backing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-subsystems/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability Subsystems
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../prospective-parachains/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fragment-chain/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains - Fragment Chain
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-recovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability recovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Authority Discovery
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Authority Discovery
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#worker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worker
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rolepublishanddiscover" class="md-nav__link">
+    <span class="md-ellipsis">
+      Role::PublishAndDiscover
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rolediscover" class="md-nav__link">
+    <span class="md-ellipsis">
+      Role::Discover
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worker Dependencies
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worker Dependencies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authoritydiscovery-as-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      AuthorityDiscovery as Client
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#networkprovider" class="md-nav__link">
+    <span class="md-ellipsis">
+      NetworkProvider
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dhteventstream" class="md-nav__link">
+    <span class="md-ellipsis">
+      DhtEventStream
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementing-networkdhtprovider" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementing NetworkDhtProvider
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementing-dhteventstream" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementing DhtEventStream
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementing DhtEventStream">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kademliaeventinboundrequest" class="md-nav__link">
+    <span class="md-ellipsis">
+      KademliaEvent::InboundRequest
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kademliaeventoutboundqueryprogressed" class="md-nav__link">
+    <span class="md-ellipsis">
+      KademliaEvent::OutboundQueryProgressed
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service" class="md-nav__link">
+    <span class="md-ellipsis">
+      Service
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Questions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#is-the-authority-discovery-implemented-on-kademlia-for-a-custom-peer-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Is the authority discovery implemented on Kademlia for a custom peer discovery?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-are-the-functionalities-of-the-authority-discovery-beyond-discovery-new-peers-based-on-its-authority-ids" class="md-nav__link">
+    <span class="md-ellipsis">
+      What are the functionalities of the authority discovery, beyond discovery new peers based on its authority ids?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-subsystems-uses-the-authority-discovery-mechanism-describe-the-usages" class="md-nav__link">
+    <span class="md-ellipsis">
+      What subsystems uses the authority discovery mechanism? Describe the usages.
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#check-if-we-can-currently-extend-the-authority-discovery-protocol-can-to-golang-kademlia-p2p-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      Check if we can currently extend the authority discovery protocol can to golang kademlia p2p library
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../statement-distribution/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Statement Distribution
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../grid-topology/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grid Topology
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gossip-support/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gossip Support
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provisioner/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Provisioner
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../collator-protocol-validator-side/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Collator Protocol - Validator Side
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Contributing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#worker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worker
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rolepublishanddiscover" class="md-nav__link">
+    <span class="md-ellipsis">
+      Role::PublishAndDiscover
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rolediscover" class="md-nav__link">
+    <span class="md-ellipsis">
+      Role::Discover
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worker Dependencies
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worker Dependencies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authoritydiscovery-as-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      AuthorityDiscovery as Client
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#networkprovider" class="md-nav__link">
+    <span class="md-ellipsis">
+      NetworkProvider
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dhteventstream" class="md-nav__link">
+    <span class="md-ellipsis">
+      DhtEventStream
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementing-networkdhtprovider" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementing NetworkDhtProvider
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementing-dhteventstream" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementing DhtEventStream
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementing DhtEventStream">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kademliaeventinboundrequest" class="md-nav__link">
+    <span class="md-ellipsis">
+      KademliaEvent::InboundRequest
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kademliaeventoutboundqueryprogressed" class="md-nav__link">
+    <span class="md-ellipsis">
+      KademliaEvent::OutboundQueryProgressed
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service" class="md-nav__link">
+    <span class="md-ellipsis">
+      Service
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Questions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#is-the-authority-discovery-implemented-on-kademlia-for-a-custom-peer-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Is the authority discovery implemented on Kademlia for a custom peer discovery?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-are-the-functionalities-of-the-authority-discovery-beyond-discovery-new-peers-based-on-its-authority-ids" class="md-nav__link">
+    <span class="md-ellipsis">
+      What are the functionalities of the authority discovery, beyond discovery new peers based on its authority ids?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-subsystems-uses-the-authority-discovery-mechanism-describe-the-usages" class="md-nav__link">
+    <span class="md-ellipsis">
+      What subsystems uses the authority discovery mechanism? Describe the usages.
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#check-if-we-can-currently-extend-the-authority-discovery-protocol-can-to-golang-kademlia-p2p-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      Check if we can currently extend the authority discovery protocol can to golang kademlia p2p library
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="authority-discovery-design">Authority Discovery Design<a class="headerlink" href="#authority-discovery-design" title="Permanent link">&para;</a></h1>
+<p>Authority Discovery in Substrate enables authorities to discover and directly connect to other authorities.  In the Substrate implementation it is comprised of two components, the [<code>Worker</code>] and the [<code>Service</code>].</p>
+<h2 id="worker"><code>Worker</code><a class="headerlink" href="#worker" title="Permanent link">&para;</a></h2>
+<p>An authority discovery [<code>Worker</code>] can publish the local node's addresses as well as discover
+those of other nodes via a <a href="https://pl-launchpad.io/curriculum/libp2p/dht/">Kademlia DHT</a>.</p>
+<p>When constructing the worker via constructor, we can specify the [<code>Role</code>]. The [<code>Role</code>] enum has two values: <code>PublishAndDiscover</code> and <code>Discover</code>. </p>
+<h3 id="rolepublishanddiscover"><code>Role::PublishAndDiscover</code><a class="headerlink" href="#rolepublishanddiscover" title="Permanent link">&para;</a></h3>
+<p>If the worker is constructed with the <code>PublishAndDiscover</code> role, it will 
+- Retrieve its external addresses (including peer id).
+- Get the list of keys owned by the local node participating in the current authority set.
+- Sign the addresses with the keys.
+- Put addresses and signature as a record with the authority id as a key on the Kademlia DHT.</p>
+<h3 id="rolediscover"><code>Role::Discover</code><a class="headerlink" href="#rolediscover" title="Permanent link">&para;</a></h3>
+<p>If the worker is constructed with either <code>PublishAndDiscover</code> or <code>Discover</code> role, it will:
+- Retrieve the current and next set of authorities.
+- Start DHT queries for the ids of the authorities.
+- Validate the signatures of the retrieved key value pairs.
+- Add the retrieved external addresses as priority nodes to the network peerset.
+- Allow querying of the collected addresses via the accompanying [<code>Service</code>].</p>
+<h3 id="worker-dependencies"><code>Worker</code> Dependencies<a class="headerlink" href="#worker-dependencies" title="Permanent link">&para;</a></h3>
+<p>There are a number of dependencies that are supplied and stored as part of the <code>Worker::new</code> constructor.  The notable dependencies are described in further detail.</p>
+<h4 id="authoritydiscovery-as-client"><code>AuthorityDiscovery</code> as <code>Client</code><a class="headerlink" href="#authoritydiscovery-as-client" title="Permanent link">&para;</a></h4>
+<p>The [<code>AuthorityDiscovery</code>] trait contains only two methods: <code>authorities</code> and <code>best_hash</code>.</p>
+<p>The <code>authorities</code> is the same method found in [<code>ProvideRuntimeApi</code>] trait, implying a runtime call is expected to be made to get the authorities at a given block hash.</p>
+<p>The <code>best_hash</code> method is the same found in [<code>HeaderBackend</code>] trait, which we have already implemented in the Gossamer version of the base <code>Client</code>.</p>
+<h4 id="networkprovider"><code>NetworkProvider</code><a class="headerlink" href="#networkprovider" title="Permanent link">&para;</a></h4>
+<p>Within Authority Discover a trait named [<code>NetworkProvider</code>] is defined as:</p>
+<div class="codehilite"><pre><span></span><code><span class="sd">/// NetworkProvider provides [`Worker`] with all necessary hooks into the</span>
+<span class="sd">/// underlying Substrate networking. Using this trait abstraction instead of</span>
+<span class="sd">/// `sc_network::NetworkService` directly is necessary to unit test [`Worker`].</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">NetworkProvider</span>:
+    <span class="nc">NetworkDHTProvider</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">NetworkStateInfo</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">NetworkSigner</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Sync</span>
+<span class="p">{</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>I've copied all of <code>NetworkDHTProvider</code>, <code>NetworkStateInfo</code> and <code>NetworkSigner</code> traits below:</p>
+<div class="codehilite"><pre><span></span><code><span class="sd">/// Provides access to the networking DHT.</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">NetworkDHTProvider</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// Start getting a value from the DHT.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">get_value</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">key</span>: <span class="kp">&amp;</span><span class="nc">KademliaKey</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Start putting a value in the DHT.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">put_value</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">key</span>: <span class="nc">KademliaKey</span><span class="p">,</span><span class="w"> </span><span class="n">value</span>: <span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Start putting the record to `peers`.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// If `update_local_storage` is true the local storage is udpated as well.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">put_record_to</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">record</span>: <span class="nc">Record</span><span class="p">,</span><span class="w"> </span><span class="n">peers</span>: <span class="nc">HashSet</span><span class="o">&lt;</span><span class="n">PeerId</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">update_local_storage</span>: <span class="kt">bool</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Store a record in the DHT memory store.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">store_record</span><span class="p">(</span>
+<span class="w">        </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span>
+<span class="w">        </span><span class="n">key</span>: <span class="nc">KademliaKey</span><span class="p">,</span>
+<span class="w">        </span><span class="n">value</span>: <span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">        </span><span class="n">publisher</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="n">PeerId</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">        </span><span class="n">expires</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="n">Instant</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Register this node as a provider for `key` on the DHT.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">start_providing</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">key</span>: <span class="nc">KademliaKey</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Deregister this node as a provider for `key` on the DHT.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">stop_providing</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">key</span>: <span class="nc">KademliaKey</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Start getting the list of providers for `key` on the DHT.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">get_providers</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">key</span>: <span class="nc">KademliaKey</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>For <code>NetworkDHTProvider</code> functionality the current <code>go-libp2p-kad-dht</code> implementation supports everything except <code>store_record</code>.  This is a function that exists in the <code>rust-libp2p</code> library.  Essentially, it is a directed message to a peer to update the expiry for that key/value.  This is used in <code>Worker</code> to update authority records on other known peers.</p>
+<div class="codehilite"><pre><span></span><code><span class="sd">/// Trait for providing information about the local network state</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">NetworkStateInfo</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// Returns the local external addresses.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">external_addresses</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Multiaddr</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="sd">/// Returns the listening addresses (without trailing `/p2p/` with our `PeerId`).</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">listen_addresses</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Multiaddr</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="sd">/// Returns the local Peer ID.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">local_peer_id</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nc">PeerId</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>The <code>NetworkStateInfo</code> trait/interface can be be implemented by calling existing Gossamer code.</p>
+<div class="codehilite"><pre><span></span><code><span class="sd">/// Signer with network identity</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">NetworkSigner</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// Signs the message with the `KeyPair` that defines the local [`PeerId`].</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">sign_with_local_identity</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span>: <span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="n">Signature</span><span class="p">,</span><span class="w"> </span><span class="n">SigningError</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="sd">/// Verify signature using peer&#39;s public key.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// `public_key` must be Protobuf-encoded ed25519 public key.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// Returns `Err(())` if public cannot be parsed into a valid ed25519 public key.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">verify</span><span class="p">(</span>
+<span class="w">        </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span>
+<span class="w">        </span><span class="n">peer_id</span>: <span class="nc">sc_network_types</span>::<span class="n">PeerId</span><span class="p">,</span>
+<span class="w">        </span><span class="n">public_key</span>: <span class="kp">&amp;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">        </span><span class="n">signature</span>: <span class="kp">&amp;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">        </span><span class="n">message</span>: <span class="kp">&amp;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>The <code>NetworkSigner</code> trait/interface can be implemented by calling existing Gossamer code.</p>
+<h4 id="dhteventstream"><code>DhtEventStream</code><a class="headerlink" href="#dhteventstream" title="Permanent link">&para;</a></h4>
+<p><code>DhtEventStream</code> is essentially a stream of item type [<code>DhtEvent</code>] enum. The enum is as follows:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">pub</span><span class="w"> </span><span class="k">enum</span> <span class="nc">DhtEvent</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// The value was found.</span>
+<span class="w">    </span><span class="n">ValueFound</span><span class="p">(</span><span class="n">PeerRecord</span><span class="p">),</span>
+
+<span class="w">    </span><span class="sd">/// The requested record has not been found in the DHT.</span>
+<span class="w">    </span><span class="n">ValueNotFound</span><span class="p">(</span><span class="n">Key</span><span class="p">),</span>
+
+<span class="w">    </span><span class="sd">/// The record has been successfully inserted into the DHT.</span>
+<span class="w">    </span><span class="n">ValuePut</span><span class="p">(</span><span class="n">Key</span><span class="p">),</span>
+
+<span class="w">    </span><span class="sd">/// An error has occurred while putting a record into the DHT.</span>
+<span class="w">    </span><span class="n">ValuePutFailed</span><span class="p">(</span><span class="n">Key</span><span class="p">),</span>
+
+<span class="w">    </span><span class="sd">/// An error occured while registering as a content provider on the DHT.</span>
+<span class="w">    </span><span class="n">StartProvidingFailed</span><span class="p">(</span><span class="n">Key</span><span class="p">),</span>
+
+<span class="w">    </span><span class="sd">/// The DHT received a put record request.</span>
+<span class="w">    </span><span class="n">PutRecordRequest</span><span class="p">(</span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">sc_network_types</span>::<span class="n">PeerId</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">std</span>::<span class="n">time</span>::<span class="n">Instant</span><span class="o">&gt;</span><span class="p">),</span>
+
+<span class="w">    </span><span class="sd">/// The providers for [`Key`] were found.</span>
+<span class="w">    </span><span class="n">ProvidersFound</span><span class="p">(</span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">PeerId</span><span class="o">&gt;</span><span class="p">),</span>
+
+<span class="w">    </span><span class="sd">/// The providers for [`Key`] were not found.</span>
+<span class="w">    </span><span class="n">ProvidersNotFound</span><span class="p">(</span><span class="n">Key</span><span class="p">),</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>In Gossamer we currently use <code>go-libp2p-kad-dht</code> package for DHT functionality.  <code>go-libp2p-kad-dht</code> does not currently emit any of these events.  The <code>Worker</code> only handles cases of <code>ValueFound</code>, <code>ValueNotFound</code>, <code>ValuePut</code>, <code>ValuePutFailed</code>, and <code>PutRecordRequest</code>.  </p>
+<h4 id="implementing-networkdhtprovider">Implementing <code>NetworkDhtProvider</code><a class="headerlink" href="#implementing-networkdhtprovider" title="Permanent link">&para;</a></h4>
+<p>I believe we will need to fork <code>go-libp2p-kad-dht</code> or look for viable alternatives DHT packages to support the <code>put_record_to</code> functionality. Without this functionality we will not be able to run the Substrate Authority Discovery protocol as expected by Substrate based nodes. Given the <code>put_record_to</code> method is updating existing records based on creation time to specific peers, we will need to expose the message sender in <code>IpfsDHT</code> and add the functionality to a wrapper type, or add the function to it and hope to merge back upstream.</p>
+<h4 id="implementing-dhteventstream">Implementing <code>DhtEventStream</code><a class="headerlink" href="#implementing-dhteventstream" title="Permanent link">&para;</a></h4>
+<p>The rust <code>libp2p-kad</code> crate emits events of enum type <a href="https://github.com/libp2p/rust-libp2p/blob/master/protocols/kad/src/behaviour.rs#L2745"><code>KademliaEvent</code></a>. The ones that need to be implemented in the Go Kademlia DHT library are <code>KademliaEvent::OutboundQueryProgressed</code> and <code>KademliaEvent::InboundRequest</code>.</p>
+<h5 id="kademliaeventinboundrequest"><code>KademliaEvent::InboundRequest</code><a class="headerlink" href="#kademliaeventinboundrequest" title="Permanent link">&para;</a></h5>
+<p><code>InboundRequest</code> has a <code>request</code> attribute which is of type <a href="https://github.com/libp2p/rust-libp2p/blob/master/protocols/kad/src/behaviour.rs#L2854"><code>InboundRequest</code></a>.  If the request is of type <a href="https://github.com/libp2p/rust-libp2p/blob/master/protocols/kad/src/behaviour.rs#L2878"><code>PutRecord</code></a> we should be emitting an event that we can translate to <code>DhtEvent::PutRecordRequest</code>.  </p>
+<p>In <code>go-libp2p-kad-dht</code> it is unclear if we are able to listen on events that are inbound (aka come from other nodes). We will need to investigate into the codebase to see if there are current events that can be listened on to achieve this functionality.  </p>
+<h5 id="kademliaeventoutboundqueryprogressed"><code>KademliaEvent::OutboundQueryProgressed</code><a class="headerlink" href="#kademliaeventoutboundqueryprogressed" title="Permanent link">&para;</a></h5>
+<p>For <code>OutboundQueryProgressed</code> there is a <code>result</code> attribute of type <a href="https://github.com/libp2p/rust-libp2p/blob/master/protocols/kad/src/behaviour.rs#L2887"><code>QueryResult</code></a>.  If the result is of variant type <code>QueryResult::GetRecord</code> this signals that an outbound request has been made to the DHT.  <code>QueryResult::GetRecord</code> is of type <code>GetRecordResult</code> which is a result type <code>Result&lt;GetRecordOk, GetRecordError&gt;</code>. <code>GetRecordOK</code> is as follows:</p>
+<div class="codehilite"><pre><span></span><code><span class="sd">/// The successful result of [`Behaviour::get_record`].</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">enum</span> <span class="nc">GetRecordOk</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">FoundRecord</span><span class="p">(</span><span class="n">PeerRecord</span><span class="p">),</span>
+<span class="w">    </span><span class="n">FinishedWithNoAdditionalRecord</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="sd">/// If caching is enabled, these are the peers closest</span>
+<span class="w">        </span><span class="sd">/// _to the record key_ (not the local node) that were queried but</span>
+<span class="w">        </span><span class="sd">/// did not return the record, sorted by distance to the record key</span>
+<span class="w">        </span><span class="sd">/// from closest to farthest. How many of these are tracked is configured</span>
+<span class="w">        </span><span class="sd">/// by [`Config::set_caching`].</span>
+<span class="w">        </span><span class="sd">///</span>
+<span class="w">        </span><span class="sd">/// Writing back the cache at these peers is a manual operation.</span>
+<span class="w">        </span><span class="sd">/// ie. you may wish to use these candidates with [`Behaviour::put_record_to`]</span>
+<span class="w">        </span><span class="sd">/// after selecting one of the returned records.</span>
+<span class="w">        </span><span class="n">cache_candidates</span>: <span class="nc">BTreeMap</span><span class="o">&lt;</span><span class="n">kbucket</span>::<span class="n">Distance</span><span class="p">,</span><span class="w"> </span><span class="n">PeerId</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>There be an emitted event of <code>DhtEvent::ValueFound</code> whenever <code>GetRecordOk::FoundRecord</code> is the result.  If there's an error <code>GetRecordError</code>, a <code>DhtEvent::ValueNotFound</code> event should be sent over the <code>DhtEventStream</code>.</p>
+<p>If <code>OutboundQueryProgressed</code> result attribute is of type <code>QueryResult::PutRecord</code>, we should be emitting a <code>DhtEvent::ValuePut</code> event if it was successful, and a<code>DhtEvent::ValuePutFailed</code> event if it failed.</p>
+<p>In <code>go-libp2p-kad-dht</code> both the <code>GetValue</code> and <code>PutValue</code> functions are synchronous calls that take in a supplied <code>context.Context</code> for cancellation.  We should be able to emit these events in a type that wraps <code>IpfsDHT</code> by spawning goroutines to emit the <code>DhtEvent</code> variants.  </p>
+<h2 id="service"><code>Service</code><a class="headerlink" href="#service" title="Permanent link">&para;</a></h2>
+<p>The [<code>Service</code>] is an accompanying type to the <code>Worker</code> which communicates over a channel with item type [<code>ServicetoWorkerMessage</code>] enum.  The enum is as follows:</p>
+<div class="codehilite"><pre><span></span><code><span class="sd">/// Message send from the [`Service`] to the [`Worker`].</span>
+<span class="k">pub</span><span class="p">(</span><span class="k">crate</span><span class="p">)</span><span class="w"> </span><span class="k">enum</span> <span class="nc">ServicetoWorkerMsg</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// See [`Service::get_addresses_by_authority_id`].</span>
+<span class="w">    </span><span class="n">GetAddressesByAuthorityId</span><span class="p">(</span><span class="n">AuthorityId</span><span class="p">,</span><span class="w"> </span><span class="n">oneshot</span>::<span class="n">Sender</span><span class="o">&lt;</span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">HashSet</span><span class="o">&lt;</span><span class="n">Multiaddr</span><span class="o">&gt;&gt;&gt;</span><span class="p">),</span>
+<span class="w">    </span><span class="sd">/// See [`Service::get_authority_ids_by_peer_id`].</span>
+<span class="w">    </span><span class="n">GetAuthorityIdsByPeerId</span><span class="p">(</span><span class="n">PeerId</span><span class="p">,</span><span class="w"> </span><span class="n">oneshot</span>::<span class="n">Sender</span><span class="o">&lt;</span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">HashSet</span><span class="o">&lt;</span><span class="n">AuthorityId</span><span class="o">&gt;&gt;&gt;</span><span class="p">),</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>The messages are sent to the worker when calling the public API of the <code>Service</code>.  The <code>Service</code> public API is essentially the following two methods:</p>
+<div class="codehilite"><pre><span></span><code><span class="k">pub</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span> <span class="nf">get_addresses_by_authority_id</span><span class="p">(</span>
+<span class="w">    </span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="bp">self</span><span class="p">,</span>
+<span class="w">    </span><span class="n">authority</span>: <span class="nc">AuthorityId</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Option</span><span class="o">&lt;</span><span class="n">HashSet</span><span class="o">&lt;</span><span class="n">Multiaddr</span><span class="o">&gt;&gt;</span>
+
+<span class="k">pub</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span> <span class="nf">get_authority_ids_by_peer_id</span><span class="p">(</span>
+<span class="w">    </span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="bp">self</span><span class="p">,</span>
+<span class="w">    </span><span class="n">peer_id</span>: <span class="nc">PeerId</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Option</span><span class="o">&lt;</span><span class="n">HashSet</span><span class="o">&lt;</span><span class="n">AuthorityId</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="p">{</span>
+</code></pre></div>
+
+<p>I'm not absolutely sure we need to seperate the <code>Worker</code> and <code>Service</code> functionality into two distinct types like they do in Substrate.  But these two functions are the public interface to the Authority Discovery package, and both should return a "one shot" channel that return a set of multiaddr, or authority ids.</p>
+<h2 id="questions">Questions<a class="headerlink" href="#questions" title="Permanent link">&para;</a></h2>
+<h3 id="is-the-authority-discovery-implemented-on-kademlia-for-a-custom-peer-discovery">Is the authority discovery implemented on Kademlia for a custom peer discovery?<a class="headerlink" href="#is-the-authority-discovery-implemented-on-kademlia-for-a-custom-peer-discovery" title="Permanent link">&para;</a></h3>
+<p>No, it uses Kademlia capabilities however it adds a custom handlers for DHT Events, like: DhtEvent::ValueFound
+- DhtEvent::ValueNotFound
+- DhtEvent::ValuePut
+- DhtEvent::ValuePutFailed
+- DhtEvent::PutRecordRequest</p>
+<p>These events are produced by the Discovery layer (Kademlia) and propagated to the <code>authority-discovery</code> that handles each of them. Specifically for <code>DhtEvent::PutRecordRequest</code> it does a validation step and then store the record. </p>
+<p>What happens is that the <code>authority-discovery</code> is the actual protocol implementation for discovery in substrate/polkadot given that it produces and store the records that are available in the DHT for other peers to query, validate and use.</p>
+<h3 id="what-are-the-functionalities-of-the-authority-discovery-beyond-discovery-new-peers-based-on-its-authority-ids">What are the functionalities of the authority discovery, beyond discovery new peers based on its authority ids?<a class="headerlink" href="#what-are-the-functionalities-of-the-authority-discovery-beyond-discovery-new-peers-based-on-its-authority-ids" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Publish the node external address, more specifically, create the authority discovery record, sign it and distributing through DHT allowing other nodes to query it.</li>
+<li>Handle DHT events, validating incoming records and caching other authorities address.</li>
+</ul>
+<h3 id="what-subsystems-uses-the-authority-discovery-mechanism-describe-the-usages">What subsystems uses the authority discovery mechanism? Describe the usages.<a class="headerlink" href="#what-subsystems-uses-the-authority-discovery-mechanism-describe-the-usages" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Availability Distribution</li>
+<li>Availability Recovery</li>
+<li>Gossip Support</li>
+</ul>
+<h3 id="check-if-we-can-currently-extend-the-authority-discovery-protocol-can-to-golang-kademlia-p2p-library">Check if we can currently extend the authority discovery protocol can to golang kademlia p2p library<a class="headerlink" href="#check-if-we-can-currently-extend-the-authority-discovery-protocol-can-to-golang-kademlia-p2p-library" title="Permanent link">&para;</a></h3>
+<p>Yes, we pretty much can implement the protocol. 
+- We are able to encode the records using the same <a href="https://github.com/paritytech/polkadot-sdk/blob/master/substrate/client/authority-discovery/src/worker/schema/dht-v3.proto">proto schema used by substrate/polkadot</a> - We can query for specific keys in DHT.
+- What can write a custom validator to validate incoming records.
+- golang-libp2p does not works in the same way rust-libp2p works by enabling us to receive those DHT events but we can achieve the same protocol implementation using what the library provide to us.</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/ChainSafe/gossamer" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://x.com/ChainSafeth" target="_blank" rel="noopener" title="x.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

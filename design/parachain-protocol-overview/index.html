@@ -1,0 +1,2144 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The Official Documentation for Gossamer | A Go Implementation of the Polkadot Host">
+      
+      
+      
+      
+        <link rel="prev" href="../../advanced/scale-examples/">
+      
+      
+        <link rel="next" href="../candidate-backing/">
+      
+      
+      <link rel="icon" href="../../assets/favicon.ico">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>Parachain Protocol Overview - Gossamer Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="pink" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#introduction" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Gossamer Docs" class="md-header__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gossamer Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Parachain Protocol Overview
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../usage/running-nodes/" class="md-tabs__link">
+          
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../integrate/connect-to-polkadot-js/" class="md-tabs__link">
+          
+  
+  Integrate
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../testing-and-debugging/test-suite/" class="md-tabs__link">
+          
+  
+  Testing and Debugging
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../advanced/scale-examples/" class="md-tabs__link">
+          
+  
+  Advanced
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing.md" class="md-tabs__link">
+          
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Gossamer Docs" class="md-nav__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Gossamer Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/host-architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Host Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/package-library/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Package Library
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/general-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/developer-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Developer Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Usage
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/running-nodes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running Nodes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/command-line/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command Line
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-runtime/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import Runtime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-state/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import State
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Integrate
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Integrate
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrate/connect-to-polkadot-js/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connect to Polkadot.js
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Testing and Debugging
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Testing and Debugging
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/test-suite/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Suite
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/debugging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Debugging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Advanced
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Advanced
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced/scale-examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SCALE Examples
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Parachain Protocol Overview
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Parachain Protocol Overview
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-do-we-even-have-parachains" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why do we even have Parachains?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-do-we-care-what-are-we-trying-to-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why do we care? What are we trying to do?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-know-if-a-parachain-block-is-authored" class="md-nav__link">
+    <span class="md-ellipsis">
+      How do I know if a parachain block is authored?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-parachain-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      What is Parachain Protocol
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inclusion-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inclusion Pipeline
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Inclusion Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lifecycle-of-a-candidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Lifecycle of a candidate
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#candidate-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Candidate Validation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#approval-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      Approval Process
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Approval Process">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-approval" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why Approval
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approval-process-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      Approval Process Pipeline
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collator-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      Collator Protocol
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approval-process_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Approval Process
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scheduler-pallet" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scheduler Pallet
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#availability-cores" class="md-nav__link">
+    <span class="md-ellipsis">
+      Availability Cores
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#availability-subsystems" class="md-nav__link">
+    <span class="md-ellipsis">
+      Availability Subsystems
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Availability Subsystems">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#availability-distribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      Availability Distribution
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#availability-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Availability Recovery
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bitfield-distribution-and-signing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bitfield Distribution and Signing
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#provisioner" class="md-nav__link">
+    <span class="md-ellipsis">
+      Provisioner
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Provisioner">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#provisionable-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Provisionable Data
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architecture
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#subsystems" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subsystems
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../candidate-backing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Candidate Backing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-subsystems/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability Subsystems
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../prospective-parachains/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fragment-chain/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains - Fragment Chain
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-recovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability recovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authority-discovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Authority Discovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../statement-distribution/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Statement Distribution
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../grid-topology/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grid Topology
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gossip-support/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gossip Support
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provisioner/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Provisioner
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../collator-protocol-validator-side/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Collator Protocol - Validator Side
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Contributing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-do-we-even-have-parachains" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why do we even have Parachains?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-do-we-care-what-are-we-trying-to-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why do we care? What are we trying to do?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-know-if-a-parachain-block-is-authored" class="md-nav__link">
+    <span class="md-ellipsis">
+      How do I know if a parachain block is authored?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-parachain-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      What is Parachain Protocol
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inclusion-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inclusion Pipeline
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Inclusion Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lifecycle-of-a-candidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Lifecycle of a candidate
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#candidate-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Candidate Validation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#approval-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      Approval Process
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Approval Process">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-approval" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why Approval
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approval-process-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      Approval Process Pipeline
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collator-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      Collator Protocol
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approval-process_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Approval Process
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scheduler-pallet" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scheduler Pallet
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#availability-cores" class="md-nav__link">
+    <span class="md-ellipsis">
+      Availability Cores
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#availability-subsystems" class="md-nav__link">
+    <span class="md-ellipsis">
+      Availability Subsystems
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Availability Subsystems">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#availability-distribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      Availability Distribution
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#availability-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Availability Recovery
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bitfield-distribution-and-signing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bitfield Distribution and Signing
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#provisioner" class="md-nav__link">
+    <span class="md-ellipsis">
+      Provisioner
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Provisioner">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#provisionable-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Provisionable Data
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architecture
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#subsystems" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subsystems
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h1>
+<h2 id="why-do-we-even-have-parachains">Why do we even have Parachains?<a class="headerlink" href="#why-do-we-even-have-parachains" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Scalability</li>
+</ul>
+<p>PoS scales much better compared to PoW.</p>
+<p>Since we are not spending efforts in mining, block time and agreement could happen much faster.</p>
+<p>However, consensus on a PoS chain requires full agreement of 2/3+ of the validator set for everything that occurs at Layer 1: all logic which is carried out as part of the blockchain's state machine. This means that everybody still needs to check everything. Furthermore, validators <strong>may have different views</strong> of the system based on the information that they receive over an asynchronous network, making agreement on the latest state more difficult.</p>
+<p>Parachains are an example of a <strong>sharded</strong> protocol. Rather than requiring every participant to check every transaction, we require each participant to check some subset of transactions.</p>
+<ul>
+<li>Specialization</li>
+</ul>
+<p>Being able to specialize on a problem gives the creator and users more leverage</p>
+<h2 id="why-do-we-care-what-are-we-trying-to-do">Why do we care? What are we trying to do?<a class="headerlink" href="#why-do-we-care-what-are-we-trying-to-do" title="Permanent link">&para;</a></h2>
+<p>The Primary purpose of polkadot is to provide security to parachains.</p>
+<p>By providing security to parachains we mean
+- validating 
+- authoring and
+- finalizing
+parachain blocks.</p>
+<p>To do these task we need parachain protocol. It describes how relay chain nodes will talk to parachain nodes and include parachain blocks into relay chain.</p>
+<p><img alt="" src="../../assets/img/parachain-protocol/slide11.jpg" /></p>
+<h2 id="how-do-i-know-if-a-parachain-block-is-authored">How do I know if a parachain block is authored?<a class="headerlink" href="#how-do-i-know-if-a-parachain-block-is-authored" title="Permanent link">&para;</a></h2>
+<p>Relay chain blocks have this information that we call <code>inherents</code>. For example we do store timestamp and babe slot as inherents in relay chain blocks.</p>
+<p>One such inherent is <code>parachn0</code>, which is for parachain inherent data. It is through this parachain inherent data that we are going to tell which parachain blocks are authored.</p>
+<p>https://github.com/ChainSafe/gossamer/blob/b1ecbf3c51ecd0dc0765300c13f4361334f1e04f/lib/babe/inherents/parachain_inherents.go#L452-L462</p>
+<div class="codehilite"><pre><span></span><code><span class="c1">// ParachainInherentData is parachains inherent-data passed into the runtime by a block author.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">ParachainInherentData</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Signed bitfields by validators about availability.</span>
+<span class="w">    </span><span class="nx">Bitfields</span><span class="w"> </span><span class="p">[]</span><span class="nx">uncheckedSignedAvailabilityBitfield</span><span class="w"> </span><span class="s">`scale:&quot;1&quot;`</span>
+<span class="w">    </span><span class="c1">// Backed candidates for inclusion in the block.</span>
+<span class="w">    </span><span class="nx">BackedCandidates</span><span class="w"> </span><span class="p">[]</span><span class="nx">backedCandidate</span><span class="w"> </span><span class="s">`scale:&quot;2&quot;`</span>
+<span class="w">    </span><span class="c1">// Sets of dispute votes for inclusion,</span>
+<span class="w">    </span><span class="nx">Disputes</span><span class="w"> </span><span class="nx">multiDisputeStatementSet</span><span class="w"> </span><span class="s">`scale:&quot;3&quot;`</span>
+<span class="w">    </span><span class="c1">// The parent block header. Used for checking state proofs.</span>
+<span class="w">    </span><span class="nx">ParentHeader</span><span class="w"> </span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="w"> </span><span class="s">`scale:&quot;4&quot;`</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h2 id="what-is-parachain-protocol">What is Parachain Protocol<a class="headerlink" href="#what-is-parachain-protocol" title="Permanent link">&para;</a></h2>
+<p>As a highly simplistic view, you can think of parachain protocol as a system that takes parachain blocks from parachain nodes and gives parachain inherents to be put in relay chain.</p>
+<p><img alt="" src="../../assets/img/parachain-protocol/slide1.jpg" /></p>
+<div class="codehilite"><pre><span></span><code><span class="c1">// Collation represents a requested collation to be delivered</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Collation</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">CandidateReceipt</span><span class="w"> </span><span class="nx">CandidateReceipt</span><span class="w"> </span><span class="s">`scale:&quot;1&quot;`</span>
+<span class="w">    </span><span class="nx">PoV</span><span class="w">              </span><span class="nx">PoV</span><span class="w">              </span><span class="s">`scale:&quot;2&quot;`</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Where is Parachain Protocol running? Relay Chain Nodes.</p>
+<p>So, where are these relay chain nodes running parachain protocol get parachain blocks from parachain nodes? Using some special nodes which are part of both the parachain and the relay chain. Let's call these special nodes :fire: <strong>Collators</strong> :fire:</p>
+<p><strong>Collators</strong> are at least light nodes in the relay chain and full node in the parachain.</p>
+<p><img alt="" src="../../assets/img/parachain-protocol/slide2.jpg" /></p>
+<p><img alt="" src="../../assets/img/parachain-protocol/slide3.jpg" /></p>
+<h2 id="inclusion-pipeline">Inclusion Pipeline<a class="headerlink" href="#inclusion-pipeline" title="Permanent link">&para;</a></h2>
+<p><img alt="" src="../../assets/img/parachain-protocol/slide4.jpg" /></p>
+<p>Here is a description of the: the path a parachain block (or parablock, for short) takes from creation to inclusion:</p>
+<ul>
+<li>
+<p>A subset of Validators are selected and assigned to parachains by the Validator Assignment routine (Para validators).</p>
+</li>
+<li>
+<p>A collator produces the parachain block, which is known as a parachain candidate or candidate, along with a PoV for the candidate.</p>
+</li>
+<li>
+<p>The collator forwards the candidate and PoV to validators assigned to the same parachain via the Collator Protocol.</p>
+</li>
+<li>
+<p>The validators assigned to a parachain at a given point in time participate in the Candidate Backing subsystem to validate candidates that were put forward for validation. Candidates which gather enough signed validity statements from validators are considered "backable". Their backing is the set of signed validity statements.</p>
+</li>
+<li>
+<p>A relay-chain block author, selected by BABE, can note up to one (1) backable candidate for each parachain to include in the relay-chain block alongside its backing. A backable candidate once included in the relay-chain is considered backed in that fork of the relay-chain.</p>
+</li>
+<li>
+<p>Once backed in the relay-chain, the parachain candidate is considered to be "pending availability". It is not considered to be included as part of the parachain until it is proven available.</p>
+</li>
+<li>
+<p>In the following relay-chain blocks, validators will participate in the Availability Distribution subsystem to ensure availability of the candidate. Information regarding the availability of the candidate will be noted in the subsequent relay-chain blocks. (PoV)</p>
+</li>
+<li>
+<p>Once the relay-chain state machine has enough information to consider the candidate's PoV as being available, the candidate is considered to be part of the parachain and is graduated to being a full parachain block, or parablock for short.</p>
+</li>
+</ul>
+<h3 id="lifecycle-of-a-candidate">Lifecycle of a candidate<a class="headerlink" href="#lifecycle-of-a-candidate" title="Permanent link">&para;</a></h3>
+<p><img alt="" src="../../assets/img/parachain-protocol/slide5.jpg" /></p>
+<p><img alt="" src="../../assets/img/parachain-protocol/slide6.jpg" /></p>
+<h2 id="candidate-validation">Candidate Validation<a class="headerlink" href="#candidate-validation" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Run on Parachain Runtime</li>
+</ul>
+<div class="codehilite"><pre><span></span><code><span class="c1">// ValidateBlock validates a block by calling parachain runtime&#39;s validate_block call and returns the result.</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">in</span><span class="w"> </span><span class="o">*</span><span class="nx">Instance</span><span class="p">)</span><span class="w"> </span><span class="nx">ValidateBlock</span><span class="p">(</span><span class="nx">params</span><span class="w"> </span><span class="nx">ValidationParameters</span><span class="p">)</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="o">*</span><span class="nx">ValidationResult</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="o">...</span>
+
+<span class="w">    </span><span class="nx">encodedValidationResult</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">in</span><span class="p">.</span><span class="nx">Exec</span><span class="p">(</span><span class="s">&quot;validate_block&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">buffer</span><span class="p">.</span><span class="nx">Bytes</span><span class="p">())</span>
+
+<span class="w">    </span><span class="o">...</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">validationResult</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">ValidationHost</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// ValidateBlock validates a block by calling parachain runtime&#39;s validate_block call and returns the result.</span>
+<span class="w">    </span><span class="nx">ValidateBlock</span><span class="p">(</span><span class="nx">params</span><span class="w"> </span><span class="nx">ValidationParameters</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">ValidationResult</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h2 id="approval-process">Approval Process<a class="headerlink" href="#approval-process" title="Permanent link">&para;</a></h2>
+<p>Once a parablock is considered available and part of the parachain, it is still "pending approval". </p>
+<h3 id="why-approval">Why Approval<a class="headerlink" href="#why-approval" title="Permanent link">&para;</a></h3>
+<p>The validators in the parachain-group (known as the "Parachain Validators" for that parachain) are sampled from a validator set which contains some malicious members.
+So, Parachain Validators for some parachain may be majority-dishonest, which means that (secondary) approval checks must be done on the block before it can be considered approved.</p>
+<p>The Parachain Validators for a given parachain are sampled from an overall validator set which is assumed to be up to <strong>&lt;1/3 dishonest</strong> - meaning that there is a chance to randomly sample Parachain Validators for a parachain that are majority or fully dishonest and can back a candidate wrongly.</p>
+<p>A parablock's failure to pass the approval process will invalidate the block as well as all of its descendants. However, only the validators <strong>who backed the block will be slashed</strong>, not the validators who backed the descendants.</p>
+<h3 id="approval-process-pipeline">Approval Process Pipeline<a class="headerlink" href="#approval-process-pipeline" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Parablocks that have been included by the Inclusion Pipeline are pending approval for a time-window known as the secondary checking window.</li>
+<li>During the secondary-checking window, validators randomly self-select to perform secondary checks on the parablock.</li>
+<li>These validators, known in this context as secondary checkers, acquire the parablock and its PoV, and re-run the validation function.</li>
+<li>The secondary checkers gossip the result of their checks. Contradictory results lead to escalation, where all validators are required to check the block. The validators on the losing side of the dispute are slashed.</li>
+<li>At the end of the Approval Process, the parablock is either Approved or it is rejected.</li>
+</ul>
+<p>Approval Process can be running for many parachain blocks at once.</p>
+<p><img alt="" src="../../assets/img/parachain-protocol/slide7.jpg" /></p>
+<h3 id="collator-protocol">Collator Protocol<a class="headerlink" href="#collator-protocol" title="Permanent link">&para;</a></h3>
+<p>The Collator Protocol implements the network protocol by which collators and validators communicate. It is used by collators to distribute collations to validators and used by validators to accept collations by collators.</p>
+<p>It serves as a bridge between a collator and a validator.</p>
+<ul>
+<li>Collators are only collating on a single parachain</li>
+</ul>
+<h3 id="approval-process_1">Approval Process<a class="headerlink" href="#approval-process_1" title="Permanent link">&para;</a></h3>
+<p>The Approval Process is the mechanism by which the relay-chain ensures that only valid parablocks are finalized and that backing validators are held accountable for managing to get bad blocks included into the relay chain.</p>
+<p>We can deal with a bad parachain block as long as it doesn't get finalized.</p>
+<p>https://paritytech.github.io/polkadot-sdk/book/runtime/scheduler.html</p>
+<h3 id="scheduler-pallet">Scheduler Pallet<a class="headerlink" href="#scheduler-pallet" title="Permanent link">&para;</a></h3>
+<p>The Scheduler module is responsible for two main tasks:
+- Partitioning validators into groups and assigning groups to parachains.
+- Scheduling parachains for each block</p>
+<p>It aims to achieve these tasks with these goals in mind:</p>
+<ul>
+<li>It should be possible to know at least a block ahead-of-time, ideally more, which validators are going to be assigned to which parachains.</li>
+<li>Parachains that have a candidate pending availability in this fork of the chain should not be assigned.</li>
+<li>Validator assignments should not be gameable. Malicious cartels should not be able to manipulate the scheduler to assign themselves as desired.</li>
+<li>High or close to optimal throughput of parachains. Work among validator groups should be balanced.</li>
+</ul>
+<h3 id="availability-cores">Availability Cores<a class="headerlink" href="#availability-cores" title="Permanent link">&para;</a></h3>
+<p>The Scheduler manages resource allocation using the concept of "Availability Cores".</p>
+<ul>
+<li>There will be one availability core for each lease holding parachain, and a fixed number of cores used for multiplexing on-demand parachains. </li>
+<li>Validators will be partitioned into groups, with the same number of groups as availability cores. </li>
+<li>Validator groups will be assigned to different availability cores over time.</li>
+</ul>
+<p>They could be in one of two states:
+- Free 
+can have a lease holding or on-demand parachain assigned to it for the potential to have a backed candidate included.
+- Occupied
+After backing, the core enters the occupied state as the backed candidate is pending availability. An occupied core becomes free again, ones the backed candidate becomes available.</p>
+<p><img alt="" src="../../assets/img/parachain-protocol/slide8.jpg" />
+<img alt="" src="../../assets/img/parachain-protocol/slide9.png" /></p>
+<p><strong>Validator groups</strong> rotate across availability cores in a round-robin fashion, with rotation occurring at fixed intervals. 
+The i'th group will be assigned to the (i+k)%n'th core at any point in time, where k is the number of rotations that have occurred in the session, and n is the number of cores. This makes upcoming rotations within the same session predictable.</p>
+<h2 id="availability-subsystems">Availability Subsystems<a class="headerlink" href="#availability-subsystems" title="Permanent link">&para;</a></h2>
+<p>The availability subsystems are responsible for ensuring that Proofs of Validity of backed candidates are widely available within the validator set, without requiring every node to retain a full copy.</p>
+<p>They accomplish this by 
+- broadly distributing erasure-coded chunks of the PoV, 
+- keeping track of which validator has which chunk by means of signed bitfields. </p>
+<p>They are also responsible for reassembling a complete PoV when required, e.g. when an approval checker needs to validate a parachain block.</p>
+<h3 id="availability-distribution">Availability Distribution<a class="headerlink" href="#availability-distribution" title="Permanent link">&para;</a></h3>
+<p>Responsible for distribution availability data to peers. Availability data are chunks, <strong>PoVs</strong> and <strong>PersistedValidationData</strong> (input for candidate validation).</p>
+<ul>
+<li>Respond to network requests requesting availability data by querying the Availability Store.</li>
+<li>Request chunks from backing validators to put them in the local Availability Store whenever we find an occupied core on any fresh leaf, this is to ensure availability by at least 2/3+ of all validators, this happens after a candidate is backed.</li>
+<li>Fetch PoV from validators, when requested via FetchPoV message from backing (pov_requester module).</li>
+</ul>
+<h3 id="availability-recovery">Availability Recovery<a class="headerlink" href="#availability-recovery" title="Permanent link">&para;</a></h3>
+<p>This subsystem is responsible for recovering the data made available via the Availability Distribution subsystem, neccessary for candidate validation during the approval/disputes processes. 
+Additionally, it is also being used by collators to recover PoVs in adversarial scenarios where the other collators of the para are censoring blocks.</p>
+<p>According to the Polkadot protocol, in order to recover any given AvailableData, we generally <strong>must recover at least f + 1 pieces</strong> from validators of the session. Thus, we should connect to and query randomly chosen validators until we have received f + 1 pieces.</p>
+<p>There are various optimisations which avoid querying all chunks from different validators and/or avoid doing the chunk reconstruction altogether.</p>
+<p>Strategies:
+- FetchFull
+Request full available data from the validators in the backing group to which node is already connected.
+- FetchChunks
+All validators would be tried. Worst performing strategy but most comprehensive.
+- FetchSystematicChunks</p>
+<h3 id="bitfield-distribution-and-signing">Bitfield Distribution and Signing<a class="headerlink" href="#bitfield-distribution-and-signing" title="Permanent link">&para;</a></h3>
+<p>Validators vote on the availability of a backed candidate by issuing signed bitfields, where each bit corresponds to a single candidate. These bitfields can be used to compactly determine which backed candidates are available or not based on a 2/3+ quorum.</p>
+<ul>
+<li>Gossip system</li>
+<li>Accept bitfield relevant to our view and distribute to other peers when relevant to their view</li>
+<li>Accept and distribute only one bitfield per validator.</li>
+</ul>
+<h2 id="provisioner">Provisioner<a class="headerlink" href="#provisioner" title="Permanent link">&para;</a></h2>
+<p>This subsystem is responsible for providing the necessary data to all potential block authors (BABE). This subsystem provides the data for parachain inherents.</p>
+<h3 id="provisionable-data">Provisionable Data<a class="headerlink" href="#provisionable-data" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Backed Candidates</li>
+</ul>
+<p>The block author can choose 0 or 1 backed parachain candidates per parachain.</p>
+<p>The only constraint is that each backable candidate has the appropriate relay parent. However, the choice of a backed candidate must be the block author's. The provisioner subsystem is how those block authors make this choice in practice.</p>
+<ul>
+<li>Signed Bitfields</li>
+</ul>
+<p>Attestation from validators that candidates are available</p>
+<ul>
+<li>Misbehavior reports</li>
+</ul>
+<p>Self-contained proofs of misbehavior by a validator or group of validators.</p>
+<p>Misbehavior reports become inherents which cause dots to be slashed.</p>
+<p>Block authors are not forced to put these reports in inherents. But because slashing period is long, we expect to encount an honest validator eventually.</p>
+<p>ex, double spending</p>
+<ul>
+<li>Dispute Inherent</li>
+</ul>
+<p>The dispute inherent is similar to a misbehavior report in that it is an attestation of misbehavior on the part of a validator or group of validators. Unlike a misbehavior report, it is not self-contained: resolution requires coordinated action by several validators. </p>
+<p>Will cause slashing too.</p>
+<p>ex, approvers found invalid block.</p>
+<p>The tuple (<code>SignedAvailabilityBitfields</code>, <code>BackedCandidates</code>, <code>ParentHeader</code>) is injected by the ParachainsInherentDataProvider into the inherent data. From that point on, control passes from the node to the runtime.</p>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<h3 id="subsystems">Subsystems<a class="headerlink" href="#subsystems" title="Permanent link">&para;</a></h3>
+<p>Parachain protocol has been divided into multiple <strong>subsytems</strong> that run in parallel. </p>
+<p>Subsystems are long-lived worker tasks that are in charge of performing some particular kind of work. </p>
+<p>Subsystems communicate with each other through this thing called <strong>Overseer</strong>. Every time we have to send a message to a other nodes, we do that through a subsytem called <strong>network bridge</strong>.</p>
+<p>Primary benefit of having this subsystems is that we would be able to <em>process many candidate at the same time, without getting blocked in the pipeline</em>.</p>
+<p>All the work will happen on top of a relay block, we call it <strong>relay parent</strong>.
+Goal of determining when to start and conclude work relative to a specific relay-parent is common to most subsystems. Overseer acts as a heartbeat to the system and provides this relay-parent signal for all subsystems to do work relative to it.</p>
+<p><img alt="" src="../../assets/img/parachain-protocol/slide10.jpg" /></p>
+<h1 id="what-do-i-need-to-become-a-validator">What do I need to become a Validator?<a class="headerlink" href="#what-do-i-need-to-become-a-validator" title="Permanent link">&para;</a></h1>
+<ul>
+<li>
+<p>Actually everything in parachain protocol (backing, availability, approval)</p>
+</li>
+<li>
+<p>Since disputes are a rare occurence, we could do without it and prioritize it later.</p>
+</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/ChainSafe/gossamer" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://x.com/ChainSafeth" target="_blank" rel="noopener" title="x.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

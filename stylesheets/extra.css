@@ -1,0 +1,7 @@
+[data-md-color-primary="pink"] {
+  --md-primary-fg-color: #e6087b;
+  --md-primary-fg-color--light: #ec417a;
+  --md-primary-fg-color--dark: #c3185d;
+  --md-primary-bg-color: #fff;
+  --md-primary-bg-color--light: hsla(0,0%,100%,0.7);
+}
