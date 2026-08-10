@@ -201,7 +201,7 @@ func (u *unreadyBlocks) removeIncompleteBlocks(del func(key common.Hash, value *
 	maps.DeleteFunc(u.incompleteBlocks, del)
 }
 
-// pruneFragments will iterate over the disjoint fragments and check if they
+// pruneDisjointFragments will iterate over the disjoint fragments and check if they
 // can be removed based on the del param
 func (u *unreadyBlocks) pruneDisjointFragments(del func(*Fragment) bool) {
 	u.mtx.Lock()
