@@ -519,6 +519,75 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// A rejected catch-up must leave the voter running: a stale one and one short of
+// the threshold are both rejected, and a valid one after them still applies.
+func TestVoter_StaysLiveAfterRejectedCatchUp(t *testing.T) {
+	weights := make([]IDWeight[ID], 3)
+	for i := range weights {
+		weights[i] = IDWeight[ID]{ID(i), 1}
+	}
+	voterSet := NewVoterSet(weights)
+
+	network := NewNetwork()
+	defer network.Stop()
+
+	env := newEnvironment(network, ID(4))
+	var lastFinalized HashNumber[string, uint32]
+	env.WithChain(func(chain *dummyChain) {
+		chain.PushBlocks(GenesisHash, []string{"A", "B", "C", "D", "E"})
+		lastFinalized.Hash, lastFinalized.Number = chain.LastFinalized()
+	})
+
+	globalOut := make(chan CommunicationOut[string, uint32, Signature, ID])
+	globalIn := network.MakeGlobalComms(globalOut)
+	voter := NewVoter[string, uint32, Signature, ID](
+		&env,
+		*voterSet,
+		globalIn,
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { globalOut <- co; return nil },
+		0,
+		nil,
+		lastFinalized,
+		lastFinalized,
+	)
+
+	catchUp := func(round uint64, signers int) CatchUp[string, uint32, Signature, ID] {
+		c := CatchUp[string, uint32, Signature, ID]{BaseNumber: 1, BaseHash: GenesisHash, RoundNumber: round}
+		for id := range signers {
+			c.Prevotes = append(c.Prevotes, SignedPrevote[string, uint32, Signature, ID]{
+				Prevote: Prevote[string, uint32]{"C", 4}, ID: ID(id), Signature: Signature(99),
+			})
+			c.Precommits = append(c.Precommits, SignedPrecommit[string, uint32, Signature, ID]{
+				Precommit: Precommit[string, uint32]{"C", 4}, ID: ID(id), Signature: Signature(99),
+			})
+		}
+		return c
+	}
+	send := func(c CatchUp[string, uint32, Signature, ID]) CatchUpProcessingOutcome {
+		outcome := make(chan CatchUpProcessingOutcome, 1)
+		network.SendMessage(CommunicationInCatchUp[string, uint32, Signature, ID]{
+			CatchUp:  c,
+			Callback: func(o CatchUpProcessingOutcome) { outcome <- o },
+		})
+		select {
+		case o := <-outcome:
+			return o
+		case <-time.After(5 * time.Second):
+			t.Fatalf("catch-up for round %d was never processed", c.RoundNumber)
+			return nil
+		}
+	}
+
+	assert.IsType(t, CatchUpProcessingOutcomeGood{}, send(catchUp(5, 3)))
+	assert.IsType(t, CatchUpProcessingOutcomeBad{}, send(catchUp(5, 3)), "stale")
+	assert.IsType(t, CatchUpProcessingOutcomeBad{}, send(catchUp(7, 1)), "below threshold")
+	assert.IsType(t, CatchUpProcessingOutcomeGood{}, send(catchUp(7, 3)))
+	assert.Equal(t, uint64(8), voter.VoterState().Get().BestRound.Number)
+
+	network.StopGlobalComms(globalIn)
+	assert.NoError(t, <-voter.Done())
+}
+
 func TestVoter_PickUpFromPriorWithoutGrandparentState(t *testing.T) {
 	localID := ID(5)
 	voterSet := NewVoterSet([]IDWeight[ID]{{localID, 100}})
