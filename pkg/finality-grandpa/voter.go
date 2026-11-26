@@ -759,6 +759,7 @@ loop:
 					// commit to the environment (if valid and higher than current finalized)
 					validationResult, err := ValidateCommit(commit, v.voters, v.env.(Chain[Hash, Number]))
 					if err != nil {
+						v.inner.Unlock()
 						return err
 					}
 					if validationResult.Valid() {
@@ -805,6 +806,7 @@ loop:
 
 				round := validateCatchUp(catchUp, v.env, v.voters, v.inner.bestRound.roundNumber())
 				if round == nil {
+					v.inner.Unlock()
 					if processCatchUpOutcome != nil {
 						processCatchUpOutcome(CatchUpProcessingOutcomeBad{})
 					}
