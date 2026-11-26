@@ -37,6 +37,11 @@ func (n *NodeStorage) GetLocal(k []byte) ([]byte, error) {
 	return n.LocalStorage.Get(k)
 }
 
+// ClearLocal removes a key and value from LOCAL node storage
+func (n *NodeStorage) ClearLocal(k []byte) error {
+	return n.LocalStorage.Del(k)
+}
+
 // SetPersistent persists a key and value into PERSISTENT node storage
 func (n *NodeStorage) SetPersistent(k, v []byte) error {
 	return n.PersistentStorage.Put(k, v)
@@ -45,6 +50,11 @@ func (n *NodeStorage) SetPersistent(k, v []byte) error {
 // GetPersistent retrieve a key and value from PERSISTENT node storage
 func (n *NodeStorage) GetPersistent(k []byte) ([]byte, error) {
 	return n.PersistentStorage.Get(k)
+}
+
+// ClearPersistent removes a key and value from PERSISTENT node storage
+func (n *NodeStorage) ClearPersistent(k []byte) error {
+	return n.PersistentStorage.Del(k)
 }
 
 type Allocator interface {

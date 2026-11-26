@@ -13,8 +13,6 @@ import (
 )
 
 func TestOffchainRPC(t *testing.T) { //nolint:tparallel
-	t.SkipNow() // TODO
-
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
@@ -22,33 +20,18 @@ func TestOffchainRPC(t *testing.T) { //nolint:tparallel
 	ctx, cancel := context.WithCancel(context.Background())
 	node.InitAndStartTest(ctx, t, cancel)
 
-	t.Run("offchain_localStorageSet", func(t *testing.T) {
+	// t.Run("offchain_localStorageSet", ...) // TODO
+	// t.Run("offchain_localStorageGet", ...) // TODO
+
+	t.Run("offchain_localStorageClear", func(t *testing.T) {
 		t.Parallel()
 
-		var response struct{} // TODO
+		var setResponse any
+		fetchWithTimeout(ctx, t, "offchain_localStorageSet",
+			`["PERSISTENT", "0x11111111111111", "0x22222222222222"]`, &setResponse)
 
-		fetchWithTimeout(ctx, t, "offchain_localStorageSet", "", &response)
-
-		// TODO assert response
-	})
-
-	t.Run("offchain_localStorageGet", func(t *testing.T) {
-		t.Parallel()
-
-		var response struct{} // TODO
-
-		fetchWithTimeout(ctx, t, "offchain_localStorageGet", "", &response)
-
-		// TODO assert response
-	})
-
-	t.Run("offchain_localStorageGet", func(t *testing.T) {
-		t.Parallel()
-
-		var response struct{} // TODO
-
-		fetchWithTimeout(ctx, t, "offchain_localStorageGet", "", &response)
-
-		// TODO assert response
+		var clearResponse any
+		fetchWithTimeout(ctx, t, "offchain_localStorageClear",
+			`["PERSISTENT", "0x11111111111111"]`, &clearResponse)
 	})
 }

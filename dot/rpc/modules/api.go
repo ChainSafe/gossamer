@@ -114,6 +114,8 @@ type RuntimeStorageAPI interface {
 	SetPersistent(k, v []byte) error
 	GetLocal(k []byte) ([]byte, error)
 	GetPersistent(k []byte) ([]byte, error)
+	ClearLocal(k []byte) error
+	ClearPersistent(k []byte) error
 }
 
 // SyncStateAPI is the interface to interact with sync state.
