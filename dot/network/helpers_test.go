@@ -234,6 +234,12 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		cfg.TransactionHandler = th
 	}
 
+	// Advertise loopback, not the host's public IP: on CI runners that IP can sort
+	// first in multiaddrs() and is not dialable from the runner itself.
+	if cfg.PublicIP == "" && cfg.PublicDNS == "" {
+		cfg.PublicIP = "127.0.0.1"
+	}
+
 	cfg.SlotDuration = time.Second
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
