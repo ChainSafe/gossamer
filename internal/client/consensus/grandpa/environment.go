@@ -303,7 +303,7 @@ func (mvdt voterSetStateVDT[H, N]) ValueAt(index uint) (value any, err error) {
 	return nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-// newVoterSetState is constructor for voterSetState
+// newVoterSetStateVDT is constructor for voterSetState
 func newVoterSetStateVDT[H runtime.Hash, N runtime.Number]() *voterSetStateVDT[H, N] {
 	return &voterSetStateVDT[H, N]{}
 }
