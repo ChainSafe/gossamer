@@ -6,6 +6,7 @@ package authoritydiscovery
 import (
 	"context"
 	"errors"
+	"slices"
 	"sync"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -293,10 +294,8 @@ func appendUniqueAuthorityID(slice []AuthorityID, auth AuthorityID) []AuthorityI
 }
 
 func appendUniquePeerID(slice []peer.ID, peerID peer.ID) []peer.ID {
-	for _, existing := range slice {
-		if existing == peerID {
-			return slice
-		}
+	if slices.Contains(slice, peerID) {
+		return slice
 	}
 	return append(slice, peerID)
 }

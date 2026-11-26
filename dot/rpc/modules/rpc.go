@@ -5,6 +5,7 @@ package modules
 
 import (
 	"net/http"
+	"slices"
 )
 
 var (
@@ -55,11 +56,5 @@ func (rm *RPCModule) Methods(r *http.Request, req *EmptyRequest, res *MethodsRes
 
 // IsUnsafe returns true if the `name` has the  suffix
 func IsUnsafe(name string) bool {
-	for _, unsafe := range UnsafeMethods {
-		if name == unsafe {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(UnsafeMethods, name)
 }
