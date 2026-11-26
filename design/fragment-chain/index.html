@@ -1,0 +1,1781 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The Official Documentation for Gossamer | A Go Implementation of the Polkadot Host">
+      
+      
+      
+      
+        <link rel="prev" href="../prospective-parachains/">
+      
+      
+        <link rel="next" href="../availability-recovery/">
+      
+      
+      <link rel="icon" href="../../assets/favicon.ico">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>Prospective Parachains - Fragment Chain - Gossamer Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="pink" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#fragment-chain" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Gossamer Docs" class="md-header__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gossamer Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Prospective Parachains - Fragment Chain
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../usage/running-nodes/" class="md-tabs__link">
+          
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../integrate/connect-to-polkadot-js/" class="md-tabs__link">
+          
+  
+  Integrate
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../testing-and-debugging/test-suite/" class="md-tabs__link">
+          
+  
+  Testing and Debugging
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../advanced/scale-examples/" class="md-tabs__link">
+          
+  
+  Advanced
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../parachain-protocol-overview/" class="md-tabs__link">
+          
+  
+  Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing.md" class="md-tabs__link">
+          
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Gossamer Docs" class="md-nav__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Gossamer Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/host-architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Host Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/package-library/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Package Library
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/general-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/developer-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Developer Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Usage
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/running-nodes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running Nodes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/command-line/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command Line
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-runtime/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import Runtime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-state/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import State
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Integrate
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Integrate
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrate/connect-to-polkadot-js/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connect to Polkadot.js
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Testing and Debugging
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Testing and Debugging
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/test-suite/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Suite
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/debugging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Debugging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Advanced
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Advanced
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced/scale-examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SCALE Examples
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parachain-protocol-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Parachain Protocol Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../candidate-backing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Candidate Backing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-subsystems/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability Subsystems
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../prospective-parachains/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Prospective Parachains - Fragment Chain
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains - Fragment Chain
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#candidate-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Candidate Storage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scope
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fragment-node" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fragment Node
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backedchain" class="md-nav__link">
+    <span class="md-ellipsis">
+      BackedChain
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BackedChain">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reverttoparenthash" class="md-nav__link">
+    <span class="md-ellipsis">
+      RevertToParentHash
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fragment-chain_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fragment Chain
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Fragment Chain">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#populate-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      Populate Chain
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trim-inelegible-forks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Trim Inelegible Forks
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-recovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability recovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authority-discovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Authority Discovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../statement-distribution/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Statement Distribution
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../grid-topology/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grid Topology
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gossip-support/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gossip Support
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provisioner/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Provisioner
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../collator-protocol-validator-side/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Collator Protocol - Validator Side
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Contributing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#candidate-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Candidate Storage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scope
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fragment-node" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fragment Node
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backedchain" class="md-nav__link">
+    <span class="md-ellipsis">
+      BackedChain
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BackedChain">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reverttoparenthash" class="md-nav__link">
+    <span class="md-ellipsis">
+      RevertToParentHash
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fragment-chain_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fragment Chain
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Fragment Chain">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#populate-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      Populate Chain
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trim-inelegible-forks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Trim Inelegible Forks
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="fragment-chain">Fragment Chain<a class="headerlink" href="#fragment-chain" title="Permanent link">&para;</a></h1>
+<h3 id="candidate-storage"><a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L189">Candidate Storage</a><a class="headerlink" href="#candidate-storage" title="Permanent link">&para;</a></h3>
+<p>This structure does not care if candidates form a chain, it only stores candidates and holds "links" to a <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L346"><code>CandidateEntry</code></a>, those links are</p>
+<p><code>Parent Head Data Hash</code> to <code>Set&lt;Candidate Hash&gt;</code>
+<code>Output Head Data Hash</code> to <code>Set&lt;Candidate Hash&gt;</code></p>
+<p>The parent head data hash is simply the parent block of that candidate, the output head data hash is the hash of the resultant <a href="https://github.com/paritytech/polkadot-sdk/blob/8f1606e9f9bd6269a4c2631a161dcc73e969a302/polkadot/parachain/src/primitives.rs#L51"><code>HeadData</code></a> after an execution, you can think of the output head data as the raw head of the parachain block that we get after validating the inputs against the parachain runtime.</p>
+<p><code>input -&gt; execution -&gt; head data (parachain block head)</code>, it is called head data because it is a <code>Vec&lt;u8&gt;</code>, what this head data contains is not for the validator, what we care is the <em>hash</em> of it.</p>
+<h3 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h3>
+<p>Scope is the context of a fragment chain, it contains constraints and ancestors that rules candidates, e.g. if a candidate was build in the context of an allowed relay parent.</p>
+<h3 id="fragment-node">Fragment Node<a class="headerlink" href="#fragment-node" title="Permanent link">&para;</a></h3>
+<p>This is a node that is part of a <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596"><code>BackedChain</code></a>. When we create a new fragment we should make sure that the candidate is valid under the operating constraints. We use the constraints to build an expected persisted validation data and compare with the one we got from the candidate. A fragment node is always backed and it is generated from a <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L346"><code>CandidateEntry</code></a>.</p>
+<h3 id="backedchain">BackedChain<a class="headerlink" href="#backedchain" title="Permanent link">&para;</a></h3>
+<p>It holds a chain of backed nodes (fragments), in rust they store the fragments.</p>
+<h4 id="reverttoparenthash">RevertToParentHash<a class="headerlink" href="#reverttoparenthash" title="Permanent link">&para;</a></h4>
+<p>This is a method where given a chain of fragments we need to remove all the fragments that descend a certain parent head data hash (this is the hash of the parachain block that is parent of another parachain block).</p>
+<p>Let's say that we have the following <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596"><code>BackedChain</code></a></p>
+<div class="codehilite"><pre><span></span><code>{Parent Head Hash (0) | Output Head Data Hash (1)}
+|
+V
+{Parent Head Hash (1) | Output Head Data Hash (2)}
+|
+V
+{Parent Head Hash (2) | Output Head Data Hash (3)}
+|
+V
+{Parent Head Hash (4) | Output Head Data Hash (5)}
+|
+V
+{Parent Head Hash (5) | Output Head Data Hash (6)}
+</code></pre></div>
+
+<p>If we want to revert to <code>ParentHeadDataHash (3)</code> we search for a node that outputs such head data hash, in this case is the node at position 2, knowing the index we should remove its children (nodes at position 3 and 4) and clear their informations from the tables <code>byParentHead</code>, <code>byOutputHead</code> and <code>Candidates</code>, and we return the removed nodes.</p>
+<h3 id="fragment-chain_1"><a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L663">Fragment Chain</a><a class="headerlink" href="#fragment-chain_1" title="Permanent link">&para;</a></h3>
+<p>The fragment chain is a struct that an active leaf holds, also it should avoid cycles or paths in the three.</p>
+<h5 id="populate-chain">Populate Chain<a class="headerlink" href="#populate-chain" title="Permanent link">&para;</a></h5>
+<p>This is a method from <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L663"><code>FragmentChain</code></a> where given a scope and a Candidate Storage it will try to build a <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596"><code>BackedChain</code></a> with the candidates that follow the conditions:</p>
+<ul>
+<li>Does not introduce a cycle: That means, its output head data hash is not the parent head data hash of another candidate in the BackedChain.</li>
+<li>Its parent hash is correct: matches the previous output hash, forming a coherent chain</li>
+<li>Relay parent does not move backwards: given our earliest relay parent (the earliest ancestor that a candidate can use as its context) the current candidate's relay parent should not be before it.</li>
+<li>All non-pending-availability has a parent in the current scope.</li>
+<li>Candidates outputs fullfils the constraint.</li>
+</ul>
+<p>If those conditions follows for 1 or more candidates we consider them possible backed/backable, however since the <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596"><code>BackedChain</code></a> does not allow forks we need to resolve that if there is more than one candidates, and the fork selection rule is: compare the hashes and the lowest hash will be chosen and pushed into the <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596"><code>BackedChain</code></a> and removed from the Candidate Storage</p>
+<h5 id="trim-inelegible-forks">Trim Inelegible Forks<a class="headerlink" href="#trim-inelegible-forks" title="Permanent link">&para;</a></h5>
+<p>It does a depth breadth-first search looking for candidates in the Candidate Storage that have no potential and that are children of valid backed candidates.</p>
+<p>Consider the following chain, the green letters forms the <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596"><code>BackedChain</code></a> while the red letters are candidates placed in the <code>Unconnected</code> candidate storage, drawing them (without all the maps and hashes here and there) we can have something similar to the image below.</p>
+<p><img alt="IMG_944F8C1D62F0-1" src="./assets/img/parachain-protocol/pp_1.jpeg" /></p>
+<p>Now lets trim the inelegible forks out, but first we need to define the steps:</p>
+<ol>
+<li>
+<p>Lets build a queue of candidates in the backed chain (a.k.a green letters) and we will use an extra info called "has potential", which means that the candidate is good to stay connected (even if they form a fork).</p>
+</li>
+<li>
+<p>queue is empty, the goto step 5, queue is not empty, pop the item from the start of the queue, mark it as visited and iterate over its children.</p>
+</li>
+<li>
+<p>for each child:
+    3.1. is the child in the unconnected hash set?
+        - <strong>true</strong>:  go to next step
+        - <strong>false</strong>: go to step 1
+    3.2. did we already visited this child?
+        - <strong>true</strong>: go to step 1
+        - <strong>false</strong>: go to next step
+    3.3. does the candidate and the child have potential?
+        - <strong>true</strong>:  add to the queue as (child hash, true)
+        - <strong>false</strong>: mark to remove, add to the queue as (child hash, false)</p>
+</li>
+<li>
+<p>go to step 1</p>
+</li>
+<li>
+<p>remove all items marked to be removed.</p>
+</li>
+</ol>
+<p>Lets apply the chain from image against the steps defined above, first things first, we should build the queue from our backed chain.</p>
+<div class="codehilite"><pre><span></span><code><span class="n">QUEUE</span><span class="w">     </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">B</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">)</span><span class="w"> </span><span class="p">]</span>
+<span class="n">VISITED</span><span class="w">   </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[]</span>
+<span class="n">TO_REMOVE</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span>
+</code></pre></div>
+
+<p>jumping to the next instruction, lets pop <code>(A, true)</code> from the queue, mark it as visited and iterate over its children!</p>
+<div class="codehilite"><pre><span></span><code><span class="n">QUEUE</span><span class="w">     </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">(</span><span class="n">B</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">)</span><span class="w"> </span><span class="p">]</span>
+<span class="n">VISITED</span><span class="w">   </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="p">]</span>
+<span class="n">TO_REMOVE</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[]</span>
+</code></pre></div>
+
+<p><img alt="IMG_88FB30D4B931-1" src="./assets/img/parachain-protocol/pp_2.jpeg" /></p>
+<p>them, child <code>B1</code> is in the unconnected set, is not visited, its parent (<code>A</code>) is potential, however <code>B1</code> is not, them we should mark it to remove and add to the queue as (<code>B1</code>, <code>false</code>) </p>
+<div class="codehilite"><pre><span></span><code><span class="n">QUEUE</span><span class="w">     </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">(</span><span class="n">B</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">)</span><span class="w"> </span><span class="p">]</span>
+<span class="n">VISITED</span><span class="w">   </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="p">]</span>
+<span class="n">TO_REMOVE</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">B1</span><span class="w"> </span><span class="p">]</span>
+</code></pre></div>
+
+<p>the next child is <code>B</code>, which is not in the unconnected set, them since there is no children left we can just jump to the step 1.</p>
+<p>continuing, lets pop <code>(B, true)</code> from the queue, mark it as visited and iterate over its children!</p>
+<div class="codehilite"><pre><span></span><code><span class="n">QUEUE</span><span class="w">     </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">(</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">)</span><span class="w"> </span><span class="p">]</span>
+<span class="n">VISITED</span><span class="w">   </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="w"> </span><span class="p">]</span>
+<span class="n">TO_REMOVE</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">B1</span><span class="w"> </span><span class="p">]</span>
+</code></pre></div>
+
+<p><img alt="IMG_319583A1BB18-1" src="./assets/img/parachain-protocol/pp_3.jpeg" /></p>
+<p>the node <code>B</code>, has children <code>C</code> and <code>C1</code>, starting with <code>C</code>, given <code>C</code> is in the <code>backed chain</code> it is not in the unconnected set, in this case we can go to the next child that is <code>C2</code>, that is in the unconnected set, was not visited, and has a parent (<code>B</code>) that is potential but <code>C2</code> itself is not, then lets push it to the queue as <code>(C2, false)</code> and mark it to remove.</p>
+<div class="codehilite"><pre><span></span><code><span class="n">QUEUE</span><span class="w">     </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">(</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">C2</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">)</span><span class="w"> </span><span class="p">]</span>
+<span class="n">VISITED</span><span class="w">   </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="w"> </span><span class="p">]</span>
+<span class="n">TO_REMOVE</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="n">C2</span><span class="w"> </span><span class="p">]</span>
+</code></pre></div>
+
+<p>as there are no more children... lets pop <code>(C, true)</code> from the queue, mark it as visited and iterate over its children!</p>
+<div class="codehilite"><pre><span></span><code><span class="n">QUEUE</span><span class="w">     </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">(</span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="kr">true</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">C2</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">)</span><span class="w"> </span><span class="p">]</span>
+<span class="n">VISITED</span><span class="w">   </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="w"> </span><span class="p">]</span>
+<span class="n">TO_REMOVE</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="n">C2</span><span class="w"> </span><span class="p">]</span>
+</code></pre></div>
+
+<p><img alt="IMG_C0062D30EB11-1" src="./assets/img/parachain-protocol/pp_4.jpeg" /></p>
+<p>the node <code>C</code> has only node <code>D</code> as its child, so since <code>D</code> is not in the unconnected set we can jump to step 1 again.</p>
+<p>lets pop <code>(D, true)</code> from the queue, mark it as visited and iterate over its children...</p>
+<div class="codehilite"><pre><span></span><code><span class="n">QUEUE</span><span class="w">     </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">(</span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">C2</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">)</span><span class="w"> </span><span class="p">]</span>
+<span class="n">VISITED</span><span class="w">   </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">D</span><span class="w"> </span><span class="p">]</span>
+<span class="n">TO_REMOVE</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="n">C2</span><span class="w"> </span><span class="p">]</span>
+</code></pre></div>
+
+<p><code>D</code> has no children at all, them we can just stay in step 1 and pop <code>(B1, false)</code> from the queue, mark it as visited and iterate over its children.</p>
+<div class="codehilite"><pre><span></span><code><span class="n">QUEUE</span><span class="w">     </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">(</span><span class="n">C2</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">)</span><span class="w"> </span><span class="p">]</span>
+<span class="n">VISITED</span><span class="w">   </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="n">B1</span><span class="w"> </span><span class="p">]</span>
+<span class="n">TO_REMOVE</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="n">C2</span><span class="w"> </span><span class="p">]</span>
+</code></pre></div>
+
+<p><img alt="IMG_86B6E79CE7E2-1" src="./assets/img/parachain-protocol/pp_5.jpeg" /></p>
+<p>The node <code>B1</code> has just one child that is <code>C1</code>, the child is present in the unconnected set, and is not visited but its parent <code>B1</code> is not a potential candidate, in this case we can directly mark <code>C1</code> having no potential as well and pushing it to the queue, and marking it to remove too.</p>
+<div class="codehilite"><pre><span></span><code><span class="n">QUEUE</span><span class="w">     </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">(</span><span class="n">C2</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">C1</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">)</span><span class="w"> </span><span class="p">]</span>
+<span class="n">VISITED</span><span class="w">   </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="n">B1</span><span class="w"> </span><span class="p">]</span>
+<span class="n">TO_REMOVE</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="n">C2</span><span class="p">,</span><span class="w"> </span><span class="n">C1</span><span class="w"> </span><span class="p">]</span>
+</code></pre></div>
+
+<p>going back to step 1 since there no more children left for <code>B1</code>, lets pop <code>(C2, false)</code> from the queue, mark it as visited and iterate over its children...</p>
+<div class="codehilite"><pre><span></span><code><span class="n">QUEUE</span><span class="w">     </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">(</span><span class="n">C1</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">)</span><span class="w"> </span><span class="p">]</span>
+<span class="n">VISITED</span><span class="w">   </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="n">C2</span><span class="w"> </span><span class="p">]</span>
+<span class="n">TO_REMOVE</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="n">C2</span><span class="p">,</span><span class="w"> </span><span class="n">C1</span><span class="w"> </span><span class="p">]</span>
+</code></pre></div>
+
+<p><img alt="IMG_B913444820A7-1" src="./assets/img/parachain-protocol/pp_6.jpeg" /></p>
+<p>The node <code>C2</code> has just one child that is <code>D1</code>, the child is present in the unconnected set, and is not visited but its parent <code>C2</code> is not a potential candidate, in this case we can directly mark <code>D2</code> having no potential as well and pushing it to the queue, and marking it to remove too.</p>
+<div class="codehilite"><pre><span></span><code><span class="n">QUEUE</span><span class="w">     </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">(</span><span class="n">C1</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">D2</span><span class="p">,</span><span class="w"> </span><span class="kr">false</span><span class="p">)</span><span class="w"> </span><span class="p">]</span>
+<span class="n">VISITED</span><span class="w">   </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="n">C2</span><span class="w"> </span><span class="p">]</span>
+<span class="n">TO_REMOVE</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="n">C2</span><span class="p">,</span><span class="w"> </span><span class="n">C1</span><span class="p">,</span><span class="w"> </span><span class="n">D2</span><span class="w"> </span><span class="p">]</span>
+</code></pre></div>
+
+<p>jumping back to step 1, just to be short we will pop <code>(C1, false)</code> and <code>(D2, false)</code> and as both entries don't have any children nothing will happen, so we drain the queue and since there is nothing more to process from the queue we can go to step 5.</p>
+<div class="codehilite"><pre><span></span><code><span class="n">QUEUE</span><span class="w">     </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">]</span>
+<span class="n">VISITED</span><span class="w">   </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">D</span><span class="p">,</span><span class="w"> </span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="n">C2</span><span class="w"> </span><span class="p">]</span>
+<span class="n">TO_REMOVE</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="n">B1</span><span class="p">,</span><span class="w"> </span><span class="n">C2</span><span class="p">,</span><span class="w"> </span><span class="n">C1</span><span class="p">,</span><span class="w"> </span><span class="n">D2</span><span class="w"> </span><span class="p">]</span>
+</code></pre></div>
+
+<p>step 5 says to remove every entry that is marked to remove from the unconnected set, that is a easy <code>delete(unconnected_set, entry)</code> operation, and we finish!</p>
+<p>But I would like to highlight that, there is more complex there can exists and lead to a complete best chain reorg, for example:</p>
+<ul>
+<li>max_depth is 2 (a chain of max depth 3)</li>
+<li><code>A -&gt; B -&gt; C</code> are the best backable chain.</li>
+<li><code>D</code> is backed but would exceed the max depth.</li>
+<li><code>F</code> is unconnected and seconded.</li>
+<li><code>A1</code> has same parent as A, is backed but has a higher candidate hash. It'll therefore be deleted.</li>
+<li><code>A1</code> has underneath a subtree that will all need to be trimmed. <code>A1 -&gt; B1 -&gt; C1</code> and <code>B1 -&gt; C2</code>. (<code>C1</code> is backed).</li>
+<li><code>A2</code> is seconded but is kept because it has a lower candidate hash than <code>A</code> (that is part of <code>checkPotential</code> method, where we use the fork selection rule to decide if a candidate has potential or not, even if the cadidate is not backed). <code>A2</code> points to <code>B2</code>, which is backed.</li>
+</ul>
+<p>Check that D, F, A2 and B2 are kept as unconnected potential candidates, after trimming <code>A1</code> from the unconnected set.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/ChainSafe/gossamer" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://x.com/ChainSafeth" target="_blank" rel="noopener" title="x.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

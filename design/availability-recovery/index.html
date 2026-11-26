@@ -1,0 +1,2190 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The Official Documentation for Gossamer | A Go Implementation of the Polkadot Host">
+      
+      
+      
+      
+        <link rel="prev" href="../fragment-chain/">
+      
+      
+        <link rel="next" href="../authority-discovery/">
+      
+      
+      <link rel="icon" href="../../assets/favicon.ico">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>Availability Recovery Subsystem Design - Gossamer Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="pink" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#availability-recovery-subsystem-design" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Gossamer Docs" class="md-header__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gossamer Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Availability Recovery Subsystem Design
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../usage/running-nodes/" class="md-tabs__link">
+          
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../integrate/connect-to-polkadot-js/" class="md-tabs__link">
+          
+  
+  Integrate
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../testing-and-debugging/test-suite/" class="md-tabs__link">
+          
+  
+  Testing and Debugging
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../advanced/scale-examples/" class="md-tabs__link">
+          
+  
+  Advanced
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../parachain-protocol-overview/" class="md-tabs__link">
+          
+  
+  Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing.md" class="md-tabs__link">
+          
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Gossamer Docs" class="md-nav__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Gossamer Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/host-architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Host Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/package-library/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Package Library
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/general-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/developer-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Developer Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Usage
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/running-nodes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running Nodes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/command-line/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command Line
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-runtime/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import Runtime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-state/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import State
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Integrate
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Integrate
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrate/connect-to-polkadot-js/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connect to Polkadot.js
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Testing and Debugging
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Testing and Debugging
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/test-suite/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Suite
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/debugging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Debugging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Advanced
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Advanced
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced/scale-examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SCALE Examples
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parachain-protocol-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Parachain Protocol Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../candidate-backing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Candidate Backing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-subsystems/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability Subsystems
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../prospective-parachains/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fragment-chain/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains - Fragment Chain
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Availability recovery
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Availability recovery
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#availability-recovery-subsystem-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      Availability Recovery Subsystem Design
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Availability Recovery Subsystem Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#intro" class="md-nav__link">
+    <span class="md-ellipsis">
+      Intro
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flow
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#state" class="md-nav__link">
+    <span class="md-ellipsis">
+      State
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#availability-lru" class="md-nav__link">
+    <span class="md-ellipsis">
+      availability LRU
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#handle_recover" class="md-nav__link">
+    <span class="md-ellipsis">
+      handle_recover
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#awaiting-receivers" class="md-nav__link">
+    <span class="md-ellipsis">
+      awaiting receivers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#launch_recovery_task" class="md-nav__link">
+    <span class="md-ellipsis">
+      launch_recovery_task
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recovery-task" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recovery task
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      run
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recovery-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recovery strategies
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inter-strategies-taskstrategystate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inter strategies task::strategy::State
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recovery
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Strategies
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Strategies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fetchchunks" class="md-nav__link">
+    <span class="md-ellipsis">
+      FetchChunks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fullfetch" class="md-nav__link">
+    <span class="md-ellipsis">
+      FullFetch
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fetchsystematicchunks" class="md-nav__link">
+    <span class="md-ellipsis">
+      FetchSystematicChunks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#general-algorithm-to-choose-a-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      General algorithm to choose a strategy
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#requesting-chunks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Requesting chunks
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementation design
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#subsystem-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subsystem Structure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#incoming-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      Incoming messages
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outgoing-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outgoing messages
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Types:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      Interfaces
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recovery-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recovery pipeline
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authority-discovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Authority Discovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../statement-distribution/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Statement Distribution
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../grid-topology/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grid Topology
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gossip-support/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gossip Support
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provisioner/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Provisioner
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../collator-protocol-validator-side/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Collator Protocol - Validator Side
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Contributing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#availability-recovery-subsystem-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      Availability Recovery Subsystem Design
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Availability Recovery Subsystem Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#intro" class="md-nav__link">
+    <span class="md-ellipsis">
+      Intro
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flow
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#state" class="md-nav__link">
+    <span class="md-ellipsis">
+      State
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#availability-lru" class="md-nav__link">
+    <span class="md-ellipsis">
+      availability LRU
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#handle_recover" class="md-nav__link">
+    <span class="md-ellipsis">
+      handle_recover
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#awaiting-receivers" class="md-nav__link">
+    <span class="md-ellipsis">
+      awaiting receivers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#launch_recovery_task" class="md-nav__link">
+    <span class="md-ellipsis">
+      launch_recovery_task
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recovery-task" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recovery task
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      run
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recovery-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recovery strategies
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inter-strategies-taskstrategystate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inter strategies task::strategy::State
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recovery
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Strategies
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Strategies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fetchchunks" class="md-nav__link">
+    <span class="md-ellipsis">
+      FetchChunks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fullfetch" class="md-nav__link">
+    <span class="md-ellipsis">
+      FullFetch
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fetchsystematicchunks" class="md-nav__link">
+    <span class="md-ellipsis">
+      FetchSystematicChunks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#general-algorithm-to-choose-a-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      General algorithm to choose a strategy
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#requesting-chunks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Requesting chunks
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementation design
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#subsystem-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subsystem Structure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#incoming-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      Incoming messages
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outgoing-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outgoing messages
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Types:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      Interfaces
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recovery-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recovery pipeline
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+  <h1>Availability recovery</h1>
+
+<h2 id="availability-recovery-subsystem-design">Availability Recovery Subsystem Design<a class="headerlink" href="#availability-recovery-subsystem-design" title="Permanent link">&para;</a></h2>
+<h3 id="intro">Intro<a class="headerlink" href="#intro" title="Permanent link">&para;</a></h3>
+<p>The design for the Availability Recovery Subsystem is based on the Polkadot Host specification as detailed in the
+<a href="https://paritytech.github.io/polkadot-sdk/book/node/availability/availability-recovery.html">Polkadot Parachain Host Implementers' Guide</a>.
+This subsystem is responsible for recovering the data made available via the Availability Distribution subsystem,
+neccessary for candidate validation during the approval/disputes processes. Additionally, it is also being used by
+collators to recover PoVs in adversarial scenarios where the other collators of the para are censoring blocks.
+In practice, there are various optimisations implemented in this subsystem which avoid querying all chunks from different validators and/or avoid doing the chunk reconstruction altogether.</p>
+<h3 id="flow">Flow<a class="headerlink" href="#flow" title="Permanent link">&para;</a></h3>
+<p>General flow is pretty straight forward. Subsystem awaits requests from Overseer to recover particular candidate for particular <code>CandidateReceiptV2</code>.
+The data is fist checked to exist in LRU cache or in Availability store if not recovery process starts.
+There are several possible strategies to recover availability data and they will be described below.
+When data is recovered is being sent back to <code>ongoing_recoveries</code> pull where it is processed by being written to LRU cache and returned to requestors via <code>response_sender</code> channel.
+Hence the flow is pretty straight forward and most details related to optimisations and possible strategies.</p>
+<div class="codehilite"><pre><span></span><code><span class="n">graph</span><span class="w"> </span><span class="n">TD</span>
+<span class="w">    </span><span class="n">A</span><span class="p">[</span><span class="n">Start</span><span class="p">]</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">B</span><span class="p">[</span><span class="n">Initialize</span><span class="w"> </span><span class="n">AvailabilityRecoverySubsystem</span><span class="p">]</span>
+<span class="w">    </span><span class="n">B</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">C</span><span class="p">[</span><span class="n">Run</span><span class="w"> </span><span class="n">AvailabilityRecoverySubsystem</span><span class="p">]</span>
+<span class="w">    </span><span class="n">C</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">D</span><span class="p">[</span><span class="n">Handle</span><span class="w"> </span><span class="n">Overseer</span><span class="w"> </span><span class="n">Signals</span><span class="p">]</span>
+<span class="w">    </span><span class="n">C</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">E</span><span class="p">[</span><span class="n">Handle</span><span class="w"> </span><span class="n">Recovery</span><span class="w"> </span><span class="n">Requests</span><span class="p">]</span>
+<span class="w">    </span><span class="n">D</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">H</span><span class="p">[</span><span class="n">Update</span><span class="w"> </span><span class="n">State</span><span class="w"> </span><span class="n">with</span><span class="w"> </span><span class="n">Active</span><span class="w"> </span><span class="n">Leaves</span><span class="p">]</span>
+<span class="w">    </span><span class="n">D</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">I</span><span class="p">[</span><span class="n">Finalize</span><span class="w"> </span><span class="n">Block</span><span class="p">]</span>
+<span class="w">    </span><span class="n">E</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">J</span><span class="p">[</span><span class="n">Check</span><span class="w"> </span><span class="n">Availability</span><span class="w"> </span><span class="n">LRU</span><span class="w"> </span><span class="n">Cache</span><span class="p">]</span>
+<span class="w">    </span><span class="n">J</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">K</span><span class="p">{</span><span class="n">Cache</span><span class="w"> </span><span class="n">Hit</span><span class="o">?</span><span class="p">}</span>
+<span class="w">    </span><span class="n">K</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="o">|</span><span class="n">Yes</span><span class="o">|</span><span class="w"> </span><span class="n">L</span><span class="p">[</span><span class="n">Send</span><span class="w"> </span><span class="n">Cached</span><span class="w"> </span><span class="n">Result</span><span class="p">]</span>
+<span class="w">    </span><span class="n">K</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="o">|</span><span class="n">No</span><span class="o">|</span><span class="w"> </span><span class="n">M</span><span class="p">[</span><span class="n">Check</span><span class="w"> </span><span class="n">Ongoing</span><span class="w"> </span><span class="n">Recoveries</span><span class="p">]</span>
+<span class="w">    </span><span class="n">M</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">N</span><span class="p">{</span><span class="n">Ongoing</span><span class="w"> </span><span class="n">Recovery</span><span class="o">?</span><span class="p">}</span>
+<span class="w">    </span><span class="n">N</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="o">|</span><span class="n">Yes</span><span class="o">|</span><span class="w"> </span><span class="n">O</span><span class="p">[</span><span class="n">Add</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">Awaiting</span><span class="w"> </span><span class="n">List</span><span class="p">]</span>
+<span class="w">    </span><span class="n">N</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="o">|</span><span class="n">No</span><span class="o">|</span><span class="w"> </span><span class="n">P</span><span class="p">[</span><span class="n">Fetch</span><span class="w"> </span><span class="n">Session</span><span class="w"> </span><span class="n">Info</span><span class="p">]</span>
+<span class="w">    </span><span class="n">P</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">Q</span><span class="p">{</span><span class="n">Session</span><span class="w"> </span><span class="n">Info</span><span class="w"> </span><span class="n">Available</span><span class="o">?</span><span class="p">}</span>
+<span class="w">    </span><span class="n">Q</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="o">|</span><span class="n">Yes</span><span class="o">|</span><span class="w"> </span><span class="n">R</span><span class="p">[</span><span class="n">Initialize</span><span class="w"> </span><span class="n">Recovery</span><span class="w"> </span><span class="n">Strategies</span><span class="p">]</span>
+<span class="w">    </span><span class="n">R</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">S</span><span class="p">[</span><span class="n">Launch</span><span class="w"> </span><span class="n">Recovery</span><span class="w"> </span><span class="n">Task</span><span class="p">]</span>
+<span class="w">    </span><span class="n">Q</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="o">|</span><span class="n">No</span><span class="o">|</span><span class="w"> </span><span class="n">T</span><span class="p">[</span><span class="n">Send</span><span class="w"> </span><span class="n">Unavailable</span><span class="w"> </span><span class="n">Error</span><span class="p">]</span>
+<span class="w">    </span><span class="n">E</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">W</span><span class="p">[</span><span class="w"> </span><span class="n">Try</span><span class="w"> </span><span class="n">Query</span><span class="w"> </span><span class="n">Full</span><span class="w"> </span><span class="n">Data</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">Availability</span><span class="w"> </span><span class="n">Store</span><span class="p">]</span>
+<span class="w">    </span><span class="n">W</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">X</span><span class="p">{</span><span class="n">Data</span><span class="w"> </span><span class="n">Available</span><span class="o">?</span><span class="p">}</span>
+<span class="w">    </span><span class="n">X</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="o">|</span><span class="n">Yes</span><span class="o">|</span><span class="w"> </span><span class="n">Y</span><span class="p">[</span><span class="n">Send</span><span class="w"> </span><span class="n">Data</span><span class="w"> </span><span class="n">Response</span><span class="p">]</span>
+<span class="w">    </span><span class="n">X</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="o">|</span><span class="n">No</span><span class="o">|</span><span class="w"> </span><span class="n">Z</span><span class="p">[</span><span class="n">Send</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="n">Response</span><span class="p">]</span>
+<span class="w">    </span><span class="n">E</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">AA</span><span class="p">[</span><span class="n">Forward</span><span class="w"> </span><span class="n">Erasure</span><span class="w"> </span><span class="n">Task</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">Thread</span><span class="w"> </span><span class="n">Pool</span><span class="p">]</span>
+<span class="w">    </span><span class="n">AA</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">AB</span><span class="p">[</span><span class="n">Execute</span><span class="w"> </span><span class="n">Erasure</span><span class="w"> </span><span class="n">Task</span><span class="p">]</span>
+<span class="w">    </span><span class="n">AB</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">AC</span><span class="p">[</span><span class="n">Send</span><span class="w"> </span><span class="n">Erasure</span><span class="w"> </span><span class="n">Task</span><span class="w"> </span><span class="n">Result</span><span class="p">]</span>
+<span class="w">    </span><span class="n">S</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">AD</span><span class="p">[</span><span class="n">Run</span><span class="w"> </span><span class="n">Recovery</span><span class="w"> </span><span class="n">Task</span><span class="p">]</span>
+<span class="w">    </span><span class="n">AD</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">AE</span><span class="p">[</span><span class="n">Poll</span><span class="w"> </span><span class="n">Recovery</span><span class="w"> </span><span class="n">Handle</span><span class="p">]</span>
+<span class="w">    </span><span class="n">AE</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">AF</span><span class="p">{</span><span class="n">Recovery</span><span class="w"> </span><span class="n">Completed</span><span class="o">?</span><span class="p">}</span>
+<span class="w">    </span><span class="n">AF</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="o">|</span><span class="n">Yes</span><span class="o">|</span><span class="w"> </span><span class="n">AG</span><span class="p">[</span><span class="n">Send</span><span class="w"> </span><span class="n">Recovery</span><span class="w"> </span><span class="n">Result</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">Awaiting</span><span class="w"> </span><span class="n">Receivers</span><span class="p">]</span>
+<span class="w">    </span><span class="n">AG</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">AH</span><span class="p">[</span><span class="n">Cache</span><span class="w"> </span><span class="n">Recovery</span><span class="w"> </span><span class="n">Result</span><span class="p">]</span>
+<span class="w">    </span><span class="n">AF</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="o">|</span><span class="n">No</span><span class="o">|</span><span class="w"> </span><span class="n">AI</span><span class="p">[</span><span class="n">Continue</span><span class="w"> </span><span class="n">Polling</span><span class="p">]</span>
+<span class="w">    </span><span class="n">AH</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">C</span>
+<span class="w">    </span><span class="n">AI</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">AE</span>
+</code></pre></div>
+
+<h3 id="state">State<a class="headerlink" href="#state" title="Permanent link">&para;</a></h3>
+<p>Subsystem has a state that holds:
+- map of ongoing recoveries
+- live_block: (BlockNumber, Hash), /// A recent block hash for which state should be available. <strong>(NOT SURE WHAT IS THAT)</strong>
+- availability_lru -  /// An LRU cache of recently recovered data. So we can avoid expensive data recoveries
+- runtime_info: RuntimeInfo, /// Also do not know why</p>
+<h3 id="availability-lru">availability LRU<a class="headerlink" href="#availability-lru" title="Permanent link">&para;</a></h3>
+<p>Implement availability_lru cache that is storing recently recovered availabilities.
+Add calls to LRU cache within handle recovery so in case if availability is already in cache return from it avoiding full recovery process.
+Put successfully recovered availability to LRU as soon as they correctly recovered</p>
+<h3 id="handle_recover">handle_recover<a class="headerlink" href="#handle_recover" title="Permanent link">&para;</a></h3>
+<p>The handle_recover method handles an availability recovery request. It is responsible for initiating the recovery process for a given candidate receipt and session index.
+The method checks if the requested data is already cached or being recovered, and if not, it launches a new recovery task.</p>
+<p>check ongoing recovery task if one is present. Push response_sender to the list of awaiting for result. (So we need ot create this dependencie as well)</p>
+<p>Fetching the runtime session params if error, return error.</p>
+<p>Then match the recovery strategy kind. Either (BackersFirstIfSizeLower | BackersFirstIfSizeLowerThenSystematicChunks) or else</p>
+<p>query the chunk_size. Estimate if chunk_size is small_pov_size. If unestimatable then small_pov_size = false;</p>
+<p>What is chunk_size and small_pov_size ?
+We need to implement query_chunk_size function. This is a function that sends AvailabilityStoreMessage::QueryChunkSize message via overseer to availability_store to estimate size of candidate with specified candidate_hash.</p>
+<p>THen we define recovery_strategies list.
+This is where it gets little bit tricky to understand what is going on</p>
+<p>Based on the recovery strategy kind and the PoV size, it may add a FetchFull strategy to fetch from the backing group.
+- If the PoV size is smaller than the specified threshold (fetch_chunks_threshold), it prefers fetching from the backing group.</p>
+<p>It always adds a <code>FetchChunks</code> strategy as a fallback to recover using regular chunks. We can use this as a MVP method and implement first. (IMPLEMENT FULLFETCH)
+<code>RecoveryStrategyKind</code> - run only within <code>handle_recover</code> function and much used to distinguish test runs from real runs. If StrategyKind is any of <code>BackersFirstIfSizeLower</code> or <code>BackersFirstIfSizeLowerThenSystematicChunks</code>
+then recovery based on PoV size.</p>
+<h3 id="awaiting-receivers">awaiting receivers<a class="headerlink" href="#awaiting-receivers" title="Permanent link">&para;</a></h3>
+<p>The RecoveryHandle struct is used to manage ongoing recovery tasks and their associated awaiting receivers. It is primarily used in the handle_recover and launch_recovery_task functions.</p>
+<p><code>ongoing_recoveries: FuturesUnordered&lt;RecoveryHandle&gt;,</code> is a part of AR State and holds array of <code>RecoveryHandle</code></p>
+<p><code>RecoveryHandle</code> consist of candidate_hash (candidate we need to recover) and <code>awaiting: Vec&lt;oneshot::Sender&lt;RecoveryResult&gt;&gt;,</code> Vector of oneshot channels that awaits result of the recovery.</p>
+<h3 id="launch_recovery_task">launch_recovery_task<a class="headerlink" href="#launch_recovery_task" title="Permanent link">&para;</a></h3>
+<p><code>launch_recovery_task(state, ctx, response_sender, recovery_strategies, params) -&gt; Result&lt;()&gt;</code>
+Create the RecoveryTask and launch it as a background task running recovery_task.run().</p>
+<p>recovery_task.run(mut self) -&gt; Result<AvailableData, RecoveryError>
+Loop:
+Pop a strategy from the queue. If none are left, return RecoveryError::Unavailable.
+Run the strategy.
+If the strategy returned successfully or returned RecoveryError::Invalid, break the loop.</p>
+<p>When the recovery is done, the result is sent to all awaiting receivers with ongoing_recoveries
+and cached in the availability_lru cache. Here's a detailed explanation of the flow.</p>
+<h3 id="recovery-task">Recovery task<a class="headerlink" href="#recovery-task" title="Permanent link">&para;</a></h3>
+<p>A RecoveryTask is a structure encapsulating all network tasks needed in order to recover the available data in respect to a candidate.</p>
+<h3 id="run">run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h3>
+<p>Recovery task is run by <code>launch_recovery_task</code> function and is run based on strategy that was defined.
+First it again check availability store in case data is available there.
+And then strategy is run</p>
+<h3 id="recovery-strategies">Recovery strategies<a class="headerlink" href="#recovery-strategies" title="Permanent link">&para;</a></h3>
+<p>Each recovery task uses list of different recovery strategies
+There are 3 recovery strategies FetchFull, FetchSystematicChunks, and FetchChunks (more <a href="https://paritytech.github.io/polkadot-sdk/book/node/availability/availability-recovery.html#recovery-strategies">details</a>)
+But within the code we define only two flows BackersFirstIfSizeLower and BackersFirstIfSizeLowerThenSystematicChunks those are basically list strategies with different order of apply.</p>
+<h3 id="inter-strategies-taskstrategystate">Inter strategies task::strategy::State<a class="headerlink" href="#inter-strategies-taskstrategystate" title="Permanent link">&para;</a></h3>
+<p>Hold the Task state, basically stores received chunks or errors.</p>
+<h3 id="recovery">Recovery<a class="headerlink" href="#recovery" title="Permanent link">&para;</a></h3>
+<p>How work is dispatched to the pool from the recovery tasks:
+Once a recovery task finishes retrieving the availability data, it needs to reconstruct on chunks and/or  encode the data which are heavy CPU computations.
+These depends on the strategy we choose.
+FetchChunks need reconstruction, FullFetch reencode and FetchSystematicChunks does not need reedsalomon calculations</p>
+<ul>
+<li>do so it sends an <code>ErasureTask</code> to the main loop via the <code>erasure_task</code> channel, and  ts for the results over a <code>oneshot</code> channel.</li>
+</ul>
+<h2 id="strategies">Strategies<a class="headerlink" href="#strategies" title="Permanent link">&para;</a></h2>
+<h3 id="fetchchunks">FetchChunks<a class="headerlink" href="#fetchchunks" title="Permanent link">&para;</a></h3>
+<p>The least performant strategy (though apparently the most used one according to <a href="https://github.com/paritytech/polkadot-sdk/issues/598#issuecomment-1792007099">this</a>) but also the most comprehensive one. It's the only one that cannot fail under the byzantine threshold assumption,
+so it's always added as the last one in the recovery_strategies queue. Performs parallel chunk requests to validators. When enough chunks were received, do the reconstruction.
+In the worst case, all validators will be tried.
+The most expensive part of this algorithm (the same source as above) is reed solomon reconstruct algorithm. 
+Implementation of this strategy requires for reed-solomon reconstruction algorithm that is available to call from the <code>lib/erasure</code> module.</p>
+<p>In Parity implementation they assume that FetchChunks is always run as a last resort strategy, hence they do initially do some checks and remove all requested validators from list.</p>
+<p><strong>Main loop</strong>
+- check amount of chunks recovered if &gt;= threshold recover them.
+- launch_parallel_chunk_requests
+- wait_for_chunks</p>
+<h3 id="fullfetch">FullFetch<a class="headerlink" href="#fullfetch" title="Permanent link">&para;</a></h3>
+<p><em>This strategy tries requesting the full available data from the validators in the backing group to which the node is already connected.
+They are tried one by one in a random order. It is very performant if there's enough network bandwidth and the backing group is not overloaded. The costly reed-solomon reconstruction is not needed.</em>
+<strong>NOTE: there are some part os the code that are only necessary for collators so we can skip them for now.</strong></p>
+<p>This strategy requires <code>Reencode</code> the data into erasure chunks in order to verify  the root hash of the provided Merkle tree, 
+which is built on-top of the encoded chunks.
+This (expensive) check is necessary, as otherwise we can't be sure that some chunks won't have been tampered with by the backers, 
+which would result in some validators considering the data valid and some.
+That depends on <code>erasure_coding.obtain_chunks_v1</code> method and is available to call from the <code>lib/erasure</code> module</p>
+<p><strong>Main loop</strong>
+- take next validator from array
+- create data request
+- send message NetworkBridgeTxMessage::SendRequests with data request
+- awaits for full data to be returned if so data to be Reencoded and validated
+- repeat until data is available or all validators requested.</p>
+<h3 id="fetchsystematicchunks">FetchSystematicChunks<a class="headerlink" href="#fetchsystematicchunks" title="Permanent link">&para;</a></h3>
+<p><em>Very similar to FetchChunks below but requests from the validators that hold the systematic chunks, so that we avoid reed-solomon reconstruction.
+Only possible if node_features::FeatureIndex::AvailabilityChunkMapping is enabled and the core_index is supplied (currently only for recoveries triggered by approval voting).
+More info in RFC-47.</em>
+We can only attempt systematic recovery if we received the core index of the candidate and chunk mapping is enabled.
+<code>availability_chunk_mapping_is_enabled</code> Tells if the chunk mapping feature is enabled. Enables the implementation of
+<a href="https://github.com/polkadot-fellows/RFCs/blob/main/text/0047-assignment-of-availability-chunks.md">RFC-47</a>.
+Must not be enabled unless all validators and collators have stopped using <code>req_chunk</code>
+protocol version 1. If it is enabled, validators can start systematic chunk recovery.</p>
+<p><strong>Additional related information:</strong>
+- https://github.com/paritytech/polkadot-sdk/issues/598
+- https://github.com/polkadot-fellows/RFCs/blob/main/text/0047-assignment-of-availability-chunks.md</p>
+<h3 id="general-algorithm-to-choose-a-strategy">General algorithm to choose a strategy<a class="headerlink" href="#general-algorithm-to-choose-a-strategy" title="Permanent link">&para;</a></h3>
+<p>If the estimated available data size is smaller than a configured constant (currently 1Mib for Polkadot or 4Mib for other networks), try doing FetchFull first.
+Next, if the preconditions described in FetchSystematicChunks above are met, try systematic recovery. As a last resort, do FetchChunks.</p>
+<h3 id="requesting-chunks">Requesting chunks<a class="headerlink" href="#requesting-chunks" title="Permanent link">&para;</a></h3>
+<p><code>launch_parallel_chunk_requests</code> function is responsible for launching parallel requests to fetch chunks from validators. 
+It ensures that the desired number of chunk requests are in progress by sending requests to available validators.
+The logic is common for both FetchChunks and FetchSystematicChunks. The type of strategy only used in metrics.</p>
+<p>Using network request/response module to create with_fallback type of request and using v2 ChunkFetchingRequest as a 
+main request and v1 ChunkFetchingRequest as a fallback in case validator does not supports it.</p>
+<p>When validator receives a chunk it is stored in a map with chunk_id as a key this way we eliminate chunk duplicates 
+and calculate only distinct ones.</p>
+<p>There is only one chunk per validator, hence we ask validator only for 1 chunk. </p>
+<h2 id="implementation-design">Implementation design<a class="headerlink" href="#implementation-design" title="Permanent link">&para;</a></h2>
+<h3 id="subsystem-structure">Subsystem Structure<a class="headerlink" href="#subsystem-structure" title="Permanent link">&para;</a></h3>
+<p>The implementation must conform to the <code>Subsystem</code> interface defined in the <code>parachaintypes</code> package. It should live in
+a package named <code>availabilityrecovery</code> under <code>dot/parachain/availability-distribution</code>.</p>
+<h3 id="incoming-messages">Incoming messages<a class="headerlink" href="#incoming-messages" title="Permanent link">&para;</a></h3>
+<p>Subsystem should handle 3 outside messages: 
+- OverseerSignal::ActiveLeaves - update live block to the recent
+- OverseerSignal::BlockFinalized - do nothing (?)
+- OverseerSignal::Conclude - graceful shutdown
+- AvailabilityRecoveryMessage::RecoverAvailableData - request to recover candidates availability data</p>
+<h3 id="outgoing-messages">Outgoing messages<a class="headerlink" href="#outgoing-messages" title="Permanent link">&para;</a></h3>
+<ul>
+<li>AvailabilityStoreMessage::QueryAvailableData - try to query availability data from availability store using overseer.</li>
+<li>AvailabilityStoreMessage::QueryChunkSize - query chunk size. Used to select strategy. (eg FetchFull if PoV size constraints are met).</li>
+<li>NetworkBridgeTxMessage::SendRequests - message to network bridge to use request/response module for requesting chunks from other validators.</li>
+<li>ErasureTask::Reconstruct, Reencode - messages we sent within a subsystem to ErasureCoding thread that is responsible for doing Reconstruct and Reencode. </li>
+</ul>
+<h3 id="types">Types:<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+<ul>
+<li>State <ul>
+<li>Holds array of tasks to recover. Subsystem should asynchronously process all incoming request and create a goroutine for each of it. </li>
+<li>Live block
+  Last block for runtime params updgrade</li>
+<li>LRU cache for recent availability data to improve performance for recently requested availabilities. </li>
+</ul>
+</li>
+<li>RecoveryParams</li>
+</ul>
+<div class="codehilite"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">RecoveryParams</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">CandidateHash</span><span class="w">       </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">ValidatorAuthorityKeys</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">NValidators</span><span class="w">         </span><span class="kt">int</span>
+<span class="w">    </span><span class="nx">ErasureRoot</span><span class="w">         </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">PovHash</span><span class="w">             </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">PostRecoveryCheck</span><span class="w">   </span><span class="nx">PostRecoveryCheck</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="interfaces">Interfaces<a class="headerlink" href="#interfaces" title="Permanent link">&para;</a></h3>
+<p>We need to define interfaces for all 3 strategies (FetchFull, FetchSystematicChunks, FetchChunks)</p>
+<div class="codehilite"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">RecoveryStrategy</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">DisplayName</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">StrategyType</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">Run</span><span class="p">(</span><span class="nx">params</span><span class="w"> </span><span class="nx">RecoveryParams</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">AvailableData</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="recovery-pipeline">Recovery pipeline<a class="headerlink" href="#recovery-pipeline" title="Permanent link">&para;</a></h3>
+<p>Every incoming request should be written to ongoing recoveries map.
+We might also want to add RWMutex for state to be sure that while we adding RecoveryResult channel to awaiting it 
+is not getting read from, hence leading that newly added awaiter never get resolved.</p>
+<div class="codehilite"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">RecoverySubsystemState</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">OngoingRecoveries</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="o">*</span><span class="nx">RecoveryTask</span><span class="w"> </span><span class="c1">// key is the CandidateHash allows for O(1) lookups</span>
+<span class="w">    </span><span class="nx">mutex</span><span class="w"> </span><span class="nx">mutex</span><span class="p">.</span><span class="nx">RWMutex</span>
+<span class="p">}</span>
+
+
+<span class="c1">// RecoveryTask represents a recovery task for particular candidatehash</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">RecoveryTask</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">params</span><span class="w"> </span><span class="nx">RecoveryParams</span><span class="w"> </span><span class="c1">// subsystem params necessary for recovery</span>
+<span class="w">    </span><span class="nx">CandidateHash</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">ResultChan</span><span class="w">    </span><span class="kd">chan</span><span class="w"> </span><span class="nx">RecoveryResult</span><span class="w"> </span><span class="c1">// channel to respond with recovery result (either PoV or error) to main routine</span>
+<span class="w">    </span><span class="nx">awaiting</span><span class="w"> </span><span class="p">[]</span><span class="kd">chan</span><span class="w"> </span><span class="nx">RecoveryResult</span><span class="w"> </span><span class="c1">// array of channels that awaits recovery result</span>
+<span class="p">}</span>
+
+<span class="c1">// RecoveryResult represents the result of a recovery operation.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">RecoveryResult</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Data</span><span class="w"> </span><span class="nx">AvailableData</span>
+<span class="w">    </span><span class="nx">Err</span><span class="w">  </span><span class="kt">error</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>For each recovery request we theoretically need to to try all three strategies one by one. <em>FullFetch</em> first, then
+<em>FetchSystematicChunks</em>, and then <em>FullFetch</em>. FullFetch is a fallback strategy that always we try in the end and the
+first two have their constraints that are described above. 
+Constraints are defined based on subsystem params, <code>chunk_size</code>, PoV size limit or as it called <code>CONSERVATIVE_FETCH_CHUNKS_THRESHOLD</code> 
+and <code>FETCH_CHUNKS_THRESHOLD</code>.</p>
+<p>Instead of keeping array of possible recovery strategies per recovery task we can just pipeline all of them, 
+including erasure reed solomon Reconstruct or Reencode.
+and call if constraints above are met returning <code>RecoveryResult</code> in the end</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/ChainSafe/gossamer" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://x.com/ChainSafeth" target="_blank" rel="noopener" title="x.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

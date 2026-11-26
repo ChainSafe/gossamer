@@ -1,0 +1,1805 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The Official Documentation for Gossamer | A Go Implementation of the Polkadot Host">
+      
+      
+      
+      
+      
+      
+      <link rel="icon" href="../../assets/favicon.ico">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>GRANDPA client implementation - Gossamer Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="pink" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#grandpa-client-implementation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Gossamer Docs" class="md-header__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gossamer Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              GRANDPA client implementation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../usage/running-nodes/" class="md-tabs__link">
+          
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../integrate/connect-to-polkadot-js/" class="md-tabs__link">
+          
+  
+  Integrate
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../testing-and-debugging/test-suite/" class="md-tabs__link">
+          
+  
+  Testing and Debugging
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../advanced/scale-examples/" class="md-tabs__link">
+          
+  
+  Advanced
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../parachain-protocol-overview/" class="md-tabs__link">
+          
+  
+  Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing.md" class="md-tabs__link">
+          
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Gossamer Docs" class="md-nav__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Gossamer Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/host-architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Host Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/package-library/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Package Library
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/general-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/developer-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Developer Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Usage
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/running-nodes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running Nodes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/command-line/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command Line
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-runtime/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import Runtime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-state/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import State
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Integrate
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Integrate
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrate/connect-to-polkadot-js/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connect to Polkadot.js
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Testing and Debugging
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Testing and Debugging
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/test-suite/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Suite
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/debugging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Debugging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Advanced
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Advanced
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced/scale-examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SCALE Examples
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parachain-protocol-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Parachain Protocol Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../candidate-backing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Candidate Backing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-subsystems/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability Subsystems
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../prospective-parachains/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fragment-chain/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains - Fragment Chain
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-recovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability recovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authority-discovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Authority Discovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../statement-distribution/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Statement Distribution
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../grid-topology/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grid Topology
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gossip-support/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gossip Support
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provisioner/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Provisioner
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../collator-protocol-validator-side/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Collator Protocol - Validator Side
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Contributing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      Context
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Context">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#clientconsensusgrandpa-implement-changetree-and-authorityset-logic-3283" class="md-nav__link">
+    <span class="md-ellipsis">
+      client(consensus/grandpa): Implement ChangeTree and AuthoritySet logic (#3283)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clientconsensusgrandpa-implement-grandpadb-and-environment-types-3383" class="md-nav__link">
+    <span class="md-ellipsis">
+      client(consensus/grandpa): implement grandpaDb and environment types (#3383)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clientconsensusgrandpa-implement-grandpa-justification-logic-3454" class="md-nav__link">
+    <span class="md-ellipsis">
+      client(consensus/grandpa): implement grandpa justification logic (#3454)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clientconsensusgrandpa-implement-finality-proof-logic-3589" class="md-nav__link">
+    <span class="md-ellipsis">
+      client(consensus/grandpa): implement finality proof logic (#3589)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-remains" class="md-nav__link">
+    <span class="md-ellipsis">
+      What Remains?
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What Remains?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Environment
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#voterwork-functionality" class="md-nav__link">
+    <span class="md-ellipsis">
+      VoterWork functionality
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#networkbridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      NetworkBridge
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gossipengine" class="md-nav__link">
+    <span class="md-ellipsis">
+      GossipEngine
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GossipEngine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#network-trait" class="md-nav__link">
+    <span class="md-ellipsis">
+      Network trait
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#syncing-trait" class="md-nav__link">
+    <span class="md-ellipsis">
+      Syncing trait
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation-of-blockimport" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementation of BlockImport
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration tests
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rpc-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      RPC Integration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="grandpa-client-implementation">GRANDPA client implementation<a class="headerlink" href="#grandpa-client-implementation" title="Permanent link">&para;</a></h1>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>The GRANDPA standalone package which is a port of the Parity <code>finality-grandpa</code> crate was completed in October 2023 (<a href="https://github.com/ChainSafe/gossamer/pull/3235">PR link</a>). It was intended to be learning exercise to get a better understanding of the reference GRANDPA implementation, and to see if we could translate the async rust code along with generic support in Go. All of the voter logic is encapsulated by this package, where a long lived <code>Voter</code> can be instantiated which will process and participate in concurrent finality voting rounds.</p>
+<p>Work on the client integration was started shortly after.  There have been a number of PRs merged to <code>feat/grandpa</code> branch that aim to replicate a lot of the client integration of the standalone GRANDPA package.  The client code is in <code>sc_consensus_grandpa</code> crate, which reference primitives found in <code>sp_consensus_grandpa</code>.  Some of the notable PRs which have primarily been authored by Jimmy are as follows:</p>
+<h3 id="clientconsensusgrandpa-implement-changetree-and-authorityset-logic-3283">client(consensus/grandpa): Implement ChangeTree and AuthoritySet logic (<a href="https://github.com/ChainSafe/gossamer/pull/3283">#3283</a>)<a class="headerlink" href="#clientconsensusgrandpa-implement-changetree-and-authorityset-logic-3283" title="Permanent link">&para;</a></h3>
+<p>Introduces <code>ChangeTree</code> which is a structure built to track pending changes across forks.  Introduces <code>AuthoritySet</code> which trackers the current authorities, as well associated any standard and/or forced authority set changes. </p>
+<h3 id="clientconsensusgrandpa-implement-grandpadb-and-environment-types-3383">client(consensus/grandpa): implement grandpaDb and environment types (<a href="https://github.com/ChainSafe/gossamer/pull/3383">#3383</a>)<a class="headerlink" href="#clientconsensusgrandpa-implement-grandpadb-and-environment-types-3383" title="Permanent link">&para;</a></h3>
+<p>Implements the auxiliary data portion of the client GRANDPA integration.  Functionality like persisting the <code>voterSetState</code>, current authority set, best block justification to disk is implemented in this PR.</p>
+<h3 id="clientconsensusgrandpa-implement-grandpa-justification-logic-3454">client(consensus/grandpa): implement grandpa justification logic (<a href="https://github.com/ChainSafe/gossamer/pull/3454">#3454</a>)<a class="headerlink" href="#clientconsensusgrandpa-implement-grandpa-justification-logic-3454" title="Permanent link">&para;</a></h3>
+<p>Implements verification of GRANDPA justifications, and remaining auxiliary data persistance.</p>
+<h3 id="clientconsensusgrandpa-implement-finality-proof-logic-3589">client(consensus/grandpa): implement finality proof logic (<a href="https://github.com/ChainSafe/gossamer/pull/3589">#3589</a>)<a class="headerlink" href="#clientconsensusgrandpa-implement-finality-proof-logic-3589" title="Permanent link">&para;</a></h3>
+<p>Implements creation and verification of GRANDPA finality proofs.</p>
+<h2 id="what-remains">What Remains?<a class="headerlink" href="#what-remains" title="Permanent link">&para;</a></h2>
+<p>The following high level types, <code>BlockImport</code> trait implementation, and integration tests still need to be completed.</p>
+<h3 id="environment"><code>Environment</code><a class="headerlink" href="#environment" title="Permanent link">&para;</a></h3>
+<p>[<code>Environment</code>] is a type that utilizes already introduced dependencies (<code>VoterSet</code>, <code>SharedAuthoritySet</code>, etc.) to provide functionality to the [<code>VoterWork</code>] type.  It is a self contained type that encapsulates all dependencies of the [<code>VoterWork</code>] type.  The [<code>Environment</code>] contains a client dependency which is a subset of the traits that the substrate <code>Client</code> implements.  This subset of traits is defined as <code>ClientForGrandpa</code> and is described as:</p>
+<div class="codehilite"><pre><span></span><code><span class="sd">/// A trait that includes all the client functionalities grandpa requires.</span>
+<span class="sd">/// Ideally this would be a trait alias, we&#39;re not there yet.</span>
+<span class="sd">/// tracking issue &lt;https://github.com/rust-lang/rust/issues/41517&gt;</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">ClientForGrandpa</span><span class="o">&lt;</span><span class="n">Block</span><span class="p">,</span><span class="w"> </span><span class="n">BE</span><span class="o">&gt;</span>:
+    <span class="nc">LockImportRun</span><span class="o">&lt;</span><span class="n">Block</span><span class="p">,</span><span class="w"> </span><span class="n">BE</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="n">Finalizer</span><span class="o">&lt;</span><span class="n">Block</span><span class="p">,</span><span class="w"> </span><span class="n">BE</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="n">AuxStore</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="n">HeaderMetadata</span><span class="o">&lt;</span><span class="n">Block</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sp_blockchain</span>::<span class="n">Error</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="n">HeaderBackend</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="n">BlockchainEvents</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="n">ProvideRuntimeApi</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="n">ExecutorProvider</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="n">BlockImport</span><span class="o">&lt;</span><span class="n">Block</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sp_consensus</span>::<span class="n">Error</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="n">StorageProvider</span><span class="o">&lt;</span><span class="n">Block</span><span class="p">,</span><span class="w"> </span><span class="n">BE</span><span class="o">&gt;</span>
+<span class="k">where</span>
+<span class="w">    </span><span class="n">BE</span>: <span class="nc">Backend</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="n">Block</span>: <span class="nc">BlockT</span><span class="p">,</span>
+<span class="p">{}</span>
+</code></pre></div>
+
+<p>Every trait except <code>Finalizer</code>, <code>ProvideRuntimeApi</code>, <code>ExecutorProvider</code> has been already implemented or we have issues created within the <a href="https://github.com/ChainSafe/gossamer/issues/3902"><code>db.Backend</code> integration epic</a>.  <code>Finalizer</code> is trivial to implement.  <code>ProvideRuntimeApi</code> and <code>ExecutionProvider</code> can be provided by our existing <code>wazero</code> package. </p>
+<h3 id="voterwork-functionality"><code>VoterWork</code> functionality<a class="headerlink" href="#voterwork-functionality" title="Permanent link">&para;</a></h3>
+<p><code>sc_consensus_grandpa</code> main future is [<code>VoterWork</code>] type.  [<code>VoterWork</code>] uses <code>communication::NetworkBridge</code>, the grandpa <code>Voter</code> from the standalone GRANDPA package, and the [<code>Environment</code>] type as chief dependencies to process GRANDPA voter message and progress the standalone GRANDPA voter. Given the rust source utilizes async rust code, further exploration and prototyping needs to be done to implement it in a way that aligns with Go best practices with regards to concurrency.</p>
+<h3 id="networkbridge"><code>NetworkBridge</code><a class="headerlink" href="#networkbridge" title="Permanent link">&para;</a></h3>
+<p>[<code>NetworkBridge</code>] is the bridge between the underlying network service, gossiping consensus messages and GRANDPA. It contains an implementation of <code>Network</code> trait and an implementation of <code>Syncing</code> trait though these are just stored to instantiate [<code>GossipEngine</code>] which is a dependency.  There is also a <a href="https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/substrate/client/consensus/grandpa/src/communication/gossip.rs#L1486"><code>GossipValidator</code></a> type used as a dependency. </p>
+<p>I propose replicating [<code>NetworkBridge</code>] given it's a good abstraction and a defined dependency of <code>VoterWork</code>.   We will also need to replicate [<code>GossipEngine</code>] given it is a dependancy of [<code>NetworkBridge</code>]. </p>
+<h3 id="gossipengine"><code>GossipEngine</code><a class="headerlink" href="#gossipengine" title="Permanent link">&para;</a></h3>
+<p>[<code>GossipEngine</code>] is the main long running parallel process that provides generalized gossip functinonality in substrate.  It will also be required for BEEFY implementation. [<code>GossipEngine</code>] requires an implementation of the <code>Network</code> trait as well as the <code>Syncing</code> trait.</p>
+<h4 id="network-trait"><code>Network</code> trait<a class="headerlink" href="#network-trait" title="Permanent link">&para;</a></h4>
+<p>The top level [<code>Network</code>] trait along with it's inherited traits are as follows:</p>
+<div class="codehilite"><pre><span></span><code><span class="c1">// from sc_consensus_grandpa::communication</span>
+
+<span class="sd">/// A handle to the network.</span>
+<span class="sd">///</span>
+<span class="sd">/// Something that provides the capabilities needed for the `gossip_network::Network` trait.</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">Network</span><span class="o">&lt;</span><span class="n">Block</span>: <span class="nc">BlockT</span><span class="o">&gt;</span>: <span class="nc">GossipNetwork</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Clone</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="w"> </span><span class="p">{}</span>
+</code></pre></div>
+
+<div class="codehilite"><pre><span></span><code><span class="c1">// from sc_network_gossip</span>
+
+<span class="sd">/// Abstraction over a network.</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">Network</span><span class="o">&lt;</span><span class="n">B</span>: <span class="nc">BlockT</span><span class="o">&gt;</span>: <span class="nc">NetworkPeers</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">NetworkEventStream</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">add_set_reserved</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">who</span>: <span class="nc">PeerId</span><span class="p">,</span><span class="w"> </span><span class="n">protocol</span>: <span class="nc">ProtocolName</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Multiaddr</span>::<span class="n">empty</span><span class="p">().</span><span class="n">with</span><span class="p">(</span><span class="n">Protocol</span>::<span class="n">P2p</span><span class="p">(</span><span class="o">*</span><span class="n">who</span><span class="p">.</span><span class="n">as_ref</span><span class="p">()));</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">add_peers_to_reserved_set</span><span class="p">(</span><span class="n">protocol</span><span class="p">,</span><span class="w"> </span><span class="n">iter</span>::<span class="n">once</span><span class="p">(</span><span class="n">addr</span><span class="p">).</span><span class="n">collect</span><span class="p">());</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="kd">let</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">log</span>::<span class="n">error</span><span class="o">!</span><span class="p">(</span><span class="n">target</span>: <span class="s">&quot;gossip&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;add_set_reserved failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">err</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">remove_set_reserved</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">who</span>: <span class="nc">PeerId</span><span class="p">,</span><span class="w"> </span><span class="n">protocol</span>: <span class="nc">ProtocolName</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">remove_peers_from_reserved_set</span><span class="p">(</span><span class="n">protocol</span><span class="p">,</span><span class="w"> </span><span class="n">iter</span>::<span class="n">once</span><span class="p">(</span><span class="n">who</span><span class="p">).</span><span class="n">collect</span><span class="p">());</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="kd">let</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">log</span>::<span class="n">error</span><span class="o">!</span><span class="p">(</span><span class="n">target</span>: <span class="s">&quot;gossip&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;remove_set_reserved failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">err</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// from sc_network_service</span>
+
+<span class="sd">/// Provides low-level API for manipulating network peers.</span>
+<span class="cp">#[async_trait::async_trait]</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">NetworkPeers</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// Set authorized peers.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// Need a better solution to manage authorized peers, but now just use reserved peers for</span>
+<span class="w">    </span><span class="sd">/// prototyping.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">set_authorized_peers</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">peers</span>: <span class="nc">HashSet</span><span class="o">&lt;</span><span class="n">PeerId</span><span class="o">&gt;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Set authorized_only flag.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// Need a better solution to decide authorized_only, but now just use reserved_only flag for</span>
+<span class="w">    </span><span class="sd">/// prototyping.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">set_authorized_only</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">reserved_only</span>: <span class="kt">bool</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Adds an address known to a node.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">add_known_address</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">peer_id</span>: <span class="nc">PeerId</span><span class="p">,</span><span class="w"> </span><span class="n">addr</span>: <span class="nc">Multiaddr</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Report a given peer as either beneficial (+) or costly (-) according to the</span>
+<span class="w">    </span><span class="sd">/// given scalar.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">report_peer</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">peer_id</span>: <span class="nc">PeerId</span><span class="p">,</span><span class="w"> </span><span class="n">cost_benefit</span>: <span class="nc">ReputationChange</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Get peer reputation.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">peer_reputation</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">peer_id</span>: <span class="kp">&amp;</span><span class="nc">PeerId</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="kt">i32</span><span class="p">;</span>
+
+<span class="w">    </span><span class="sd">/// Disconnect from a node as soon as possible.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// This triggers the same effects as if the connection had closed itself spontaneously.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">disconnect_peer</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">peer_id</span>: <span class="nc">PeerId</span><span class="p">,</span><span class="w"> </span><span class="n">protocol</span>: <span class="nc">ProtocolName</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Connect to unreserved peers and allow unreserved peers to connect for syncing purposes.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">accept_unreserved_peers</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Disconnect from unreserved peers and deny new unreserved peers to connect for syncing</span>
+<span class="w">    </span><span class="sd">/// purposes.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">deny_unreserved_peers</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Adds a `PeerId` and its `Multiaddr` as reserved for a sync protocol (default peer set).</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// Returns an `Err` if the given string is not a valid multiaddress</span>
+<span class="w">    </span><span class="sd">/// or contains an invalid peer ID (which includes the local peer ID).</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">add_reserved_peer</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">peer</span>: <span class="nc">MultiaddrWithPeerId</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="sd">/// Removes a `PeerId` from the list of reserved peers for a sync protocol (default peer set).</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">remove_reserved_peer</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">peer_id</span>: <span class="nc">PeerId</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Sets the reserved set of a protocol to the given set of peers.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// Each `Multiaddr` must end with a `/p2p/` component containing the `PeerId`. It can also</span>
+<span class="w">    </span><span class="sd">/// consist of only `/p2p/&lt;peerid&gt;`.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// The node will start establishing/accepting connections and substreams to/from peers in this</span>
+<span class="w">    </span><span class="sd">/// set, if it doesn&#39;t have any substream open with them yet.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// Note however, if a call to this function results in less peers on the reserved set, they</span>
+<span class="w">    </span><span class="sd">/// will not necessarily get disconnected (depending on available free slots in the peer set).</span>
+<span class="w">    </span><span class="sd">/// If you want to also disconnect those removed peers, you will have to call</span>
+<span class="w">    </span><span class="sd">/// `remove_from_peers_set` on those in addition to updating the reserved set. You can omit</span>
+<span class="w">    </span><span class="sd">/// this step if the peer set is in reserved only mode.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// Returns an `Err` if one of the given addresses is invalid or contains an</span>
+<span class="w">    </span><span class="sd">/// invalid peer ID (which includes the local peer ID), or if `protocol` does not</span>
+<span class="w">    </span><span class="sd">/// refer to a known protocol.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">set_reserved_peers</span><span class="p">(</span>
+<span class="w">        </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span>
+<span class="w">        </span><span class="n">protocol</span>: <span class="nc">ProtocolName</span><span class="p">,</span>
+<span class="w">        </span><span class="n">peers</span>: <span class="nc">HashSet</span><span class="o">&lt;</span><span class="n">Multiaddr</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="sd">/// Add peers to a peer set.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// Each `Multiaddr` must end with a `/p2p/` component containing the `PeerId`. It can also</span>
+<span class="w">    </span><span class="sd">/// consist of only `/p2p/&lt;peerid&gt;`.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// Returns an `Err` if one of the given addresses is invalid or contains an</span>
+<span class="w">    </span><span class="sd">/// invalid peer ID (which includes the local peer ID), or if `protocol` does not</span>
+<span class="w">    </span><span class="sd">/// refer to a know protocol.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">add_peers_to_reserved_set</span><span class="p">(</span>
+<span class="w">        </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span>
+<span class="w">        </span><span class="n">protocol</span>: <span class="nc">ProtocolName</span><span class="p">,</span>
+<span class="w">        </span><span class="n">peers</span>: <span class="nc">HashSet</span><span class="o">&lt;</span><span class="n">Multiaddr</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="sd">/// Remove peers from a peer set.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// Returns `Err` if `protocol` does not refer to a known protocol.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">remove_peers_from_reserved_set</span><span class="p">(</span>
+<span class="w">        </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span>
+<span class="w">        </span><span class="n">protocol</span>: <span class="nc">ProtocolName</span><span class="p">,</span>
+<span class="w">        </span><span class="n">peers</span>: <span class="nb">Vec</span><span class="o">&lt;</span><span class="n">PeerId</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="sd">/// Returns the number of peers in the sync peer set we&#39;re connected to.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">sync_num_connected</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="kt">usize</span><span class="p">;</span>
+
+<span class="w">    </span><span class="sd">/// Attempt to get peer role.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// Right now the peer role is decoded from the received handshake for all protocols</span>
+<span class="w">    </span><span class="sd">/// (`/block-announces/1` has other information as well). If the handshake cannot be</span>
+<span class="w">    </span><span class="sd">/// decoded into a role, the role queried from `PeerStore` and if the role is not stored</span>
+<span class="w">    </span><span class="sd">/// there either, `None` is returned and the peer should be discarded.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">peer_role</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">peer_id</span>: <span class="nc">PeerId</span><span class="p">,</span><span class="w"> </span><span class="n">handshake</span>: <span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Option</span><span class="o">&lt;</span><span class="n">ObservedRole</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="sd">/// Get the list of reserved peers.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// Returns an error if the `NetworkWorker` is no longer running.</span>
+<span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span> <span class="nf">reserved_peers</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">PeerId</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="sd">/// Provides access to network-level event stream.</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">NetworkEventStream</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// Returns a stream containing the events that happen on the network.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// If this method is called multiple times, the events are duplicated.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// The stream never ends (unless the `NetworkWorker` gets shut down).</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// The name passed is used to identify the channel in the Prometheus metrics. Note that the</span>
+<span class="w">    </span><span class="sd">/// parameter is a `&amp;&#39;static str`, and not a `String`, in order to avoid accidentally having</span>
+<span class="w">    </span><span class="sd">/// an unbounded set of Prometheus metrics, which would be quite bad in terms of memory</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">event_stream</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">name</span>: <span class="kp">&amp;</span><span class="o">&#39;</span><span class="nb">static</span> <span class="kt">str</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nc">Pin</span><span class="o">&lt;</span><span class="nb">Box</span><span class="o">&lt;</span><span class="k">dyn</span><span class="w"> </span><span class="n">Stream</span><span class="o">&lt;</span><span class="n">Item</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Event</span><span class="o">&gt;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>[<code>GossipEngine</code>] uses <code>add_set_reserved</code> and <code>remove_set_reserved</code>. Looks like Gossamer already supports adding and removing reserved peers.  In substrate from what I gather, there are authorized peers, and there are reserved peers.  Reserved peers are peers that are in the authorized pool, that are assigned to a set for a given <code>ProtocolName</code>.  We should be able to add/remove from the reserved set.  Removing from the authorized set is done via peer reputation and I assume will be removed from any reserved sets if disconnected. <code>peer_role()</code> and <code>ObservedRole</code> are used qutie a bit in [<code>GossipEngine</code>].  <code>report_peer</code> is also used in [<code>GossipEngine</code>].  Doesn't seem like <code>NetworkEventStream</code> is actually used in GRANDPA client.</p>
+<h4 id="syncing-trait"><code>Syncing</code> trait<a class="headerlink" href="#syncing-trait" title="Permanent link">&para;</a></h4>
+<p>The top level [<code>Syncing</code>] trait along with it's inherited traits are as follows:</p>
+<div class="codehilite"><pre><span></span><code><span class="c1">// from sc_consensus_grandpa</span>
+
+<span class="sd">/// A handle to syncing-related services.</span>
+<span class="sd">///</span>
+<span class="sd">/// Something that provides the ability to set a fork sync request for a particular block.</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">Syncing</span><span class="o">&lt;</span><span class="n">Block</span>: <span class="nc">BlockT</span><span class="o">&gt;</span>:
+    <span class="nc">NetworkSyncForkRequest</span><span class="o">&lt;</span><span class="n">Block</span>::<span class="n">Hash</span><span class="p">,</span><span class="w"> </span><span class="n">NumberFor</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;&gt;</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="n">NetworkBlock</span><span class="o">&lt;</span><span class="n">Block</span>::<span class="n">Hash</span><span class="p">,</span><span class="w"> </span><span class="n">NumberFor</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;&gt;</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="n">SyncEventStream</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="nb">Clone</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span>
+<span class="w">    </span><span class="o">+</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span>
+<span class="p">{}</span>
+</code></pre></div>
+
+<div class="codehilite"><pre><span></span><code><span class="c1">// from sc_network</span>
+
+<span class="sd">/// Provides an ability to set a fork sync request for a particular block.</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">NetworkSyncForkRequest</span><span class="o">&lt;</span><span class="n">BlockHash</span><span class="p">,</span><span class="w"> </span><span class="n">BlockNumber</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// Notifies the sync service to try and sync the given block from the given</span>
+<span class="w">    </span><span class="sd">/// peers.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// If the given vector of peers is empty then the underlying implementation</span>
+<span class="w">    </span><span class="sd">/// should make a best effort to fetch the block from any peers it is</span>
+<span class="w">    </span><span class="sd">/// connected to (NOTE: this assumption will change in the future #3629).</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">set_sync_fork_request</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">peers</span>: <span class="nb">Vec</span><span class="o">&lt;</span><span class="n">PeerId</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">hash</span>: <span class="nc">BlockHash</span><span class="p">,</span><span class="w"> </span><span class="n">number</span>: <span class="nc">BlockNumber</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="sd">/// Provides ability to announce blocks to the network.</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">NetworkBlock</span><span class="o">&lt;</span><span class="n">BlockHash</span><span class="p">,</span><span class="w"> </span><span class="n">BlockNumber</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// Make sure an important block is propagated to peers.</span>
+<span class="w">    </span><span class="sd">///</span>
+<span class="w">    </span><span class="sd">/// In chain-based consensus, we often need to make sure non-best forks are</span>
+<span class="w">    </span><span class="sd">/// at least temporarily synced. This function forces such an announcement.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">announce_block</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">hash</span>: <span class="nc">BlockHash</span><span class="p">,</span><span class="w"> </span><span class="n">data</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;&gt;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Inform the network service about new best imported block.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">new_best_block_imported</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">hash</span>: <span class="nc">BlockHash</span><span class="p">,</span><span class="w"> </span><span class="n">number</span>: <span class="nc">BlockNumber</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">SyncEventStream</span>: <span class="nb">Send</span> <span class="o">+</span><span class="w"> </span><span class="nb">Sync</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// Subscribe to syncing-related events.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">event_stream</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">name</span>: <span class="kp">&amp;</span><span class="o">&#39;</span><span class="nb">static</span> <span class="kt">str</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nc">Pin</span><span class="o">&lt;</span><span class="nb">Box</span><span class="o">&lt;</span><span class="k">dyn</span><span class="w"> </span><span class="n">Stream</span><span class="o">&lt;</span><span class="n">Item</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SyncEvent</span><span class="o">&gt;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><code>set_sync_fork_request</code> is called by [<code>GossipEngine</code>].  <code>announce_block</code> is also called through <code>GossipEngine.announce()</code> via <code>OutgoingMessages</code> sink type in <code>communication</code> crate.  Doesn't look like <code>new_best_block_imported</code> is actually used. <code>event_stream</code> is used in [<code>GossipEngine</code>] constructor.</p>
+<p>I propose introducing interfaces for <code>Network</code> and <code>Syncing</code> to the codebase.  Mocks will be used in unit tests and integration tests to test GRANDPA client functionality.  The actual implementation used to fulfill <code>Network</code> and <code>Syncing</code> interfaces using existing Gossamer peerset, synching, and network modules will be outlined in another design document specifically focused on integrating the GRANDPA client into the rest of the Gossamer codebase.</p>
+<h3 id="implementation-of-blockimport">Implementation of <code>BlockImport</code><a class="headerlink" href="#implementation-of-blockimport" title="Permanent link">&para;</a></h3>
+<p>There is a <a href="https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L308"><code>BlockImport</code></a> trait that <code>sc_consensus_grandpa</code> implements.  In substrate, the <code>BlockImport</code> trait is called through a pipelining type called [<code>BasicQueue</code>].  An instance of [<code>BasicQueue</code>] creates a pipeline of calls to a sequence of implementations of <code>BlockImport</code>.  <a href="https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L170"><code>BlockImportParams</code></a> are provided to each implementation as it progresses through the pipeline for <code>BlockImport::import_block</code> function, and is expected to return an <code>ImportResult</code> which is an enum where the <a href="https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L34"><code>ImportResult::Imported</code></a> variant is of type <a href="https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L47"><code>ImportedAux</code></a> contains data associated with the imported block.  Given that this is the process in substrate, both BEEFY and GRANDPA client implementations currently implement this, and the final implementation in the pipeline is <code>Client</code>, I think it makes sense to replicate this functionality given we have already begun replicating the <code>Client</code> type. This does imply that we alter the translation shim work of <code>BlockState.AddBlock</code> in <a href="https://github.com/ChainSafe/gossamer/issues/4466">#4466</a>, to call the new pipeline as well as remove any existing finality domain specific logic in BABE and in sync.   </p>
+<h3 id="integration-tests">Integration tests<a class="headerlink" href="#integration-tests" title="Permanent link">&para;</a></h3>
+<p>There are tests found in <code>sc_consensus_grandpa</code> (<a href="https://github.com/paritytech/polkadot-sdk/blob/feac7a521092c599d47df3e49084e6bff732c7db/substrate/client/consensus/grandpa/src/tests.rs#L19">link</a>) that create a mock network to test general functionality.  There are both startup, shutdown tests, as well as testing finalization of blocks and persistence of voter state.  I think it would be prudent to replicate the same tests minus the ones that utilize <code>ObserverWork</code>.</p>
+<h3 id="rpc-integration">RPC Integration<a class="headerlink" href="#rpc-integration" title="Permanent link">&para;</a></h3>
+<p>Gossamer already has a <a href="https://github.com/ChainSafe/gossamer/blob/2eff00475ac1234ac1701f596808f93b3bf0bd46/dot/rpc/modules/grandpa.go#L15"><code>GrandpaModule</code></a> to prove finality, retrieve round state, and a <a href="https://github.com/ChainSafe/gossamer/blob/db64e1b48b5b0c3d234be0099aa176d298693bd8/dot/rpc/subscription/listeners.go#L439"><code>GrandpaJustificationListener</code></a> to subscribe to justifications.  Changes will need to be made to support the new GRANDPA client.  This can be be deprioritized given that we do not need this immediately given our current milestones.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/ChainSafe/gossamer" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://x.com/ChainSafeth" target="_blank" rel="noopener" title="x.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1851 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The Official Documentation for Gossamer | A Go Implementation of the Polkadot Host">
+      
+      
+      
+      
+      
+      
+      <link rel="icon" href="../../assets/favicon.ico">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>db.Backend Integration into Gossamer - Gossamer Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="pink" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#dbbackend-integration-into-gossamer" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Gossamer Docs" class="md-header__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gossamer Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              db.Backend Integration into Gossamer
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../usage/running-nodes/" class="md-tabs__link">
+          
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../integrate/connect-to-polkadot-js/" class="md-tabs__link">
+          
+  
+  Integrate
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../testing-and-debugging/test-suite/" class="md-tabs__link">
+          
+  
+  Testing and Debugging
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../advanced/scale-examples/" class="md-tabs__link">
+          
+  
+  Advanced
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../parachain-protocol-overview/" class="md-tabs__link">
+          
+  
+  Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing.md" class="md-tabs__link">
+          
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Gossamer Docs" class="md-nav__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Gossamer Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/host-architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Host Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/package-library/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Package Library
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/general-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/developer-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Developer Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Usage
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/running-nodes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running Nodes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/command-line/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command Line
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-runtime/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import Runtime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-state/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import State
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Integrate
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Integrate
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrate/connect-to-polkadot-js/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connect to Polkadot.js
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Testing and Debugging
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Testing and Debugging
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/test-suite/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Suite
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/debugging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Debugging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Advanced
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Advanced
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced/scale-examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SCALE Examples
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parachain-protocol-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Parachain Protocol Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../candidate-backing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Candidate Backing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-subsystems/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability Subsystems
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../prospective-parachains/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fragment-chain/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains - Fragment Chain
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-recovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability recovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authority-discovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Authority Discovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../statement-distribution/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Statement Distribution
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../grid-topology/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grid Topology
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gossip-support/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gossip Support
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provisioner/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Provisioner
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../collator-protocol-validator-side/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Collator Protocol - Validator Side
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Contributing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview-of-current-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview of current code
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Overview of current code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#blockstate" class="md-nav__link">
+    <span class="md-ellipsis">
+      BlockState
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storagestate" class="md-nav__link">
+    <span class="md-ellipsis">
+      StorageState
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integration-of-dbbackend" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration of db.Backend
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Integration of db.Backend">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#introduction-of-a-client-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      Introduction of a Client type
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation-of-blockstate-and-storagestate-functionality-to-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementation of BlockState and StorageState functionality to Client
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation of BlockState and StorageState functionality to Client">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#read-only-blockstate-functionality" class="md-nav__link">
+    <span class="md-ellipsis">
+      Read-only BlockState functionality
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#addblock" class="md-nav__link">
+    <span class="md-ellipsis">
+      AddBlock
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AddBlock">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lockimportrun" class="md-nav__link">
+    <span class="md-ellipsis">
+      LockImportRun
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blockchainevents" class="md-nav__link">
+    <span class="md-ellipsis">
+      BlockchainEvents
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#precommitactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      PreCommitActions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#offchainstorage" class="md-nav__link">
+    <span class="md-ellipsis">
+      OffchainStorage
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#utility-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Utility functions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runtime-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Runtime Storage
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runtime Storage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#updated-runtime-notifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      Updated runtime notifications
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#read-only-storagestate-functionality" class="md-nav__link">
+    <span class="md-ellipsis">
+      Read-only StorageState functionality
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retrieving-and-storing-triestate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Retrieving and storing TrieState
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pebbledb-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      PebbleDB Integration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="dbbackend-integration-into-gossamer"><code>db.Backend</code> Integration into Gossamer<a class="headerlink" href="#dbbackend-integration-into-gossamer" title="Permanent link">&para;</a></h1>
+<p>The introduction of <code>api.Backend</code> interface and the implementation of the interface <code>db.Backend</code> has been completed in <a href="https://github.com/ChainSafe/gossamer/pull/4405">PR #4405</a>. The <code>api.Backend</code> interface and it's associated implementation closely resembles the <a href="https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/api/src/backend.rs#L517"><code>sc_api::backend::Backend</code></a> trait.  It introduces a client backend that handles historical block storage, as well fork aware state trie storage.  It incorporates previous work regarding <code>TrieBackend</code> (<a href="https://github.com/ChainSafe/gossamer/pull/4318">PR #4318</a>) which incorporates <code>TrieDB</code> work we have worked on previously (<a href="https://github.com/ChainSafe/gossamer/pull/4315">PR #4315</a>).  This client backend supports multiple pruning modes to allow persistence of a constrained window of finalized blocks, all finalized blocks, and no pruning at all.  Pruning applies both to the block history as well as the trie state associated to blocks.  </p>
+<h2 id="overview-of-current-code">Overview of current code<a class="headerlink" href="#overview-of-current-code" title="Permanent link">&para;</a></h2>
+<p>There need to be something that utilizes <code>db.Backend</code> to fulfill the current <code>state.BlockState</code> and <code>state.InmemoryStorageState</code> functionalities.</p>
+<h3 id="blockstate"><code>BlockState</code><a class="headerlink" href="#blockstate" title="Permanent link">&para;</a></h3>
+<p>Currently the <code>state.BlockState</code> type is essentially used to store block history and to set finalization for stored blocks. The type <code>state.BlockState</code> does not have a corresponding interface that represents the entire public API of the type.  After looking through the code, I've compiled the entire public interface of <code>state.BlockState</code> that is called by other packages.  The interface is as follows:</p>
+<div class="codehilite"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">BlockState</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">AddBlock</span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Block</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="w">    </span><span class="nx">AddBlockWithArrivalTime</span><span class="p">(</span><span class="nx">block</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Block</span><span class="p">,</span><span class="w"> </span><span class="nx">arrivalTime</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+
+<span class="w">    </span><span class="nx">BestBlock</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Block</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span>
+<span class="w">    </span><span class="nx">BestBlockHash</span><span class="p">()</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span>
+<span class="w">    </span><span class="nx">BestBlockHeader</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">BestBlockNumber</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="nx">number</span><span class="w"> </span><span class="kt">uint</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GenesisHash</span><span class="p">()</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span>
+
+<span class="w">    </span><span class="nx">GetBlockBody</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Body</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetBlockStateRoot</span><span class="p">(</span><span class="nx">bhash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetBlockByHash</span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Block</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetBlockByNumber</span><span class="p">(</span><span class="nx">blockNumber</span><span class="w"> </span><span class="kt">uint</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Block</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetFinalisedHeader</span><span class="p">(</span><span class="nx">round</span><span class="p">,</span><span class="w"> </span><span class="nx">setID</span><span class="w"> </span><span class="kt">uint64</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetFinalisedHash</span><span class="p">(</span><span class="nx">round</span><span class="p">,</span><span class="w"> </span><span class="nx">setID</span><span class="w"> </span><span class="kt">uint64</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetHashesByNumber</span><span class="p">(</span><span class="nx">blockNumber</span><span class="w"> </span><span class="kt">uint</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="c1">// not sure why we need this, use `GetHashByNumber`?</span>
+<span class="w">    </span><span class="nx">GetHashByNumber</span><span class="p">(</span><span class="nx">blockNumber</span><span class="w"> </span><span class="kt">uint</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetHeader</span><span class="p">(</span><span class="nx">bhash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetHeaderByNumber</span><span class="p">(</span><span class="nx">num</span><span class="w"> </span><span class="kt">uint</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetHighestFinalisedHeader</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetHighestFinalisedHash</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetHighestRoundAndSetID</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="kt">uint64</span><span class="p">,</span><span class="w"> </span><span class="kt">uint64</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetJustification</span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
+<span class="w">    </span><span class="nx">GetNonFinalisedBlocks</span><span class="p">()</span><span class="w"> </span><span class="p">[]</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="w"> </span><span class="c1">// can probably be achieved by getting last finalized, then traversing children</span>
+<span class="w">    </span><span class="nx">GetSlotForBlock</span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">uint64</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
+<span class="w">    </span><span class="nx">HasFinalisedBlock</span><span class="p">(</span><span class="nx">round</span><span class="p">,</span><span class="w"> </span><span class="nx">setID</span><span class="w"> </span><span class="kt">uint64</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">HasHeader</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">HasJustification</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">HasHeaderInDatabase</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="c1">// can probably just use `HasHeader`</span>
+
+<span class="w">    </span><span class="nx">SetFinalisedHash</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">round</span><span class="w"> </span><span class="kt">uint64</span><span class="p">,</span><span class="w"> </span><span class="nx">setID</span><span class="w"> </span><span class="kt">uint64</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="w">    </span><span class="nx">SetHeader</span><span class="p">(</span><span class="nx">header</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+<span class="w">    </span><span class="nx">SetJustification</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+
+<span class="w">    </span><span class="nx">GetRuntime</span><span class="p">(</span><span class="nx">blockHash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">instance</span><span class="w"> </span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Instance</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w">                          </span><span class="c1">// can be achieved by retrieving digest from block and decoding</span>
+<span class="w">    </span><span class="nx">HandleRuntimeChanges</span><span class="p">(</span><span class="nx">newState</span><span class="w"> </span><span class="o">*</span><span class="nx">rtstorage</span><span class="p">.</span><span class="nx">TrieState</span><span class="p">,</span><span class="w"> </span><span class="nx">in</span><span class="w"> </span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Instance</span><span class="p">,</span><span class="w"> </span><span class="nx">bHash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="c1">// will have to be recreated</span>
+
+<span class="w">    </span><span class="nx">CompareAndSetBlockData</span><span class="p">(</span><span class="nx">bd</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">BlockData</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+
+<span class="w">    </span><span class="nx">IsDescendantOf</span><span class="p">(</span><span class="nx">parent</span><span class="p">,</span><span class="w"> </span><span class="nx">child</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">LowestCommonAncestor</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">NumberIsFinalised</span><span class="p">(</span><span class="nx">blockNumber</span><span class="w"> </span><span class="kt">uint</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
+<span class="w">    </span><span class="nx">Range</span><span class="p">(</span><span class="nx">startHash</span><span class="p">,</span><span class="w"> </span><span class="nx">endHash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">hashes</span><span class="w"> </span><span class="p">[]</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">RangeInMemory</span><span class="p">(</span><span class="nx">start</span><span class="p">,</span><span class="w"> </span><span class="nx">end</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
+<span class="w">    </span><span class="nx">StoreRuntime</span><span class="p">(</span><span class="nx">blockHash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">runtime</span><span class="w"> </span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Instance</span><span class="p">)</span>
+
+<span class="w">    </span><span class="nx">FreeImportedBlockNotifierChannel</span><span class="p">(</span><span class="nx">ch</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Block</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetImportedBlockNotifierChannel</span><span class="p">()</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Block</span>
+<span class="w">    </span><span class="nx">FreeFinalisedNotifierChannel</span><span class="p">(</span><span class="nx">ch</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">FinalisationInfo</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetFinalisedNotifierChannel</span><span class="p">()</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">FinalisationInfo</span>
+
+<span class="w">    </span><span class="nx">RegisterRuntimeUpdatedChannel</span><span class="p">(</span><span class="nx">ch</span><span class="w"> </span><span class="kd">chan</span><span class="o">&lt;-</span><span class="w"> </span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Version</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">uint32</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
+<span class="w">    </span><span class="nx">IsPaused</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+<span class="w">    </span><span class="nx">Pause</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="storagestate"><code>StorageState</code><a class="headerlink" href="#storagestate" title="Permanent link">&para;</a></h3>
+<p><code>StorageState</code> is an interface that is locally defined in a number of packages.  It represents the functionality regarding accessing the current <code>TrieState</code> which gives access to the underlying in memory state trie (canonically known as "storage") for a given hash.  Generation of storage trie proofs is part of this interface as well.  The interface with largest amount of methods is defined in <a href="https://github.com/ChainSafe/gossamer/blob/398dd6d951f63e83a4e7e5bf4e4bf8c7e9065c5d/dot/core/interfaces.go#L43"><code>dot/core</code></a>.  The implementation of these <code>StorageState</code> interfaces is implemented by the type <a href="https://github.com/ChainSafe/gossamer/blob/2eff00475ac1234ac1701f596808f93b3bf0bd46/dot/state/inmemory_storage.go#L33"><code>state.InmemoryStorageState</code></a>. I've compiled the entire public interface of <code>state.InmemoryStorageState</code> that is called by other packages.  The interface is as follows:</p>
+<div class="codehilite"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">StorageState</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">TrieState</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">rtstorage</span><span class="p">.</span><span class="nx">TrieState</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">StoreTrie</span><span class="p">(</span><span class="o">*</span><span class="nx">rtstorage</span><span class="p">.</span><span class="nx">TrieState</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+
+<span class="w">    </span><span class="nx">GetStateRootFromBlock</span><span class="p">(</span><span class="nx">bhash</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GenerateTrieProof</span><span class="p">(</span><span class="nx">stateRoot</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">keys</span><span class="w"> </span><span class="p">[][]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">([][]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetStorage</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetStorageByBlockHash</span><span class="p">(</span><span class="nx">bhash</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">StorageRoot</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="c1">// best block state root, use HeaderBackend</span>
+<span class="w">    </span><span class="nx">Entries</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">][]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w">  </span><span class="c1">// should be overhauled to iterate </span>
+<span class="w">    </span><span class="nx">GetKeysWithPrefix</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">prefix</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">([][]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetStorageChild</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">keyToChild</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">trie</span><span class="p">.</span><span class="nx">Trie</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetStorageFromChild</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">keyToChild</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
+<span class="w">    </span><span class="nx">LoadCode</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">LoadCodeHash</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
+<span class="w">    </span><span class="nx">RegisterStorageObserver</span><span class="p">(</span><span class="nx">o</span><span class="w"> </span><span class="nx">Observer</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">UnregisterStorageObserver</span><span class="p">(</span><span class="nx">o</span><span class="w"> </span><span class="nx">Observer</span><span class="p">)</span>
+
+<span class="w">    </span><span class="nx">sync</span><span class="p">.</span><span class="nx">Locker</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h2 id="integration-of-dbbackend">Integration of <code>db.Backend</code><a class="headerlink" href="#integration-of-dbbackend" title="Permanent link">&para;</a></h2>
+<p>Given the defined interfaces of <code>BlockState</code> and <code>StorageState</code>, I propose we create a new wrapper type around something that integrates <code>db.Backend</code> denoted as a <code>Client</code> which will fulfill the implementation of both <code>BlockState</code> and <code>StorageState</code> interfaces.  Given that storage notifications, import block notifications, and block finality notifications are not part of the <code>db.Backend</code> scope of functionality, there will need be to additional work to implement said notification functionality as part of the integration.</p>
+<h3 id="introduction-of-a-client-type">Introduction of a <code>Client</code> type<a class="headerlink" href="#introduction-of-a-client-type" title="Permanent link">&para;</a></h3>
+<p>In substrate the <a href="https://github.com/paritytech/polkadot-sdk/blob/72fb8bd3cd4a5051bb855415b360657d7ce247fb/substrate/client/service/src/client/client.rs#L94"><code>Client</code></a> is something that implements a number of traits:  <img alt="traits that Client implements" src="../assets/img/client-traits.png" /></p>
+<p>External packages (ex. BABE, GRANDPA, sync, etc) import these smaller traits to achieve functionality regarding block and state storage.  In substrate the <code>Client</code> also implements traits that handle calling into the runtime (ie. <a href="https://github.com/paritytech/polkadot-sdk/blob/c5444f381fdba68aa9cb73b39cc63f34604da156/substrate/primitives/api/src/lib.rs#L671"><code>CallApiAt</code></a> and <a href="https://github.com/paritytech/polkadot-sdk/blob/c5444f381fdba68aa9cb73b39cc63f34604da156/substrate/primitives/api/src/lib.rs#L750"><code>ProvideRuntimeApi</code></a>) that is out of scope regarding this integration.  The substrate <code>Client</code> implements the <a href="https://github.com/paritytech/polkadot-sdk/blob/df12fd34e36848a535892b1e88281faa59bf34b6/substrate/client/api/src/client.rs#L65"><code>BlockchainEvents</code></a> trait which handles block import, finality, and storage notifications. The <code>Client</code> also implements the <code>PreCommitActions</code> trait which allows you to register callbacks whenever a block is imported and when finality is set for blocks.  These <code>PreCommitActions</code> are used by the substrate client GRANDPA and BEEFY implementations. </p>
+<p>I propose introducing a similar <code>client.Client</code> type that will fulfill the storage, block import, and finality notifications in a similar way.  Translating the primitive types and the <code>BlockchainEvents</code> and <code>PreCommitActions</code> traits into interfaces will be quite easy. Implementation of these interfaces can closely align with the reference substrate code.  The chief dependency of the subtrate <code>Client</code> is essentially the <code>sc_db::Backend</code> One thing to note is that blocks are pinned (stored in memory, and not pruned) in <code>db.Backend</code> when notifications are sent out. That means unpinning of blocks falls on the recipient of said notifications.  This is usally handled in the rust code by reference counting the notifications with pin handles, and unpinning happens when the notification gets dropped (see <a href="https://github.com/paritytech/polkadot-sdk/blob/df12fd34e36848a535892b1e88281faa59bf34b6/substrate/client/api/src/client.rs#L307">code</a>).  Since in Go we don't have the <code>Drop</code> trait, we will need to manually drop the handle which will essentially unpin the block from the <code>db.Backend</code> and allow pruning to happen.</p>
+<p>I also think the introduction of <code>Client</code> will provide a foundation that allows us to implement more of these smaller traits, which comprise the full scope of the substrate <code>Client</code>.  Some of these traits are essentially the <code>BlockState</code> and <code>StorageState</code> interface functionalities that have already been introduced on the <code>refactor/client-db</code> branch and are described in <code>api.Backend</code> and implemented by <code>db.Backend</code>.</p>
+<h3 id="implementation-of-blockstate-and-storagestate-functionality-to-client">Implementation of <code>BlockState</code> and <code>StorageState</code> functionality to <code>Client</code><a class="headerlink" href="#implementation-of-blockstate-and-storagestate-functionality-to-client" title="Permanent link">&para;</a></h3>
+<p>At a high level I propose introducing a translation shim type that will contain an instance of <code>Client</code> and implement the <code>BlockState</code> and <code>StorageState</code> methods. Specific implementation notes for groups of functions within <code>BlockState</code> and <code>StorageState</code> are defined in the next sub sections. </p>
+<h4 id="read-only-blockstate-functionality">Read-only <code>BlockState</code> functionality<a class="headerlink" href="#read-only-blockstate-functionality" title="Permanent link">&para;</a></h4>
+<p>The following methods for <code>BlockState</code> can be accomplished by translating and implementing the <a href="https://github.com/paritytech/polkadot-sdk/blob/df12fd34e36848a535892b1e88281faa59bf34b6/substrate/client/api/src/client.rs#L126"><code>BlockBackend</code></a> and <a href="https://github.com/paritytech/polkadot-sdk/blob/fdb4554e26ebdd4d729158501a3ddb3c6ebdfb6f/substrate/primitives/blockchain/src/backend.rs#L37"><code>HeaderBackend</code></a> traits.  </p>
+<div class="codehilite"><pre><span></span><code><span class="nx">BestBlock</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Block</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span>
+<span class="nx">BestBlockHash</span><span class="p">()</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span>
+<span class="nx">BestBlockHeader</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">BestBlockNumber</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="nx">number</span><span class="w"> </span><span class="kt">uint</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GenesisHash</span><span class="p">()</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span>
+
+<span class="nx">GetBlockBody</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Body</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetBlockStateRoot</span><span class="p">(</span><span class="nx">bhash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetBlockByHash</span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Block</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetBlockByNumber</span><span class="p">(</span><span class="nx">blockNumber</span><span class="w"> </span><span class="kt">uint</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Block</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetFinalisedHeader</span><span class="p">(</span><span class="nx">round</span><span class="p">,</span><span class="w"> </span><span class="nx">setID</span><span class="w"> </span><span class="kt">uint64</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetFinalisedHash</span><span class="p">(</span><span class="nx">round</span><span class="p">,</span><span class="w"> </span><span class="nx">setID</span><span class="w"> </span><span class="kt">uint64</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetHashesByNumber</span><span class="p">(</span><span class="nx">blockNumber</span><span class="w"> </span><span class="kt">uint</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span>
+<span class="nx">GetHashByNumber</span><span class="p">(</span><span class="nx">blockNumber</span><span class="w"> </span><span class="kt">uint</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w">     </span>
+<span class="nx">GetHeader</span><span class="p">(</span><span class="nx">bhash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetHeaderByNumber</span><span class="p">(</span><span class="nx">num</span><span class="w"> </span><span class="kt">uint</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetHighestFinalisedHeader</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetHighestFinalisedHash</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetHighestRoundAndSetID</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="kt">uint64</span><span class="p">,</span><span class="w"> </span><span class="kt">uint64</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetJustification</span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
+<span class="nx">GetNonFinalisedBlocks</span><span class="p">()</span><span class="w"> </span><span class="p">[]</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span>
+<span class="nx">GetSlotForBlock</span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">uint64</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
+<span class="nx">HasFinalisedBlock</span><span class="p">(</span><span class="nx">round</span><span class="p">,</span><span class="w"> </span><span class="nx">setID</span><span class="w"> </span><span class="kt">uint64</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">HasHeader</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">HasJustification</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">HasHeaderInDatabase</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="c1">// can probably just use `HasHeader`</span>
+
+<span class="nx">NumberIsFinalised</span><span class="p">(</span><span class="nx">blockNumber</span><span class="w"> </span><span class="kt">uint</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+
+<p>I propose implementing the <code>BlockBackend</code> and <code>HeaderBackend</code> into the newly introduced Client.  Given that <code>db.Backend</code> already provides access to the underlying <code>HeaderBackend</code> this is trivially implemented by calling the <code>Backend.Blockchain()</code> which returns an impl of <a href="https://github.com/ChainSafe/gossamer/blob/a48c53a72658bb3ef3e1836efdd6713310a2e791/internal/primitives/blockchain/backend.go#L38"><code>blockchain.Backend</code></a> which embeds <code>HeaderBackend</code>.  <code>BlockBackend</code> is implemented by also calling methods on the returned impl <code>blockchain.Backend</code> from <code>Backend.Blockchain()</code>.</p>
+<p>After the introduction and implementation of the <code>BlockBackend</code> and <code>HeaderBackend</code> interfaces, we can create a translation shim type to map the above <code>BlockState</code> methods to utilize the <code>Client</code> methods for both <code>BlockBackend</code> and <code>ChainHeaderBackend</code>.</p>
+<h4 id="addblock"><code>AddBlock</code><a class="headerlink" href="#addblock" title="Permanent link">&para;</a></h4>
+<p>For the <code>AddBlock(*types.Block) error</code> function we will need to translate and implement the <a href="https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L308"><code>sc_consensus::BlockImport</code></a> trait:</p>
+<div class="codehilite"><pre><span></span><code><span class="sd">/// Block import trait</span>
+<span class="cp">#[async_trait::async_trait]</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">BlockImport</span><span class="o">&lt;</span><span class="n">B</span>: <span class="nc">BlockT</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// The error type.</span>
+<span class="w">    </span><span class="k">type</span> <span class="nc">Error</span>: <span class="nc">std</span>::<span class="n">error</span>::<span class="n">Error</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="p">;</span>
+
+<span class="w">    </span><span class="sd">/// Check block preconditions.</span>
+<span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span> <span class="nf">check_block</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">block</span>: <span class="nc">BlockCheckParams</span><span class="o">&lt;</span><span class="n">B</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="n">ImportResult</span><span class="p">,</span><span class="w"> </span><span class="bp">Self</span>::<span class="n">Error</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="sd">/// Import a block.</span>
+<span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span> <span class="nf">import_block</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">block</span>: <span class="nc">BlockImportParams</span><span class="o">&lt;</span><span class="n">B</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="n">ImportResult</span><span class="p">,</span><span class="w"> </span><span class="bp">Self</span>::<span class="n">Error</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h5 id="lockimportrun"><code>LockImportRun</code><a class="headerlink" href="#lockimportrun" title="Permanent link">&para;</a></h5>
+<p>The code that implements <code>import_block</code> utilizes the <a href="https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/api/src/backend.rs#L241"><code>LockImportRun</code></a> trait which contains a single <code>lock_import_and_run</code> function.  I propose to translate and implement the <code>LockImportRun</code> trait first given it is a dependancy for <code>BlockImport</code> methods.  By implementing the full logic of <code>LockImportRun</code>, there are calls to fire off the storage, finality, and block import notifications after a successful import. </p>
+<p>After implementing <code>LockImportRun</code>, we will be able to implement the <code>BlockImport</code> interface which can then be utilized in the translation shim type to implement <code>BlockState.AddBlock</code>. Given that importing a block into <code>db.Backend</code> also updates the state trie, we do not need to call <code>StorageState.StoreTrie</code> anymore (<a href="https://github.com/ChainSafe/gossamer/blob/b6a687d35c12fbf41c163fee98dc9bde15d1e054/dot/core/service.go#L254">example</a>).  We will need to refactor the <code>AddBlock</code> function signature to accept storage changes.  This is discussed later in the <code>TrieState</code> <a href="#Retrieving-and-storing-TrieState">section</a>.</p>
+<h4 id="blockchainevents"><code>BlockchainEvents</code><a class="headerlink" href="#blockchainevents" title="Permanent link">&para;</a></h4>
+<p>Given that <code>LockImportRun</code> is the trigger for storage, finality and block import notifications we will be able to implement the <a href="https://github.com/paritytech/polkadot-sdk/blob/df12fd34e36848a535892b1e88281faa59bf34b6/substrate/client/api/src/client.rs#L65"><code>BlockchainEvents</code></a> and <a href="https://github.com/paritytech/polkadot-sdk/blob/df12fd34e36848a535892b1e88281faa59bf34b6/substrate/client/api/src/client.rs#L117"><code>PreCommitActions</code></a> traits.  </p>
+<p><code>BlockchainEvents</code> contains the methods for registering channels for storage, finality and block import notifications.  I propose adding a <code>RegisterXXXNotification</code> and accompanying <code>UnregisterXXXNotification</code> method for the finality and block import notifications.  The storage notifcations are a little more complicated.  Based on the rust code the <a href="https://github.com/paritytech/polkadot-sdk/blob/bc53b9a03a742f8b658806a01a7bf853cb9a86cd/substrate/client/api/src/notifications.rs#L64"><code>sc_api::StorageNotifications</code></a> type handles registering and unregistering of storage notifications.  Listening on storage notifications is actually based on supplied top trie keys as well child trie keys (see <a href="https://github.com/paritytech/polkadot-sdk/blob/bc53b9a03a742f8b658806a01a7bf853cb9a86cd/substrate/client/api/src/notifications.rs#L142">code</a>).  We should mirror the implementation of the associated registry and business logic around going through registered storage notification listeners, and only notifying listeners based on the supplied top and child filter keys.</p>
+<p>By implementing the <code>BlockchainEvents</code> interface we will be able to implement the following <code>BlockState</code> and <code>StorageState</code> methods in the translation shim.</p>
+<div class="codehilite"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">BlockState</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">...</span>
+<span class="w">    </span><span class="nx">FreeImportedBlockNotifierChannel</span><span class="p">(</span><span class="nx">ch</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Block</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetImportedBlockNotifierChannel</span><span class="p">()</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Block</span>
+<span class="w">    </span><span class="nx">FreeFinalisedNotifierChannel</span><span class="p">(</span><span class="nx">ch</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">FinalisationInfo</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">GetFinalisedNotifierChannel</span><span class="p">()</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">FinalisationInfo</span>
+<span class="p">}</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">StorageState</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">...</span>
+<span class="w">    </span><span class="nx">RegisterStorageObserver</span><span class="p">(</span><span class="nx">o</span><span class="w"> </span><span class="nx">Observer</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">UnregisterStorageObserver</span><span class="p">(</span><span class="nx">o</span><span class="w"> </span><span class="nx">Observer</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="precommitactions"><code>PreCommitActions</code><a class="headerlink" href="#precommitactions" title="Permanent link">&para;</a></h4>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/df12fd34e36848a535892b1e88281faa59bf34b6/substrate/client/api/src/client.rs#L117"><code>PreCommitActions</code></a> is a trait that allows you to perform registered actions on block import and/or updated finality.  The actions are performed before commiting to the underlying db.  The actions and <code>PreCommitActions</code> traits are defined as follows:</p>
+<div class="codehilite"><pre><span></span><code><span class="sd">/// Callback invoked before committing the operations created during block import.</span>
+<span class="sd">/// This gives the opportunity to perform auxiliary pre-commit actions and optionally</span>
+<span class="sd">/// enqueue further storage write operations to be atomically performed on commit.</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">type</span> <span class="nc">OnImportAction</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span>
+<span class="w">    </span><span class="nb">Box</span><span class="o">&lt;</span><span class="k">dyn</span><span class="w"> </span><span class="p">(</span><span class="nb">Fn</span><span class="p">(</span><span class="o">&amp;</span><span class="n">BlockImportNotification</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nc">AuxDataOperations</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="sd">/// Callback invoked before committing the operations created during block finalization.</span>
+<span class="sd">/// This gives the opportunity to perform auxiliary pre-commit actions and optionally</span>
+<span class="sd">/// enqueue further storage write operations to be atomically performed on commit.</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">type</span> <span class="nc">OnFinalityAction</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span>
+<span class="w">    </span><span class="nb">Box</span><span class="o">&lt;</span><span class="k">dyn</span><span class="w"> </span><span class="p">(</span><span class="nb">Fn</span><span class="p">(</span><span class="o">&amp;</span><span class="n">FinalityNotification</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nc">AuxDataOperations</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="sd">/// Interface to perform auxiliary actions before committing a block import or</span>
+<span class="sd">/// finality operation.</span>
+<span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">PreCommitActions</span><span class="o">&lt;</span><span class="n">Block</span>: <span class="nc">BlockT</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// Actions to be performed on block import.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">register_import_action</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">op</span>: <span class="nc">OnImportAction</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="sd">/// Actions to be performed on block finalization.</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">register_finality_action</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">op</span>: <span class="nc">OnFinalityAction</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>For <code>OnImportAction</code> you receive a <code>BlockImportNotification</code> and you're expected to return <a href="https://github.com/ChainSafe/gossamer/blob/f18c630a393e5984473ae00aa3e7c348ba1a162a/internal/client/api/client.go#L14"><code>AuxDataOperations</code></a> which is already introduced in PR #4405.  The <a href="https://github.com/ChainSafe/gossamer/blob/819a5c95cf8cd70659cc6db49e6aaa2318d5d9fc/internal/client/api/backend.go#L102"><code>AuxStore</code> </a> interface is already introduced and implemented by <code>db.Backend</code>. </p>
+<p>The <code>PreCommitActions</code> trait/interface is not used by any <code>BlockState</code> or <code>StorageState</code> functionality.  Rather it will be used for future work regarding BEEFY and GRANDPA.</p>
+<h4 id="offchainstorage"><code>OffchainStorage</code><a class="headerlink" href="#offchainstorage" title="Permanent link">&para;</a></h4>
+<div class="codehilite"><pre><span></span><code><span class="nx">CompareAndSetBlockData</span><span class="p">(</span><span class="nx">bd</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">BlockData</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre></div>
+
+<p><code>CompareAndSetBlockData</code> is currently used in sync and is already introduced in <a href="https://github.com/ChainSafe/gossamer/blob/77d9a5ef2db39131e2c1534fd5073b0d545ad04e/internal/primitives/core/offchain/offchain.go#L20"><code>offchain.OffchainStorage.CompareAndSet()</code></a>. It is implemented by <a href="https://github.com/ChainSafe/gossamer/blob/f18c630a393e5984473ae00aa3e7c348ba1a162a/internal/client/db/offchain/offchain.go#L17"><code>offchain.LocalStorage</code></a> which is a dependency of <code>db.Backend</code>.  Adding the <code>CompareAndSetBlockData</code> function to the translation shim should therefore be relatively simple given the functionality is already implemented.</p>
+<h4 id="utility-functions">Utility functions<a class="headerlink" href="#utility-functions" title="Permanent link">&para;</a></h4>
+<p>The utilization of already introduced utility functions and types can be used to implement the following <code>BlockState</code> methods.</p>
+<div class="codehilite"><pre><span></span><code><span class="nx">IsDescendantOf</span><span class="p">(</span><span class="nx">parent</span><span class="p">,</span><span class="w"> </span><span class="nx">child</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">LowestCommonAncestor</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">Range</span><span class="p">(</span><span class="nx">startHash</span><span class="p">,</span><span class="w"> </span><span class="nx">endHash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">hashes</span><span class="w"> </span><span class="p">[]</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">RangeInMemory</span><span class="p">(</span><span class="nx">start</span><span class="p">,</span><span class="w"> </span><span class="nx">end</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+
+<p><code>IsDescendantOf</code> can be found in <code>client/api/utils</code> (see <a href="https://github.com/ChainSafe/gossamer/blob/a48c53a72658bb3ef3e1836efdd6713310a2e791/internal/client/api/utils/utils.go#L23">code</a>).  </p>
+<p><code>LowestCommonAncestor</code> can be found in <code>primitives/blockchain</code> (see <a href="https://github.com/ChainSafe/gossamer/blob/77d9a5ef2db39131e2c1534fd5073b0d545ad04e/internal/primitives/blockchain/header_metadata.go#L20">code</a>)</p>
+<p><code>Range</code> and <code>RangeInMemory</code> can be implemented by using <a href="https://github.com/ChainSafe/gossamer/blob/b5d5c2f47a10bdc2f6f9f72c03f4fdfcb4165a5f/internal/primitives/blockchain/header_metadata.go#L183"><code>blockchain.TreeRoute</code></a>.  The constructor <a href="https://github.com/ChainSafe/gossamer/blob/77d9a5ef2db39131e2c1534fd5073b0d545ad04e/internal/primitives/blockchain/header_metadata.go#L97"><code>NewTreeRoute</code></a> takes a start and end block hash.  We should also remove the usage of <code>RangeInMemory</code> given that all finalized and non-finalized blocks are now in the same <code>db.Backend</code>.  So a small refactor to the only <a href="https://github.com/ChainSafe/gossamer/blob/b6a687d35c12fbf41c163fee98dc9bde15d1e054/dot/core/service.go#L395">external usage in <code>dot/core</code></a> should be updated to use <code>Range</code>.</p>
+<p>These functions should be added to the translation shim since they are used externally from <code>dot/state</code>.</p>
+<h4 id="runtime-storage">Runtime Storage<a class="headerlink" href="#runtime-storage" title="Permanent link">&para;</a></h4>
+<div class="codehilite"><pre><span></span><code><span class="nx">StoreRuntime</span><span class="p">(</span><span class="nx">blockHash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">runtime</span><span class="w"> </span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Instance</span><span class="p">)</span>
+</code></pre></div>
+
+<p><code>StoreRuntime</code> function should be copied from existing <code>BlockTree</code> type (see <a href="https://github.com/ChainSafe/gossamer/blob/2eff00475ac1234ac1701f596808f93b3bf0bd46/lib/blocktree/blocktree.go#L535">code</a>).  The shim type should contain the map of cached runtimes. I would consider using an LRU map to ensure we don't store all runtimes while synching.</p>
+<p>An alternative is to remove <code>StoreRuntime</code> and just fetch the code from the block body supplied by <code>db.Backend</code> and instantiate a runtime on demand instead of caching.  </p>
+<h5 id="updated-runtime-notifications">Updated runtime notifications<a class="headerlink" href="#updated-runtime-notifications" title="Permanent link">&para;</a></h5>
+<div class="codehilite"><pre><span></span><code><span class="nx">RegisterRuntimeUpdatedChannel</span><span class="p">(</span><span class="nx">ch</span><span class="w"> </span><span class="kd">chan</span><span class="o">&lt;-</span><span class="w"> </span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Version</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">uint32</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span>
+</code></pre></div>
+
+<p>Updating observers for runtime upgrades can be accomplished by listening on <code>BlockImportNotifications</code>.  However since this is only accessed via RPC at this moment, we can de-prioritize this work if needed.  </p>
+<h4 id="read-only-storagestate-functionality">Read-only <code>StorageState</code> functionality<a class="headerlink" href="#read-only-storagestate-functionality" title="Permanent link">&para;</a></h4>
+<p>The following <code>StorageState</code> methods are relatively easy to implement in the translation shim by utilizing <code>db.Backend</code>.</p>
+<div class="codehilite"><pre><span></span><code><span class="nx">GetStorage</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetStorageByBlockHash</span><span class="p">(</span><span class="nx">bhash</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetKeysWithPrefix</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">prefix</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">([][]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetStorageChild</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">keyToChild</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">trie</span><span class="p">.</span><span class="nx">Trie</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetStorageFromChild</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="nx">keyToChild</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">GetStateRootFromBlock</span><span class="p">(</span><span class="nx">bhash</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
+<span class="nx">StorageRoot</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span>
+
+<span class="nx">Entries</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">][]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
+<span class="nx">LoadCode</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">LoadCodeHash</span><span class="p">(</span><span class="nx">hash</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+
+<p><code>GetStorageXXX</code> methods are easily accessible by translating and implementing the <a href="https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/api/src/backend.rs#L418"><code>StorageProvider</code></a> trait for <code>Client</code>. </p>
+<p><code>GetStateRootFromBlock</code> can be retrieved from already introduced <code>HeaderBackend</code> interface which <code>db.Backend</code> implements.  Same for <code>StorageRoot</code>.</p>
+<p><code>Entries</code> should be refactored to utilize an iterator where <code>Entries</code> is called.  I propose refactoring this method to return a <a href="https://github.com/ChainSafe/gossamer/blob/83edb1e7bc65b5c1d569be8e9d5acaea891a3531/internal/primitives/state-machine/backend.go#L53"><code>PairsIter</code></a> which iterates through the keys and values.</p>
+<p><code>LoadCode</code> and <code>LoadCodeHash</code> should be trivially implemented by accessing the state trie for a given hash and retrieving the entry with key ":code".</p>
+<h4 id="retrieving-and-storing-triestate">Retrieving and storing <code>TrieState</code><a class="headerlink" href="#retrieving-and-storing-triestate" title="Permanent link">&para;</a></h4>
+<div class="codehilite"><pre><span></span><code><span class="nx">TrieState</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="o">*</span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">rtstorage</span><span class="p">.</span><span class="nx">TrieState</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">StoreTrie</span><span class="p">(</span><span class="o">*</span><span class="nx">rtstorage</span><span class="p">.</span><span class="nx">TrieState</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">Header</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre></div>
+
+<p>The <code>TrieState()</code> method defined in <code>StorageState</code> is responsible for retrieving the state trie for a given block hash.  It retrieves the <code>Trie</code> associated to the block hash and returns a <code>*rtstorage.TrieState</code>.  This method is almost exclusively called before calling <code>Instance.SetContextStorage</code> to be able track storage changes by a runtime instance. There are methods in <code>TrieState</code> that handle storage changes as well as starting, rolling back, and committing transactions.  The changes are handled through <a href="https://github.com/ChainSafe/gossamer/blob/2eff00475ac1234ac1701f596808f93b3bf0bd46/lib/runtime/storage/storagediff.go#L24"><code>storageDiff</code></a> currently, which keep all the changes in memory before commiting, and applying them to a new in-memory trie to compute the state root.  <code>StoreTrie</code> is explicitly called to persist the trie in <code>InmemoryStorageState</code> to be accessible later.</p>
+<p>Given that storing a block and it's associated storage changes are handled in one <code>BlockImportOperation</code>, we should remove the <code>StoreTrie</code> method entirely from <code>StorageState</code>. Rather <code>BlockState.AddBlock</code> should accept an introduced <a href="https://github.com/paritytech/polkadot-sdk/blob/ad8620922bd7c0477b25c7dfd6fc233641cb27ae/substrate/primitives/state-machine/src/overlayed_changes/mod.rs#L99"><code>OverlayedChanges</code></a> type analogous to the substrate primitive. I propose creating an interface around <code>TrieState</code> first. Second, we create a new type that implements <code>TrieState</code> which combines the read-only <code>TrieBackend</code> of the block hash, as well as the <code>OverlayedChanges</code> type that can be extracted before calling <code>AddBlock</code>. This new <code>TrieState</code> will be passed into the runtime instance. This introduced implementation of <code>TrieState</code> is analogous to the substrate primitive <a href="https://github.com/paritytech/polkadot-sdk/blob/6c3219ebe9231a0305f53c7b33cb558d46058062/substrate/primitives/state-machine/src/ext.rs#L92"><code>sp_statemachine::ext::Ext</code></a> and the analogous trait to the <code>TrieState</code> interface is <a href="https://github.com/paritytech/polkadot-sdk/blob/ad8620922bd7c0477b25c7dfd6fc233641cb27ae/substrate/primitives/externalities/src/lib.rs#L81"><code>sp_externalities::Externalities</code></a>. By following this approach, it should limit the amount of changes within the wazero runtime instance code.</p>
+<h3 id="pebbledb-integration">PebbleDB Integration<a class="headerlink" href="#pebbledb-integration" title="Permanent link">&para;</a></h3>
+<p><code>db.Backend</code> is constructed using an implementation of the <a href="https://github.com/ChainSafe/gossamer/blob/a4e790669c595b288ee972bcafdb96a5287ff977/internal/primitives/database/database.go#L96"><code>database.Database</code></a> interface. We have already introduced the <a href="https://github.com/ChainSafe/gossamer/blob/f18c630a393e5984473ae00aa3e7c348ba1a162a/internal/primitives/database/kvdb.go#L15"><code>DBAdapter</code></a> type which takes an underlying <a href="https://github.com/ChainSafe/gossamer/blob/a4e790669c595b288ee972bcafdb96a5287ff977/internal/kvdb/kvdb.go#L108"><code>kvdb.KeyValueDB</code></a> implementation and implements <code>database.Database</code>. We will have to implement an implementation of <code>kvdb.KeyValueDB</code> that is powered by PebbleDB and use that when constructing <code>Client</code> and it's associated <code>db.Backend</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/ChainSafe/gossamer" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://x.com/ChainSafeth" target="_blank" rel="noopener" title="x.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

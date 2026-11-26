@@ -1,0 +1,1759 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The Official Documentation for Gossamer | A Go Implementation of the Polkadot Host">
+      
+      
+      
+      
+      
+      
+      <link rel="icon" href="../../assets/favicon.ico">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>ClusterTracker - Gossamer Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="pink" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#clustertracker" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Gossamer Docs" class="md-header__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gossamer Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ClusterTracker
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../usage/running-nodes/" class="md-tabs__link">
+          
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../integrate/connect-to-polkadot-js/" class="md-tabs__link">
+          
+  
+  Integrate
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../testing-and-debugging/test-suite/" class="md-tabs__link">
+          
+  
+  Testing and Debugging
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../advanced/scale-examples/" class="md-tabs__link">
+          
+  
+  Advanced
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../parachain-protocol-overview/" class="md-tabs__link">
+          
+  
+  Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing.md" class="md-tabs__link">
+          
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Gossamer Docs" class="md-nav__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Gossamer Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/host-architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Host Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/package-library/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Package Library
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/general-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/developer-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Developer Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Usage
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/running-nodes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running Nodes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/command-line/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command Line
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-runtime/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import Runtime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-state/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import State
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Integrate
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Integrate
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrate/connect-to-polkadot-js/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connect to Polkadot.js
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Testing and Debugging
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Testing and Debugging
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/test-suite/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Suite
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/debugging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Debugging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Advanced
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Advanced
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced/scale-examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SCALE Examples
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parachain-protocol-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Parachain Protocol Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../candidate-backing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Candidate Backing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-subsystems/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability Subsystems
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../prospective-parachains/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fragment-chain/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains - Fragment Chain
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-recovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability recovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authority-discovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Authority Discovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../statement-distribution/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Statement Distribution
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../grid-topology/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grid Topology
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gossip-support/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gossip Support
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provisioner/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Provisioner
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../collator-protocol-validator-side/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Collator Protocol - Validator Side
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Contributing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#background" class="md-nav__link">
+    <span class="md-ellipsis">
+      Background
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cluster-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cluster Mode
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clustertracker_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      ClusterTracker
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clustertracker-struct" class="md-nav__link">
+    <span class="md-ellipsis">
+      ClusterTracker Struct
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ClusterTracker Struct">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dependencies-of-clustertracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dependencies of ClusterTracker
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dependencies of ClusterTracker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1seconding-limit" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.Seconding Limit
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2knowledge" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.Knowledge
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3taggedknowledge" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.TaggedKnowledge
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#returning-types-and-errors-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      Returning types and Errors definition
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#methods-of-clustertracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Methods of ClusterTracker
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage-in-statement-distribution-subsystem" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage in Statement Distribution Subsystem
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="clustertracker">ClusterTracker<a class="headerlink" href="#clustertracker" title="Permanent link">&para;</a></h1>
+<h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
+<p>In the early stage of parablock life cycle, collator forwards the parablock(candidate) and its PoV to the validator set 
+assigned to the same parachain after it produces a parablock. Validator set then participate the Candidate Backing 
+Subsystem to validate. If candidate gets enough signed validation statements, it is considered as backable.  </p>
+<p>During the Candidate backing, each validator in the validator set needs to ensure the received candidate is valid 
+and generates the appropriate validation statement. If one candidate is considered valid, the signed validation 
+statement of it will be forwarded to other validators by the statement distribution subsystem(this is called Seconded).  </p>
+<p>Statement distribution subsystem is responsible for distributing the signed statements that validators have generated 
+and forwarding statements generated by the peers. Only the candidate with validation statements reaching to the 
+backing-group quorum will be considered as Backable.  </p>
+<p>Here, it is important to notice that every well-connected node is aware of every next potential parachain block, 
+including validators within the current parachain validator set(in-group) and validators assigned to other 
+parachains at this moment(out-group). For statement distribution, in-group validators need to consider all seconded 
+candidates. This is call Cluster mode; Out-group validators only need to consider Backable candidate from other groups.
+This is called Grid mode.  </p>
+<p><img alt="parablock life cycle" src="../assets/img/seconding-candidate.png" /></p>
+<h2 id="cluster-mode">Cluster Mode<a class="headerlink" href="#cluster-mode" title="Permanent link">&para;</a></h2>
+<p>Validator nodes are partitioned into groups, and validators within a group at a relay-parent can send each other 
+statement messages for any candidates within that group and based on that relay-parent.</p>
+<p>If a validator is disabled in the runtime, other validators should no longer accept statements from it.</p>
+<p>There are <code>Seconded</code> statement and <code>Valid</code> statement. Seconded statement must be sent before Valid statement. The statement
+is always a <code>CompactStatement</code> carrying a hash and signature.</p>
+<h2 id="clustertracker_1">ClusterTracker<a class="headerlink" href="#clustertracker_1" title="Permanent link">&para;</a></h2>
+<p>The cluster module(AKA ClusterTracker) provides direct distribution of unbacked candidates within a group.
+The clusterTracker determines whether to accept/reject messages from other validators in the same group. 
+It keeps track of what we have sent to other validators in the group, and pending statements.  </p>
+<h2 id="clustertracker-struct">ClusterTracker Struct<a class="headerlink" href="#clustertracker-struct" title="Permanent link">&para;</a></h2>
+<div class="codehilite"><pre><span></span><code><span class="kn">package</span><span class="w"> </span><span class="nx">statementdistribution</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="w"> </span><span class="s">&quot;github.com/ChainSafe/gossamer/dot/parachain/types&quot;</span>
+
+<span class="c1">// ClusterTracker is utility for keeping track of limits on direct statements within a group.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">ClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">CompactStatementValues</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="w"> </span><span class="nx">taggedKnowledge</span><span class="p">[</span><span class="nx">T</span><span class="p">]]</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="nx">validators</span><span class="w">     </span><span class="p">[]</span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span>
+<span class="w">   </span><span class="nx">secondingLimit</span><span class="w"> </span><span class="kt">uint</span>
+<span class="w">   </span><span class="nx">knowledge</span><span class="w">      </span><span class="kd">map</span><span class="p">[</span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">]</span><span class="kd">map</span><span class="p">[</span><span class="nx">F</span><span class="p">]</span><span class="kd">struct</span><span class="p">{}</span>
+<span class="w">   </span><span class="c1">// Statements known locally which haven&#39;t been sent to particular validators.</span>
+<span class="w">   </span><span class="c1">// maps target validator to (originator, statement) pairs.</span>
+<span class="w">   </span><span class="nx">pending</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">]</span><span class="kd">map</span><span class="p">[</span><span class="nx">originatorCompactStatement</span><span class="p">[</span><span class="nx">T</span><span class="p">]]</span><span class="kd">struct</span><span class="p">{}</span>
+<span class="p">}</span>
+
+<span class="c1">// originatorCompactStatement is a pair of (originator, statement)</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">originatorCompactStatement</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">CompactStatementValues</span><span class="p">]</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">validator</span><span class="w">        </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span>
+<span class="w">    </span><span class="nx">compactStatement</span><span class="w"> </span><span class="nx">T</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="dependencies-of-clustertracker">Dependencies of ClusterTracker<a class="headerlink" href="#dependencies-of-clustertracker" title="Permanent link">&para;</a></h3>
+<h4 id="1seconding-limit">1.Seconding Limit<a class="headerlink" href="#1seconding-limit" title="Permanent link">&para;</a></h4>
+<p>The seconding limit is a per-validator limit. Validator is able to second multiple candidates per relay parent.
+The seconding limit is set to max depth + 1 to set an upper bound on candidates entering the system.  </p>
+<h4 id="2knowledge">2.Knowledge<a class="headerlink" href="#2knowledge" title="Permanent link">&para;</a></h4>
+<p>A piece of knowledge about a candidate</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">package</span><span class="w"> </span><span class="nx">statementdistribution</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="w"> </span><span class="s">&quot;github.com/ChainSafe/gossamer/dot/parachain/types&quot;</span>
+
+<span class="c1">// general knowledge</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">general</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">CandidateHash</span>
+<span class="p">}</span>
+
+<span class="c1">// specific knowledge of a given statement (with its originator)</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">specific</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">CompactStatementValues</span><span class="p">]</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="nx">validator</span><span class="w">        </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span>
+<span class="w">   </span><span class="nx">compactStatement</span><span class="w"> </span><span class="nx">T</span>
+<span class="p">}</span>
+
+<span class="c1">// knowledge is a piece of knowledge about a candidate</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">knowledge</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">CompactStatementValues</span><span class="p">]</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="nx">general</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">specific</span><span class="p">[</span><span class="nx">T</span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="3taggedknowledge">3.TaggedKnowledge<a class="headerlink" href="#3taggedknowledge" title="Permanent link">&para;</a></h4>
+<p>Knowledge paired with its source(originator)</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">package</span><span class="w"> </span><span class="nx">statementdistribution</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="w"> </span><span class="s">&quot;github.com/ChainSafe/gossamer/dot/parachain/types&quot;</span>
+
+<span class="c1">// incomingP2P is one possible type of TaggedKnowledge we have received from the validator on the p2p layer.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">incomingP2P</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">CompactStatementValues</span><span class="p">]</span><span class="w"> </span><span class="nx">knowledge</span><span class="p">[</span><span class="nx">T</span><span class="p">]</span>
+
+<span class="c1">// outgoingP2P is one possible type of TaggedKnowledge we have sent to the validator on the p2p layer.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">outgoingP2P</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">CompactStatementValues</span><span class="p">]</span><span class="w"> </span><span class="nx">knowledge</span><span class="p">[</span><span class="nx">T</span><span class="p">]</span>
+
+<span class="c1">// seconded is one possible type of TaggedKnowledge of candidates the validator has seconded.</span>
+<span class="c1">// This is limited only to `Seconded` statements we have accepted without prejudice</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">seconded</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">CandidateHash</span>
+<span class="p">}</span>
+
+<span class="c1">// taggedKnowledge is Knowledge paired with its source.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">taggedKnowledge</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">CompactStatementValues</span><span class="p">]</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="nx">incomingP2P</span><span class="p">[</span><span class="nx">T</span><span class="p">]</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">outgoingP2P</span><span class="p">[</span><span class="nx">T</span><span class="p">]</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">seconded</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="returning-types-and-errors-definition">Returning types and Errors definition<a class="headerlink" href="#returning-types-and-errors-definition" title="Permanent link">&para;</a></h3>
+<div class="codehilite"><pre><span></span><code><span class="c1">// Accept means incoming statement was accepted.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Accept</span><span class="w"> </span><span class="kt">int</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="c1">// Ok is one of the Accept type value.</span>
+<span class="w">    </span><span class="c1">// Neither the peer nor the originator have apparently exceeded limits. Candidate or statement may already be known.</span>
+<span class="w">    </span><span class="nx">Ok</span><span class="w"> </span><span class="nx">Accept</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">iota</span>
+<span class="w">    </span><span class="c1">// WithPrejudice is one of the Accept type value.</span>
+<span class="w">    </span><span class="c1">// Accept the message; the peer hasn&#39;t exceeded limits but the originator has.</span>
+<span class="w">    </span><span class="nx">WithPrejudice</span>
+<span class="p">)</span>
+
+<span class="c1">// Incoming statement was rejected</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">errRejectIncomingExcessiveSeconded</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;Peer sent excessive Seconded statements.&quot;</span><span class="p">)</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">errRejectIncomingNotInGroup</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;Sender or originator is not in the group.&quot;</span><span class="p">)</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">errRejectIncomingCandidateUnknown</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;Candidate is unknown to us. Only applies to Valid statements.&quot;</span><span class="p">)</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">errRejectIncomingDuplicate</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;Statement is duplicate.&quot;</span><span class="p">)</span>
+
+<span class="c1">// Outgoing statement was rejected</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">errRejectOutgoingCandidateUnknown</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;Candidate was unknown. Only applies to Valid statements.&quot;</span><span class="p">)</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">errRejectOutgoingExcessiveSeconded</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;We attempted to send excessive Seconded statements. indicates a bug on the local node&#39;s code.&quot;</span><span class="p">)</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">errRejectOutgoingKnown</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;The statement was already known to the peer.&quot;</span><span class="p">)</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">errRejectOutgoingNotInGroup</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;Target or originator not in the group.&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<h2 id="methods-of-clustertracker">Methods of ClusterTracker<a class="headerlink" href="#methods-of-clustertracker" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Constructor of ClusterTracker: Instantiate a new ClusterTracker. Fails if clusterValidators is empty</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">NewClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">CompactStatementValues</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="w"> </span><span class="nx">taggedKnowledge</span><span class="p">[</span><span class="nx">T</span><span class="p">]](</span>
+<span class="nx">clusterValidators</span><span class="w"> </span><span class="p">[]</span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">,</span>
+<span class="nx">secondingLimit</span><span class="w"> </span><span class="kt">uint</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">ClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="p">],</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+
+<ol>
+<li>CanReceive: Query whether we can receive some statement from the given validator.</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">ClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="p">])</span><span class="w"> </span><span class="nx">CanReceive</span><span class="p">(</span><span class="nx">sender</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">,</span><span class="w"> </span><span class="nx">originator</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">,</span><span class="w"> </span><span class="nx">statement</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">Accept</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+
+<ol>
+<li>NoteIssued: Note that we issued a statement. This updates internal structures.</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">ClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="p">])</span><span class="w"> </span><span class="nx">NoteIssued</span><span class="p">(</span><span class="nx">originator</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">,</span><span class="w"> </span><span class="nx">statement</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span>
+</code></pre></div>
+
+<ol>
+<li>NoteReceived: Note that we accepted an incoming statement. This updates internal structures.</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">ClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="p">])</span><span class="w"> </span><span class="nx">NoteReceived</span><span class="p">(</span><span class="nx">sender</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">,</span><span class="w"> </span><span class="nx">originator</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">,</span><span class="w"> </span><span class="nx">statement</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span>
+</code></pre></div>
+
+<ol>
+<li>CanSend: Query whether we can send a statement to a given validator.</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">ClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="p">])</span><span class="w"> </span><span class="nx">CanSend</span><span class="p">(</span><span class="nx">target</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">,</span><span class="w"> </span><span class="nx">originator</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">,</span><span class="w"> </span><span class="nx">statement</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</code></pre></div>
+
+<ol>
+<li>NoteSent: Note that we sent an outgoing statement to a peer in the group. This must be preceded by a successful can_send call.</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">ClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="p">])</span><span class="w"> </span><span class="nx">NoteSend</span><span class="p">(</span><span class="nx">target</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">,</span><span class="w"> </span><span class="nx">originator</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">,</span><span class="w"> </span><span class="nx">statement</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span>
+</code></pre></div>
+
+<ol>
+<li>Targets: Get all targets as validator-indices. This doesn't attempt to filter out the local validator index.</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">ClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="p">])</span><span class="w"> </span><span class="nx">targets</span><span class="p">()</span><span class="w"> </span><span class="p">[]</span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span>
+</code></pre></div>
+
+<ol>
+<li>SendersForOriginator: Get all possible senders for the given originator. Returns the empty slice in the case that the originator is not part of the cluster.</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">ClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="p">])</span><span class="w"> </span><span class="nx">SendersForOriginator</span><span class="p">(</span><span class="nx">originator</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span>
+</code></pre></div>
+
+<ol>
+<li>KnowsCandidate: Whether a validator knows the candidate is Seconded.</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">ClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="p">])</span><span class="w"> </span><span class="nx">KnowsCandidate</span><span class="p">(</span><span class="nx">validator</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">,</span><span class="w"> </span><span class="nx">candidateHash</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">CandidateHash</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</code></pre></div>
+
+<ol>
+<li>CanRequest: Whether a validator can request a candidate from us.</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">ClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="p">])</span><span class="w"> </span><span class="nx">CanRequest</span><span class="p">(</span><span class="nx">target</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">,</span><span class="w"> </span><span class="nx">candidateHash</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">CandidateHash</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</code></pre></div>
+
+<ol>
+<li>PendingStatementsFor: Returns a slice of pending statements to be sent to a particular validator index. Seconded statements are sorted to the front of the vector.</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">ClusterTracker</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="p">])</span><span class="w"> </span><span class="nx">PendingStatementsFor</span><span class="p">(</span><span class="nx">target</span><span class="w"> </span><span class="nx">parachaintypes</span><span class="p">.</span><span class="nx">ValidatorIndex</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">OriginatorCompactStatement</span><span class="p">[</span><span class="nx">T</span><span class="p">]</span>
+</code></pre></div>
+
+<ol>
+<li>WarnIfTooManyPendingStatements: Dumps pending statement for this cluster into log</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">ClusterTrack</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">F</span><span class="p">])</span><span class="w"> </span><span class="nx">WarnIfTooManyPendingStatements</span><span class="p">(</span><span class="nx">parentHash</span><span class="w"> </span><span class="nx">common</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span>
+</code></pre></div>
+
+<h2 id="usage-in-statement-distribution-subsystem">Usage in Statement Distribution Subsystem<a class="headerlink" href="#usage-in-statement-distribution-subsystem" title="Permanent link">&para;</a></h2>
+<p>ClusterTracker is one of the params in the <code>ActiveValidatorState</code> which is the param of <code>LocalValidatorState</code>.</p>
+<div class="codehilite"><pre><span></span><code><span class="c1">// per-relay-parent local validator state.</span>
+<span class="k">struct</span> <span class="nc">LocalValidatorState</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// the grid-level communication at this relay-parent.</span>
+<span class="w">    </span><span class="n">grid_tracker</span>: <span class="nc">GridTracker</span><span class="p">,</span>
+<span class="w">    </span><span class="c1">// additional fields in case local node is an active validator.</span>
+<span class="w">    </span><span class="n">active</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="n">ActiveValidatorState</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="c1">// local index actually exists in case node is inactive validator, however,</span>
+<span class="w">    </span><span class="c1">// it&#39;s not needed outside of `build_session_topology`, where it&#39;s known.</span>
+<span class="p">}</span>
+
+<span class="k">struct</span> <span class="nc">ActiveValidatorState</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// The index of the validator.</span>
+<span class="w">    </span><span class="n">index</span>: <span class="nc">ValidatorIndex</span><span class="p">,</span>
+<span class="w">    </span><span class="c1">// our validator group</span>
+<span class="w">    </span><span class="n">group</span>: <span class="nc">GroupIndex</span><span class="p">,</span>
+<span class="w">    </span><span class="c1">// the assignments of our validator group, if any.</span>
+<span class="w">    </span><span class="n">assignments</span>: <span class="nb">Vec</span><span class="o">&lt;</span><span class="n">ParaId</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="c1">// the &#39;direct-in-group&#39; communication at this relay-parent.</span>
+<span class="w">    </span><span class="n">cluster_tracker</span>: <span class="nc">ClusterTracker</span><span class="p">,</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<ol>
+<li>
+<p>Send a peer all pending cluster statements for a relay parent:
+Query the pending statement first and then call <code>NoteSent</code> to modify the validator knowledge.  </p>
+</li>
+<li>
+<p>Import a locally originating statement and distributes it to peers:
+Call <code>NoteIssue</code> to issue a statement.  </p>
+</li>
+<li>
+<p>Circulate a compact statement to all peers who need it:
+First query all validators and see if we can send statement to each one of them, and then call <code>NoteSend</code> to mark that.  </p>
+</li>
+<li>
+<p>Handle an incoming statement:
+Query all possible senders for the given originator, and see whether a statement is allowed, if so call <code>NoteReceived</code> to mark as accepted incoming statement.</p>
+</li>
+<li>
+<p>Dispatch pending requests for candidate data &amp; statements:
+Query whether a validator knows the candidate is Seconded, then return the targeted validators set.</p>
+</li>
+<li>
+<p>Answer an incoming request for a candidate:
+Query whether a validator can request a candidate from us.</p>
+</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/ChainSafe/gossamer" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://x.com/ChainSafeth" target="_blank" rel="noopener" title="x.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

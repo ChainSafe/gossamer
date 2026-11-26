@@ -1,0 +1,1752 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The Official Documentation for Gossamer | A Go Implementation of the Polkadot Host">
+      
+      
+      
+      
+        <link rel="prev" href="../authority-discovery/">
+      
+      
+        <link rel="next" href="../grid-topology/">
+      
+      
+      <link rel="icon" href="../../assets/favicon.ico">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>Statement Distribution - Gossamer Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="pink" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#statement-distribution" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Gossamer Docs" class="md-header__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Gossamer Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Statement Distribution
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../usage/running-nodes/" class="md-tabs__link">
+          
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../integrate/connect-to-polkadot-js/" class="md-tabs__link">
+          
+  
+  Integrate
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../testing-and-debugging/test-suite/" class="md-tabs__link">
+          
+  
+  Testing and Debugging
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../advanced/scale-examples/" class="md-tabs__link">
+          
+  
+  Advanced
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../parachain-protocol-overview/" class="md-tabs__link">
+          
+  
+  Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing.md" class="md-tabs__link">
+          
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Gossamer Docs" class="md-nav__button md-logo" aria-label="Gossamer Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Gossamer Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ChainSafe/gossamer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    chainsafe/gossamer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/host-architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Host Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/package-library/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Package Library
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/general-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/resources/developer-resources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Developer Resources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Usage
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/running-nodes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running Nodes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/command-line/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command Line
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-runtime/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import Runtime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/import-state/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Import State
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Integrate
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Integrate
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrate/connect-to-polkadot-js/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Connect to Polkadot.js
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Testing and Debugging
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Testing and Debugging
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/test-suite/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Suite
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing-and-debugging/debugging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Debugging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Advanced
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Advanced
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../advanced/scale-examples/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SCALE Examples
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parachain-protocol-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Parachain Protocol Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../candidate-backing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Candidate Backing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-subsystems/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability Subsystems
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../prospective-parachains/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fragment-chain/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prospective Parachains - Fragment Chain
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../availability-recovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Availability recovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authority-discovery/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Authority Discovery
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Statement Distribution
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Statement Distribution
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#subsystem-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subsystem Structure
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Subsystem Structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#messages-received" class="md-nav__link">
+    <span class="md-ellipsis">
+      Messages Received
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#messages-sent" class="md-nav__link">
+    <span class="md-ellipsis">
+      Messages Sent
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#subsystem-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subsystem State
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#message-handling-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      Message Handling Logic
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grid-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Grid Mode
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#request-and-response-managers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Request and Response Managers
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../grid-topology/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Grid Topology
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gossip-support/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gossip Support
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provisioner/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Provisioner
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../collator-protocol-validator-side/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Collator Protocol - Validator Side
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Contributing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#subsystem-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subsystem Structure
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Subsystem Structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#messages-received" class="md-nav__link">
+    <span class="md-ellipsis">
+      Messages Received
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#messages-sent" class="md-nav__link">
+    <span class="md-ellipsis">
+      Messages Sent
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#subsystem-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subsystem State
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#message-handling-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      Message Handling Logic
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grid-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Grid Mode
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#request-and-response-managers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Request and Response Managers
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="statement-distribution">Statement Distribution<a class="headerlink" href="#statement-distribution" title="Permanent link">&para;</a></h1>
+<p>This subsystem is responsible for distributing signed statements that we have generated and forwarding statements generated by our peers.</p>
+<h2 id="subsystem-structure">Subsystem Structure<a class="headerlink" href="#subsystem-structure" title="Permanent link">&para;</a></h2>
+<p>The subsystem needs to handle multiple channels, beyond the overseer channel we also need to manage request and responses channels that are generated by spawned goroutines. These goroutines are called "responders" and in the parity implementation there exists 2 "responders", <em>larger_statement_responder</em> (legacy) and <em>candidate_responder</em> (v2).</p>
+<p>The responsibility of these "responders" is to listen for incoming requests and forward them to inside the statement distribution (as they are spawned goroutines), which will reach the target function that will respond to the request properly. The "responders" also act as a limiter on the amount of requests we are capable of handling.</p>
+<p>For V2:
+- Incoming request type <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/protocol/src/request_response/v2.rs#L32">AttestedCandidateRequest</a>
+- Response type <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/protocol/src/request_response/v2.rs#L47">AttestedCandidateResponse</a>
+- The handler <a href="https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/network/statement-distribution/src/v2/mod.rs#L3245">answer_request</a></p>
+<p>For V1 (No need for handling such requests or implementing the handlers, will be removed soon see https://github.com/paritytech/polkadot-sdk/issues/4447):
+- Incoming request type <a href="https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/network/protocol/src/request_response/v1.rs#L196">StatementFetchingRequest</a>
+- The handler <a href="https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/network/statement-distribution/src/legacy_v1/mod.rs#L1896">handle_responder_message</a></p>
+<p>The V2 brings a new advantage, the validators don't send each other heavy <code>CommitedCandidateReceipt</code>, but instead request them lazily through request/response protocols.</p>
+<p>The messages that validators can exchange are: 
+- <code>Statement</code>: contains only a signed compact statement;
+- <code>BackedCandidateManifest</code>: advertise a description of a backed candidate and stored statements;
+- <code>BackedCandidateAcknowledgement</code>: acknowledges that a backed candidate is fully known.</p>
+<h3 id="messages-received">Messages Received<a class="headerlink" href="#messages-received" title="Permanent link">&para;</a></h3>
+<p>The subsystem must be registered with the overseer and handle subsystem-specific messages from it:</p>
+<ol>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L829">StatementDistributionMessage::Share</a></p>
+</li>
+<li>
+<p>We have originated a signed statement in the context of given relay-parent hash and it should be distributed to other validators</p>
+</li>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L836">StatementDistributionMessage::Backed</a></p>
+</li>
+<li>
+<p>The candidate received enough validity votes from the backing group. If the candidate is backed as a result of a local statement, this message MUST be preceded by a <code>Share</code> message for that statement. This ensures that Statement Distribution is always aware of full candidates prior to receiving the <code>Backed</code> notification, even when the group size is 1 and the candidate is seconded locally</p>
+</li>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L839">StatementDistributionMessage::NetworkBridgeUpdate</a></p>
+</li>
+<li>
+<p>Event from the network bridge.</p>
+</li>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/lib.rs#L114">OverseerSignal::ActiveLeaves</a></p>
+</li>
+</ol>
+<h3 id="messages-sent">Messages Sent<a class="headerlink" href="#messages-sent" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L424">NetworkBridgeTxMessage::SendValidationMessages</a></p>
+</li>
+<li>
+<p>Send a batch of validation messages and they will be send in order</p>
+</li>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L416C2-L416C23">NetworkBridgeTxMessage::SendValidationMessage</a></p>
+</li>
+<li>
+<p>Send a message to one or more peers on the validation peer-set.</p>
+</li>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L410">NetworkBridgeTxMessage::ReportPeer</a></p>
+</li>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L112">CandidateBackingMessage::Statement</a></p>
+</li>
+<li>
+<p>Note a validator's statement about a particular candidate in the context of the given relay-parent. Disagreements about validity must be escalated to a broader check by the Disputes Subsystem, though that escalation is deferred until the approval voting stage to guarantee availability. Agreements are simply tallied until a quorum is reached.</p>
+</li>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L1411">ProspectiveParachainsMessage::GetHypotheticalMembership</a></p>
+</li>
+<li>
+<p>Get the hypothetical or actual membership of candidates with the given properties under the specified active leaf associated fragment chain. For each candidate, we return a vector of leaves where the candidate is present or could be added. "Could be added" either means that the candidate can be added to the chain right now or could be added in the future (we may not have its ancestors yet). Note that even if we think it could be added in the future, we may find out that it was invalid, as time passes. If an active leaf is not in the vector, it means that there's no chance this candidate will become valid under that leaf in the future. If <code>fragment_chain_relay_parent</code> in the request is <code>Some()</code>, the return vector can only contain this relay parent (or none).</p>
+</li>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L433">NetworkBridgeTxMessage::SendRequests</a></p>
+</li>
+<li>
+<p>Sends request via normal network layer</p>
+</li>
+</ol>
+<h2 id="subsystem-state">Subsystem State<a class="headerlink" href="#subsystem-state" title="Permanent link">&para;</a></h2>
+<p>The Statement Distribution subsystem currently has 2 states to manage under the current implementation but here we should focus on <code>v2::State</code> given that <code>v1::State</code> is legacy code and will be removed soon see https://github.com/paritytech/polkadot-sdk/issues/4447.</p>
+<p>The state holds
+- the implicit view
+- candidates (a tracker for all known candidates in the view)
+- per-relay-parent state
+- per-session state
+- unused topologies (topologies might be received before the first leaf update, so we should cache it)
+- peers view and state
+- keystore
+- authorities (a map from authority id to peer id)
+- request and response manager</p>
+<h2 id="message-handling-logic">Message Handling Logic<a class="headerlink" href="#message-handling-logic" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/lib.rs#L308">handle_subsystem_message</a>: This handler deals with multiple kinds of messages from the overseer (also other subsystems):</p>
+</li>
+<li>
+<p><strong>OverseerSignal::ActiveLeaves</strong>: we should implement the <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L578"><code>v2::handle_active_leaves_update</code></a> and also <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L798">v2::handle_deactivate_leaves</a></p>
+</li>
+<li>
+<p><strong>StatementDistributionMessage::Share</strong>: this message is handled by <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L1181"><code>v2::share_local_statement</code></a>, where a local originated statement is imported and need to be distributed to peers, calls <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L1343-L1344"><code>v2::circulate_statement</code></a></p>
+</li>
+<li>
+<p><strong>StatementDistributionMessage::NetworkBridgeUpdate</strong>: messages coming from network bridge might be labeled with its version. We should focus only on messages labeled <code>Version::V2</code> and <code>Version::V3</code>. Messages targeting the current protocol they are handled by <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L428"><code>v2::handle_network_update</code></a>. The message from the network bridge can unwrap in one of the following messages:</p>
+</li>
+<li><code>NetworkBridgeEvent::PeerConnected</code>: update the current subsystem state peer view</li>
+<li><code>NetworkBridgeEvent::PeerDisconnected</code>: update the current subsystem state peer view</li>
+<li><code>NetworkBridgeEvent::NewGossipTopology</code>: given the incoming topology checks if we already have such session index to supply the topology, otherwise keep it in the <code>unused_topology</code></li>
+<li><code>NetworkBridgeEvent::PeerViewChange</code>: handled by <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L838-L839"><code>handle_peer_view_update</code></a></li>
+<li><code>NetworkBridgeEvent::OurViewChange</code>: do nothing</li>
+<li><code>NetworkBridgeEvent::UpdatedAuthorityIds</code>: we could find the PeerIDs of current session authorities, update them in the subsystem state.</li>
+<li>
+<p><code>NetworkBridgeEvent::PeerMessage</code>:</p>
+<ul>
+<li><code>StatementDistributionMessage::V1(_)</code>: ignore the message</li>
+<li><code>StatementDistributionMessage::V2(protocol_v2::StatementDistributionMessage::V1Compatibility)</code>: ignore the message</li>
+<li><code>StatementDistributionMessage::V3(protocol_v3::StatementDistributionMessage::V1Compatibility)</code>: ignore the message</li>
+<li><code>StatementDistributionMessage::V2(protocol_v2::StatementDistributionMessage::Statement)</code>: handled by <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L1549-L1550"><code>handle_incoming_statement</code></a></li>
+<li><code>StatementDistributionMessage::V3(protocol_v3::StatementDistributionMessage::Statement)</code>: handled by <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L1549-L1550"><code>handle_incoming_statement</code></a></li>
+<li><code>StatementDistributionMessage::V2(protocol_v2::StatementDistributionMessage::BackedCandidateManifest)</code>: handled by <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L2339-L2340"><code>handle_incoming_manifest</code></a></li>
+<li><code>StatementDistributionMessage::V3(protocol_v3::StatementDistributionMessage::BackedCandidateManifest)</code>: handled by <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L2339-L2340"><code>handle_incoming_manifest</code></a></li>
+<li><code>StatementDistributionMessage::V2(protocol_v2::StatementDistributionMessage::BackedCandidateKnown)</code>: handled by <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L2726-L2727"><code>handle_incoming_acknowledgement</code></a></li>
+<li><code>StatementDistributionMessage::V3(protocol_v3::StatementDistributionMessage::BackedCandidateKnown)</code>: handled by <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L2726-L2727"><code>handle_incoming_acknowledgement</code></a></li>
+</ul>
+</li>
+<li>
+<p><strong>StatementDistributionMessage::Backed</strong>: handles the notification of a candidate being backed. The candidate should be known before to be handled correctly if the candidate is not known the message is dropped. This calls <a href="https://github.com/paritytech/polkadot-sdk/blob/76a292b23bf6f35156fd3dd832e9c4ec31b24b2c/polkadot/node/network/statement-distribution/src/v2/mod.rs#L1983C10-L1983C35"><code>provide_candidate_to_grid</code></a> which provides the a backable candidate to the grid and dispatchs backable candidates announcements and acknowledgments via grid topology, if the session topology is not yet available then it will be a noop. Next method used is <a href="https://github.com/paritytech/polkadot-sdk/blob/76a292b23bf6f35156fd3dd832e9c4ec31b24b2c/polkadot/node/network/statement-distribution/src/v2/mod.rs#L2309"><code>prospective_backed_notification_fragment_chain_updates</code></a> which retrieve hypothetical membership from Prospective-Parachains and send them to Candidate-Backing subsystem as fresh statements through the function <a href="https://github.com/paritytech/polkadot-sdk/blob/41a5d8ec5f3d3d0ff82899be66113b223395ade5/polkadot/node/network/statement-distribution/src/v2/mod.rs#L1929"><code>send_backing_fresh_statements</code></a>.</p>
+</li>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/b8da8faa0a675afbed1c9ed5d524a674e93910b9/polkadot/node/network/statement-distribution/src/lib.rs#L287">handle_response</a> </p>
+</li>
+<li>
+<p>After <code>ResponseManager</code> receives a message from the peer we're requesting some data this handler is triggered to handle the incoming response. </p>
+</li>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/41a5d8ec5f3d3d0ff82899be66113b223395ade5/polkadot/node/network/statement-distribution/src/v2/mod.rs#L3245-L3246">answer_request</a></p>
+</li>
+<li>
+<p>Given a <a href="https://github.com/paritytech/polkadot-sdk/blob/82117ad53fc68e8097183e759926b62265ffff0a/polkadot/node/network/protocol/src/request_response/v2.rs#L32"><code>AttestedCandidateRequest</code></a> request we should respond the request for the asked candidate hash.</p>
+</li>
+<li>
+<p><a href="https://github.com/paritytech/polkadot-sdk/blob/b8da8faa0a675afbed1c9ed5d524a674e93910b9/polkadot/node/network/statement-distribution/src/lib.rs#L303C8-L303C25">dispatch_requests</a></p>
+</li>
+<li>
+<p>This method is called in 2 situations: right after one of the above handles finishes execution, that is why while handling a message we might have produced a request to dispatch for example: we received a <code>Manifest</code> message and now we need to request the candidate so we build the candidate request and place them in the <code>RequestManager</code> queue and after handling the message we call <code>dispatch_requests</code>. The second situation is when we receive a <code>RetryRequest</code> message coming from <code>RequestManager</code>, meaning that we have failed requests in the queue to dispatch. </p>
+</li>
+</ol>
+<h2 id="grid-mode">Grid Mode<a class="headerlink" href="#grid-mode" title="Permanent link">&para;</a></h2>
+<p>Here is a brief explanation of the function <a href="https://github.com/paritytech/polkadot-sdk/blob/41a5d8ec5f3d3d0ff82899be66113b223395ade5/polkadot/node/network/statement-distribution/src/v2/grid.rs#L118-L119"><code>build_session_topology</code></a> that is an important part to define our sender/receivers in the grid mode topology</p>
+<p>The method <a href="https://github.com/paritytech/polkadot-sdk/blob/41a5d8ec5f3d3d0ff82899be66113b223395ade5/polkadot/node/network/statement-distribution/src/v2/grid.rs#L118-L119"><code>build_session_topology</code></a> builds a view of the topology for the session. The network bridge gives us the entire grid topology for a certain session. In it, we know our neighbors in the X axis and Y axis (based on our validator index). So together with the <a href="https://github.com/paritytech/polkadot-sdk/blob/5ca726750da563c46449f9aa915296e6c6967e61/polkadot/node/network/statement-distribution/src/v2/groups.rs#L28"><code>Groups</code></a>, which is the validator group within the session, we can define the peers we expect to receive messages and the peers we should send messages to.</p>
+<ol>
+<li>
+<p>We should not send <code>Manifests</code> or <code>Acknowledgements</code> to validators in the same group as ours. They are already present in the Cluster topology. We should send those messages to peers in the same "row" and "column" as ours if they are not part of our group.</p>
+</li>
+<li>
+<p>if the validator is not in the same group, we should check if we share the same "row" or "column". If we share the same <strong>ROW</strong> then I expect to receive messages from him, and I will propagate his messages with my <strong>COLUMN</strong> neighbors that are not part of the sender's group. It's the same logic the other way around. If we share the same <strong>COLUMN</strong> then I expect to receive messages from him, and I will propagate his messages with my <strong>ROW</strong> neighbors that are not part of the sender's group.</p>
+</li>
+</ol>
+<p>Take the example:</p>
+<p><img alt="Grid Topology Example" src="../../assets/img/sd_img1.jpeg" /></p>
+<p>1) Considering that <strong>J</strong> is our validator index, we share X axis with <strong>[I, K, J]</strong> and Y axis with <strong>[B, F, N]</strong>, lets say that a message coming from <code>B</code> arrives, we can only propagate the message to validator <code>I</code>, as <code>K</code> and <code>L</code> are from the same group as <code>B</code>.</p>
+<p>2) Considering that we, <code>J</code>, want to share a <code>Manifest</code> with our grid neighbors, we can send the message to <strong>[I, K, J]</strong> and <strong>[B, F, N]</strong> as they are not part of the group I belong to.</p>
+<h2 id="request-and-response-managers">Request and Response Managers<a class="headerlink" href="#request-and-response-managers" title="Permanent link">&para;</a></h2>
+<p>Whenever we're <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L1549-L1550"><code>handling an incoming statement</code></a> or <a href="https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L2339-L2340"><code>handling an incoming manifest</code></a> we do check if we have the related candidate, if we don't know it we should request if from the peer and that is made through <a href="https://github.com/paritytech/polkadot-sdk/blob/f4a196ab1473856c9c5992239fcc2f14c2c42914/polkadot/node/network/statement-distribution/src/v2/requests.rs#L162"><code>RequestManager</code></a> and <a href="https://github.com/paritytech/polkadot-sdk/blob/f4a196ab1473856c9c5992239fcc2f14c2c42914/polkadot/node/network/statement-distribution/src/v2/requests.rs#L429"><code>ResponseManager</code></a>.</p>
+<p>The outgoing requests are managed by the request manager, and it is responsible also for holding requests that failed and marking them to retry later. After the Statement Distribution finishes to handling some message it calls <a href="https://github.com/paritytech/polkadot-sdk/blob/f4a196ab1473856c9c5992239fcc2f14c2c42914/polkadot/node/network/statement-distribution/src/lib.rs#L303"><code>v2::dispatch_requests</code></a> which will drain the requests in the <a href="https://github.com/paritytech/polkadot-sdk/blob/f4a196ab1473856c9c5992239fcc2f14c2c42914/polkadot/node/network/statement-distribution/src/v2/requests.rs#L162"><code>RequestManager</code></a> manager queue and will now track the in-flight requests in the <a href="https://github.com/paritytech/polkadot-sdk/blob/f4a196ab1473856c9c5992239fcc2f14c2c42914/polkadot/node/network/statement-distribution/src/v2/requests.rs#L429"><code>ResponseManager</code></a>, that is made through a communication channel, the request will be sent to <code>NetworkBridgeSubsystem</code> and the <code>ResponseManager</code> will wait until any info comes through communication channel pipe (<a href="https://github.com/paritytech/polkadot-sdk/blob/f4a196ab1473856c9c5992239fcc2f14c2c42914/polkadot/node/network/statement-distribution/src/v2/mod.rs#L3067"><code>receive_response</code></a>), when that happens the message will be handled by Statement Distribution Subsystem under <a href="https://github.com/paritytech/polkadot-sdk/blob/f4a196ab1473856c9c5992239fcc2f14c2c42914/polkadot/node/network/statement-distribution/src/v2/mod.rs#L3088"><code>handle_response</code></a>.</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/ChainSafe/gossamer" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://x.com/ChainSafeth" target="_blank" rel="noopener" title="x.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>
